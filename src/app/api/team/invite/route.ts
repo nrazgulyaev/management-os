@@ -35,10 +35,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     {
       ok: true,
       invitationId: result.invitationId,
-      emailQueued: result.emailQueued,
-      // We deliberately do NOT echo the token. The token is delivered
-      // via the email; surfacing it via the API would break audit-trail
-      // expectations.
+      // Honest delivery state: false in dry-run / no-RESEND mode. When not
+      // delivered we echo the accept URL so automations can surface the link.
+      emailDelivered: result.emailDelivered,
+      ...(result.emailDelivered ? {} : { acceptUrl: result.acceptUrl }),
     },
     { status: 201 },
   );

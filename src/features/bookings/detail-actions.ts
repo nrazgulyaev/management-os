@@ -6,10 +6,16 @@ import { z } from "zod";
 import { differenceInCalendarDays } from "date-fns";
 import { getDb } from "@/lib/db/client";
 import { bookings } from "@/lib/db/schema/bookings";
-import { bookingGuests, bookingCharges } from "@/lib/db/schema/booking-detail";
+import { villas, projects } from "@/lib/db/schema/projects";
+import {
+  bookingGuests,
+  bookingCharges,
+  bookingPayments,
+} from "@/lib/db/schema/booking-detail";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { ActionResult } from "@/features/projects/actions";
 
 /**
@@ -284,6 +290,110 @@ export async function extendBookingStayAction(
     before: { checkOut: bk.checkOut },
     after: { checkOut: newCheckOut, nights },
     metadata: { field: "checkOut", reason: "extend_stay" },
+  });
+
+  revalidatePath(`/dashboard/bookings/${bookingId}`);
+  return { ok: true };
+}
+
+/* --------------------------- record payment ---------------------------- */
+
+const paymentSchema = z.object({
+  // method: cash | transfer | card-manual — the founder's three real-world
+  // ways a guest hands over money (before check-in, on arrival, on checkout).
+  method: z.enum(["cash", "transfer", "card-manual"]).default("cash"),
+  amount: z.coerce.number().positive("Amount must be greater than 0").max(1_000_000_000),
+  // received_at — defaults to today when blank.
+  receivedAt: z.string().date().optional().or(z.literal("")),
+  note: z.string().max(200).optional().or(z.literal("")),
+  currency: z.string().length(3).toUpperCase().optional(),
+});
+
+/**
+ * Record a payment received against a booking (the founder's three cash
+ * cases — before check-in, on arrival, on check-out — are the same action at
+ * any booking status; NOT gated by status).
+ *
+ * Org-scoping: the org is derived from the booking's villa → project
+ * (`projects.organization_id`) AND re-checked against `requireOrgId()`, so a
+ * caller can never post a payment onto another tenant's booking — a cross-org
+ * id resolves to no row and 404s. The inserted row carries that org id, and a
+ * `booking.payment.record` audit event is written.
+ */
+export async function recordBookingPaymentAction(
+  bookingId: string,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await canManageEntity("booking"))) {
+    return { ok: false, error: "Not authorised." };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  const parsed = paymentSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the highlighted fields.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const d = parsed.data;
+  const organizationId = await requireOrgId();
+
+  // Resolve the booking + its currency + the OWNING org via villa → project,
+  // ANDed with the caller's org so a cross-tenant booking id is unreachable.
+  const [bk] = await db
+    .select({
+      currency: bookings.currency,
+      projectOrgId: projects.organizationId,
+    })
+    .from(bookings)
+    .innerJoin(villas, eq(villas.id, bookings.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(bookings.id, bookingId),
+        eq(bookings.organizationId, organizationId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!bk) return { ok: false, error: "Booking not found." };
+
+  const currency = d.currency ?? bk.currency;
+  const receivedAt = d.receivedAt
+    ? new Date(`${d.receivedAt}T00:00:00.000Z`)
+    : new Date();
+  const amount = Math.abs(d.amount);
+
+  await db.insert(bookingPayments).values({
+    organizationId: bk.projectOrgId,
+    bookingId,
+    // A recorded receipt is a manual, money-in-hand payment, not a PSP capture.
+    provider: "manual",
+    method: d.method,
+    amount: String(amount),
+    currency,
+    status: "captured",
+    receivedAt,
+    capturedAt: receivedAt,
+    captureNote: d.note ? d.note : null,
+  });
+
+  const me = await getCurrentAppUser();
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "booking.payment.record",
+    entityType: "booking",
+    entityId: bookingId,
+    after: {
+      method: d.method,
+      amount,
+      currency,
+      receivedAt: receivedAt.toISOString(),
+    },
+    metadata: { provider: "manual" },
   });
 
   revalidatePath(`/dashboard/bookings/${bookingId}`);

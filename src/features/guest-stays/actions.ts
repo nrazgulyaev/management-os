@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestStayTokens,
@@ -64,10 +64,17 @@ export async function issueGuestStayTokenAction(
   const me = await getCurrentAppUser();
   const organizationId = await requireOrgId();
 
+  // Tenancy guard: only resolve the booking inside the caller's org. A
+  // cross-org booking id must be indistinguishable from a missing one.
   const [booking] = await db
     .select()
     .from(bookings)
-    .where(eq(bookings.id, parsed.data.bookingId))
+    .where(
+      and(
+        eq(bookings.id, parsed.data.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!booking) return { ok: false, error: "Booking not found." };
 
@@ -135,17 +142,27 @@ export async function revokeGuestStayTokenAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // Tenancy guard: token row carries organization_id — scope the read so a
+  // cross-org token id reads as "not found" rather than leaking state.
   const [before] = await db
     .select()
     .from(guestStayTokens)
-    .where(eq(guestStayTokens.id, parsed.data.id))
+    .where(
+      and(
+        eq(guestStayTokens.id, parsed.data.id),
+        eq(guestStayTokens.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Token not found." };
   if (before.status !== "active") {
     return { ok: false, error: `Token is already ${before.status}.` };
   }
 
+  // The UPDATE is ANDed with the org as well so a TOCTOU race can never
+  // flip a row outside the caller's tenant.
   await db
     .update(guestStayTokens)
     .set({
@@ -154,7 +171,12 @@ export async function revokeGuestStayTokenAction(
       revokedBy: me?.id ?? null,
       revokeReason: parsed.data.reason ?? null,
     })
-    .where(eq(guestStayTokens.id, parsed.data.id));
+    .where(
+      and(
+        eq(guestStayTokens.id, parsed.data.id),
+        eq(guestStayTokens.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

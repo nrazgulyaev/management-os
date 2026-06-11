@@ -433,6 +433,11 @@ export async function generateOwnerStatementAction(
     return { ok: false, error: "Please review the form.", fieldErrors: parsed.error.flatten().fieldErrors };
   }
   const me = await getCurrentAppUser();
+  // TENANCY (write-flow audit): stamp the caller's org so the lifecycle
+  // actions (which org-filter their lookup) can find the new statement.
+  // Without this the statement is born org-less and Issue/Approve/Mark-paid
+  // all return "Statement not found".
+  const organizationId = await requireOrgId();
   const result = await generateOwnerStatement({
     ownerId: parsed.data.ownerId,
     periodId: parsed.data.periodId,
@@ -440,6 +445,7 @@ export async function generateOwnerStatementAction(
     projectId: parsed.data.projectId === "" ? undefined : parsed.data.projectId,
     currency: parsed.data.currency,
     actorUserId: me?.id ?? null,
+    organizationId,
   });
   if (!result.ok) {
     const map: Record<string, string> = {

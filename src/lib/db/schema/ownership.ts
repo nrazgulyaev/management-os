@@ -25,6 +25,13 @@ export const owners = pgTable(
     taxResidency: text("tax_residency"),
     // status: active | inactive | onboarding | archived
     status: text("status").notNull().default("active"),
+    /**
+     * Operator commission for this owner, stored as a FRACTION in [0,1]
+     * (0.2000 = 20%). NULL = not set → callers fall back to the 20% platform
+     * default. Fraction shape matches owner_statements.operator_commission_pct
+     * so the statement engines can read it directly. Migration 0169.
+     */
+    commissionPct: numeric("commission_pct", { precision: 6, scale: 4 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },

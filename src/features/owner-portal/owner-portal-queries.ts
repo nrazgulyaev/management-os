@@ -132,12 +132,23 @@ export interface OwnerStatementRow {
   autoAckAt?: string | null;
 }
 
+/**
+ * Mgmt-side lifecycle states an owner is allowed to see in the portal.
+ * A statement only becomes owner-facing once it has been issued (and
+ * stays visible through approved/paid). `draft` is internal-only — a
+ * director is still assembling it — and `voided` is retracted. Surfacing
+ * a draft (which can also carry a NULL period_month and crash the month
+ * formatter) is the leak this guard closes.
+ */
+const OWNER_VISIBLE_STATEMENT_STATUSES = ["issued", "approved", "paid"] as const;
+
 export async function listMyStatements(
   ownerId: string,
   opts?: { statusFilter?: string; limit?: number },
 ): Promise<OwnerStatementRow[]> {
   const db = getDb();
   if (!db) return [];
+  const ownerVisibleStatuses = [...OWNER_VISIBLE_STATEMENT_STATUSES] as string[];
   const rows = await db.execute<{
     id: string;
     statement_code: string;
@@ -173,6 +184,10 @@ export async function listMyStatements(
       FROM owner_statements s
       LEFT JOIN villas v ON v.id = s.villa_id
      WHERE s.owner_id = ${ownerId}::uuid
+       -- Never surface internal drafts / retracted (voided) statements, and
+       -- never surface a NULL-period draft (the month formatter would crash).
+       AND s.status = ANY(${ownerVisibleStatuses}::text[])
+       AND s.period_month IS NOT NULL
        AND (${opts?.statusFilter ?? null}::text IS NULL OR s.status = ${opts?.statusFilter ?? null})
      ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
      LIMIT ${opts?.limit ?? 24}
@@ -277,6 +292,8 @@ export async function getMyStatementDetail(
       LEFT JOIN owners o ON o.id = s.owner_id
      WHERE s.id = ${statementId}::uuid
        AND s.owner_id = ${ownerId}::uuid
+       -- An owner can never deep-link into an internal draft / voided row.
+       AND s.status = ANY(${[...OWNER_VISIBLE_STATEMENT_STATUSES] as string[]}::text[])
      LIMIT 1
   `);
   const sr = rowsOf<{
@@ -518,7 +535,10 @@ export interface DistributionsSummary {
 }
 
 export async function listMyDistributions(ownerId: string): Promise<DistributionsSummary> {
-  const rows = await listMyStatements(ownerId, { statusFilter: "sent", limit: 50 });
+  // Distributions = statements where the payout was actually made. The mgmt
+  // lifecycle marks that with status 'paid' (the old filter used a
+  // non-existent 'sent' status and surfaced nothing).
+  const rows = await listMyStatements(ownerId, { statusFilter: "paid", limit: 50 });
   const yearStart = new Date(new Date().getUTCFullYear(), 0, 1)
     .toISOString()
     .slice(0, 10);

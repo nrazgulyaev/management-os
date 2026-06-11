@@ -102,11 +102,19 @@ export function LoginForm({
           <div className="auth-or">
             <span>or</span>
           </div>
+          {/* SSO is not wired yet — render an honestly-disabled affordance
+              rather than a dead button that silently does nothing. */}
           <button
             type="button"
-            className="btn btn-secondary btn-lg auth-submit"
+            disabled
+            title="SSO sign-in is coming soon"
+            aria-disabled="true"
+            className="btn btn-secondary btn-lg auth-submit opacity-60 cursor-not-allowed"
           >
             <ShieldCheck className="w-4 h-4" strokeWidth={1.7} /> Continue with SSO
+            <span className="ml-1.5 text-[11px] uppercase tracking-[0.08em] opacity-70">
+              soon
+            </span>
           </button>
         </>
       )}

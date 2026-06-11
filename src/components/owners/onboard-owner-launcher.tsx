@@ -3,14 +3,13 @@
 /**
  * mgmt-03 — Onboard-owner launcher.
  *
- * Replaces the flat OwnerForm create path on the owners list with the
- * 3-step OnboardOwnerModal wizard (Identity -> Commission -> Villas +
- * portal). The wizard's identity fields create the owner through the
- * existing `createOwnerAction`. Commission %, villa assignment, and the
- * portal invite are collected by the wizard UI; their share/grant
- * persistence lands in the 2.2 data PR (the create action does not yet
- * consume them). A "full page" fallback link keeps the legacy /new
- * route deep-linkable.
+ * Drives the 3-step OnboardOwnerModal wizard (Identity → Commission →
+ * Villas + portal). On finish it calls `onboardOwnerAction`, which persists
+ * EVERYTHING the wizard collects in one org-scoped flow: the owner identity,
+ * the commission % (owners.commission_pct), one active ownership_share per
+ * assigned villa, and an honest portal-invite record. The action returns the
+ * new owner id so we navigate straight to their detail page. A "full page"
+ * fallback link keeps the legacy /new route deep-linkable.
  */
 
 import * as React from "react";
@@ -22,7 +21,7 @@ import {
   OnboardOwnerModal,
   type OnboardOwnerValues,
 } from "@/components/owners/onboard-modal";
-import { createOwnerAction } from "@/features/owners/actions";
+import { onboardOwnerAction } from "@/features/owners/actions";
 
 export function OnboardOwnerLauncher({
   availableVillas,
@@ -34,20 +33,25 @@ export function OnboardOwnerLauncher({
   const [, startTransition] = React.useTransition();
 
   async function handleSubmit(values: OnboardOwnerValues) {
-    const fd = new FormData();
-    fd.set("type", "individual");
-    fd.set("displayName", values.displayName);
-    fd.set("legalName", values.legalName);
-    fd.set("email", values.email);
-    fd.set("taxResidency", values.taxResidency);
-    fd.set("status", "onboarding");
-
-    // createOwnerAction redirects to the new owner on success; on a
-    // validation failure it returns { ok: false } and we keep the modal
-    // open so the director can correct the highlighted fields.
-    const res = await createOwnerAction(null, fd);
+    // onboardOwnerAction persists identity + commission + villa shares +
+    // portal-invite intent and returns the new owner id. On a validation
+    // failure it returns { ok: false } and we keep the modal open so the
+    // director can correct the highlighted fields.
+    const res = await onboardOwnerAction({
+      displayName: values.displayName,
+      legalName: values.legalName,
+      email: values.email,
+      taxResidency: values.taxResidency,
+      commissionPct: values.commissionPct,
+      villaIds: values.villaIds,
+      invitePortal: values.invitePortal,
+    });
     if (!res || res.ok === false) return;
-    router.refresh();
+    if (res.ownerId) {
+      router.push(`/dashboard/owners/${res.ownerId}`);
+    } else {
+      router.refresh();
+    }
   }
 
   return (

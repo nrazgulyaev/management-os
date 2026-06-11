@@ -114,7 +114,11 @@ test("9.D: accept calls provision_app_user with org_id + NULL internal + invitat
   // (auth_user_id, email, full_name, organization_id, role_key_internal, role_key_cabinet).
   // For invitees: org_id from invitation row, NULL for internal, role_key from invitation.
   assert.match(src, /\$\{invitation\.organizationId\}::uuid/);
-  assert.match(src, /NULL::text,\s*\$\{invitation\.roleKey\}::text/);
+  // DOMAIN 2: the internal slot stays NULL; the cabinet role is passed as
+  // `cabinetRoleKey`, which is derived from invitation.roleKey (and mapped to
+  // investor_owner for owner-portal invites).
+  assert.match(src, /NULL::text,\s*\$\{cabinetRoleKey\}::text/);
+  assert.match(src, /const cabinetRoleKey = isOwnerInvite \? "investor_owner" : invitation\.roleKey/);
 });
 
 test("9.D: revokeAccess refuses to demote the last active admin", () => {

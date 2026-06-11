@@ -41,6 +41,13 @@ export type GenerateInput = {
   /** Statement currency. Default USD. */
   currency?: string;
   actorUserId?: string | null;
+  /**
+   * TENANCY (write-flow audit): the caller's organization. Stamped on the
+   * owner_statements row so the lifecycle actions (setStatementStatusAction)
+   * — which org-filter their lookup — can actually find the statement. A
+   * statement created without this is invisible to Issue/Approve/Mark-paid.
+   */
+  organizationId: string;
 };
 
 export type GenerateOutput =
@@ -640,6 +647,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       and(
         eq(ownerStatements.ownerId, input.ownerId),
         eq(ownerStatements.periodId, input.periodId),
+        eq(ownerStatements.organizationId, input.organizationId),
       ),
     )
     .limit(1);
@@ -688,7 +696,12 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         revparMinor: revparMinor ?? null,
         status: "draft",
       })
-      .where(eq(ownerStatements.id, existing.id));
+      .where(
+        and(
+          eq(ownerStatements.id, existing.id),
+          eq(ownerStatements.organizationId, input.organizationId),
+        ),
+      );
 
     await db.delete(statementLines).where(eq(statementLines.statementId, existing.id));
     // Drop materialised allocations for this statement so we can rewrite them.
@@ -699,6 +712,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     const [inserted] = await db
       .insert(ownerStatements)
       .values({
+        organizationId: input.organizationId,
         ownerId: input.ownerId,
         villaId: headlineVillaId,
         projectId: headlineProjectId,

@@ -113,12 +113,17 @@ export const bookingPayments = pgTable(
     // status: captured | pending | refunded | failed
     status: text("status").notNull().default("captured"),
     capturedAt: timestamp("captured_at", { withTimezone: true }),
+    /** When the operator actually received the money (cash on arrival, a
+     * transfer's value date, a manual card capture). Migration 0167; distinct
+     * from capturedAt, which the seed/PSP path used. */
+    receivedAt: timestamp("received_at", { withTimezone: true }),
     captureNote: text("capture_note"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("booking_payments_booking_idx").on(t.bookingId),
     index("booking_payments_organization_idx").on(t.organizationId),
+    index("booking_payments_received_idx").on(t.receivedAt),
   ],
 );
 

@@ -19,6 +19,7 @@ import {
 import { organizations } from "./saas";
 import { projects } from "./projects";
 import { appUsers } from "./identity";
+import { owners } from "./ownership";
 
 export const teamInvitations = pgTable(
   "team_invitations",
@@ -32,6 +33,15 @@ export const teamInvitations = pgTable(
     roleKey: text("role_key").notNull(),
     scope: text("scope").notNull().default("company_wide"),
     scopedProjectId: uuid("scoped_project_id").references(() => projects.id, {
+      onDelete: "set null",
+    }),
+    /**
+     * DOMAIN 2 (migration 0168) — owner-portal invitations. When set, this
+     * invitation is an owner-portal invite: on accept the runtime creates a
+     * real `app_users_owners` grant linking the new app_user to this owner.
+     * NULL for ordinary staff invitations.
+     */
+    ownerId: uuid("owner_id").references(() => owners.id, {
       onDelete: "set null",
     }),
     invitedByUserId: uuid("invited_by_user_id").references(() => appUsers.id, {
@@ -64,6 +74,7 @@ export const teamInvitations = pgTable(
     index("team_invitations_org_idx").on(t.organizationId),
     index("team_invitations_email_idx").on(sql`lower(${t.email})`),
     index("team_invitations_status_idx").on(t.status),
+    index("team_invitations_owner_idx").on(t.ownerId),
     uniqueIndex("team_invitations_active_uniq")
       .on(t.organizationId, sql`lower(${t.email})`)
       .where(sql`status = 'pending'`),

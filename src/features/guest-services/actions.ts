@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestServiceCategories,
@@ -510,13 +510,27 @@ export async function transitionOrderAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
 
-  const [order] = await db
-    .select()
+  // Tenancy guard: the order has no org column, but its catalog row
+  // (guest_services.organization_id NOT NULL) does. Join + filter so a
+  // cross-org order id reads as "not found".
+  const [orderRow] = await db
+    .select({ order: guestServiceOrders })
     .from(guestServiceOrders)
-    .where(eq(guestServiceOrders.id, v.id))
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceOrders.id, v.id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
+  const order = orderRow?.order;
   if (!order) return { ok: false, error: "Order not found." };
 
   const from = order.status as OrderStatus;
@@ -655,6 +669,26 @@ export async function addOrderNoteAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenancy guard: confirm the order belongs to the caller's org (via its
+  // catalog row) before appending a note to its timeline.
+  const [scoped] = await db
+    .select({ id: guestServiceOrders.id })
+    .from(guestServiceOrders)
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceOrders.id, parsed.data.id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!scoped) return { ok: false, error: "Order not found." };
+
   await db.insert(guestServiceOrderEvents).values({
     orderId: parsed.data.id,
     eventType: "note_added",
@@ -683,7 +717,30 @@ export async function bridgeOrderAction(
     reason: formData.get("reason") || null,
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenancy guard: this action mints a revenue_line (live money) for the
+  // order. Confirm the order belongs to the caller's org (via its catalog
+  // row) before bridging — never bridge another tenant's order.
+  const [scoped] = await db
+    .select({ id: guestServiceOrders.id })
+    .from(guestServiceOrders)
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceOrders.id, parsed.data.id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!scoped) return { ok: false, error: "Order not found." };
+
   const out = await bridgeOrderToFinance(
     parsed.data.id,
     me?.id ?? null,

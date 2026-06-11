@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { inviteTeamMemberAction } from "@/features/team/actions";
 
+// Cabinet (Dev-OS) roles only. `owner` is intentionally NOT here — owner
+// invitations are created from the owner record's "Invite to portal" action.
 const VALID_ROLES = [
   "marketing_staff",
   "qs_analyst",
@@ -20,10 +22,12 @@ export function InviteForm() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [acceptUrl, setAcceptUrl] = useState<string | null>(null);
 
   function submit(formData: FormData) {
     setError(null);
     setSuccess(null);
+    setAcceptUrl(null);
     const email = String(formData.get("email") ?? "").trim();
     const roleKey = String(formData.get("roleKey") ?? "");
     const notes = String(formData.get("notes") ?? "").trim();
@@ -39,11 +43,16 @@ export function InviteForm() {
         setError(result.error);
         return;
       }
-      setSuccess(
-        result.emailQueued
-          ? `Invitation sent to ${email}.`
-          : `Invitation created for ${email}, but email delivery is in dry-run mode (RESEND_API_KEY missing).`,
-      );
+      // Honest messaging: only claim "sent" when the email was REALLY
+      // delivered. In dry-run / no-RESEND mode, surface the link to share.
+      if (result.emailDelivered) {
+        setSuccess(`Invitation sent to ${email}.`);
+      } else {
+        setSuccess(
+          `Invite created for ${email} — email not sent (dry-run). Share this link:`,
+        );
+        setAcceptUrl(result.acceptUrl);
+      }
     });
   }
 
@@ -86,11 +95,7 @@ export function InviteForm() {
       </label>
       <div className="md:col-span-3 flex flex-col gap-2 mt-2">
         <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={pending}
-            className="inline-flex items-center rounded-full bg-ink px-4 py-2 text-sm font-medium text-ink-inverse hover:bg-ink/90 disabled:opacity-60"
-          >
+          <button type="submit" disabled={pending} className="btn btn-accent btn-sm">
             {pending ? "Sending…" : "Send invitation"}
           </button>
           {error && (
@@ -104,6 +109,11 @@ export function InviteForm() {
             </p>
           )}
         </div>
+        {acceptUrl && (
+          <div className="rounded border border-line-soft bg-muted/20 px-3 py-2">
+            <code className="mono text-[11px] break-all text-ink-2">{acceptUrl}</code>
+          </div>
+        )}
       </div>
     </form>
   );

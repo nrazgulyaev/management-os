@@ -17,10 +17,45 @@ export const dynamic = "force-dynamic";
 const BOOKABLE = new Set(["available", "occupied", "ready", "owner_stay"]);
 const OUT_OF_SERVICE = new Set(["maintenance_blocked", "out_of_service", "archived"]);
 
-export default async function VillasPage() {
-  const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
-  const source = villas[0]?.source ?? "mock";
+// Status options for the list filter — mirrors the statuses the StatusPill
+// renders across the portfolio.
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: "available", label: "Available" },
+  { value: "occupied", label: "Occupied" },
+  { value: "ready", label: "Ready" },
+  { value: "owner_stay", label: "Owner stay" },
+  { value: "maintenance_blocked", label: "Maintenance" },
+  { value: "out_of_service", label: "Out of service" },
+  { value: "archived", label: "Archived" },
+];
+
+type SearchParams = Record<string, string | string[] | undefined>;
+
+function firstParam(v: string | string[] | undefined): string {
+  return (Array.isArray(v) ? v[0] : v) ?? "";
+}
+
+export default async function VillasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SearchParams>;
+}) {
+  const params = (await searchParams) ?? {};
+  const projectFilter = firstParam(params.project);
+  const statusFilter = firstParam(params.status);
+
+  const [allVillas, projects] = await Promise.all([
+    // Project filter is applied at the query layer; status is applied below
+    // so the dropdown options stay stable regardless of the active status.
+    listVillas(projectFilter ? { projectId: projectFilter } : undefined),
+    listProjects(),
+  ]);
+  const villas = statusFilter
+    ? allVillas.filter((v) => v.status === statusFilter)
+    : allVillas;
+  const source = allVillas[0]?.source ?? "mock";
   const projectOptions = projects.map((p) => ({ id: p.id, name: p.name }));
+  const hasFilters = Boolean(projectFilter || statusFilter);
 
   const projectCount = new Set(villas.map((v) => v.projectName)).size;
   const activeCount = villas.filter((v) => BOOKABLE.has(v.status)).length;
@@ -64,10 +99,46 @@ export default async function VillasPage() {
           <div className="pf-card-h">
             <h3>All villas · {villas.length}</h3>
             <span className="meta">SOURCE · LIVE</span>
-            <Button variant="secondary" size="sm">
-              <Filter className="w-4 h-4" strokeWidth={1.75} />
-              Filter
-            </Button>
+            {/* GET filter — server-side status/project narrowing via the URL,
+                deep-linkable like the other list pages. Submit with Apply;
+                Clear resets to the unfiltered list. */}
+            <form method="get" className="flex items-center gap-2 ml-auto">
+              <Filter className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} aria-hidden />
+              <select
+                name="project"
+                defaultValue={projectFilter}
+                className="input h-8 text-[13px] py-0"
+                aria-label="Filter by project"
+              >
+                <option value="">All projects</option>
+                {projectOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <select
+                name="status"
+                defaultValue={statusFilter}
+                className="input h-8 text-[13px] py-0"
+                aria-label="Filter by status"
+              >
+                <option value="">All statuses</option>
+                {STATUS_FILTERS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
+              </select>
+              <Button type="submit" variant="secondary" size="sm">
+                Apply
+              </Button>
+              {hasFilters && (
+                <Link href="/dashboard/villas" className="btn btn-ghost btn-sm">
+                  Clear
+                </Link>
+              )}
+            </form>
             <VillaAddButton projects={projectOptions} />
           </div>
 
@@ -89,7 +160,9 @@ export default async function VillasPage() {
                 {villas.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="text-center text-ink-tertiary py-8">
-                      No villas yet.
+                      {hasFilters
+                        ? "No villas match the current filters."
+                        : "No villas yet."}
                     </td>
                   </tr>
                 ) : (

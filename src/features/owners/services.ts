@@ -29,6 +29,12 @@ export interface OwnerListItem {
 export interface OwnerDetail extends OwnerListItem {
   createdAt: string;
   updatedAt: string;
+  /**
+   * Persisted operator commission as a PERCENT (0-100), or null when unset.
+   * Stored on owners.commission_pct as a fraction (migration 0169); converted
+   * here for display + the EditCommissionModal.
+   */
+  commissionPct: number | null;
 }
 
 export interface OwnershipShareRow {
@@ -91,6 +97,7 @@ export async function getOwnerById(id: string): Promise<WithSource<OwnerDetail> 
       ...base,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      commissionPct: null,
     };
   }
   const [r] = await db.select().from(owners).where(eq(owners.id, id)).limit(1);
@@ -108,6 +115,8 @@ export async function getOwnerById(id: string): Promise<WithSource<OwnerDetail> 
     status: r.status as OwnerDetail["status"],
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
+    // commission_pct is stored as a fraction in [0,1]; surface as a percent.
+    commissionPct: r.commissionPct !== null ? Number(r.commissionPct) * 100 : null,
   };
 }
 

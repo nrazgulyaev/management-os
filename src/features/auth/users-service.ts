@@ -1,8 +1,9 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
+import { getCurrentUserContext } from "./permissions";
 import type { WithSource } from "@/features/types";
 
 export interface AppUserRow {
@@ -32,16 +33,28 @@ export async function listAppUsers(): Promise<WithSource<AppUserRow>[]> {
   const db = getDb();
   if (!db) return fallback;
 
-  const usersRows = await db.select().from(appUsers).orderBy(asc(appUsers.fullName));
+  // IDOR fix (defect 1): org-scope the directory to the caller's org. The
+  // previous query selected every tenant's app_users + user_roles.
+  const ctx = await getCurrentUserContext();
+  const orgId = ctx.appUser?.organizationId ?? null;
+  if (!orgId) return [];
+
+  const usersRows = await db
+    .select()
+    .from(appUsers)
+    .where(eq(appUsers.organizationId, orgId))
+    .orderBy(asc(appUsers.fullName));
   if (usersRows.length === 0) return [];
 
+  const userIds = usersRows.map((u) => u.id);
   const allRoles = await db
     .select({
       userId: userRoles.userId,
       key: roles.key,
     })
     .from(userRoles)
-    .innerJoin(roles, eq(roles.id, userRoles.roleId));
+    .innerJoin(roles, eq(roles.id, userRoles.roleId))
+    .where(inArray(userRoles.userId, userIds));
 
   const byUser = new Map<string, string[]>();
   for (const r of allRoles) {

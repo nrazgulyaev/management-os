@@ -20,19 +20,25 @@
 
 import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { and, eq, gt, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb, rowsOf } from "@/lib/db/client";
 import { teamInvitations } from "@/lib/db/schema/team-invitations";
 import { organizations } from "@/lib/db/schema/saas";
-import { appUsers } from "@/lib/db/schema/identity";
+import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
+import { appUsersOwners } from "@/lib/db/schema/access-grants";
+import { owners } from "@/lib/db/schema/ownership";
 import { auditEvents } from "@/lib/db/schema/audit";
 import { requirePermission } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { sendDevOsEmail } from "@/lib/development/server/email";
 import { env } from "@/lib/env";
+import {
+  ASSIGNABLE_INTERNAL_ROLES,
+  internalRoleLabel,
+} from "./internal-roles";
 
 // 7-day default expiration window. Operators can resend before then.
 const INVITE_EXPIRY_DAYS = 7;
@@ -63,7 +69,37 @@ const VALID_ROLES = [
   "cfo_accountant",
   "executive_ceo",
   "admin",
+  // DOMAIN 2 — owner taxonomy: inviting an owner must NOT force an internal
+  // staff cabinet role. An `owner` invite carries an ownerId and creates a
+  // real owner-portal grant (app_users_owners) on accept; the cabinet grant
+  // it provisions is `investor_owner`.
+  "owner",
 ] as const;
+
+/**
+ * DOMAIN 2 — whether an email was actually handed to a real delivery
+ * provider. `sendDevOsEmail` returns status "sent" even in dry-run mode
+ * (no RESEND_API_KEY / EMAIL_DRY_RUN defaulting to on), so the old
+ * `status !== "failed"` check was NOT honest: it read "sent" for both real
+ * and dry-run sends.
+ *
+ * This mirrors `isEmailDryRun()` + the Resend-config gate in
+ * `lib/development/server/email.ts`: a real send requires EMAIL_DRY_RUN to be
+ * explicitly off AND both Resend env values present. EMAIL_DRY_RUN defaults
+ * to dry-run when unset.
+ */
+function emailIsDryRun(): boolean {
+  // Mirror isEmailDryRun() in lib/development/server/email.ts: unset → on.
+  const flag = process.env.EMAIL_DRY_RUN;
+  if (flag === undefined) return true;
+  return flag === "1" || flag.toLowerCase() === "true";
+}
+
+function emailReallyDelivered(status: string): boolean {
+  if (status === "failed") return false;
+  if (emailIsDryRun()) return false;
+  return Boolean(env.server.RESEND_API_KEY && env.server.RESEND_FROM_EMAIL);
+}
 
 // ============================================================================
 // inviteTeamMemberAction
@@ -78,7 +114,15 @@ const inviteSchema = z.object({
 });
 
 export type InviteResult =
-  | { ok: true; invitationId: string; token: string; emailQueued: boolean }
+  | {
+      ok: true;
+      invitationId: string;
+      token: string;
+      /** Real provider delivery (false in dry-run / no RESEND key). */
+      emailDelivered: boolean;
+      /** The acceptance URL — always returned so dry-run callers can share it. */
+      acceptUrl: string;
+    }
   | { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 export async function inviteTeamMemberAction(
@@ -103,6 +147,16 @@ export async function inviteTeamMemberAction(
       ok: false,
       error: "scope=project_specific requires scopedProjectId",
       fieldErrors: { scopedProjectId: "Required for project-specific scope" },
+    };
+  }
+  // DOMAIN 2 — owner invites must go through inviteOwnerToPortalAction (they
+  // need an ownerId so accept can create the app_users_owners grant). The
+  // generic staff invite never creates owner-portal access.
+  if (data.roleKey === "owner") {
+    return {
+      ok: false,
+      error: "Owner invitations are created from the owner record's “Invite to portal” action.",
+      fieldErrors: { roleKey: "Use the owner portal invite flow" },
     };
   }
 
@@ -158,6 +212,7 @@ export async function inviteTeamMemberAction(
         roleKey: data.roleKey,
         scope: data.scope,
         scopedProjectId: data.scopedProjectId ?? null,
+        ownerId: null,
         invitedByUserId: me.id,
         token,
         status: "pending",
@@ -216,7 +271,8 @@ export async function inviteTeamMemberAction(
     ok: true,
     invitationId,
     token,
-    emailQueued: emailResult.status !== "failed",
+    emailDelivered: emailReallyDelivered(emailResult.status),
+    acceptUrl: url,
   };
 }
 
@@ -319,13 +375,19 @@ export async function acceptInvitationAction(
     return { ok: false, error: "Could not resolve auth user." };
   }
 
-  // Atomically provision app_users row + grant the invitation's role.
-  // We always grant the ROLE_KEY recorded on the invitation, NOT super_admin.
-  // Internal-user bypass (via user_roles) is reserved for founders.
+  // DOMAIN 2 — owner-portal invitations carry an ownerId + roleKey "owner".
+  // The cabinet role we actually provision for an owner is `investor_owner`
+  // (a real Dev-OS cabinet key); after provisioning we create the explicit
+  // app_users_owners grant so owner-portal scoping (current_owner_ids) works.
+  const isOwnerInvite = invitation.roleKey === "owner" && Boolean(invitation.ownerId);
+  const cabinetRoleKey = isOwnerInvite ? "investor_owner" : invitation.roleKey;
+
+  // Atomically provision app_users row + grant the invitation's cabinet role.
+  // We never grant super_admin here. Internal-user bypass (via user_roles) is
+  // reserved for founders, so the internal slot is always NULL.
   // Signature: (auth_user_id, email, full_name, organization_id,
-  // role_key_internal, role_key_cabinet). For invitees we pass NULL for
-  // the internal slot — provision_app_user skips assign_user_role when
-  // null. The org_id comes from the invitation row (NOT NULL FK).
+  // role_key_internal, role_key_cabinet). The org_id comes from the
+  // invitation row (NOT NULL FK).
   const provisionResult = await db.execute<{ provision_app_user: string }>(
     sql`SELECT public.provision_app_user(
       ${authUserId}::uuid,
@@ -333,13 +395,43 @@ export async function acceptInvitationAction(
       ${parsed.data.fullName ?? invitation.email}::text,
       ${invitation.organizationId}::uuid,
       NULL::text,
-      ${invitation.roleKey}::text
+      ${cabinetRoleKey}::text
     ) AS provision_app_user`,
   );
   const provisionRows = rowsOf<{ provision_app_user: string }>(provisionResult);
   const appUserId = provisionRows[0]?.provision_app_user;
   if (!appUserId) {
     return { ok: false, error: "Could not provision your account. Please contact support." };
+  }
+
+  // Owner-portal grant: link the new app_user to the owner record. Org-scoped
+  // (the invitation's org). Idempotent — skip if an active grant already
+  // exists for this (app_user, owner, owner_portal) tuple.
+  if (isOwnerInvite && invitation.ownerId) {
+    const existingGrant = await db
+      .select({ id: appUsersOwners.id })
+      .from(appUsersOwners)
+      .where(
+        and(
+          eq(appUsersOwners.appUserId, appUserId),
+          eq(appUsersOwners.ownerId, invitation.ownerId),
+          eq(appUsersOwners.grantType, "owner_portal"),
+          eq(appUsersOwners.status, "active"),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (!existingGrant) {
+      await db.insert(appUsersOwners).values({
+        appUserId,
+        ownerId: invitation.ownerId,
+        organizationId: invitation.organizationId,
+        grantType: "owner_portal",
+        status: "active",
+        grantedBy: invitation.invitedByUserId ?? null,
+        notes: "Created on owner-portal invitation accept.",
+      });
+    }
   }
 
   // Mark invitation accepted.
@@ -361,6 +453,8 @@ export async function acceptInvitationAction(
     after: {
       app_user_id: appUserId,
       role_key: invitation.roleKey,
+      cabinet_role_key: cabinetRoleKey,
+      owner_id: invitation.ownerId ?? null,
     },
   });
 
@@ -378,7 +472,10 @@ export async function acceptInvitationAction(
 
 export async function resendInvitationAction(
   invitationId: string,
-): Promise<{ ok: true; emailQueued: boolean } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; emailDelivered: boolean; acceptUrl: string }
+  | { ok: false; error: string }
+> {
   await requirePermission("users.write");
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
@@ -436,7 +533,12 @@ export async function resendInvitationAction(
       lastEmailSentAt: now,
       updatedAt: now,
     })
-    .where(eq(teamInvitations.id, invitationId));
+    .where(
+      and(
+        eq(teamInvitations.id, invitationId),
+        eq(teamInvitations.organizationId, me.organizationId),
+      ),
+    );
 
   await db.insert(auditEvents).values({
     actorUserId: me.id,
@@ -446,7 +548,11 @@ export async function resendInvitationAction(
   });
 
   revalidatePath("/dashboard/settings/team");
-  return { ok: true, emailQueued: result.status !== "failed" };
+  return {
+    ok: true,
+    emailDelivered: emailReallyDelivered(result.status),
+    acceptUrl: url,
+  };
 }
 
 // ============================================================================
@@ -473,8 +579,26 @@ export async function revokeAccessAction(
 
   const db = requireDb();
   const now = new Date();
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
 
   if (parsed.data.invitationId) {
+    // IDOR fix (defect 2): verify the invitation belongs to the caller's org
+    // BEFORE revoking. The previous UPDATE filtered only by id + status, so an
+    // admin in tenant A could revoke tenant B's pending invitation.
+    const inv = await db
+      .select({ id: teamInvitations.id })
+      .from(teamInvitations)
+      .where(
+        and(
+          eq(teamInvitations.id, parsed.data.invitationId),
+          eq(teamInvitations.organizationId, orgId),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows[0]);
+    if (!inv) return { ok: false, error: "Invitation not found." };
+
     await db
       .update(teamInvitations)
       .set({
@@ -486,6 +610,7 @@ export async function revokeAccessAction(
       .where(
         and(
           eq(teamInvitations.id, parsed.data.invitationId),
+          eq(teamInvitations.organizationId, orgId),
           eq(teamInvitations.status, "pending"),
         ),
       );
@@ -500,32 +625,40 @@ export async function revokeAccessAction(
   }
 
   // userId path — disable all active app_user_roles for that user.
-  // Refuse if it would leave zero active admins (last-admin invariant).
   const userId = parsed.data.userId!;
   if (userId === me.id) {
     return { ok: false, error: "You cannot revoke your own access." };
   }
-  const remainingAdmins = await db
-    .select({ id: appUserRoles.id })
+
+  // IDOR fix (defect 2): the target app_user MUST belong to the caller's org.
+  // Without this, a foreign user id would have had its grants disabled +
+  // status suspended cross-tenant.
+  const target = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, userId), eq(appUsers.organizationId, orgId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!target) return { ok: false, error: "User not found." };
+
+  // Last-admin invariant (defect 3): the old code compared a GRANT id to a
+  // USER id (`r.id !== userId`), so the guard never fired. Count the DISTINCT
+  // OTHER users in THIS org who still hold an active `admin` grant. If the
+  // target is the only active admin, refuse.
+  const orgAdmins = await db
+    .selectDistinct({ userId: appUserRoles.userId })
     .from(appUserRoles)
+    .innerJoin(appUsers, eq(appUsers.id, appUserRoles.userId))
     .where(
       and(
         eq(appUserRoles.roleKey, "admin"),
         eq(appUserRoles.isActive, true),
+        eq(appUsers.organizationId, orgId),
       ),
     );
-  // Count active-admin grants belonging to OTHER users.
-  const otherAdmins = await db
-    .select({ id: appUserRoles.id })
-    .from(appUserRoles)
-    .where(
-      and(
-        eq(appUserRoles.roleKey, "admin"),
-        eq(appUserRoles.isActive, true),
-      ),
-    )
-    .then((rows) => rows.filter((r) => r.id !== userId));
-  if (remainingAdmins.length > 0 && otherAdmins.length === 0) {
+  const targetIsAdmin = orgAdmins.some((a) => a.userId === userId);
+  const otherAdminCount = orgAdmins.filter((a) => a.userId !== userId).length;
+  if (targetIsAdmin && otherAdminCount === 0) {
     return {
       ok: false,
       error: "Cannot revoke the last active admin. Promote another user first.",
@@ -551,7 +684,7 @@ export async function revokeAccessAction(
   await db
     .update(appUsers)
     .set({ status: "suspended", updatedAt: now })
-    .where(eq(appUsers.id, userId));
+    .where(and(eq(appUsers.id, userId), eq(appUsers.organizationId, orgId)));
 
   await db.insert(auditEvents).values({
     actorUserId: me.id,
@@ -568,9 +701,17 @@ export async function revokeAccessAction(
 // updateUserRoleAction (Stage 9.E)
 // ============================================================================
 
+// Cabinet roles only (Dev-OS app_user_roles). `owner` is NOT a cabinet role —
+// it's an owner-portal grant created through the owner invite flow, so it must
+// not be selectable as a member's cabinet role.
+const CABINET_ROLES = VALID_ROLES.filter((r) => r !== "owner") as Exclude<
+  (typeof VALID_ROLES)[number],
+  "owner"
+>[];
+
 const updateRoleSchema = z.object({
   userId: z.string().uuid(),
-  newRoleKey: z.enum(VALID_ROLES),
+  newRoleKey: z.enum(CABINET_ROLES as [string, ...string[]]),
   scope: z.enum(["company_wide", "project_specific"]).default("company_wide"),
   scopedProjectId: z.string().uuid().nullable().optional(),
   reason: z.string().max(500).optional(),
@@ -617,18 +758,22 @@ export async function updateUserRoleAction(
   }
 
   const db = requireDb();
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
 
-  // Confirm target user exists.
+  // IDOR fix (defect 2): the target user MUST belong to the caller's org.
+  // Without the org filter a foreign user's grants could be rewritten.
   const target = await db
     .select({ id: appUsers.id, status: appUsers.status, email: appUsers.email })
     .from(appUsers)
-    .where(eq(appUsers.id, data.userId))
+    .where(and(eq(appUsers.id, data.userId), eq(appUsers.organizationId, orgId)))
     .limit(1)
     .then((rows) => rows[0]);
   if (!target) return { ok: false, error: "User not found." };
 
   // Last-active-admin invariant: if the target currently has admin AND
-  // the new role is NOT admin, refuse if no other active admin remains.
+  // the new role is NOT admin, refuse if no other active admin remains
+  // WITHIN THIS ORG (count distinct other admin users — defect 3 pattern).
   const currentGrants = await db
     .select({
       id: appUserRoles.id,
@@ -641,12 +786,14 @@ export async function updateUserRoleAction(
   const targetCurrentlyAdmin = currentGrants.some((g) => g.roleKey === "admin");
   if (targetCurrentlyAdmin && data.newRoleKey !== "admin") {
     const otherActiveAdmins = await db
-      .select({ userId: appUserRoles.userId })
+      .selectDistinct({ userId: appUserRoles.userId })
       .from(appUserRoles)
+      .innerJoin(appUsers, eq(appUsers.id, appUserRoles.userId))
       .where(
         and(
           eq(appUserRoles.roleKey, "admin"),
           eq(appUserRoles.isActive, true),
+          eq(appUsers.organizationId, orgId),
         ),
       )
       .then((rows) => rows.filter((r) => r.userId !== data.userId));
@@ -705,12 +852,12 @@ export async function updateUserRoleAction(
   });
 
   // If the user was suspended (e.g. via revokeAccessAction), bring them
-  // back to active so the new grant takes effect.
+  // back to active so the new grant takes effect. Org-scoped.
   if (target.status === "suspended") {
     await db
       .update(appUsers)
       .set({ status: "active", updatedAt: now })
-      .where(eq(appUsers.id, data.userId));
+      .where(and(eq(appUsers.id, data.userId), eq(appUsers.organizationId, orgId)));
   }
 
   await db.insert(auditEvents).values({
@@ -735,4 +882,386 @@ export async function updateUserRoleAction(
   revalidatePath("/dashboard/settings/team");
   revalidatePath(`/dashboard/settings/team/${data.userId}`);
   return { ok: true, previousRoleKey, newRoleKey: data.newRoleKey };
+}
+
+// ============================================================================
+// DOMAIN 2 — INTERNAL role grant/revoke (user_roles → /dashboard cabinets)
+//
+// Until now, the dashboard cabinet roles (housekeeper, accountant, director,
+// …) could ONLY be set by scripts (bootstrap / provision_app_user). These
+// actions let a super_admin / director assign or revoke an INTERNAL role from
+// the app, writing `user_roles` through the same SECURITY DEFINER helper the
+// bootstrap uses (`assign_user_role`). super_admin is intentionally NOT
+// assignable from the UI (reserved for bootstrap / founder accounts).
+//
+// Org-scoped (target must be in the caller's org), permission-gated
+// (`roles.assign`), and audited.
+// ============================================================================
+
+/**
+ * Returns the internal roles that are BOTH in the assignable allow-list AND
+ * present as rows in the `roles` table (so `assign_user_role` won't raise an
+ * "unknown role key"). Used by the UI to render only roles that can succeed.
+ */
+export async function listAssignableInternalRoles(): Promise<
+  Array<{ key: string; label: string }>
+> {
+  const db = requireDb();
+  const rows = await db
+    .select({ key: roles.key })
+    .from(roles)
+    .where(inArray(roles.key, ASSIGNABLE_INTERNAL_ROLES));
+  const present = new Set(rows.map((r) => r.key));
+  return ASSIGNABLE_INTERNAL_ROLES.filter((k) => present.has(k)).map((k) => ({
+    key: k,
+    label: internalRoleLabel(k),
+  }));
+}
+
+const internalRoleSchema = z.object({
+  userId: z.string().uuid(),
+  roleKey: z.enum(ASSIGNABLE_INTERNAL_ROLES as unknown as [string, ...string[]]),
+  reason: z.string().max(500).optional(),
+});
+
+export type InternalRoleResult =
+  | { ok: true; roleKey: string; alreadyHeld: boolean }
+  | { ok: false; error: string };
+
+export async function assignInternalRoleAction(
+  input: z.input<typeof internalRoleSchema>,
+): Promise<InternalRoleResult> {
+  await requirePermission("roles.assign");
+  const me = await getCurrentAppUser();
+  if (!me) return { ok: false, error: "Not signed in." };
+
+  const parsed = internalRoleSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid role." };
+  }
+  const data = parsed.data;
+
+  const db = requireDb();
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
+
+  // Target must live in the caller's org (IDOR guard).
+  const target = await db
+    .select({ id: appUsers.id, email: appUsers.email })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, data.userId), eq(appUsers.organizationId, orgId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!target) return { ok: false, error: "User not found." };
+
+  // Confirm the role key exists in `roles` so assign_user_role won't raise.
+  const roleRow = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.key, data.roleKey))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!roleRow) {
+    return {
+      ok: false,
+      error: `Role "${internalRoleLabel(data.roleKey)}" is not seeded in this database.`,
+    };
+  }
+
+  // Idempotent check — was the grant already present (global scope)?
+  const before = await db
+    .execute<{ has: boolean }>(
+      sql`SELECT EXISTS (
+        SELECT 1 FROM public.user_roles ur
+          JOIN public.roles r ON r.id = ur.role_id
+         WHERE ur.user_id = ${data.userId}::uuid
+           AND r.key = ${data.roleKey}::text
+           AND ur.scope_type IS NULL
+           AND ur.scope_id IS NULL
+      ) AS has`,
+    )
+    .then((res) => rowsOf<{ has: boolean }>(res)[0]?.has ?? false);
+
+  // Grant via the same SECURITY DEFINER helper the bootstrap uses. Idempotent.
+  await db.execute(
+    sql`SELECT public.assign_user_role(${data.userId}::uuid, ${data.roleKey}::text, NULL::text, NULL::uuid)`,
+  );
+
+  await db.insert(auditEvents).values({
+    actorUserId: me.id,
+    action: "team.internal_role.assigned",
+    entityType: "app_user",
+    entityId: data.userId,
+    after: { role_key: data.roleKey, scope: "global" },
+    metadata: {
+      reason: data.reason ?? null,
+      target_email: target.email,
+      already_held: before,
+    },
+  });
+
+  revalidatePath("/dashboard/settings/team");
+  revalidatePath(`/dashboard/settings/team/${data.userId}`);
+  return { ok: true, roleKey: data.roleKey, alreadyHeld: before };
+}
+
+export async function revokeInternalRoleAction(
+  input: z.input<typeof internalRoleSchema>,
+): Promise<InternalRoleResult> {
+  await requirePermission("roles.assign");
+  const me = await getCurrentAppUser();
+  if (!me) return { ok: false, error: "Not signed in." };
+
+  const parsed = internalRoleSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid role." };
+  }
+  const data = parsed.data;
+
+  const db = requireDb();
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
+
+  const target = await db
+    .select({ id: appUsers.id, email: appUsers.email })
+    .from(appUsers)
+    .where(and(eq(appUsers.id, data.userId), eq(appUsers.organizationId, orgId)))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!target) return { ok: false, error: "User not found." };
+
+  const roleRow = await db
+    .select({ id: roles.id })
+    .from(roles)
+    .where(eq(roles.key, data.roleKey))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!roleRow) return { ok: false, error: "Role not found." };
+
+  // Last-internal-admin / lockout guards: never let the org lose its last
+  // director (the only internal role with users.read by default besides
+  // super_admin). We do NOT manage super_admin here.
+  if (data.roleKey === "director") {
+    const otherDirectors = await db
+      .selectDistinct({ userId: userRoles.userId })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .innerJoin(appUsers, eq(appUsers.id, userRoles.userId))
+      .where(
+        and(
+          eq(roles.key, "director"),
+          eq(appUsers.organizationId, orgId),
+        ),
+      )
+      .then((rows) => rows.filter((r) => r.userId !== data.userId));
+    if (otherDirectors.length === 0) {
+      return {
+        ok: false,
+        error: "Cannot revoke the last director. Assign another director first.",
+      };
+    }
+  }
+
+  // Delete the global-scope grant for this (user, role).
+  const deleted = await db
+    .delete(userRoles)
+    .where(
+      and(
+        eq(userRoles.userId, data.userId),
+        eq(userRoles.roleId, roleRow.id),
+        sql`${userRoles.scopeType} IS NULL`,
+        sql`${userRoles.scopeId} IS NULL`,
+      ),
+    )
+    .returning({ id: userRoles.id });
+
+  await db.insert(auditEvents).values({
+    actorUserId: me.id,
+    action: "team.internal_role.revoked",
+    entityType: "app_user",
+    entityId: data.userId,
+    before: { role_key: data.roleKey, scope: "global" },
+    metadata: {
+      reason: data.reason ?? null,
+      target_email: target.email,
+      removed: deleted.length,
+    },
+  });
+
+  revalidatePath("/dashboard/settings/team");
+  revalidatePath(`/dashboard/settings/team/${data.userId}`);
+  return { ok: true, roleKey: data.roleKey, alreadyHeld: deleted.length === 0 };
+}
+
+// ============================================================================
+// DOMAIN 2 — owner-portal invitation (replaces the audit-only stub)
+//
+// Creates a REAL team_invitation for an owner's email with roleKey "owner"
+// + ownerId set, returns the accept link, and queues the email (dry-run
+// aware). On accept, acceptInvitationAction provisions the app_user as
+// investor_owner + creates the app_users_owners grant. Org-scoped + audited.
+// ============================================================================
+
+const ownerInviteSchema = z.object({
+  ownerId: z.string().uuid(),
+  email: z.string().email().max(255).optional(),
+  note: z.string().max(500).optional(),
+});
+
+export type OwnerInviteResult =
+  | {
+      ok: true;
+      invitationId: string;
+      acceptUrl: string;
+      emailDelivered: boolean;
+      email: string;
+    }
+  | { ok: false; error: string };
+
+export async function inviteOwnerToPortalAction(
+  input: z.input<typeof ownerInviteSchema>,
+): Promise<OwnerInviteResult> {
+  // Owner-portal access management is gated by owner_access.manage (the same
+  // gate the access-grant actions use).
+  await requirePermission("owner_access.manage");
+  const me = await getCurrentAppUser();
+  if (!me) return { ok: false, error: "Not signed in." };
+
+  const parsed = ownerInviteSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  }
+  const data = parsed.data;
+
+  const db = requireDb();
+  const orgId = me.organizationId;
+  if (!orgId) return { ok: false, error: "No organization context available." };
+
+  // Resolve the owner. (`owners` has no organization_id column today, so we
+  // can't org-filter the SELECT; the invitation row we create IS org-scoped,
+  // and the resulting grant is org-anchored to the caller's org.)
+  const owner = await db
+    .select({ id: owners.id, email: owners.email, displayName: owners.displayName })
+    .from(owners)
+    .where(eq(owners.id, data.ownerId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!owner) return { ok: false, error: "Owner not found." };
+
+  const email = (data.email ?? owner.email ?? "").trim().toLowerCase();
+  if (!email) {
+    return {
+      ok: false,
+      error: "This owner has no email. Add one to the owner record before inviting.",
+    };
+  }
+
+  const orgRow = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (!orgRow) return { ok: false, error: "Organization not found." };
+
+  // Refuse to overlap with an existing pending invite for this email in-org.
+  const existingPending = await db
+    .select({ id: teamInvitations.id })
+    .from(teamInvitations)
+    .where(
+      and(
+        eq(teamInvitations.organizationId, orgId),
+        eq(teamInvitations.email, email),
+        eq(teamInvitations.status, "pending"),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows[0]);
+  if (existingPending) {
+    return {
+      ok: false,
+      error: "An active invitation for that email already exists. Revoke it first.",
+    };
+  }
+
+  const now = new Date();
+  const token = newToken();
+  const expiresAt = new Date(now.getTime() + INVITE_EXPIRY_DAYS * 86400 * 1000);
+
+  let invitationId: string;
+  try {
+    const [row] = await db
+      .insert(teamInvitations)
+      .values({
+        organizationId: orgId,
+        email,
+        roleKey: "owner",
+        scope: "company_wide",
+        scopedProjectId: null,
+        ownerId: owner.id,
+        invitedByUserId: me.id,
+        token,
+        status: "pending",
+        expiresAt,
+        notes: data.note ?? null,
+      })
+      .returning({ id: teamInvitations.id });
+    invitationId = row.id;
+  } catch (err) {
+    return {
+      ok: false,
+      error: `Could not create invitation: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
+
+  const url = inviteUrl(token);
+  const bodyText =
+    `Hi ${owner.displayName},\n\n` +
+    `You've been invited to access the ${orgRow.name} owner portal on Arconique.\n\n` +
+    `Accept the invitation here:\n${url}\n\n` +
+    `This link expires in ${INVITE_EXPIRY_DAYS} days. If you didn't expect this you can ignore this email.\n\n` +
+    `— Arconique`;
+  const emailResult = await sendDevOsEmail({
+    to: email,
+    subject: `You're invited to the ${orgRow.name} owner portal`,
+    bodyText,
+    bodyHtml: `<p>${bodyText.replace(/\n/g, "<br/>")}</p>`,
+    metadata: {
+      triggerEntityType: "team_invitation",
+      triggerEntityId: invitationId,
+      templateName: "owner_portal_invitation",
+    },
+  }).catch(() => ({ status: "failed" as const, deliveryId: "", errorReason: "exception" }));
+
+  await db
+    .update(teamInvitations)
+    .set({ lastEmailSentAt: now, updatedAt: now })
+    .where(
+      and(
+        eq(teamInvitations.id, invitationId),
+        eq(teamInvitations.organizationId, orgId),
+      ),
+    );
+
+  await db.insert(auditEvents).values({
+    actorUserId: me.id,
+    action: "owner.portal_invite.created",
+    entityType: "team_invitation",
+    entityId: invitationId,
+    after: {
+      owner_id: owner.id,
+      email,
+      organization_id: orgId,
+    },
+  });
+
+  revalidatePath(`/dashboard/owners/${owner.id}`);
+  revalidatePath("/dashboard/settings/team");
+  return {
+    ok: true,
+    invitationId,
+    acceptUrl: url,
+    emailDelivered: emailReallyDelivered(emailResult.status),
+    email,
+  };
 }
