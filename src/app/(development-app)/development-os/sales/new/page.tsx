@@ -12,7 +12,7 @@ import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
 import { leadSources } from "@/lib/db/schema/contacts";
 import { requireOrgId } from "@/features/auth/require-org";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
 import { CaptureLeadForm, type Option } from "./_capture-lead-form";
 
 export const metadata: Metadata = { title: "Capture new lead · Development OS" };
@@ -27,7 +27,32 @@ export const dynamic = "force-dynamic";
  */
 export default async function NewLeadPage() {
   // Same auth gate as the createLead write path — internal users only.
-  await requireInternalUser();
+  // Degrade to a Forbidden state instead of throwing a 500 when a
+  // non-internal/no-session context reaches this page (the layout
+  // normally redirects logged-out users, but a logged-in non-internal
+  // user must not crash the route).
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <Section eyebrow="Sales" title="Capture new lead">
+            <EmptyState
+              title="Internal access required"
+              description="Lead capture is available to internal Development OS users. Sign in with an internal account to continue."
+              action={
+                <Button asChild variant="secondary">
+                  <Link href="/development-os/sales">Back to pipeline</Link>
+                </Button>
+              }
+            />
+          </Section>
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
   const db = getDb();
 
   let projectOptions: Option[] = [];
