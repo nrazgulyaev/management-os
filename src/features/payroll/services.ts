@@ -6,12 +6,19 @@ import {
   staff,
   staffAssignments,
   payrollRuns,
+  orgPayrollSettings,
+  payrollPayslips,
   type Staff,
   type PayrollRun,
+  type OrgPayrollSettings,
 } from "@/lib/db/schema/payroll";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { expenseLines } from "@/lib/db/schema/finance";
 import { requireOrgId } from "@/features/auth/require-org";
+import {
+  DEFAULT_STATUTORY_SETTINGS,
+  type StatutorySettings,
+} from "./statutory";
 
 export interface StaffRow extends Staff {
   villaCode: string | null;
@@ -226,4 +233,131 @@ export async function listRunExpenseLines(runId: string): Promise<
     .where(eq(expenseLines.payrollRunId, runId))
     .orderBy(desc(expenseLines.amountMinor));
   return rows.map((r) => ({ ...r, amountMinor: BigInt(r.amountMinor) }));
+}
+
+// -----------------------------------------------------------------------------
+// Indonesian statutory (BPJS / PPh21) settings + payslip read paths.
+// -----------------------------------------------------------------------------
+
+/**
+ * The org's payroll settings row, or null when none exists yet. Org-scoped.
+ * `null` is the "never configured" signal — the caller treats that as "statutory
+ * OFF using the researched defaults" so existing behaviour is unchanged.
+ */
+export async function getOrgPayrollSettings(): Promise<OrgPayrollSettings | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+  const [row] = await db
+    .select()
+    .from(orgPayrollSettings)
+    .where(eq(orgPayrollSettings.organizationId, organizationId))
+    .limit(1);
+  return row ?? null;
+}
+
+/** Map a settings row → the pure StatutorySettings the calc module consumes. */
+export function toStatutorySettings(row: OrgPayrollSettings | null): StatutorySettings {
+  if (!row) return { ...DEFAULT_STATUTORY_SETTINGS };
+  return {
+    statutoryEnabled: row.statutoryEnabled,
+    jhtEmployerPct: Number(row.jhtEmployerPct),
+    jhtEmployeePct: Number(row.jhtEmployeePct),
+    jkkEmployerPct: Number(row.jkkEmployerPct),
+    jkmEmployerPct: Number(row.jkmEmployerPct),
+    jpEmployerPct: Number(row.jpEmployerPct),
+    jpEmployeePct: Number(row.jpEmployeePct),
+    jpCapMinor: row.jpCapMinor,
+    kesehatanEmployerPct: Number(row.kesehatanEmployerPct),
+    kesehatanEmployeePct: Number(row.kesehatanEmployeePct),
+    kesehatanCapMinor: row.kesehatanCapMinor,
+    pph21Enabled: row.pph21Enabled,
+    noNpwpSurchargePct: Number(row.noNpwpSurchargePct),
+  };
+}
+
+/** Resolved StatutorySettings for the caller's org (defaults when unconfigured). */
+export async function getStatutorySettings(): Promise<StatutorySettings> {
+  return toStatutorySettings(await getOrgPayrollSettings());
+}
+
+export interface PayslipRow {
+  id: string;
+  staffId: string;
+  staffName: string;
+  roleLabel: string;
+  currency: string;
+  grossMinor: bigint;
+  prorationNumerator: number;
+  prorationDenominator: number;
+  employerJhtMinor: bigint;
+  employerJkkMinor: bigint;
+  employerJkmMinor: bigint;
+  employerJpMinor: bigint;
+  employerKesehatanMinor: bigint;
+  employerContribMinor: bigint;
+  employeeJhtMinor: bigint;
+  employeeJpMinor: bigint;
+  employeeKesehatanMinor: bigint;
+  employeeBpjsMinor: bigint;
+  pph21Minor: bigint;
+  terCategory: string | null;
+  netTakeHomeMinor: bigint;
+  totalEmployerCostMinor: bigint;
+}
+
+/**
+ * Statutory payslips for a run — the payslip view source. Org-scoped: the run
+ * must belong to the caller's org or this returns []. Only rows where statutory
+ * was actually computed exist; runs with no statutory staff return [].
+ */
+export async function listRunPayslips(runId: string): Promise<PayslipRow[]> {
+  const db = getDb();
+  if (!db) return [];
+  const organizationId = await requireOrgId();
+  const [run] = await db
+    .select({ id: payrollRuns.id })
+    .from(payrollRuns)
+    .where(and(eq(payrollRuns.id, runId), eq(payrollRuns.organizationId, organizationId)))
+    .limit(1);
+  if (!run) return [];
+  const rows = await db
+    .select({
+      p: payrollPayslips,
+      staffName: staff.fullName,
+      roleLabel: staff.roleLabel,
+    })
+    .from(payrollPayslips)
+    .innerJoin(staff, eq(staff.id, payrollPayslips.staffId))
+    .where(
+      and(
+        eq(payrollPayslips.payrollRunId, runId),
+        eq(payrollPayslips.organizationId, organizationId),
+      ),
+    )
+    .orderBy(desc(payrollPayslips.totalEmployerCostMinor));
+  return rows.map((r) => ({
+    id: r.p.id,
+    staffId: r.p.staffId,
+    staffName: r.staffName,
+    roleLabel: r.roleLabel,
+    currency: r.p.currency,
+    grossMinor: r.p.grossMinor,
+    prorationNumerator: r.p.prorationNumerator,
+    prorationDenominator: r.p.prorationDenominator,
+    employerJhtMinor: r.p.employerJhtMinor,
+    employerJkkMinor: r.p.employerJkkMinor,
+    employerJkmMinor: r.p.employerJkmMinor,
+    employerJpMinor: r.p.employerJpMinor,
+    employerKesehatanMinor: r.p.employerKesehatanMinor,
+    employerContribMinor: r.p.employerContribMinor,
+    employeeJhtMinor: r.p.employeeJhtMinor,
+    employeeJpMinor: r.p.employeeJpMinor,
+    employeeKesehatanMinor: r.p.employeeKesehatanMinor,
+    employeeBpjsMinor: r.p.employeeBpjsMinor,
+    pph21Minor: r.p.pph21Minor,
+    terCategory: r.p.terCategory,
+    netTakeHomeMinor: r.p.netTakeHomeMinor,
+    totalEmployerCostMinor: r.p.totalEmployerCostMinor,
+  }));
 }

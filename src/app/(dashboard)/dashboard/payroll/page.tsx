@@ -57,7 +57,10 @@ export default async function PayrollPage() {
             the company P&L exactly like a manual expense. Idempotent: a month can only be posted once.
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex items-center gap-2">
+          <Link href="/dashboard/payroll/settings" className="btn btn-ghost btn-sm">
+            Statutory settings
+          </Link>
           <RunPayroll defaultMonth={thisMonth} />
         </div>
       </div>
@@ -109,6 +112,7 @@ export default async function PayrollPage() {
                 <th scope="col">Role</th>
                 <th scope="col">Comp mode</th>
                 <th scope="col">Bearer</th>
+                <th scope="col">Active window</th>
                 <th scope="col" className="num">Assignments</th>
                 <th scope="col" className="num">Monthly cost</th>
                 <th scope="col">Status</th>
@@ -127,6 +131,20 @@ export default async function PayrollPage() {
                     <HandoffBadge tone={s.costBearer === "management" ? undefined : "ok"}>
                       {BEARER_LABEL[s.costBearer] ?? s.costBearer}
                     </HandoffBadge>
+                    {s.statutoryEnabled && (
+                      <span className="ml-1.5">
+                        <HandoffBadge>BPJS/PPh21</HandoffBadge>
+                      </span>
+                    )}
+                  </td>
+                  <td className="text-[11px] text-ink-3 mono">
+                    {s.hiredOn || s.endedOn ? (
+                      <>
+                        {s.hiredOn ?? "—"} <span className="text-ink-4">→</span> {s.endedOn ?? "open"}
+                      </>
+                    ) : (
+                      <span className="text-ink-4">always</span>
+                    )}
                   </td>
                   <td className="num text-[12px]">
                     {s.compMode === "per_service" ? (
@@ -191,12 +209,12 @@ export default async function PayrollPage() {
                   <td className="mono text-[11px] text-ink-4">
                     {new Date(r.postedAt).toLocaleDateString("en-GB")}
                   </td>
-                  <td>
-                    <Link
-                      href={`/dashboard/finance/expenses`}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      View in finance →
+                  <td className="flex items-center gap-1.5">
+                    <Link href={`/dashboard/payroll/runs/${r.id}`} className="btn btn-ghost btn-sm">
+                      Payslips →
+                    </Link>
+                    <Link href={`/dashboard/finance/expenses`} className="btn btn-ghost btn-sm">
+                      Finance →
                     </Link>
                   </td>
                 </tr>

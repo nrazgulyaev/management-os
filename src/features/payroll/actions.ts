@@ -4,7 +4,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { staff, staffAssignments, payrollRuns } from "@/lib/db/schema/payroll";
+import {
+  staff,
+  staffAssignments,
+  payrollRuns,
+  orgPayrollSettings,
+  payrollPayslips,
+} from "@/lib/db/schema/payroll";
 import { expenseLines } from "@/lib/db/schema/finance";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -17,7 +23,11 @@ import {
   updateStaffSchema,
   setStaffActiveSchema,
   runPayrollSchema,
+  orgPayrollSettingsSchema,
 } from "./schema";
+import { getOrgPayrollSettings, toStatutorySettings } from "./services";
+import { computeStatutory, computeProration, prorateMinor } from "./statutory";
+import type { PtkpStatus } from "@/lib/db/schema/payroll";
 import type { ActionResult } from "@/features/projects/actions";
 
 const nullable = (v: string | undefined) => (v && v !== "" ? v : null);
@@ -203,6 +213,14 @@ export async function createStaffAction(
         // Only keep the fallback target relevant to the chosen scope.
         villaId: d.allocationScope === "villa" ? villaId : null,
         projectId: d.allocationScope === "project_pool" ? projectId : null,
+        // Effective-dating + statutory opt-in (migration 0172).
+        hiredOn: d.hiredOn ?? null,
+        endedOn: d.endedOn ?? null,
+        rateEffectiveFrom: d.rateEffectiveFrom ?? null,
+        // Statutory only makes sense for salaried; force off otherwise.
+        statutoryEnabled: d.compMode === "salaried" ? d.statutoryEnabled : false,
+        ptkpStatus: d.ptkpStatus ?? null,
+        noNpwp: d.noNpwp,
         notes: nullable(d.notes),
         createdBy: me?.id ?? null,
       })
@@ -275,6 +293,12 @@ export async function updateStaffAction(
         allocationScope: d.allocationScope,
         villaId: d.allocationScope === "villa" ? villaId : null,
         projectId: d.allocationScope === "project_pool" ? projectId : null,
+        hiredOn: d.hiredOn ?? null,
+        endedOn: d.endedOn ?? null,
+        rateEffectiveFrom: d.rateEffectiveFrom ?? null,
+        statutoryEnabled: d.compMode === "salaried" ? d.statutoryEnabled : false,
+        ptkpStatus: d.ptkpStatus ?? null,
+        noNpwp: d.noNpwp,
         active: d.active,
         notes: nullable(d.notes),
         updatedAt: new Date(),
@@ -417,6 +441,12 @@ export async function runPayrollAction(
     assignmentsByStaff.set(a.staffId, list);
   }
 
+  // Org statutory settings (BPJS/PPh21). When the org has never configured them
+  // OR the master switch is off, this resolves to the researched defaults with
+  // statutoryEnabled=false, so NOTHING statutory is computed — existing payroll
+  // behaviour is byte-for-byte unchanged.
+  const statutorySettings = toStatutorySettings(await getOrgPayrollSettings());
+
   // Build the expense-line specs deterministically per comp_mode BEFORE the
   // write, so we know up front whether there is anything to post.
   interface LineSpec {
@@ -430,7 +460,31 @@ export async function runPayrollAction(
     ownerChargeable: boolean;
     staffId: string;
   }
+  // One payslip row per statutory-computed salaried staff member — the payslip
+  // view source. amountMinor on the matching LineSpec === totalEmployerCostMinor.
+  interface PayslipSpec {
+    staffId: string;
+    currency: string;
+    grossMinor: bigint;
+    prorationNumerator: number;
+    prorationDenominator: number;
+    employerJhtMinor: bigint;
+    employerJkkMinor: bigint;
+    employerJkmMinor: bigint;
+    employerJpMinor: bigint;
+    employerKesehatanMinor: bigint;
+    employerContribMinor: bigint;
+    employeeJhtMinor: bigint;
+    employeeJpMinor: bigint;
+    employeeKesehatanMinor: bigint;
+    employeeBpjsMinor: bigint;
+    pph21Minor: bigint;
+    terCategory: string | null;
+    netTakeHomeMinor: bigint;
+    totalEmployerCostMinor: bigint;
+  }
   const specs: LineSpec[] = [];
+  const payslipSpecs: PayslipSpec[] = [];
   let paidStaffCount = 0;
 
   for (const member of activeStaff) {
@@ -445,13 +499,21 @@ export async function runPayrollAction(
       continue;
     }
 
+    // Effective-dating proration: active days in [hired, ended] ∩ this month.
+    // A member not active at all in the month posts nothing.
+    const proration = computeProration(periodMonth, member.hiredOn, member.endedOn);
+    if (!proration.active) continue;
+
     if (member.compMode === "per_villa_fixed") {
       const rate = member.perVillaRateMinor ?? 0n;
       if (rate <= 0n || assignments.length === 0) continue; // nothing to fan out
+      let postedAny = false;
       for (const a of assignments) {
         // ONE line per active assignment, attributed to that target. weight is
-        // a numeric multiplier; round the product to whole minor units.
-        const amount = BigInt(Math.round(Number(rate) * a.weight));
+        // a numeric multiplier; round the product to whole minor units, then
+        // prorate by active days. (Statutory is salaried-only — not applied here.)
+        const full = BigInt(Math.round(Number(rate) * a.weight));
+        const amount = prorateMinor(full, proration);
         if (amount <= 0n) continue;
         const scope = a.villaId ? "villa" : a.projectId ? "project_pool" : "company";
         specs.push({
@@ -465,14 +527,33 @@ export async function runPayrollAction(
           ownerChargeable,
           staffId: member.id,
         });
+        postedAny = true;
       }
-      paidStaffCount += 1;
+      if (postedAny) paidStaffCount += 1;
       continue;
     }
 
     // salaried → ONE line of monthly_rate to its single target: prefer the
     // first active assignment, else the fallback allocation_scope/target.
     if (member.monthlyRateMinor <= 0n) continue;
+
+    // Prorated gross actually earned this month.
+    const grossMinor = prorateMinor(member.monthlyRateMinor, proration);
+    if (grossMinor <= 0n) continue;
+
+    // Statutory (only when org-enabled AND this staff opts in). The COST BORNE
+    // by the owner/management becomes gross + employer BPJS; employee BPJS +
+    // PPh21 are withheld from gross (NOT extra cost). When statutory is off the
+    // posted amount stays the prorated gross — existing behaviour.
+    const statutory = computeStatutory(
+      grossMinor,
+      member.ptkpStatus as PtkpStatus | null,
+      statutorySettings,
+      { noNpwp: member.noNpwp },
+    );
+    const statutoryOn = member.statutoryEnabled && statutorySettings.statutoryEnabled;
+    const postedAmount = statutoryOn ? statutory.totalEmployerCostMinor : grossMinor;
+
     let villaId: string | null = null;
     let projectId: string | null = null;
     let scope: string;
@@ -495,13 +576,36 @@ export async function runPayrollAction(
       villaId,
       projectId,
       allocationScope: scope,
-      amountMinor: member.monthlyRateMinor,
+      amountMinor: postedAmount,
       currency: member.currency,
       description: `Payroll · ${member.fullName} · ${member.roleLabel} · ${label}`,
       costBearer: bearer,
       ownerChargeable,
       staffId: member.id,
     });
+    if (statutoryOn) {
+      payslipSpecs.push({
+        staffId: member.id,
+        currency: member.currency,
+        grossMinor,
+        prorationNumerator: proration.numerator,
+        prorationDenominator: proration.denominator,
+        employerJhtMinor: statutory.employer.jhtMinor,
+        employerJkkMinor: statutory.employer.jkkMinor,
+        employerJkmMinor: statutory.employer.jkmMinor,
+        employerJpMinor: statutory.employer.jpMinor,
+        employerKesehatanMinor: statutory.employer.kesehatanMinor,
+        employerContribMinor: statutory.employerContribMinor,
+        employeeJhtMinor: statutory.employee.jhtMinor,
+        employeeJpMinor: statutory.employee.jpMinor,
+        employeeKesehatanMinor: statutory.employee.kesehatanMinor,
+        employeeBpjsMinor: statutory.employeeBpjsMinor,
+        pph21Minor: statutory.pph21Minor,
+        terCategory: statutory.terCategory,
+        netTakeHomeMinor: statutory.netTakeHomeMinor,
+        totalEmployerCostMinor: statutory.totalEmployerCostMinor,
+      });
+    }
     paidStaffCount += 1;
   }
 
@@ -559,6 +663,34 @@ export async function runPayrollAction(
         expenseCount += 1;
       }
 
+      // Statutory payslips (transparency only — they do NOT add money). One row
+      // per statutory-computed staff member; org-scoped insert.
+      for (const ps of payslipSpecs) {
+        await tx.insert(payrollPayslips).values({
+          organizationId,
+          payrollRunId: run.id,
+          staffId: ps.staffId,
+          currency: ps.currency,
+          grossMinor: ps.grossMinor,
+          prorationNumerator: ps.prorationNumerator,
+          prorationDenominator: ps.prorationDenominator,
+          employerJhtMinor: ps.employerJhtMinor,
+          employerJkkMinor: ps.employerJkkMinor,
+          employerJkmMinor: ps.employerJkmMinor,
+          employerJpMinor: ps.employerJpMinor,
+          employerKesehatanMinor: ps.employerKesehatanMinor,
+          employerContribMinor: ps.employerContribMinor,
+          employeeJhtMinor: ps.employeeJhtMinor,
+          employeeJpMinor: ps.employeeJpMinor,
+          employeeKesehatanMinor: ps.employeeKesehatanMinor,
+          employeeBpjsMinor: ps.employeeBpjsMinor,
+          pph21Minor: ps.pph21Minor,
+          terCategory: ps.terCategory,
+          netTakeHomeMinor: ps.netTakeHomeMinor,
+          totalEmployerCostMinor: ps.totalEmployerCostMinor,
+        });
+      }
+
       await tx
         .update(payrollRuns)
         .set({ totalMinor, staffCount: paidStaffCount, expenseCount })
@@ -575,6 +707,7 @@ export async function runPayrollAction(
             label,
             staffCount: paidStaffCount,
             expenseCount,
+            payslipCount: payslipSpecs.length,
             totalMinor: totalMinor.toString(),
             currency: runCurrency,
           },
@@ -598,4 +731,67 @@ export async function runPayrollAction(
   revalidatePath("/dashboard/finance");
   revalidatePath("/dashboard/finance/expenses");
   return { ok: true, redirectTo: "/dashboard/payroll" };
+}
+
+// -----------------------------------------------------------------------------
+// Org BPJS / PPh21 settings — editable defaults (one row per org, upserted).
+// Gated by finance.write (same money permission); org-scoped; audited.
+// -----------------------------------------------------------------------------
+export async function updateOrgPayrollSettingsAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await ensurePayrollWrite();
+  const parsed = orgPayrollSettingsSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the statutory settings.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  // numeric columns take strings in drizzle-orm; bigint columns take bigint.
+  const values = {
+    statutoryEnabled: d.statutoryEnabled,
+    jhtEmployerPct: String(d.jhtEmployerPct),
+    jhtEmployeePct: String(d.jhtEmployeePct),
+    jkkEmployerPct: String(d.jkkEmployerPct),
+    jkmEmployerPct: String(d.jkmEmployerPct),
+    jpEmployerPct: String(d.jpEmployerPct),
+    jpEmployeePct: String(d.jpEmployeePct),
+    jpCapMinor: d.jpCapMinor,
+    kesehatanEmployerPct: String(d.kesehatanEmployerPct),
+    kesehatanEmployeePct: String(d.kesehatanEmployeePct),
+    kesehatanCapMinor: d.kesehatanCapMinor,
+    pph21Enabled: d.pph21Enabled,
+    noNpwpSurchargePct: String(d.noNpwpSurchargePct),
+    currency: d.currency,
+    updatedBy: me?.id ?? null,
+  };
+
+  await db
+    .insert(orgPayrollSettings)
+    .values({ organizationId, ...values })
+    .onConflictDoUpdate({
+      target: orgPayrollSettings.organizationId,
+      set: { ...values, updatedAt: new Date() },
+    });
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "payroll.settings.update",
+    entityType: "org_payroll_settings",
+    entityId: organizationId,
+    after: { ...values, jpCapMinor: d.jpCapMinor.toString(), kesehatanCapMinor: d.kesehatanCapMinor.toString() },
+  });
+
+  revalidatePath("/dashboard/payroll");
+  revalidatePath("/dashboard/payroll/settings");
+  return { ok: true };
 }

@@ -13,6 +13,8 @@ import { AssignmentEditor, type AssignmentDraft, type TargetOption } from "./ass
 type CompMode = "salaried" | "per_villa_fixed" | "per_service";
 type CostBearer = "owner" | "management" | "shared_pool";
 
+type PtkpStatus = "TK/0" | "TK/1" | "TK/2" | "TK/3" | "K/0" | "K/1" | "K/2" | "K/3";
+
 export interface StaffFormDefaults {
   id?: string;
   fullName?: string;
@@ -28,6 +30,12 @@ export interface StaffFormDefaults {
   active?: boolean;
   notes?: string | null;
   assignments?: AssignmentDraft[];
+  hiredOn?: string | null;
+  endedOn?: string | null;
+  rateEffectiveFrom?: string | null;
+  statutoryEnabled?: boolean;
+  ptkpStatus?: PtkpStatus | null;
+  noNpwp?: boolean;
 }
 
 export interface StaffFormProps {
@@ -37,7 +45,20 @@ export interface StaffFormProps {
   projects: TargetOption[];
   cancelHref: string;
   defaults?: StaffFormDefaults;
+  /** Whether the org has enabled BPJS/PPh21 (drives the statutory section copy). */
+  orgStatutoryEnabled?: boolean;
 }
+
+const PTKP_OPTIONS: { value: PtkpStatus; label: string }[] = [
+  { value: "TK/0", label: "TK/0 — single, 0 dependents (TER A)" },
+  { value: "TK/1", label: "TK/1 — single, 1 dependent (TER A)" },
+  { value: "TK/2", label: "TK/2 — single, 2 dependents (TER B)" },
+  { value: "TK/3", label: "TK/3 — single, 3 dependents (TER B)" },
+  { value: "K/0", label: "K/0 — married, 0 dependents (TER A)" },
+  { value: "K/1", label: "K/1 — married, 1 dependent (TER B)" },
+  { value: "K/2", label: "K/2 — married, 2 dependents (TER B)" },
+  { value: "K/3", label: "K/3 — married, 3 dependents (TER C)" },
+];
 
 /** Preset role list from STAFF-COST-MODEL.md with sensible default comp_mode + bearer. */
 interface RolePreset {
@@ -74,7 +95,15 @@ const COST_BEARER_LABEL: Record<CostBearer, string> = {
   shared_pool: "Shared pool — split across the complex's owners",
 };
 
-export function StaffForm({ mode, action, villas, projects, cancelHref, defaults }: StaffFormProps) {
+export function StaffForm({
+  mode,
+  action,
+  villas,
+  projects,
+  cancelHref,
+  defaults,
+  orgStatutoryEnabled = false,
+}: StaffFormProps) {
   const { state, submitAction } = useModalOrRouteForm<ActionResult>(action);
   const [currency, setCurrency] = useState(defaults?.currency ?? "IDR");
   const [scope, setScope] = useState<"villa" | "project_pool" | "company">(
@@ -82,6 +111,9 @@ export function StaffForm({ mode, action, villas, projects, cancelHref, defaults
   );
   const [compMode, setCompMode] = useState<CompMode>(defaults?.compMode ?? "salaried");
   const [costBearer, setCostBearer] = useState<CostBearer>(defaults?.costBearer ?? "owner");
+  const [statutoryEnabled, setStatutoryEnabled] = useState<boolean>(
+    defaults?.statutoryEnabled ?? false,
+  );
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
 
   function applyPreset(role: string) {
@@ -222,6 +254,119 @@ export function StaffForm({ mode, action, villas, projects, cancelHref, defaults
             </select>
           </Field>
         </div>
+
+        {/* Effective-dating — drives mid-month proration in the run. */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <Field
+            label="Hired on"
+            error={errs.hiredOn?.[0]}
+            hint="Optional. Prorates the first month by active days."
+          >
+            <input
+              type="date"
+              name="hiredOn"
+              defaultValue={defaults?.hiredOn ?? ""}
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Ended on"
+            error={errs.endedOn?.[0]}
+            hint="Optional. Prorates the last month; nothing posts after this."
+          >
+            <input
+              type="date"
+              name="endedOn"
+              defaultValue={defaults?.endedOn ?? ""}
+              className={inputCls}
+            />
+          </Field>
+          <Field
+            label="Rate effective from"
+            error={errs.rateEffectiveFrom?.[0]}
+            hint="Optional reference only — not used in the proration math."
+          >
+            <input
+              type="date"
+              name="rateEffectiveFrom"
+              defaultValue={defaults?.rateEffectiveFrom ?? ""}
+              className={inputCls}
+            />
+          </Field>
+        </div>
+
+        {/* Indonesian statutory (BPJS / PPh21) — salaried only. */}
+        {compMode === "salaried" && (
+          <div className="rounded-lg border border-line bg-surface-2/40 p-4 flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[13px] font-medium text-ink">
+                  Indonesian statutory (BPJS &amp; PPh21)
+                </div>
+                <p className="text-[12px] text-ink-3 mt-1 max-w-[560px] m-0">
+                  When enabled, payroll posts the <em>total employer cost</em> (gross + employer
+                  BPJS) for this person, and records a payslip with the employee BPJS + PPh21
+                  withholdings. Rates/caps are configurable org defaults (2026 figures); the December
+                  annual reconciliation is out of scope.
+                </p>
+              </div>
+            </div>
+            {!orgStatutoryEnabled && (
+              <div className="rounded-md border border-warn/30 bg-warn-weak/30 px-3 py-2 text-[12px] text-ink-2">
+                Your org has not turned on statutory yet. Enable it in{" "}
+                <Link href="/dashboard/payroll/settings" className="underline">
+                  Payroll settings
+                </Link>{" "}
+                for BPJS/PPh21 to actually compute on runs.
+              </div>
+            )}
+            <label className="flex items-center gap-2.5 text-[13px] text-ink cursor-pointer">
+              <input
+                type="checkbox"
+                name="statutoryEnabled"
+                value="true"
+                checked={statutoryEnabled}
+                onChange={(e) => setStatutoryEnabled(e.target.checked)}
+                className="h-4 w-4 accent-terra"
+              />
+              Enable BPJS / PPh21 for this staff member
+            </label>
+            {statutoryEnabled && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <Field
+                  label="PTKP status"
+                  error={errs.ptkpStatus?.[0]}
+                  hint="Marital + dependents at year start — picks the PPh21 TER category."
+                >
+                  <select
+                    name="ptkpStatus"
+                    defaultValue={defaults?.ptkpStatus ?? ""}
+                    className={selectCls}
+                  >
+                    <option value="">— Choose PTKP status —</option>
+                    {PTKP_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="NPWP" hint="Tick if the employee has no NPWP (adds the +20% PPh21 surcharge).">
+                  <label className="flex items-center gap-2.5 text-[13px] text-ink h-[38px] cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="noNpwp"
+                      value="true"
+                      defaultChecked={defaults?.noNpwp ?? false}
+                      className="h-4 w-4 accent-terra"
+                    />
+                    No NPWP (apply +20% surcharge)
+                  </label>
+                </Field>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Multi-target assignment editor */}
         <Field
