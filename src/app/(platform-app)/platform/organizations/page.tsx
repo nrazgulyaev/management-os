@@ -20,9 +20,12 @@ import {
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import {
   listSubscriptionOsOrgs,
+  listAssignablePlans,
   type SubscriptionOsOrgRow,
+  type AssignablePlanOption,
 } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { NewOrganizationButton } from "@/components/subscription-os/new-organization-button";
 
 export const metadata: Metadata = { title: "Organizations · Platform Admin OS" };
 export const dynamic = "force-dynamic";
@@ -82,6 +85,13 @@ export default async function OrganizationsListPage({
     4000,
   );
 
+  const assignablePlans = await safeQuery(
+    "subscription-os.assignablePlans",
+    listAssignablePlans(),
+    [] as AssignablePlanOption[],
+    4000,
+  );
+
   const counts = {
     all: orgs.length,
     trial: orgs.filter((o) => o.status === "trial").length,
@@ -118,6 +128,7 @@ export default async function OrganizationsListPage({
         eyebrow="Platform · all tenants"
         title="Customer organizations"
         description="Every customer org with its current subscription state. Filter by status or search by name / code, then drill into the per-org console."
+        actions={<NewOrganizationButton plans={assignablePlans} />}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">

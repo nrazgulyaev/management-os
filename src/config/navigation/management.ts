@@ -188,6 +188,7 @@ export const MGMT_DASHBOARD_NAV: DashboardNavGroup[] = [
       { href: "/dashboard/finance/disputes", label: "Owner disputes" },
       { href: "/dashboard/finance/transparency", label: "Statement transparency" },
       { href: "/dashboard/finance/material-usage", label: "Material usage bridge" },
+      { href: "/dashboard/payroll", label: "Payroll · staff cost" },
       { href: "/dashboard/payments", label: "Payments" },
       { href: "/dashboard/payments/webhooks", label: "Webhooks" },
     ],
