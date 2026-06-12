@@ -1,7 +1,8 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { owners, ownershipShares } from "@/lib/db/schema/ownership";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
@@ -71,7 +72,15 @@ export async function listOwners(): Promise<WithSource<OwnerListItem>[]> {
   const db = getDb();
   if (!db) return fromMockOwners();
 
-  const rows = await db.select().from(owners).orderBy(asc(owners.displayName));
+  // TENANCY (0173): owners are org-scoped only through owners.organization_id
+  // (no project/villa FK). Scope to the caller's org so a tenant never sees
+  // another org's — or leftover demo — owners.
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(owners)
+    .where(eq(owners.organizationId, organizationId))
+    .orderBy(asc(owners.displayName));
   return rows.map((r) => ({
     source: "db",
     id: r.id,
@@ -100,7 +109,14 @@ export async function getOwnerById(id: string): Promise<WithSource<OwnerDetail> 
       commissionPct: null,
     };
   }
-  const [r] = await db.select().from(owners).where(eq(owners.id, id)).limit(1);
+  // TENANCY (0173): AND the id with the caller's org so a cross-org owner id
+  // reads as not-found instead of leaking the record.
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, id), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!r) return null;
   return {
     source: "db",
@@ -146,6 +162,10 @@ export async function listOwnershipShares(): Promise<WithSource<OwnershipShareRo
     return out;
   }
 
+  // TENANCY (0154/0173): scope shares to the caller's org via the share's own
+  // organization_id (backfilled in 0154, stamped on create). Keeps the owners
+  // list/CRM enrichment from leaking other orgs' shares.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       s: ownershipShares,
@@ -157,6 +177,7 @@ export async function listOwnershipShares(): Promise<WithSource<OwnershipShareRo
     .innerJoin(owners, eq(owners.id, ownershipShares.ownerId))
     .leftJoin(villas, eq(villas.id, ownershipShares.villaId))
     .leftJoin(projects, eq(projects.id, ownershipShares.projectId))
+    .where(eq(ownershipShares.organizationId, organizationId))
     .orderBy(asc(owners.displayName));
 
   return rows.map((r) => ({

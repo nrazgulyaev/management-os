@@ -143,8 +143,8 @@ async function main(): Promise<void> {
       console.log(`✓ Owner already exists → ${auditOwnerId}`);
     } else {
       const [created] = await sql<{ id: string }[]>`
-        INSERT INTO owners (id, type, display_name, email, status)
-        VALUES (${randomUUID()}, 'individual', 'Audit Bot Owner',
+        INSERT INTO owners (id, organization_id, type, display_name, email, status)
+        VALUES (${randomUUID()}, ${orgId}, 'individual', 'Audit Bot Owner',
                 ${AUDIT_BOT_EMAIL}, 'active')
         RETURNING id
       `;

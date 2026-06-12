@@ -81,6 +81,7 @@ async function main() {
     [owner] = await db
       .insert(owners)
       .values({
+        organizationId,
         type: "individual",
         displayName: "Emma Whitmore",
         email: "emma.w@whitmore.co",
