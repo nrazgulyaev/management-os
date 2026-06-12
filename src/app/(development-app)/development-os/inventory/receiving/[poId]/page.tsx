@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { getReceivingPoDetail } from "@/lib/development/server/receiving-queries";
 import {
   MATERIAL_PO_STATUS_LABEL,
@@ -47,7 +48,18 @@ export default async function ReceivingPoDetailPage({
 }: {
   params: Promise<{ poId: string }>;
 }) {
-  await requireInternalUser();
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <AccessForbidden backHref="/development-os/inventory/receiving" backLabel="Receiving" />
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
   const { poId } = await params;
 
   const detail = await getReceivingPoDetail(decodeURIComponent(poId));

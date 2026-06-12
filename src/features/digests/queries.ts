@@ -25,7 +25,7 @@ import "server-only";
  */
 
 import { sql } from "drizzle-orm";
-import { requireDb, rowsOf } from "@/lib/db/client";
+import { getDb, requireDb, rowsOf } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 
 export interface DigestRow {
@@ -83,7 +83,11 @@ export async function listDigestsForCurrentUser(input?: {
 }): Promise<DigestListRow[]> {
   const me = await getCurrentAppUser();
   if (!me) return [];
-  const db = requireDb();
+  // Degrade gracefully when the DB is unreachable (sibling read paths do
+  // the same) — render an empty feed rather than throwing into the error
+  // boundary.
+  const db = getDb();
+  if (!db) return [];
   const limit = input?.limit ?? 20;
   const offset = input?.offset ?? 0;
   const unreadOnly = input?.unreadOnly ?? false;
@@ -184,7 +188,11 @@ export async function countDigestsForCurrentUser(input?: {
 }): Promise<number> {
   const me = await getCurrentAppUser();
   if (!me) return 0;
-  const db = requireDb();
+  // Degrade gracefully when the DB is unreachable (matches the sibling
+  // counters) so the digests page never error-boundaries instead of
+  // rendering an empty feed.
+  const db = getDb();
+  if (!db) return 0;
   const r = rowsOf<{ n: string }>(
     await db.execute(sql`
       SELECT COUNT(*)::text AS n FROM notifications

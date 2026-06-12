@@ -12,7 +12,8 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { getDistribution } from "@/lib/development/server/distributions";
 import {
   cancelDistribution,
@@ -37,7 +38,19 @@ export default async function DistributionDetailPage({
   const { id } = await params;
   // SECURITY: gate the detail page — only internal users may view a
   // distribution or reach the Execute/Cancel money-moving controls.
-  await requireInternalUser();
+  // Degrade to Forbidden instead of a 500 for a logged-in non-internal user.
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <AccessForbidden backHref="/development-os/distributions" backLabel="Distributions" />
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
   const db = getDb();
   if (!db) {
     return (

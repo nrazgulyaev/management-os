@@ -13,6 +13,7 @@ import { projects } from "@/lib/db/schema/projects";
 import { leadSources } from "@/lib/db/schema/contacts";
 import { requireOrgId } from "@/features/auth/require-org";
 import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { CaptureLeadForm, type Option } from "./_capture-lead-form";
 
 export const metadata: Metadata = { title: "Capture new lead · Development OS" };
@@ -37,17 +38,12 @@ export default async function NewLeadPage() {
     if (err instanceof AuthorizationError) {
       return (
         <DevelopmentShell>
-          <Section eyebrow="Sales" title="Capture new lead">
-            <EmptyState
-              title="Internal access required"
-              description="Lead capture is available to internal Development OS users. Sign in with an internal account to continue."
-              action={
-                <Button asChild variant="secondary">
-                  <Link href="/development-os/sales">Back to pipeline</Link>
-                </Button>
-              }
-            />
-          </Section>
+          <AccessForbidden
+            title="Internal access required"
+            description="Lead capture is available to internal Development OS users. Sign in with an internal account to continue."
+            backHref="/development-os/sales"
+            backLabel="Back to pipeline"
+          />
         </DevelopmentShell>
       );
     }
