@@ -188,6 +188,9 @@ export async function listArrivals(date: Date): Promise<ArrivalRow[]> {
 export async function listDepartures(date: Date): Promise<DepartureRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: scope to the caller's org (bookings.organization_id NOT NULL,
+  // 0155) — same fix as listArrivals.
+  const organizationId = await requireOrgId();
   const day = ymd(date);
   const dayStart = new Date(`${day}T00:00:00.000Z`);
   const dayEnd = new Date(`${day}T23:59:59.999Z`);
@@ -204,6 +207,7 @@ export async function listDepartures(date: Date): Promise<DepartureRow[]> {
     .leftJoin(guests, eq(guests.id, bookings.guestId))
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         eq(bookings.checkOut, day),
         inArray(bookings.status, ["confirmed", "checked_in"]),
       ),
@@ -319,6 +323,8 @@ export async function listDepartures(date: Date): Promise<DepartureRow[]> {
 export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: scope to the caller's org (the dashboard "IN-HOUSE" tile).
+  const organizationId = await requireOrgId();
   const day = ymd(date);
   // checkIn <= date < checkOut, status active.
   const rows = await db
@@ -333,6 +339,7 @@ export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
     .leftJoin(guests, eq(guests.id, bookings.guestId))
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         lte(bookings.checkIn, day),
         // checkOut > day  (half-open)
         // drizzle has no "gt(date)"; we use lt(day, checkOut) via raw expression
