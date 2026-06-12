@@ -8,11 +8,14 @@ import { requireOrgId } from "@/features/auth/require-org";
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live read aggregates.
  *
- * Mgmt-side tables (`projects`, `villas`, `owners`, `bookings`,
- * `ownership_shares`) intentionally have NO `organization_id` —
- * they live above the multi-tenancy line in the current schema.
- * Reads below are therefore tenant-wide; this is consistent with the
- * existing `getLiveDashboardCounts()` (commit 95501b1).
+ * TENANCY: every read is org-scoped via requireOrgId() (the DB role bypasses
+ * RLS, so a fresh tenant would otherwise see every org's — and demo — money).
+ * bookings/projects/owner_statements/owner_stay_requests/ownership_shares carry
+ * organization_id; villas reach it via their project. Each function degrades to
+ * its EMPTY shape if the org context can't be resolved (anonymous probe) so the
+ * Overview never 500s. (The earlier header here claimed these tables were
+ * "above the multi-tenancy line" — that's no longer true; the org columns
+ * landed in mig 0149/0152/0154/0155/0173.)
  *
  * FX: IDR/USD pinned to 15,800 (operator's working rate). Flagged for
  * INTEGRATIONS-1 — real FX provider lands later.
@@ -49,6 +52,8 @@ const OPERATOR_COMMISSION = 0.2;
 export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
   const db = getDb();
   if (!db) return EMPTY_METRICS;
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return EMPTY_METRICS;
 
   const row = await db.execute<{
     villa_count: string;
@@ -63,21 +68,26 @@ export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
       SELECT date_trunc('month', CURRENT_DATE)::date AS month_start
     )
     SELECT
-      (SELECT COUNT(*)::text FROM villas WHERE status NOT IN ('archived','out_of_service')) AS villa_count,
+      (SELECT COUNT(*)::text FROM villas
+        WHERE status NOT IN ('archived','out_of_service')
+          AND project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId})) AS villa_count,
       COALESCE((
         SELECT SUM(nights)::text FROM bookings b, yr
          WHERE b.status IN ('confirmed','checked_in','checked_out')
            AND b.check_in >= yr.year_start
+           AND b.organization_id = ${orgId}
       ), '0') AS booked_nights_ytd,
       COALESCE((
         SELECT SUM(gross_amount)::text FROM bookings b, yr
          WHERE b.status IN ('confirmed','checked_in','checked_out')
            AND b.check_in >= yr.year_start
+           AND b.organization_id = ${orgId}
       ), '0') AS revenue_ytd_usd,
       COALESCE((
         SELECT SUM(gross_amount)::text FROM bookings b, mt
          WHERE b.status IN ('confirmed','checked_in','checked_out')
            AND b.check_in >= mt.month_start
+           AND b.organization_id = ${orgId}
       ), '0') AS revenue_mtd_usd
   `);
   // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape. The
@@ -122,6 +132,8 @@ export interface ChannelMixRow {
 export async function getRevenueByChannel(monthsBack = 1): Promise<ChannelMixRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
   const rows = await db.execute<{
     channel: string;
     total_usd: string;
@@ -131,6 +143,7 @@ export async function getRevenueByChannel(monthsBack = 1): Promise<ChannelMixRow
       FROM bookings b
       LEFT JOIN booking_channels bc ON bc.id = b.channel_id
      WHERE b.status IN ('confirmed','checked_in','checked_out')
+       AND b.organization_id = ${orgId}
        AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${monthsBack - 1} || ' months')::interval)::date
      GROUP BY 1
      ORDER BY SUM(b.gross_amount) DESC NULLS LAST
@@ -157,11 +170,14 @@ export interface MonthlyRevenueRow {
 export async function getMonthlyRevenueStrip(months = 6): Promise<MonthlyRevenueRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
   const rows = await db.execute<{ month_iso: string; total_usd: string }>(sql`
     SELECT to_char(date_trunc('month', b.check_in), 'YYYY-MM') AS month_iso,
            SUM(b.gross_amount)::text AS total_usd
       FROM bookings b
      WHERE b.status IN ('confirmed','checked_in','checked_out')
+       AND b.organization_id = ${orgId}
        AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${months - 1} || ' months')::interval)::date
      GROUP BY 1
      ORDER BY 1 ASC
@@ -192,6 +208,8 @@ export interface OwnerPayoutRow {
 export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
   // Owner's share of (booking gross × (1 - commission)), aggregated across
   // the villas they own via ownership_shares.share_percent.
   const rows = await db.execute<{
@@ -207,6 +225,7 @@ export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
              SUM(b.gross_amount) AS revenue_usd
         FROM bookings b
        WHERE b.status IN ('confirmed','checked_in','checked_out')
+         AND b.organization_id = ${orgId}
          AND b.check_in >= date_trunc('year', CURRENT_DATE)::date
        GROUP BY b.villa_id
     ),
@@ -223,6 +242,7 @@ export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
         LEFT JOIN projects p ON p.id = v.project_id
         LEFT JOIN villa_yr_revenue vyr ON vyr.villa_id = os.villa_id
        WHERE os.status = 'active'
+         AND os.organization_id = ${orgId}
        GROUP BY o.id, o.display_name
     )
     SELECT owner_id::text       AS owner_id,
@@ -271,6 +291,8 @@ export interface PortfolioProjectRow {
 export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
   const rows = await db.execute<{
     project_id: string;
     project_name: string;
@@ -305,6 +327,7 @@ export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
       FROM projects p
       LEFT JOIN villas v ON v.project_id = p.id
      WHERE p.status NOT IN ('completed','paused','archived')
+       AND p.organization_id = ${orgId}
      GROUP BY p.id, p.name, p.location, p.created_at
      ORDER BY revenue_ytd_usd DESC NULLS LAST,
               COUNT(DISTINCT v.id) DESC,
@@ -352,6 +375,8 @@ export interface TodayScheduleRow {
 export async function getTodaySchedule(date?: string): Promise<TodayScheduleRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
   const today = date ?? new Date().toISOString().slice(0, 10);
   const rows = await db.execute<{
     kind: string;
@@ -367,6 +392,7 @@ export async function getTodaySchedule(date?: string): Promise<TodayScheduleRow[
       JOIN villas v ON v.id = b.villa_id
      WHERE b.check_in = ${today}
        AND b.status IN ('confirmed','checked_in')
+       AND b.organization_id = ${orgId}
     UNION ALL
     SELECT 'departure' AS kind,
            v.unit_code AS villa_code,
@@ -376,6 +402,7 @@ export async function getTodaySchedule(date?: string): Promise<TodayScheduleRow[
       JOIN villas v ON v.id = b.villa_id
      WHERE b.check_out = ${today}
        AND b.status IN ('checked_in','checked_out')
+       AND b.organization_id = ${orgId}
      ORDER BY 1, 2
      LIMIT 12
   `);
@@ -416,6 +443,8 @@ export interface StatementNudge {
 export async function getCurrentStatementNudge(): Promise<StatementNudge | null> {
   const db = getDb();
   if (!db) return null;
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return null;
   const rows = await db.execute<{
     statement_id: string;
     owner_name: string | null;
@@ -433,6 +462,7 @@ export async function getCurrentStatementNudge(): Promise<StatementNudge | null>
       LEFT JOIN villas v ON v.id = s.villa_id
      WHERE s.owner_state = 'pending'
        AND s.auto_ack_at IS NOT NULL
+       AND s.organization_id = ${orgId}
      ORDER BY s.auto_ack_at ASC
      LIMIT 1
   `);
@@ -492,17 +522,21 @@ export async function getOperationalHealthTiles(): Promise<OperationalHealthTile
     };
   }
 
+  const orgId = await requireOrgId().catch(() => null);
   const kpis = await getOperationsKpis();
 
   // Pending = no decision recorded yet. Keyed off the decision timestamps
   // rather than the `status` string so it's robust to status-vocab drift.
-  const rows = await db.execute<{ pending: string }>(sql`
-    SELECT COUNT(*)::text AS pending
-      FROM owner_stay_requests
-     WHERE approved_at IS NULL
-       AND rejected_at IS NULL
-       AND completed_at IS NULL
-  `);
+  const rows = orgId
+    ? await db.execute<{ pending: string }>(sql`
+        SELECT COUNT(*)::text AS pending
+          FROM owner_stay_requests
+         WHERE approved_at IS NULL
+           AND rejected_at IS NULL
+           AND completed_at IS NULL
+           AND organization_id = ${orgId}
+      `)
+    : [];
   const ownerStayRequestsPending = Number(
     rowsOf<{ pending: string }>(rows)[0]?.pending ?? "0",
   );
