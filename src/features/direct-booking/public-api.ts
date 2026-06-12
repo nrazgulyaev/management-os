@@ -439,6 +439,7 @@ export async function handleSubmitHold(args: {
       .trim(),
     phone: data.guestPhone ?? null,
     nationality: data.guestCountry ?? null,
+    organizationId: hold.organizationId,
   });
 
   // Insert the request.

@@ -244,6 +244,7 @@ export async function createDirectBookingOnBehalfAction(
         .trim(),
       phone: data.guestPhone ?? null,
       nationality: data.guestCountry ?? null,
+      organizationId,
     });
     requestCode = `DBR-${Date.now().toString(36).toUpperCase()}-${Math.random()
       .toString(36)
