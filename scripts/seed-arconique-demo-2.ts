@@ -537,6 +537,7 @@ async function seed(
     const [row] = await db
       .insert(owners)
       .values({
+        organizationId,
         type: (o.type ?? "individual") as "individual" | "company" | "family_office",
         displayName: o.name,
         legalName: o.legal,

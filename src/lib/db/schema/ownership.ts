@@ -15,6 +15,13 @@ export const owners = pgTable(
   "owners",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    /** TENANCY (migration 0173): nullable org anchor, backfilled from the
+     *  owner's ownership_shares (else ARCONIQUE_DEFAULT). Threaded into
+     *  listOwners/getOwnerById reads + createOwnerAction writes. Owners are
+     *  org-scoped only through this column — they have no project/villa FK. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     // type: individual | company | family_office
     type: text("type").notNull().default("individual"),
     displayName: text("display_name").notNull(),
@@ -35,7 +42,10 @@ export const owners = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [index("owners_status_idx").on(t.status)],
+  (t) => [
+    index("owners_status_idx").on(t.status),
+    index("owners_organization_idx").on(t.organizationId),
+  ],
 );
 
 export const ownershipShares = pgTable(

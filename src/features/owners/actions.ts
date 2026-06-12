@@ -43,10 +43,14 @@ export async function createOwnerAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
+  // TENANCY (0173): stamp the owner with the caller's org so it's scoped to
+  // this tenant on every read.
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .insert(owners)
     .values({
+      organizationId,
       type: d.type,
       displayName: d.displayName,
       legalName: nullable(d.legalName),
@@ -150,6 +154,7 @@ export async function onboardOwnerAction(
   const [ownerRow] = await db
     .insert(owners)
     .values({
+      organizationId,
       type: "individual",
       displayName: d.displayName,
       legalName: d.legalName && d.legalName !== "" ? d.legalName : null,
