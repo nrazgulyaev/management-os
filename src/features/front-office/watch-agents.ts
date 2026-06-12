@@ -15,7 +15,7 @@ import { isTurnoverRisk, visaSeverity, type VisaSeverity } from "./watch-rules";
  *
  * - turnover-monitor: villas with an arrival today that aren't ready yet.
  * - visa-watcher: captured guest IDs that expire during the stay / already expired.
- * - vip-prep: deferred — no VIP signal exists on bookings/guests yet.
+ * - vip-prep: today's arrivals flagged VIP (guests.is_vip or a per-stay override).
  */
 
 export interface TurnoverFlag {
@@ -23,6 +23,15 @@ export interface TurnoverFlag {
   villaCode: string | null;
   guestDisplay: string;
   readinessStatus: string;
+}
+
+export interface VipFlag {
+  bookingId: string;
+  villaCode: string | null;
+  /** Masked display name — same privacy posture as the other monitors. */
+  guestDisplay: string;
+  checkIn: string;
+  notes: string | null;
 }
 
 export interface VisaFlag {
@@ -43,6 +52,19 @@ export async function detectTurnoverRisks(date: Date = new Date()): Promise<Turn
       villaCode: a.villaCode,
       guestDisplay: a.guestDisplay,
       readinessStatus: a.readinessStatus,
+    }));
+}
+
+export async function detectVipPrep(date: Date = new Date()): Promise<VipFlag[]> {
+  const arrivals = await listArrivals(date);
+  return arrivals
+    .filter((a) => a.isVip)
+    .map((a) => ({
+      bookingId: a.bookingId,
+      villaCode: a.villaCode,
+      guestDisplay: a.guestDisplay,
+      checkIn: a.checkInDate,
+      notes: a.bookingNotes,
     }));
 }
 

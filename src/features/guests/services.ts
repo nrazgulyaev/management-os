@@ -13,13 +13,14 @@ export interface GuestRow {
   nationality: string | null;
   preferredLanguage: string | null;
   whatsapp: string | null;
+  isVip: boolean;
 }
 
 const fallback: WithSource<GuestRow>[] = [
-  { source: "mock", id: "g1", fullName: "A. Martin", email: "a.martin@example.com", phone: "+33100000000", nationality: "French", preferredLanguage: "en", whatsapp: "+33100000000" },
-  { source: "mock", id: "g2", fullName: "H. Williams", email: "h.williams@example.com", phone: "+44207100000", nationality: "British", preferredLanguage: "en", whatsapp: "+44207100000" },
-  { source: "mock", id: "g3", fullName: "Family Nielsen", email: "nielsen@example.com", phone: "+4530000000", nationality: "Danish", preferredLanguage: "en", whatsapp: "+4530000000" },
-  { source: "mock", id: "g4", fullName: "Mr. Tanaka", email: "tanaka@example.com", phone: "+8190000000", nationality: "Japanese", preferredLanguage: "ja", whatsapp: "+8190000000" },
+  { source: "mock", id: "g1", fullName: "A. Martin", email: "a.martin@example.com", phone: "+33100000000", nationality: "French", preferredLanguage: "en", whatsapp: "+33100000000", isVip: false },
+  { source: "mock", id: "g2", fullName: "H. Williams", email: "h.williams@example.com", phone: "+44207100000", nationality: "British", preferredLanguage: "en", whatsapp: "+44207100000", isVip: true },
+  { source: "mock", id: "g3", fullName: "Family Nielsen", email: "nielsen@example.com", phone: "+4530000000", nationality: "Danish", preferredLanguage: "en", whatsapp: "+4530000000", isVip: false },
+  { source: "mock", id: "g4", fullName: "Mr. Tanaka", email: "tanaka@example.com", phone: "+8190000000", nationality: "Japanese", preferredLanguage: "ja", whatsapp: "+8190000000", isVip: false },
 ];
 
 export async function listGuests(): Promise<WithSource<GuestRow>[]> {
@@ -35,5 +36,6 @@ export async function listGuests(): Promise<WithSource<GuestRow>[]> {
     nationality: r.nationality,
     preferredLanguage: r.preferredLanguage,
     whatsapp: r.whatsapp,
+    isVip: r.isVip,
   }));
 }

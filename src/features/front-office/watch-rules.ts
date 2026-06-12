@@ -52,3 +52,17 @@ const NOT_READY: ReadonlySet<string> = new Set([
 export function isTurnoverRisk(readinessStatus: string | null | undefined): boolean {
   return NOT_READY.has((readinessStatus ?? "").trim());
 }
+
+/**
+ * vip-prep rule: resolve whether an arrival is VIP. The per-stay booking flag
+ * is a tri-state override — when set (true/false) it wins; when NULL the
+ * guest-level flag applies.
+ */
+export function isVipArrival(
+  bookingIsVip: boolean | null | undefined,
+  guestIsVip: boolean | null | undefined,
+): boolean {
+  if (bookingIsVip === true) return true;
+  if (bookingIsVip === false) return false;
+  return guestIsVip === true;
+}
