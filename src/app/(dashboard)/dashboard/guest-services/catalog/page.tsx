@@ -14,6 +14,7 @@ import {
   type PricingModel,
 } from "@/features/guest-services/pricing";
 import { ServiceAddButton } from "@/components/guest-services/service-add-button";
+import { ServiceEditButton } from "@/components/guest-services/service-edit-button";
 
 export const metadata = { title: "Guest services catalog" };
 export const dynamic = "force-dynamic";
@@ -189,12 +190,12 @@ export default async function CatalogPage({
                   </td>
                   <td className="num mono text-[12px]">{s.optionCount}</td>
                   <td className="num">
-                    <Link
-                      href={`/dashboard/guest-services/catalog/${s.id}`}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      Edit
-                    </Link>
+                    <ServiceEditButton
+                      service={s}
+                      categories={categoryOpts}
+                      projects={projectOpts}
+                      villas={villaOpts}
+                    />
                   </td>
                 </tr>
               ))
