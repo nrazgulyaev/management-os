@@ -32,11 +32,13 @@
 "use server";
 
 import "server-only";
+import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { organizations } from "@/lib/db/schema/saas";
+import { appUsers } from "@/lib/db/schema/identity";
 import {
   orgSubscriptions,
   subscriptionPlans,
@@ -45,6 +47,7 @@ import { recordAuditEvent } from "@/features/audit/services";
 import { requireSuperAdmin as requireSuperAdminCtx } from "@/features/auth/require-super-admin";
 import { recordLifecycleEvent } from "@/lib/billing/lifecycle";
 import { createOrganization } from "@/lib/development/server/organizations/organization-actions";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export interface ProvisioningResult {
   ok: boolean;
@@ -193,6 +196,178 @@ export async function createOrgAction(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "create organization failed",
+    };
+  }
+}
+
+// ============================================================================
+// Action 1b — Create organization AND its login-capable admin (one shot)
+// ============================================================================
+//
+// The "a customer bought access" onboarding: provisions the org + a Supabase
+// auth user + an app_users row + a GLOBAL super_admin grant + the 'admin'
+// cabinet row, so the new tenant has a human who can immediately sign in. This
+// closes the gap that createOrgAction alone leaves (org with zero users).
+//
+// It mirrors /signup's Supabase-admin user creation, but reuses the
+// constraint-safe createOrgAction for the org and the idempotent
+// public.provision_app_user() SECURITY DEFINER fn (migration 0087) for the
+// user+grants — the same fn scripts/provision-org.ts uses. On ANY failure
+// after the auth user is created, the auth user is deleted so a retry with the
+// same email isn't blocked by an orphan.
+
+const createTenantSchema = createOrgSchema.extend({
+  adminEmail: z.string().trim().email("Enter a valid admin email").max(200),
+  adminFullName: z
+    .string()
+    .trim()
+    .min(2, "Admin name must be at least 2 characters")
+    .max(120),
+  /** Optional — when blank, a strong password is generated and returned ONCE
+   *  for the operator to share (email delivery is a no-op stub today). */
+  adminPassword: z
+    .string()
+    .min(12, "Password must be at least 12 characters")
+    .max(200)
+    .optional(),
+});
+
+export type CreateTenantInput = z.input<typeof createTenantSchema>;
+
+export interface CreateTenantResult extends ProvisioningResult {
+  adminEmail?: string;
+  /** Set only when the password was auto-generated. Show ONCE; never stored. */
+  generatedPassword?: string;
+}
+
+function generatePassword(): string {
+  // 24 url-safe chars — strong, comfortably over the 12-char floor.
+  return randomBytes(18).toString("base64url");
+}
+
+export async function createTenantWithAdminAction(
+  input: CreateTenantInput,
+): Promise<CreateTenantResult> {
+  const parsed = createTenantSchema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+  }
+  const data = parsed.data;
+  const emailLower = data.adminEmail.toLowerCase();
+
+  try {
+    const { appUserId } = await requireSuperAdmin();
+    const db = getDb();
+    if (!db) return { ok: false, error: "Database not configured" };
+    const admin = getSupabaseAdmin();
+    if (!admin) {
+      return {
+        ok: false,
+        error:
+          "Auth service-role key is not configured. Set SUPABASE_SERVICE_ROLE_KEY to create tenant admins from the console.",
+      };
+    }
+
+    // Pre-checks BEFORE creating the auth user, so obvious conflicts don't
+    // leave an orphan Supabase user behind.
+    const [clash] = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.organizationCode, data.organizationCode))
+      .limit(1);
+    if (clash) {
+      return { ok: false, error: `Slug "${data.organizationCode}" is already taken.` };
+    }
+    const [emailClash] = await db
+      .select({ id: appUsers.id })
+      .from(appUsers)
+      .where(eq(appUsers.email, emailLower))
+      .limit(1);
+    if (emailClash) {
+      return { ok: false, error: `An account with email ${emailLower} already exists.` };
+    }
+
+    // 1) Supabase auth user (email auto-confirmed → can sign in immediately).
+    const password = data.adminPassword ?? generatePassword();
+    const generated = !data.adminPassword;
+    const createdUser = await admin.auth.admin.createUser({
+      email: emailLower,
+      password,
+      email_confirm: true,
+      user_metadata: { full_name: data.adminFullName },
+    });
+    if (createdUser.error || !createdUser.data.user) {
+      return {
+        ok: false,
+        error: createdUser.error?.message ?? "Could not create the admin auth user.",
+      };
+    }
+    const authUserId = createdUser.data.user.id;
+
+    try {
+      // 2) Org — reuse the constraint-safe path (org insert + productsEnabled +
+      //    audit + optional initial plan). ok=true with a soft `error` means
+      //    the org landed but the optional plan failed — non-fatal here.
+      const orgResult = await createOrgAction({
+        name: data.name,
+        organizationCode: data.organizationCode,
+        organizationType: data.organizationType,
+        productsEnabled: data.productsEnabled,
+        initialPlanCode: data.initialPlanCode,
+      });
+      if (!orgResult.ok) {
+        throw new Error(orgResult.error ?? "Failed to create organization");
+      }
+
+      // 3) Resolve org id + provision the admin atomically (app_users +
+      //    user_roles super_admin + app_user_roles admin).
+      const [org] = await db
+        .select({ id: organizations.id })
+        .from(organizations)
+        .where(eq(organizations.organizationCode, data.organizationCode))
+        .limit(1);
+      if (!org) throw new Error("Organization create did not persist");
+
+      await db.execute(
+        sql`SELECT public.provision_app_user(
+              ${authUserId}::uuid,
+              ${emailLower}::text,
+              ${data.adminFullName}::text,
+              ${org.id}::uuid,
+              'super_admin'::text,
+              'admin'::text
+            )`,
+      );
+
+      await recordAuditEvent({
+        actorUserId: appUserId,
+        action: "platform.tenant.admin_provisioned",
+        entityType: "organization",
+        entityId: org.id,
+        after: { adminEmail: emailLower, adminFullName: data.adminFullName, role: "super_admin" },
+        metadata: { organizationCode: data.organizationCode, source: "platform-console" },
+      });
+
+      revalidatePath("/platform/organizations");
+      revalidatePath("/platform");
+      return {
+        ok: true,
+        organizationCode: data.organizationCode,
+        adminEmail: emailLower,
+        generatedPassword: generated ? password : undefined,
+      };
+    } catch (inner) {
+      // Roll back the auth user so the email is free to retry.
+      await admin.auth.admin.deleteUser(authUserId).catch(() => {});
+      return {
+        ok: false,
+        error: inner instanceof Error ? inner.message : "Tenant provisioning failed",
+      };
+    }
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "create tenant failed",
     };
   }
 }
