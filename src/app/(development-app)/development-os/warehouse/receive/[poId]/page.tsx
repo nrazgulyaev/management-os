@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { getWarehouseReceiveDetail } from "@/lib/development/server/warehouse/warehouse-inbound-queries";
 import {
   MATERIAL_PO_STATUS_LABEL,
@@ -39,7 +40,18 @@ export default async function WarehouseReceivePage({
 }: {
   params: Promise<{ poId: string }>;
 }) {
-  await requireInternalUser();
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <AccessForbidden backHref="/development-os/warehouse" backLabel="Warehouse" />
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
   const { poId } = await params;
 
   const db = getDb();
