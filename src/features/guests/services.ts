@@ -1,8 +1,9 @@
 import "server-only";
 
-import { asc } from "drizzle-orm";
+import { and, asc, eq, exists } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { guests } from "@/lib/db/schema/bookings";
+import { requireOrgId } from "@/features/auth/require-org";
+import { guests, bookings } from "@/lib/db/schema/bookings";
 import type { WithSource } from "@/features/types";
 
 export interface GuestRow {
@@ -26,7 +27,30 @@ const fallback: WithSource<GuestRow>[] = [
 export async function listGuests(): Promise<WithSource<GuestRow>[]> {
   const db = getDb();
   if (!db) return fallback;
-  const rows = await db.select().from(guests).orderBy(asc(guests.fullName));
+  // TENANCY: `guests` has no organization_id column (the durable fix is an org
+  // column + backfill — tracked). Interim: scope to guests with at least one
+  // booking in the caller's org (bookings.organization_id NOT NULL, 0155), so a
+  // fresh tenant never sees another org's / demo guests. A guest is hidden
+  // until they have a booking in your org (acceptable for the mgmt list +
+  // booking guest-picker — you create a fresh guest when there's no match).
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(guests)
+    .where(
+      exists(
+        db
+          .select({ id: bookings.id })
+          .from(bookings)
+          .where(
+            and(
+              eq(bookings.guestId, guests.id),
+              eq(bookings.organizationId, organizationId),
+            ),
+          ),
+      ),
+    )
+    .orderBy(asc(guests.fullName));
   return rows.map((r) => ({
     source: "db",
     id: r.id,
