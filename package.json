@@ -49,6 +49,7 @@
     "seed:storage-photos": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-storage-photos.ts",
     "diagnose:session": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/diagnose-operator-session.ts",
     "grant:super-admin": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/grant-super-admin.ts",
+    "provision:org": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/provision-org.ts",
     "seed:test-team-accounts": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-test-team-accounts.ts",
     "seed:ai-agent-config": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed-ai-agent-config.ts",
     "migrate:force-0109": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/force-apply-migration-0109.ts",
