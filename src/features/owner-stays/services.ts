@@ -15,6 +15,7 @@ import { owners } from "@/lib/db/schema/ownership";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   DEMO_OWNER_CONTEXT,
   isDemoOwnerFallbackActive,
@@ -443,7 +444,10 @@ export async function listOwnerStayRequests(opts?: {
 }): Promise<OwnerStayRequestRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY (mig 0152/0158): owner_stay_requests is org-scoped. Filter to the
+  // caller's org so the mgmt list (and the dashboard attention card it feeds)
+  // never shows another org's — or demo — owner-stay requests.
+  const filters = [eq(ownerStayRequests.organizationId, await requireOrgId())];
   if (opts?.status) {
     if (Array.isArray(opts.status))
       filters.push(inArray(ownerStayRequests.status, opts.status));
@@ -543,6 +547,10 @@ export async function getOwnerStayRequestById(
     .leftJoin(villas, eq(villas.id, ownerStayRequests.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, ownerStayRequests.projectId))
     .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
+    // NOTE: NOT org-scoped here on purpose — this by-id read is shared with the
+    // owner portal (/owner/stays/[id]), where the caller's org may differ from
+    // the villa's org. The mgmt list (listOwnerStayRequests) IS org-scoped; a
+    // mgmt-only scoped by-id variant is a separate follow-up.
     .where(eq(ownerStayRequests.id, id))
     .limit(1);
   return r
