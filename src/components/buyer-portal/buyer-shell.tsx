@@ -7,6 +7,7 @@ import {
   Folder,
   FileSignature,
 } from "lucide-react";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 /**
  * Server-side buyer portal shell. Distinct from `PortalShell` (investors)
@@ -47,6 +48,7 @@ export function BuyerShell({
                 {buyerCode}
               </div>
             </div>
+            <SignOutButton variant="icon" />
           </div>
         </div>
       </header>

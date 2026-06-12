@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
-import { LogOut } from "lucide-react";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { stopImpersonatingInvestor } from "@/features/investor-portal/impersonation-actions";
 
 export interface InvestorShellContext {
@@ -121,12 +121,7 @@ export function InvestorShell({
             <div className="h-9 w-9 rounded-full bg-forest/90 text-cream-warm text-sm font-medium inline-flex items-center justify-center">
               {ctx.initials}
             </div>
-            <button
-              aria-label="Sign out"
-              className="h-9 w-9 rounded-full border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center text-ink-secondary transition-colors"
-            >
-              <LogOut className="w-4 h-4" strokeWidth={1.75} />
-            </button>
+            <SignOutButton variant="icon" />
           </div>
         </div>
         <nav className="md:hidden border-t border-line-soft overflow-x-auto no-scrollbar">

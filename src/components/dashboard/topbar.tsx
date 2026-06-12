@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DashboardIcon } from "./icons";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 /**
  * Sprint _handoff/ Task 5 — Management OS topbar.
@@ -93,6 +94,7 @@ export function DashboardTopbar({
             <span className="text-[13px] font-medium">{userName}</span>
             <span className="text-[10.5px] text-ink-3">{userRole}</span>
           </div>
+          <SignOutButton variant="icon" className="ml-1 p-1.5 text-ink-3 hover:text-ink inline-flex transition-colors" />
         </div>
       </div>
     </header>
