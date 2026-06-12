@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { mapPool } from "@/lib/db/map-pool";
 import { listBookingConflicts } from "@/features/integrations/calendar-sync/services";
 
@@ -22,9 +23,11 @@ import { listBookingConflicts } from "@/features/integrations/calendar-sync/serv
  *   - capital_call   unpaid (issued/partial) capital calls (dev CFO)
  *
  * Fan-out is fault-isolated: a failing/empty source yields [] and never
- * breaks the feed. Tenant-wide reads, consistent with the rest of the
- * Overview query layer. All raw reads use rowsOf<T>() (postgres-js returns
- * an array directly; the legacy `.rows` accessor silently drops rows).
+ * breaks the feed. Each source is org-scoped via requireOrgId() (the DB role
+ * bypasses RLS, so a fresh tenant would otherwise see every org's — and demo —
+ * items). The channel-conflict source inherits scoping from listBookingConflicts.
+ * All raw reads use rowsOf<T>() (postgres-js returns an array directly; the
+ * legacy `.rows` accessor silently drops rows).
  */
 
 export type AttentionSource =
@@ -65,6 +68,7 @@ const SEVERITY_RANK: Record<AttentionSeverity, number> = {
 async function statementItems(): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     code: string;
@@ -87,8 +91,9 @@ async function statementItems(): Promise<AttentionItem[]> {
         FROM owner_statements s
         JOIN owners o ON o.id = s.owner_id
         LEFT JOIN villas v ON v.id = s.villa_id
-       WHERE s.owner_state = 'disputed'
-          OR (s.owner_state = 'pending' AND s.auto_ack_at IS NOT NULL AND s.auto_ack_at < now())
+       WHERE s.organization_id = ${organizationId}::uuid
+         AND (s.owner_state = 'disputed'
+              OR (s.owner_state = 'pending' AND s.auto_ack_at IS NOT NULL AND s.auto_ack_at < now()))
        ORDER BY s.owner_disputed_at DESC NULLS LAST, s.auto_ack_at ASC
        LIMIT 10
     `),
@@ -112,6 +117,7 @@ async function statementItems(): Promise<AttentionItem[]> {
 async function slaBreachItems(): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     ticket_id: string;
     breached_at: string;
@@ -131,6 +137,7 @@ async function slaBreachItems(): Promise<AttentionItem[]> {
         JOIN maintenance_tickets mt ON mt.id = b.ticket_id
         LEFT JOIN villas v ON v.id = mt.villa_id
        WHERE b.resolved_at IS NULL
+         AND b.organization_id = ${organizationId}::uuid
        ORDER BY b.breached_at ASC
        LIMIT 15
     `),
@@ -151,6 +158,7 @@ async function slaBreachItems(): Promise<AttentionItem[]> {
 async function ownerStayItems(): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     owner_name: string | null;
@@ -172,6 +180,7 @@ async function ownerStayItems(): Promise<AttentionItem[]> {
        WHERE r.approved_at IS NULL
          AND r.rejected_at IS NULL
          AND r.completed_at IS NULL
+         AND r.organization_id = ${organizationId}::uuid
        ORDER BY r.created_at ASC
        LIMIT 10
     `),
@@ -208,6 +217,7 @@ async function channelConflictItems(): Promise<AttentionItem[]> {
 async function capitalCallItems(): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     ref: string;
@@ -226,6 +236,7 @@ async function capitalCallItems(): Promise<AttentionItem[]> {
         FROM capital_calls c
         LEFT JOIN projects p ON p.id = c.project_id
        WHERE c.status IN ('issued', 'partial')
+         AND c.organization_id = ${organizationId}::uuid
        ORDER BY c.due_at ASC
        LIMIT 10
     `),
