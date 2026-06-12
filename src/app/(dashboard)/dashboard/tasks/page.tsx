@@ -4,10 +4,13 @@ import { Kpi, Card } from "@/components/dashboard/primitives";
 import { Forbidden } from "@/components/ui/state";
 import { TaskFeed } from "@/components/crm-tasks/task-feed";
 import { TasksTabs } from "./_tasks-client";
+import { NewTaskButton } from "@/components/crm-tasks/new-task-button";
 import {
   listMyOpenTasks,
   listOrgDueTasks,
+  listAssignableUsers,
 } from "@/features/crm-tasks/services";
+import { listOwners } from "@/features/owners/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 
 /**
@@ -36,10 +39,13 @@ export default async function TasksPage() {
     );
   }
 
-  const [mine, teamDue] = await Promise.all([
+  const [mine, teamDue, owners, assignableUsers] = await Promise.all([
     listMyOpenTasks(),
     listOrgDueTasks(100),
+    canManage ? listOwners() : Promise.resolve([]),
+    canManage ? listAssignableUsers() : Promise.resolve([]),
   ]);
+  const ownerOptions = owners.map((o) => ({ id: o.id, name: o.displayName }));
 
   const myTabBody = (
     <div className="flex flex-col gap-6">
@@ -88,7 +94,12 @@ export default async function TasksPage() {
         ]}
         eyebrow="CRM"
         title="My tasks"
-        description="Follow-ups and reminders across owners, contacts, leads, buyers and deals. Add tasks from any record's Tasks tab."
+        description="Follow-ups across owners, contacts, leads, buyers and deals. Create one here, or from any record's Tasks tab."
+        actions={
+          canManage ? (
+            <NewTaskButton owners={ownerOptions} assignableUsers={assignableUsers} />
+          ) : undefined
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-6">
@@ -111,7 +122,8 @@ export default async function TasksPage() {
 
       {mine.total === 0 && teamDue.length === 0 && (
         <p className="mt-6 text-[13px] text-ink-tertiary">
-          No follow-ups yet. Open an{" "}
+          No follow-ups yet. Use{" "}
+          <span className="text-ink-secondary">New task</span> above, or open an{" "}
           <Link href="/dashboard/owners" className="text-accent hover:underline">
             owner record
           </Link>{" "}
