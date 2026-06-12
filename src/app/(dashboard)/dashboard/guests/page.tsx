@@ -2,13 +2,19 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
+import { Star } from "lucide-react";
 import { listGuests } from "@/features/guests/services";
+import { canManageEntity } from "@/features/auth/permissions";
+import { VipToggle } from "@/components/guests/vip-toggle";
 
 export const metadata = { title: "Guests" };
 export const dynamic = "force-dynamic";
 
 export default async function GuestsPage() {
-  const guests = await listGuests();
+  const [guests, canManage] = await Promise.all([
+    listGuests(),
+    canManageEntity("guest"),
+  ]);
   const source = guests[0]?.source ?? "mock";
 
   return (
@@ -33,12 +39,13 @@ export default async function GuestsPage() {
             <TH>Phone</TH>
             <TH>Nationality</TH>
             <TH>Language</TH>
+            <TH>VIP</TH>
           </TR>
         </THead>
         <TBody>
           {guests.length === 0 ? (
             <TR>
-              <TD colSpan={5} className="text-ink-tertiary text-center py-8">
+              <TD colSpan={6} className="text-ink-tertiary text-center py-8">
                 No guests yet.
               </TD>
             </TR>
@@ -52,6 +59,18 @@ export default async function GuestsPage() {
                 </TD>
                 <TD className="text-ink-secondary">{g.nationality ?? "—"}</TD>
                 <TD className="text-ink-secondary">{g.preferredLanguage ?? "—"}</TD>
+                <TD>
+                  {canManage && g.source === "db" ? (
+                    <VipToggle guestId={g.id} initial={g.isVip} />
+                  ) : g.isVip ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+                      <Star className="size-3.5" fill="currentColor" strokeWidth={1.75} />
+                      VIP
+                    </span>
+                  ) : (
+                    <span className="text-ink-tertiary">—</span>
+                  )}
+                </TD>
               </TR>
             ))
           )}

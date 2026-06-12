@@ -28,3 +28,16 @@ test("turnover-monitor: not-ready states are risks", async () => {
     assert.equal(isTurnoverRisk(s as string | null), false, String(s));
   }
 });
+
+test("vip-prep: booking override wins, else guest flag", async () => {
+  const { isVipArrival } = await import("../src/features/front-office/watch-rules");
+  // Booking override true/false wins regardless of the guest flag.
+  assert.equal(isVipArrival(true, false), true);
+  assert.equal(isVipArrival(true, null), true);
+  assert.equal(isVipArrival(false, true), false);
+  // NULL/undefined booking → inherit the guest flag.
+  assert.equal(isVipArrival(null, true), true);
+  assert.equal(isVipArrival(undefined, true), true);
+  assert.equal(isVipArrival(null, false), false);
+  assert.equal(isVipArrival(null, null), false);
+});

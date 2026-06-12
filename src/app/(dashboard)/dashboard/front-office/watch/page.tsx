@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
-import { detectTurnoverRisks, detectVisaWatch } from "@/features/front-office/watch-agents";
+import {
+  detectTurnoverRisks,
+  detectVisaWatch,
+  detectVipPrep,
+} from "@/features/front-office/watch-agents";
 
 export const metadata = { title: "Front office — Watch" };
 export const dynamic = "force-dynamic";
@@ -11,7 +15,11 @@ export const dynamic = "force-dynamic";
  */
 export default async function FrontOfficeWatchPage() {
   const now = new Date();
-  const [turnover, visa] = await Promise.all([detectTurnoverRisks(now), detectVisaWatch(now)]);
+  const [turnover, visa, vip] = await Promise.all([
+    detectTurnoverRisks(now),
+    detectVisaWatch(now),
+    detectVipPrep(now),
+  ]);
 
   const expiredIds = visa.filter((v) => v.severity === "expired").length;
 
@@ -29,10 +37,10 @@ export default async function FrontOfficeWatchPage() {
       <p className="mt-3 mb-7 text-[15px] text-ink-3 max-w-[680px]">
         Deterministic monitors over today&apos;s data. turnover-monitor flags villas
         not ready for an arrival; visa-watcher flags guest IDs that lapse during
-        the stay.
+        the stay; vip-prep flags VIP arrivals for white-glove prep.
       </p>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
         <Kpi
           label="Turnover risks"
           value={String(turnover.length)}
@@ -50,6 +58,12 @@ export default async function FrontOfficeWatchPage() {
           value={String(expiredIds)}
           sub="already lapsed"
           tone={expiredIds > 0 ? "danger" : "success"}
+        />
+        <Kpi
+          label="VIP arrivals"
+          value={String(vip.length)}
+          sub={vip.length > 0 ? "need prep today" : "none arriving today"}
+          tone={vip.length > 0 ? "gold" : "success"}
         />
       </div>
 
@@ -142,15 +156,48 @@ export default async function FrontOfficeWatchPage() {
         <section>
           <div className="section-heading">
             <div className="eyebrow label">vip-prep</div>
-            <h2>Not yet available</h2>
+            <h2>
+              {vip.length} VIP arrival{vip.length === 1 ? "" : "s"}
+            </h2>
           </div>
-          <Card padding="default">
-            <p className="text-sm text-ink-3 m-0">
-              vip-prep needs a VIP signal on bookings/guests — none exists in the schema yet. Add an
-              <code className="font-mono text-xs"> is_vip </code> flag (or a booking-value threshold)
-              and this agent will flag arrival prep for VIP guests.
-            </p>
-          </Card>
+          {vip.length === 0 ? (
+            <Empty>No VIP guests arriving today.</Empty>
+          ) : (
+            <Card padding="none" overflowHidden>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th>Guest</th>
+                    <th>Villa</th>
+                    <th className="num">Check-in</th>
+                    <th>Notes</th>
+                    <th className="num" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {vip.map((v) => (
+                    <tr key={v.bookingId}>
+                      <td className="row-title">
+                        {v.guestDisplay}{" "}
+                        <HandoffBadge tone="gold">VIP</HandoffBadge>
+                      </td>
+                      <td className="text-ink-2">{v.villaCode ?? "—"}</td>
+                      <td className="num text-ink-3">{v.checkIn}</td>
+                      <td className="text-ink-2">{v.notes ?? "—"}</td>
+                      <td className="num">
+                        <Link
+                          href="/dashboard/front-office/arrivals"
+                          className="text-xs text-ink-2 hover:text-accent"
+                        >
+                          Arrivals →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </Card>
+          )}
         </section>
       </div>
     </>

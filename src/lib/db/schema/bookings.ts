@@ -6,6 +6,7 @@ import {
   numeric,
   integer,
   date,
+  boolean,
   index,
 } from "drizzle-orm/pg-core";
 import { villas } from "./projects";
@@ -37,12 +38,16 @@ export const guests = pgTable(
     whatsapp: text("whatsapp"),
     // status: active | archived
     status: text("status").notNull().default("active"),
+    /** VIP signal (migration 0175): the guest is VIP across all stays. Read by
+     *  the front-office vip-prep monitor; a per-stay override lives on bookings. */
+    isVip: boolean("is_vip").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("guests_email_idx").on(t.email),
     index("guests_status_idx").on(t.status),
+    index("guests_is_vip_idx").on(t.isVip),
   ],
 );
 
@@ -85,6 +90,9 @@ export const bookings = pgTable(
       .default("0"),
     netExpectedAmount: numeric("net_expected_amount", { precision: 14, scale: 2 }),
     notes: text("notes"),
+    /** Per-stay VIP override (migration 0175), tri-state: NULL = inherit the
+     *  guest flag; true = flag this stay; false = exclude this stay. */
+    isVip: boolean("is_vip"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -93,6 +101,7 @@ export const bookings = pgTable(
     index("bookings_status_idx").on(t.status),
     index("bookings_channel_idx").on(t.channelId),
     index("bookings_organization_idx").on(t.organizationId),
+    index("bookings_is_vip_idx").on(t.isVip),
   ],
 );
 

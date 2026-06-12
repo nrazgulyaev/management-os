@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { bookings, guests } from "@/lib/db/schema/bookings";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import {
@@ -48,6 +49,10 @@ export interface ArrivalRow {
   bookingStatus: string;
   readinessStatus: string;
   hasOpenServiceRequest: boolean;
+  /** Resolved VIP signal: booking override wins, else the guest flag. */
+  isVip: boolean;
+  /** Booking notes (front-desk prep context for VIP arrivals). */
+  bookingNotes: string | null;
 }
 
 export interface DepartureRow {
@@ -113,6 +118,11 @@ export async function listArrivals(date: Date): Promise<ArrivalRow[]> {
   const db = getDb();
   if (!db) return [];
   const day = ymd(date);
+  // TENANCY: bookings.organization_id is NOT NULL (0155). Scope to the caller's
+  // org — the service-role connection bypasses RLS, so without this every
+  // org's arrivals leak into the Watch monitors. Fixes turnover-monitor,
+  // visa-watcher (via this helper) and the new vip-prep in one place.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       b: bookings,
@@ -120,6 +130,7 @@ export async function listArrivals(date: Date): Promise<ArrivalRow[]> {
       projectName: projectsTable.name,
       guestName: guests.fullName,
       guestEmail: guests.email,
+      guestIsVip: guests.isVip,
     })
     .from(bookings)
     .leftJoin(villas, eq(villas.id, bookings.villaId))
@@ -127,6 +138,7 @@ export async function listArrivals(date: Date): Promise<ArrivalRow[]> {
     .leftJoin(guests, eq(guests.id, bookings.guestId))
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         eq(bookings.checkIn, day),
         inArray(bookings.status, ["confirmed", "tentative"]),
       ),
@@ -167,6 +179,9 @@ export async function listArrivals(date: Date): Promise<ArrivalRow[]> {
     bookingStatus: r.b.status,
     readinessStatus: readiness[r.b.villaId] ?? "unknown",
     hasOpenServiceRequest: openSrSet.has(r.b.id),
+    // Booking override wins (true/false); NULL inherits the guest flag.
+    isVip: r.b.isVip ?? r.guestIsVip ?? false,
+    bookingNotes: r.b.notes ?? null,
   }));
 }
 
