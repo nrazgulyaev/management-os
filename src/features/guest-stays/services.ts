@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestStayTokens,
   type GuestStayToken,
@@ -70,7 +71,10 @@ export async function listGuestStayTokens(opts?: {
 }): Promise<GuestStayTokenRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY (mig 0158): guest_stay_tokens.organization_id is NOT NULL. Scope to
+  // the caller's org so the mgmt Tokens list never shows another org's / demo
+  // stay tokens.
+  const filters = [eq(guestStayTokens.organizationId, await requireOrgId())];
   if (opts?.status) filters.push(eq(guestStayTokens.status, opts.status));
   if (opts?.bookingId)
     filters.push(eq(guestStayTokens.bookingId, opts.bookingId));
@@ -120,7 +124,13 @@ export async function getGuestStayTokenById(
     .leftJoin(bookings, eq(bookings.id, guestStayTokens.bookingId))
     .leftJoin(villas, eq(villas.id, bookings.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
-    .where(eq(guestStayTokens.id, id))
+    // TENANCY: a cross-org token id reads as not-found.
+    .where(
+      and(
+        eq(guestStayTokens.id, id),
+        eq(guestStayTokens.organizationId, await requireOrgId()),
+      ),
+    )
     .limit(1);
   return r
     ? mapToken(
