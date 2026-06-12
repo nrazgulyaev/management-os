@@ -597,7 +597,10 @@ export async function listOwnerPortalChoicesForCurrentUser(): Promise<
       FROM ownership_shares s
       JOIN villas v ON v.id = s.villa_id
       LEFT JOIN projects p ON p.id = v.project_id
-     WHERE s.owner_id = ANY(${ownerIds}::uuid[])
+     WHERE s.owner_id IN (${sql.join(
+       ownerIds.map((id) => sql`${id}::uuid`),
+       sql`, `,
+     )})
        AND s.status = 'active'
      ORDER BY v.unit_code ASC
   `)) as unknown as Array<{

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -191,7 +191,7 @@ async function recomputeBoqTotalsTx(
             totalMinor: boqItems.totalMinor,
           })
           .from(boqItems)
-          .where(sql`${boqItems.sectionId} = ANY(${sectionIds}::uuid[])`);
+          .where(inArray(boqItems.sectionId, sectionIds));
 
   const result = rollupBoqTotals(
     sections,
@@ -322,7 +322,7 @@ export async function exportBoqAsCsv(input: { boqDocumentId: string }) {
       : await db
           .select()
           .from(boqItems)
-          .where(sql`${boqItems.sectionId} = ANY(${sectionIds}::uuid[])`);
+          .where(inArray(boqItems.sectionId, sectionIds));
   const sectionCodeById = new Map(sections.map((s) => [s.id, s.sectionCode]));
   const csvSections: CsvBoqSection[] = sections.map((s) => ({
     sectionCode: s.sectionCode,
