@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
-import { getOwnerStayRequestById } from "@/features/owner-stays/services";
+import { getOwnerStayRequestByIdForOrg } from "@/features/owner-stays/services";
 import { listRelocationCandidates } from "@/features/owner-stays/relocation";
 import { OwnerStayDecisionBar } from "@/components/owner-stays/decision-bar";
 import { OwnerStayLifecycleBar } from "@/components/owner-stays/lifecycle-bar";
@@ -43,7 +43,7 @@ export default async function OwnerStayRequestDetail({
 }) {
   const { id } = await params;
   const [request, candidates] = await Promise.all([
-    getOwnerStayRequestById(id),
+    getOwnerStayRequestByIdForOrg(id),
     listRelocationCandidates(id),
   ]);
   if (!request) notFound();
@@ -206,7 +206,7 @@ interface TimelineEntry {
 }
 
 function buildTimeline(
-  r: NonNullable<Awaited<ReturnType<typeof getOwnerStayRequestById>>>,
+  r: NonNullable<Awaited<ReturnType<typeof getOwnerStayRequestByIdForOrg>>>,
 ): TimelineEntry[] {
   const out: TimelineEntry[] = [];
   out.push({ label: "Request submitted", at: r.createdAt });

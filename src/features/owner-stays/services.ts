@@ -547,11 +547,47 @@ export async function getOwnerStayRequestById(
     .leftJoin(villas, eq(villas.id, ownerStayRequests.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, ownerStayRequests.projectId))
     .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
-    // NOTE: NOT org-scoped here on purpose — this by-id read is shared with the
-    // owner portal (/owner/stays/[id]), where the caller's org may differ from
-    // the villa's org. The mgmt list (listOwnerStayRequests) IS org-scoped; a
-    // mgmt-only scoped by-id variant is a separate follow-up.
+    // NOTE: deliberately NOT org-scoped — this by-id read is shared with the
+    // owner portal (/owner/stays/[id]), where the caller's org can legitimately
+    // differ from the villa's org and the page enforces access via ownerId
+    // instead. The MGMT detail page must use getOwnerStayRequestByIdForOrg()
+    // below so a cross-org id reads as not-found.
     .where(eq(ownerStayRequests.id, id))
+    .limit(1);
+  return r
+    ? mapRequest(r.r, r.villaCode ?? null, r.projectName ?? null, r.ownerName ?? null)
+    : null;
+}
+
+/**
+ * Mgmt-only by-id read: like getOwnerStayRequestById but ANDs the caller's org
+ * so a cross-org request id reads as not-found (closes the typed-id IDOR on the
+ * /dashboard/owner-stays/requests/[id] detail page). Do NOT use from the owner
+ * portal — see the note above.
+ */
+export async function getOwnerStayRequestByIdForOrg(
+  id: string,
+): Promise<OwnerStayRequestRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select({
+      r: ownerStayRequests,
+      villaCode: villas.unitCode,
+      projectName: projectsTable.name,
+      ownerName: owners.displayName,
+    })
+    .from(ownerStayRequests)
+    .leftJoin(villas, eq(villas.id, ownerStayRequests.villaId))
+    .leftJoin(projectsTable, eq(projectsTable.id, ownerStayRequests.projectId))
+    .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
+    .where(
+      and(
+        eq(ownerStayRequests.id, id),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return r
     ? mapRequest(r.r, r.villaCode ?? null, r.projectName ?? null, r.ownerName ?? null)
