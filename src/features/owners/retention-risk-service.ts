@@ -31,12 +31,16 @@ import {
 export async function getOwnerRetentionRisk(
   ownerId: string,
   villaIds: string[],
+  // Callers that already hold this owner's statements (e.g. the owners CRM
+  // list) can pass them to avoid a duplicate fetch — this is the hot path's
+  // biggest N+1 saver. Omit on the detail page to fetch fresh.
+  opts?: { statements?: Awaited<ReturnType<typeof listOwnerStatements>> },
 ): Promise<RetentionRiskResult | null> {
   const db = getDb();
   if (!db) return null;
 
   // Statements, newest period first.
-  const statements = await listOwnerStatements({ ownerId });
+  const statements = opts?.statements ?? (await listOwnerStatements({ ownerId }));
   if (statements.length === 0) {
     return { level: "ok", signals: [] };
   }

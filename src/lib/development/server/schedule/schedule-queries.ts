@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { requireDb, rowsOf } from "@/lib/db/client";
 import {
   projectTasks,
@@ -74,7 +74,7 @@ export async function listTaskDependenciesForTasks(taskIds: string[]) {
     .select()
     .from(taskDependencies)
     .where(
-      sql`${taskDependencies.predecessorId} = ANY(${taskIds}::uuid[]) OR ${taskDependencies.successorId} = ANY(${taskIds}::uuid[])`,
+      or(inArray(taskDependencies.predecessorId, taskIds), inArray(taskDependencies.successorId, taskIds)),
     );
 }
 

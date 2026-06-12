@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
@@ -63,7 +63,7 @@ async function recomputeTotalsTx(
             totalMinor: boqItems.totalMinor,
           })
           .from(boqItems)
-          .where(sql`${boqItems.sectionId} = ANY(${sectionIds}::uuid[])`);
+          .where(inArray(boqItems.sectionId, sectionIds));
   const result = rollupBoqTotals(
     sections,
     items.map((i) => ({

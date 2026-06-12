@@ -186,7 +186,13 @@ export async function listMyStatements(
      WHERE s.owner_id = ${ownerId}::uuid
        -- Never surface internal drafts / retracted (voided) statements, and
        -- never surface a NULL-period draft (the month formatter would crash).
-       AND s.status = ANY(${ownerVisibleStatuses}::text[])
+       -- NB: interpolating a JS array as ANY(arr::text[]) expands to a ROW
+       -- ($1,$2,$3)::text[] which Postgres rejects (record to array cast) — an
+       -- IN-list binds the values as scalars instead.
+       AND s.status IN (${sql.join(
+         ownerVisibleStatuses.map((v) => sql`${v}`),
+         sql`, `,
+       )})
        AND s.period_month IS NOT NULL
        AND (${opts?.statusFilter ?? null}::text IS NULL OR s.status = ${opts?.statusFilter ?? null})
      ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
@@ -293,7 +299,10 @@ export async function getMyStatementDetail(
      WHERE s.id = ${statementId}::uuid
        AND s.owner_id = ${ownerId}::uuid
        -- An owner can never deep-link into an internal draft / voided row.
-       AND s.status = ANY(${[...OWNER_VISIBLE_STATEMENT_STATUSES] as string[]}::text[])
+       AND s.status IN (${sql.join(
+         OWNER_VISIBLE_STATEMENT_STATUSES.map((v) => sql`${v}`),
+         sql`, `,
+       )})
      LIMIT 1
   `);
   const sr = rowsOf<{

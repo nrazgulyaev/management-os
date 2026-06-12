@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, requireDb, rowsOf } from "@/lib/db/client";
 import {
   boqDocuments,
@@ -76,7 +76,7 @@ export async function getBoqDocumentByCode(code: string) {
           .select()
           .from(boqItems)
           .where(
-            sql`${boqItems.sectionId} = ANY(${sectionIds}::uuid[])`,
+            inArray(boqItems.sectionId, sectionIds),
           )
           .orderBy(asc(boqItems.itemCode));
   return { document: doc, sections, items };

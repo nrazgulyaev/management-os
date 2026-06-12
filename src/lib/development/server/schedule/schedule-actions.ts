@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -115,7 +115,7 @@ export async function setTaskDependency(
       .select()
       .from(taskDependencies)
       .where(
-        sql`${taskDependencies.predecessorId} = ANY(${taskIds}::uuid[])`,
+        inArray(taskDependencies.predecessorId, taskIds),
       );
 
     const proposed: DependencyInput[] = [
@@ -194,7 +194,7 @@ export async function recomputeProjectCriticalPath(input: {
     const deps = await tx
       .select()
       .from(taskDependencies)
-      .where(sql`${taskDependencies.predecessorId} = ANY(${taskIds}::uuid[])`);
+      .where(inArray(taskDependencies.predecessorId, taskIds));
 
     const taskInputs: TaskInput[] = tasks.map((t) => ({
       id: t.id,

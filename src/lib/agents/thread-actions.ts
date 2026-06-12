@@ -238,7 +238,10 @@ export async function getMessageCitations(
            d.filename          AS filename
       FROM agent_knowledge_chunks c
       LEFT JOIN agent_knowledge_documents d ON d.id = c.document_id
-     WHERE c.id = ANY(${safeIds}::uuid[])
+     WHERE c.id IN (${sql.join(
+       safeIds.map((id) => sql`${id}::uuid`),
+       sql`, `,
+     )})
   `);
 
   const list =

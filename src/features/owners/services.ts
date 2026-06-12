@@ -259,7 +259,11 @@ export async function listOwnersForCrm(): Promise<WithSource<OwnerCrmRow>[]> {
         ? statements[0].issuedAt.slice(0, 10)
         : (statements[0]?.periodEnd ?? null);
 
-      const risk = await getOwnerRetentionRisk(o.id, villaIds).catch(() => null);
+      // Reuse the statements already fetched above — avoids a second
+      // identical query inside the risk service (the list's worst N+1).
+      const risk = await getOwnerRetentionRisk(o.id, villaIds, {
+        statements,
+      }).catch(() => null);
 
       return {
         ...o,

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { boqDocuments, boqSections, boqItems } from "@/lib/db/schema/boq";
 import { requireInternalUser } from "@/features/auth/permissions";
@@ -62,7 +62,7 @@ export async function GET(req: Request) {
           .from(boqItems)
           .where(
             and(
-              sql`${boqItems.sectionId} = ANY(${sectionIds}::uuid[])`,
+              inArray(boqItems.sectionId, sectionIds),
               eq(boqItems.organizationId, organizationId),
             ),
           )
