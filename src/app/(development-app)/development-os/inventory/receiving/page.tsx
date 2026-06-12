@@ -9,7 +9,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { safeQuery } from "@/lib/development/safe-query";
 import {
   getReceivingQueue,
@@ -49,8 +50,20 @@ function etaBadge(item: ReceivingQueueItem) {
 export default async function ReceivingQueuePage() {
   // Gate to internal / warehouse role (siblings gate at the action layer;
   // we mirror that with an explicit page guard on top of the product
-  // access guard in the (development-app) layout).
-  await requireInternalUser();
+  // access guard in the (development-app) layout). Degrade to Forbidden
+  // instead of a 500 for a logged-in non-internal user.
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <AccessForbidden backHref="/development-os" backLabel="Development OS" />
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
 
   const db = getDb();
   if (!db) {

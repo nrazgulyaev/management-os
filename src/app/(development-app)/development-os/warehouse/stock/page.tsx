@@ -10,7 +10,8 @@ import { Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { requireInternalUser } from "@/features/auth/permissions";
+import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
+import { AccessForbidden } from "@/components/auth/access-forbidden";
 import { getWarehouseStockList } from "@/lib/development/server/warehouse/warehouse-inbound-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { StockCountPanel } from "@/components/development/warehouse/stock-count-panel";
@@ -35,7 +36,18 @@ export default async function WarehouseStockPage({
 }: {
   searchParams: Promise<{ q?: string; health?: string }>;
 }) {
-  await requireInternalUser();
+  try {
+    await requireInternalUser();
+  } catch (err) {
+    if (err instanceof AuthorizationError) {
+      return (
+        <DevelopmentShell>
+          <AccessForbidden backHref="/development-os" backLabel="Development OS" />
+        </DevelopmentShell>
+      );
+    }
+    throw err;
+  }
   const params = await searchParams;
 
   const db = getDb();
