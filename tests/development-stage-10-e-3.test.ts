@@ -199,8 +199,21 @@ test("10.E.3: archive label adapts per entity (share -> 'End share', others -> '
 const PAGES: Array<{
   path: string;
   kind: "owner" | "share" | "policy" | "equivalence_group";
+  /**
+   * File that actually imports + renders <OwnersRowActions>. For most pages
+   * this is the page.tsx itself. The owners list extracted its table into a
+   * client child (_owners-list-client.tsx, commit 80fe7af2 — CRM saved-views /
+   * advanced-filters / bulk-actions) for selection + filter state, so the row
+   * actions live there. The menu is fully present; only the file that hosts it
+   * moved one level down (see the mount-guard test below).
+   */
+  rendersIn?: string;
 }> = [
-  { path: "src/app/(dashboard)/dashboard/owners/page.tsx", kind: "owner" },
+  {
+    path: "src/app/(dashboard)/dashboard/owners/page.tsx",
+    kind: "owner",
+    rendersIn: "src/app/(dashboard)/dashboard/owners/_owners-list-client.tsx",
+  },
   { path: "src/app/(dashboard)/dashboard/shares/page.tsx", kind: "share" },
   {
     path: "src/app/(dashboard)/dashboard/owner-stays/policies/page.tsx",
@@ -214,11 +227,12 @@ const PAGES: Array<{
 
 test("10.E.3: each list page imports OwnersRowActions", () => {
   for (const p of PAGES) {
-    const src = read(p.path);
+    const target = p.rendersIn ?? p.path;
+    const src = read(target);
     assert.match(
       src,
       /import\s*\{\s*OwnersRowActions\s*\}\s*from\s*"@\/components\/dashboard\/owners\/owners-row-actions"/,
-      `${p.path} missing OwnersRowActions import`,
+      `${target} missing OwnersRowActions import`,
     );
   }
 });
@@ -232,13 +246,27 @@ test("10.E.3: each list page uses NoItemsYet for empty state", () => {
 
 test("10.E.3: each list page renders OwnersRowActions with the correct `kind`", () => {
   for (const p of PAGES) {
-    const src = read(p.path);
+    const target = p.rendersIn ?? p.path;
+    const src = read(target);
     assert.match(
       src,
       new RegExp(`<OwnersRowActions[\\s\\S]{0,400}kind="${p.kind}"`),
-      `${p.path} must render <OwnersRowActions kind="${p.kind}">`,
+      `${target} must render <OwnersRowActions kind="${p.kind}">`,
     );
   }
+});
+
+// Mount guard: because the owners assertions above were redirected to the
+// extracted client child, this keeps them honest — if owners/page.tsx ever
+// drops <OwnersListClient>, the row actions vanish from the live app and this
+// fails loudly (the redirected greps alone would still pass).
+test("10.E.3: owners page mounts the client child that hosts the row actions", () => {
+  const src = read("src/app/(dashboard)/dashboard/owners/page.tsx");
+  assert.match(
+    src,
+    /<OwnersListClient/,
+    "owners/page.tsx must render <OwnersListClient> (hosts the extracted owners table + OwnersRowActions)",
+  );
 });
 
 test("10.E.3: equivalence-groups page surfaces the menu in the Section action slot", () => {
