@@ -4,6 +4,8 @@ import { DbStatusNotice } from "@/components/admin/db-status";
 import { VillaForm } from "@/features/villas/form";
 import { getVillaById } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
+import { listVillaPhotos } from "@/features/villas/get-villa-photos";
+import { VillaPhotoUploader } from "@/components/villas/villa-photo-uploader";
 
 export const metadata = { title: "Edit villa" };
 export const dynamic = "force-dynamic";
@@ -14,7 +16,11 @@ export default async function EditVillaPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [villa, projects] = await Promise.all([getVillaById(id), listProjects()]);
+  const [villa, projects, photos] = await Promise.all([
+    getVillaById(id),
+    listProjects(),
+    listVillaPhotos(id),
+  ]);
   if (!villa) notFound();
 
   return (
@@ -45,6 +51,10 @@ export default async function EditVillaPage({
           currentNightlyRateUsd: villa.currentNightlyRateUsd,
         }}
         cancelHref={`/dashboard/villas/${villa.id}`}
+      />
+      <VillaPhotoUploader
+        villaId={villa.id}
+        photos={photos.map((p) => ({ id: p.id, url: p.url, caption: p.caption }))}
       />
     </div>
   );
