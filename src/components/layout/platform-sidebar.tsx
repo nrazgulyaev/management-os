@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 
 /**
  * pixel-platform-console — dark operator-console sidebar.
@@ -136,6 +137,9 @@ export function PlatformSidebar() {
           </div>
         ))}
       </nav>
+      <div className="px-3 py-3 border-t border-line-soft">
+        <SignOutButton variant="item" />
+      </div>
     </aside>
   );
 }

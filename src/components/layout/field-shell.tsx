@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { fieldNav } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { Bell, User } from "lucide-react";
+import { Bell } from "lucide-react";
+import { SignOutButton } from "@/components/auth/sign-out-button";
 import { ServiceWorkerRegister } from "@/components/development/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/development/pwa/install-prompt";
 import { OfflineIndicator } from "@/components/development/pwa/offline-indicator";
@@ -74,13 +75,11 @@ export function FieldShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
-          <Link
-            href="/login"
+          <SignOutButton
+            variant="item"
+            label="Sign out"
             className="flex flex-col items-center gap-0.5 text-[11px] px-3 py-2 rounded-md text-ink-tertiary hover:text-ink transition-colors min-h-[44px] min-w-[44px] justify-center"
-          >
-            <User className="w-5 h-5" strokeWidth={1.75} />
-            <span>Profile</span>
-          </Link>
+          />
         </div>
       </nav>
       <InstallPrompt />

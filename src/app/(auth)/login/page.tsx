@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { headers } from "next/headers";
 import { CheckCircle2 } from "lucide-react";
 import { AuthShell, AuthHead } from "@/components/auth/auth-shell";
 import { resolveAuthPlatform, resolveTokenProduct } from "@/components/auth/auth-copy";
+import { subscriptionUrl } from "@/lib/marketing/cross-product-links";
 import { LoginForm } from "./form";
 
 export const metadata = { title: "Sign in" };
@@ -73,9 +73,13 @@ export default async function LoginPage({
         {plat.signup ? (
           <span>
             New here?{" "}
-            <Link href="/signup" className="auth-link">
+            {/* Absolute cross-product link: /signup lives on the subscription
+                host. A Next <Link> would RSC-prefetch same-origin, hit the
+                middleware 307 to subscription.arconique.com, and CORS-fail. A
+                plain <a> to the canonical host skips the prefetch + the hop. */}
+            <a href={subscriptionUrl("/signup")} className="auth-link">
               Start a trial
-            </Link>
+            </a>
           </span>
         ) : (
           <span className="muted">
