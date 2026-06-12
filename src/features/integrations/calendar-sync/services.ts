@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, ne, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   bookingConflicts,
   channelCalendarEvents,
@@ -190,7 +191,9 @@ export async function listBookingConflicts(opts?: {
 }): Promise<WithSource<BookingConflictRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY (mig 0154): booking_conflicts carries organization_id. Scope so the
+  // dashboard attention feed + conflicts list never show another org's.
+  const filters = [eq(bookingConflicts.organizationId, await requireOrgId())];
   if (opts?.status) filters.push(eq(bookingConflicts.status, opts.status));
   if (opts?.villaId) filters.push(eq(bookingConflicts.villaId, opts.villaId));
 

@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 // SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
 // TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
@@ -27,17 +28,21 @@ export interface OperationsKpis {
 }
 
 export async function getOperationsKpis(): Promise<OperationsKpis> {
+  const EMPTY: OperationsKpis = {
+    turnoversToday: 0,
+    arrivalsToday: 0,
+    ticketsOpen: 0,
+    preventiveDue: 0,
+    serviceRequestsOpen: 0,
+    housekeepingTasks: 0,
+  };
   const db = getDb();
-  if (!db) {
-    return {
-      turnoversToday: 0,
-      arrivalsToday: 0,
-      ticketsOpen: 0,
-      preventiveDue: 0,
-      serviceRequestsOpen: 0,
-      housekeepingTasks: 0,
-    };
-  }
+  if (!db) return EMPTY;
+  // TENANCY: bookings carry organization_id; maintenance_tickets +
+  // service_requests don't, so scope them via villa → project. Degrades to
+  // zeros on an anon probe.
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return EMPTY;
   const rows = await db.execute<{
     turnovers: string;
     arrivals: string;
@@ -46,14 +51,20 @@ export async function getOperationsKpis(): Promise<OperationsKpis> {
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_out = CURRENT_DATE) AS turnovers,
+        WHERE check_out = CURRENT_DATE
+          AND organization_id = ${orgId}) AS turnovers,
       (SELECT COUNT(*)::text FROM bookings
         WHERE check_in = CURRENT_DATE
-          AND status IN ('confirmed','checked_in')) AS arrivals,
+          AND status IN ('confirmed','checked_in')
+          AND organization_id = ${orgId}) AS arrivals,
       (SELECT COUNT(*)::text FROM maintenance_tickets
-        WHERE status NOT IN ('resolved','closed','cancelled')) AS tickets_open,
+        WHERE status NOT IN ('resolved','closed','cancelled')
+          AND villa_id IN (SELECT id FROM villas
+                            WHERE project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId}))) AS tickets_open,
       COALESCE((SELECT COUNT(*)::text FROM service_requests
-        WHERE status NOT IN ('completed','cancelled')), '0') AS service_open
+        WHERE status NOT IN ('completed','cancelled')
+          AND villa_id IN (SELECT id FROM villas
+                           WHERE project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId}))), '0') AS service_open
   `);
   const r = rowsOf<{
     turnovers: string;
