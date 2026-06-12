@@ -1,7 +1,8 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { mockVillas } from "@/lib/mock/villas";
 import type { VillaStatus } from "@/components/ui/status-pill";
@@ -64,6 +65,12 @@ export async function listVillas(opts?: { projectId?: string }): Promise<WithSou
     return opts?.projectId ? list.filter((v) => v.projectId === opts.projectId) : list;
   }
 
+  // TENANCY: villas have no org column — they belong to an org transitively
+  // via their project. Scope to the caller's org through projects.org_id so a
+  // tenant never sees another org's (or leftover demo) villas. Mirrors the
+  // listProjects() scoping pattern.
+  const organizationId = await requireOrgId();
+
   const rows = await db
     .select({
       id: villas.id,
@@ -80,6 +87,7 @@ export async function listVillas(opts?: { projectId?: string }): Promise<WithSou
     })
     .from(villas)
     .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(eq(projects.organizationId, organizationId))
     .orderBy(asc(projects.name), asc(villas.unitCode));
 
   const filtered = opts?.projectId ? rows.filter((r) => r.projectId === opts.projectId) : rows;
@@ -133,6 +141,9 @@ export async function getVillaById(id: string): Promise<WithSource<VillaDetail> 
     };
   }
 
+  // TENANCY: AND the villa id with the caller's org (via project) so a
+  // cross-org villa id reads as not-found instead of leaking the record.
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       v: villas,
@@ -140,7 +151,7 @@ export async function getVillaById(id: string): Promise<WithSource<VillaDetail> 
     })
     .from(villas)
     .innerJoin(projects, eq(projects.id, villas.projectId))
-    .where(eq(villas.id, id))
+    .where(and(eq(villas.id, id), eq(projects.organizationId, organizationId)))
     .limit(1);
 
   if (!r) return null;
