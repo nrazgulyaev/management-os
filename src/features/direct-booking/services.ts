@@ -372,6 +372,10 @@ export async function upsertGuestByEmail(args: {
   fullName: string;
   phone?: string | null;
   nationality?: string | null;
+  /** TENANCY (0176): org of the booking this guest is being created for.
+   *  Nullable for the public path where the hold's org may be unset; the
+   *  guests column is nullable and the backfill covers any gap. */
+  organizationId: string | null;
 }): Promise<string | null> {
   const db = getDb();
   if (!db) return null;
@@ -396,6 +400,7 @@ export async function upsertGuestByEmail(args: {
   const [row] = await db
     .insert(guests)
     .values({
+      organizationId: args.organizationId,
       fullName: args.fullName,
       email: normalised,
       phone: args.phone ?? null,

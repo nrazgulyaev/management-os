@@ -35,10 +35,13 @@ export async function createGuestAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const d = parsed.data;
   const me = await getCurrentAppUser();
+  // TENANCY (0176): stamp the guest with the caller's org.
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .insert(guests)
     .values({
+      organizationId,
       fullName: d.fullName,
       email: nullable(d.email),
       phone: nullable(d.phone),

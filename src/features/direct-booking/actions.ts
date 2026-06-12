@@ -242,6 +242,9 @@ export async function convertDirectBookingRequestToBookingAction(
     channelId = direct?.id ?? null;
   }
 
+  // Resolve the caller's org once — stamps both the guest (0176) and booking.
+  const organizationId = await requireOrgId();
+
   // Guest record.
   const guestId =
     request.guestId ??
@@ -253,6 +256,7 @@ export async function convertDirectBookingRequestToBookingAction(
         .trim(),
       phone: request.guestPhone ?? null,
       nationality: request.guestCountry ?? null,
+      organizationId,
     }));
 
   // Booking code.
@@ -264,7 +268,6 @@ export async function convertDirectBookingRequestToBookingAction(
   const grossMajor = (totalMinor / 100n).toString() + "." +
     String(totalMinor % 100n).padStart(2, "0");
 
-  const organizationId = await requireOrgId();
   const [bookingRow] = await db
     .insert(bookings)
     .values({

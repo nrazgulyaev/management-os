@@ -38,6 +38,13 @@ export const guests = pgTable(
     whatsapp: text("whatsapp"),
     // status: active | archived
     status: text("status").notNull().default("active"),
+    /** TENANCY (migration 0176): nullable org anchor, backfilled from the
+     *  guest's earliest booking (else ARCONIQUE_DEFAULT). Threaded into
+     *  listGuests + the createGuest / channel-manager / direct-booking writers.
+     *  Guests have no project/villa FK — this column is their only org link. */
+    organizationId: uuid("organization_id").references(() => organizations.id, {
+      onDelete: "restrict",
+    }),
     /** VIP signal (migration 0175): the guest is VIP across all stays. Read by
      *  the front-office vip-prep monitor; a per-stay override lives on bookings. */
     isVip: boolean("is_vip").notNull().default(false),
@@ -48,6 +55,7 @@ export const guests = pgTable(
     index("guests_email_idx").on(t.email),
     index("guests_status_idx").on(t.status),
     index("guests_is_vip_idx").on(t.isVip),
+    index("guests_organization_idx").on(t.organizationId),
   ],
 );
 

@@ -131,6 +131,7 @@ async function main() {
     [g] = await db
       .insert(guests)
       .values({
+        organizationId,
         fullName: "Whitmore party",
         email: "emma.w@whitmore.co",
         phone: "+1 (415) 555-2284",

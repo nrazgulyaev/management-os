@@ -505,7 +505,7 @@ async function projectIntoInternalBooking(input: {
 }): Promise<BookingProjection | null> {
   const db = requireDb();
   // 1. Find or create guest by email (fallback to first+last name match).
-  const guestId = await findOrCreateGuest(input.reservation);
+  const guestId = await findOrCreateGuest(input.reservation, input.organizationId);
   // 2. Look up the booking_channels row by key, create if missing.
   const channelId = await ensureBookingChannelRow(input.channelKey);
   // 3. Insert the booking. bookingCode is derived deterministically so
@@ -558,6 +558,7 @@ async function projectIntoInternalBooking(input: {
 
 async function findOrCreateGuest(
   reservation: ChannelReservationData,
+  organizationId: string,
 ): Promise<string> {
   const db = requireDb();
   const fullName = `${reservation.guest.firstName} ${reservation.guest.lastName}`.trim();
@@ -573,6 +574,7 @@ async function findOrCreateGuest(
   const [created] = await db
     .insert(guests)
     .values({
+      organizationId, // TENANCY (0176): stamp the channel-imported guest's org
       fullName,
       email,
       phone: reservation.guest.phone ?? null,
