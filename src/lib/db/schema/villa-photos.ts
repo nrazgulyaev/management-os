@@ -29,6 +29,11 @@ export const villaPhotos = pgTable(
     }),
     /** Storage URL (signed or public). */
     url: text("url").notNull(),
+    /** VILLA-PHOTO-UPLOAD (migration 0174) — Supabase Storage tracking so a
+     *  delete can also remove the object. NULL for externally-hosted/seed
+     *  URLs (e.g. picsum). */
+    storageBucket: text("storage_bucket"),
+    storagePath: text("storage_path"),
     caption: text("caption"),
     /** Enum: hero | gallery | floorplan | aerial | room | outside. */
     kind: text("kind").notNull().default("hero"),
