@@ -5,6 +5,7 @@ import { z } from "zod";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   postDirectBookingRevenue,
   reconcileDirectBookingsBatch,
@@ -29,9 +30,11 @@ export async function postDirectBookingRevenueAction(
     requestId: formData.get("requestId"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await postDirectBookingRevenue(
     parsed.data.requestId,
+    organizationId,
     me?.id ?? null,
   );
   revalidatePath(
@@ -51,11 +54,13 @@ export async function reverseDirectBookingFinanceLinkAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await reverseDirectBookingFinanceLink(
     parsed.data.id,
     me?.id ?? null,
     parsed.data.reason ?? "manual_reversal",
+    organizationId,
   );
   if (!out.ok) return { ok: false, error: out.reason ?? "reverse_failed" };
   revalidatePath(`/dashboard/direct-bookings/reconciliation/${parsed.data.id}`);

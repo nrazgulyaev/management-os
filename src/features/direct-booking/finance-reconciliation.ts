@@ -54,6 +54,9 @@ interface RequestContext {
 
 async function loadRequestContext(
   requestId: string,
+  // TENANCY: when set, the request must belong to this org (action paths pass
+  // requireOrgId(); internal/cron paths pass null and stay unscoped).
+  organizationId: string | null = null,
 ): Promise<RequestContext | null> {
   const db = getDb();
   if (!db) return null;
@@ -67,7 +70,14 @@ async function loadRequestContext(
       directBookingHolds,
       eq(directBookingHolds.id, directBookingRequests.holdId),
     )
-    .where(eq(directBookingRequests.id, requestId))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingRequests.id, requestId),
+            eq(directBookingRequests.organizationId, organizationId),
+          )
+        : eq(directBookingRequests.id, requestId),
+    )
     .limit(1);
   if (!row) return null;
   const [deposit] = await db
@@ -343,11 +353,12 @@ export type PostOutcome =
 
 export async function postDirectBookingRevenue(
   requestId: string,
+  organizationId: string | null,
   actorUserId: string | null = null,
 ): Promise<PostOutcome> {
   const db = getDb();
   if (!db) return { ok: false, status: "failed", reason: "no_db" };
-  const ctx = await loadRequestContext(requestId);
+  const ctx = await loadRequestContext(requestId, organizationId);
   if (!ctx) return { ok: false, status: "failed", reason: "request_not_found" };
 
   const total = ctx.hold?.totalMinor ?? 0n;
@@ -638,13 +649,20 @@ export async function reverseDirectBookingFinanceLink(
   linkId: string,
   actorUserId: string | null,
   reason: string,
+  organizationId: string,
 ): Promise<{ ok: boolean; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
+  // TENANCY: a cross-org link id reads as not-found before any revenue reversal.
   const [link] = await db
     .select()
     .from(directBookingFinanceLinks)
-    .where(eq(directBookingFinanceLinks.id, linkId))
+    .where(
+      and(
+        eq(directBookingFinanceLinks.id, linkId),
+        eq(directBookingFinanceLinks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!link) return { ok: false, reason: "link_not_found" };
   if (link.status !== "posted") {
@@ -690,7 +708,10 @@ export async function reconcileDirectBookingsBatch(
   const db = getDb();
   if (!db) return { posted: 0, skipped: 0, failed: 0 };
   const candidates = await db
-    .select({ id: directBookingRequests.id })
+    .select({
+      id: directBookingRequests.id,
+      organizationId: directBookingRequests.organizationId,
+    })
     .from(directBookingRequests)
     .leftJoin(
       directBookingFinanceLinks,
@@ -707,7 +728,7 @@ export async function reconcileDirectBookingsBatch(
   let skipped = 0;
   let failed = 0;
   for (const c of candidates) {
-    const out = await postDirectBookingRevenue(c.id, actorUserId);
+    const out = await postDirectBookingRevenue(c.id, c.organizationId, actorUserId);
     if (out.ok) posted++;
     else if (out.status === "skipped_locked_period" || out.status === "skipped_no_booking") skipped++;
     else failed++;
