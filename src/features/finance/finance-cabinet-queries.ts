@@ -55,6 +55,10 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
       avgStatementCycleDays: null,
     };
   }
+  // TENANCY-FINANCE — scope every leg to the caller's org. bookings and
+  // ownership_shares both carry organization_id; without these predicates
+  // this aggregate scans (and leaks counts for) every tenant.
+  const orgId = await requireOrgId();
   // Statement tables are empty in DEMO-2. Approximate "pending statements"
   // by counting distinct owner × villa × month combinations that had
   // bookings in the current month — that's what *would* generate.
@@ -68,11 +72,14 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
          JOIN ownership_shares os ON os.villa_id = b.villa_id
         WHERE b.status IN ('confirmed','checked_in','checked_out')
           AND b.check_in >= date_trunc('month', CURRENT_DATE)::date
-          AND os.status = 'active') AS pending_statements,
+          AND os.status = 'active'
+          AND b.organization_id = ${orgId}::uuid
+          AND os.organization_id = ${orgId}::uuid) AS pending_statements,
       COALESCE((SELECT SUM(b.gross_amount)::text
          FROM bookings b
         WHERE b.status IN ('confirmed','checked_in','checked_out')
-          AND b.check_in >= date_trunc('month', CURRENT_DATE)::date), '0') AS revenue_mtd
+          AND b.check_in >= date_trunc('month', CURRENT_DATE)::date
+          AND b.organization_id = ${orgId}::uuid), '0') AS revenue_mtd
   `);
   const r = rowsOf<{
     pending_statements: string;

@@ -5,15 +5,42 @@ import { z } from "zod";
 
 import { canManageEntity } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import {
   appendMessage,
+  getConciergeSessionOrganizationId,
   listMessagesForSession,
 } from "./services";
 import { callGuestConcierge } from "./provider";
 import type { GuestAiConciergeMessage } from "@/lib/db/schema/guest-ai-concierge";
 
 const idSchema = z.string().uuid();
+
+/**
+ * Shared gate for every mgmt-cabinet concierge action: checks the verb
+ * (canManageEntity) AND the tenant — a cross-org sessionId reads as
+ * "Session not found" so neither the transcript can be read nor a staff
+ * reply written into another tenant's conversation. NULL session org =
+ * legacy/unbackfilled → allowed. Returns the caller org for downstream
+ * org-scoped reads.
+ */
+async function guardConciergeSession(
+  sessionId: string,
+): Promise<{ ok: true; organizationId: string } | { ok: false; error: string }> {
+  if (!(await canManageEntity("guest"))) {
+    return { ok: false, error: "Not authorised." };
+  }
+  if (!idSchema.safeParse(sessionId).success) {
+    return { ok: false, error: "Invalid session." };
+  }
+  const organizationId = await requireOrgId();
+  const sessionOrg = await getConciergeSessionOrganizationId(sessionId);
+  if (sessionOrg && sessionOrg !== organizationId) {
+    return { ok: false, error: "Session not found." };
+  }
+  return { ok: true, organizationId };
+}
 
 export type ThreadAuthor = "guest" | "ai" | "staff" | "system";
 
@@ -58,14 +85,10 @@ function toThread(rows: GuestAiConciergeMessage[]): ThreadMessage[] {
 export async function loadConciergeThreadAction(
   sessionId: string,
 ): Promise<ThreadResult> {
-  if (!(await canManageEntity("guest"))) {
-    return { ok: false, error: "Not authorised." };
-  }
-  if (!idSchema.safeParse(sessionId).success) {
-    return { ok: false, error: "Invalid session." };
-  }
+  const guard = await guardConciergeSession(sessionId);
+  if (!guard.ok) return guard;
   try {
-    const rows = await listMessagesForSession(sessionId, 200);
+    const rows = await listMessagesForSession(sessionId, 200, guard.organizationId);
     return { ok: true, messages: toThread(rows) };
   } catch (err) {
     return {
@@ -96,15 +119,11 @@ const DRAFT_SYSTEM =
 export async function generateConciergeDraftAction(
   sessionId: string,
 ): Promise<DraftResult> {
-  if (!(await canManageEntity("guest"))) {
-    return { ok: false, error: "Not authorised." };
-  }
-  if (!idSchema.safeParse(sessionId).success) {
-    return { ok: false, error: "Invalid session." };
-  }
+  const guard = await guardConciergeSession(sessionId);
+  if (!guard.ok) return guard;
   let messages: ThreadMessage[];
   try {
-    messages = toThread(await listMessagesForSession(sessionId, 200));
+    messages = toThread(await listMessagesForSession(sessionId, 200, guard.organizationId));
   } catch (err) {
     return {
       ok: false,
@@ -143,12 +162,10 @@ export async function postConciergeStaffReplyAction(
   sessionId: string,
   content: string,
 ): Promise<ThreadResult> {
-  if (!(await canManageEntity("guest"))) {
-    return { ok: false, error: "Not authorised." };
-  }
-  if (!idSchema.safeParse(sessionId).success) {
-    return { ok: false, error: "Invalid session." };
-  }
+  // Tenant-scoped gate: blocks writing a staff reply into another org's
+  // session (a cross-org sessionId reads as not-found here).
+  const guard = await guardConciergeSession(sessionId);
+  if (!guard.ok) return guard;
   const parsed = replySchema.safeParse(content);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Type a reply." };
@@ -170,7 +187,7 @@ export async function postConciergeStaffReplyAction(
       entityId: sessionId,
       after: { length: parsed.data.length },
     });
-    const rows = await listMessagesForSession(sessionId, 200);
+    const rows = await listMessagesForSession(sessionId, 200, guard.organizationId);
     revalidatePath("/dashboard/concierge");
     return { ok: true, messages: toThread(rows) };
   } catch (err) {

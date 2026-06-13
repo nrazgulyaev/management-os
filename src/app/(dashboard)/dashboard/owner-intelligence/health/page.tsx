@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { NoItemsYet } from "@/components/ui/primitives";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
 import { GenerateAllSnapshotsButton } from "@/components/owner-intelligence/snapshot-buttons";
 
@@ -21,7 +22,9 @@ const STATUS_TONES: Record<
 };
 
 export default async function HealthListPage() {
-  const snapshots = await listOwnerVillaHealthSnapshots();
+  const snapshots = await listOwnerVillaHealthSnapshots({
+    organizationId: await requireOrgId(),
+  });
   return (
     <div className="flex flex-col gap-10">
       <PageHeader

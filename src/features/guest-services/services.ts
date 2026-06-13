@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestServiceCategories,
   guestServiceFinanceLinks,
@@ -77,7 +78,8 @@ export async function listAllCatalogServices(opts?: {
 }): Promise<CatalogServiceRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(guestServices.organizationId, organizationId)];
   if (opts?.status) filters.push(eq(guestServices.status, opts.status));
   if (opts?.projectId)
     filters.push(eq(guestServices.projectId, opts.projectId));
@@ -148,6 +150,7 @@ export async function getServiceById(
 > {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       s: guestServices,
@@ -162,7 +165,12 @@ export async function getServiceById(
     )
     .leftJoin(villas, eq(villas.id, guestServices.villaId))
     .leftJoin(projects, eq(projects.id, guestServices.projectId))
-    .where(eq(guestServices.id, id))
+    .where(
+      and(
+        eq(guestServices.id, id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   const options = await db
@@ -229,6 +237,7 @@ export interface GuestVisibleService {
 export async function listGuestVisibleServices(input: {
   villaId: string;
   projectId: string | null;
+  organizationId?: string | null;
 }): Promise<GuestVisibleService[]> {
   const db = getDb();
   if (!db) return [];
@@ -260,6 +269,9 @@ export async function listGuestVisibleServices(input: {
         eq(guestServices.status, "active"),
         eq(guestServices.guestVisible, true),
         scopeFilter,
+        input.organizationId
+          ? eq(guestServices.organizationId, input.organizationId)
+          : undefined,
       ),
     )
     .orderBy(
@@ -374,7 +386,8 @@ export async function listGuestServiceOrders(opts?: {
 }): Promise<OrderListRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(guestServices.organizationId, organizationId)];
   if (opts?.status) {
     if (Array.isArray(opts.status)) {
       filters.push(inArray(guestServiceOrders.status, opts.status));
@@ -442,6 +455,7 @@ export interface OrderDetail {
 export async function getOrderById(id: string): Promise<OrderDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       o: guestServiceOrders,
@@ -467,7 +481,12 @@ export async function getOrderById(id: string): Promise<OrderDetail | null> {
     .leftJoin(bookings, eq(bookings.id, guestServiceOrders.bookingId))
     .leftJoin(guests, eq(guests.id, guestServiceOrders.guestId))
     .leftJoin(appUsers, eq(appUsers.id, guestServiceOrders.assignedTo))
-    .where(eq(guestServiceOrders.id, id))
+    .where(
+      and(
+        eq(guestServiceOrders.id, id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return null;
 
@@ -562,6 +581,7 @@ export async function getOrderStats(): Promise<OrderStats> {
       currency: null,
     };
   }
+  const organizationId = await requireOrgId();
   const [agg] = await db
     .select({
       total: sql<number>`count(*)`,
@@ -572,7 +592,12 @@ export async function getOrderStats(): Promise<OrderStats> {
       bridgedRevenueMinor: sql<string>`coalesce(sum(${guestServiceOrders.guestPriceMinor}) filter (where ${guestServiceOrders.financeBridgeStatus} = 'bridged'), 0)`,
       currency: sql<string | null>`max(${guestServiceOrders.currency})`,
     })
-    .from(guestServiceOrders);
+    .from(guestServiceOrders)
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(eq(guestServices.organizationId, organizationId));
   return {
     total: Number(agg?.total ?? 0),
     active: Number(agg?.active ?? 0),

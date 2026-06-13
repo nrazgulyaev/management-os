@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getGuestServiceFulfilmentById } from "@/features/service-fulfilment/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   formatFulfilmentAmountForAdmin,
 } from "@/features/service-fulfilment/pricing-pure";
@@ -32,7 +33,7 @@ export default async function FulfilmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getGuestServiceFulfilmentById(id);
+  const detail = await getGuestServiceFulfilmentById(id, await requireOrgId());
   if (!detail) notFound();
   const { fulfilment: f, service, vendor, villa, events, invoices, ratings, financeLink } =
     detail;

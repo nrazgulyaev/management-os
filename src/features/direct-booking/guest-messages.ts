@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   directBookingGuestMessageThreads,
   directBookingGuestMessages,
@@ -288,14 +289,17 @@ export async function listAdminThreads(opts?: {
 }): Promise<AdminThreadRow[]> {
   const db = getDb();
   if (!db) return [];
-  const conditions = [] as ReturnType<typeof eq>[];
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(directBookingGuestMessageThreads.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.status) {
     conditions.push(eq(directBookingGuestMessageThreads.status, opts.status));
   }
   const rows = await db
     .select()
     .from(directBookingGuestMessageThreads)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(directBookingGuestMessageThreads.lastMessageAt));
   return rows.map((r) => ({
     id: r.id,
@@ -326,10 +330,16 @@ export async function getAdminThreadById(
 } | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [thread] = await db
     .select()
     .from(directBookingGuestMessageThreads)
-    .where(eq(directBookingGuestMessageThreads.id, threadId))
+    .where(
+      and(
+        eq(directBookingGuestMessageThreads.id, threadId),
+        eq(directBookingGuestMessageThreads.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!thread) return null;
   const messages = await db

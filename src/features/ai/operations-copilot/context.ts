@@ -31,6 +31,7 @@ const MAX_LIST = 10;
  */
 export async function buildOperationsSnapshot(
   now: Date = new Date(),
+  organizationId: string | null = null,
 ): Promise<OperationsSnapshot> {
   const db = getDb();
   const todayYmd = now.toISOString().slice(0, 10);
@@ -38,7 +39,9 @@ export async function buildOperationsSnapshot(
   // Aggregated counters from the operations service. Map into our flat
   // shape; some fields aren't exposed there (today's check-ins/outs,
   // failed jobs in 24h, queued notifications) so we query directly.
-  const baseMetrics = await getOperationsMetrics();
+  // organizationId scopes the snapshot to the caller's tenant (the model
+  // sees this context on every turn); null = system/cron = platform-wide.
+  const baseMetrics = await getOperationsMetrics(organizationId);
 
   let todaysCheckins = 0;
   let todaysCheckouts = 0;
@@ -79,8 +82,8 @@ export async function buildOperationsSnapshot(
       listBookingConflicts(),
       listLowStockItems(),
       listJobRuns({ limit: MAX_LIST }),
-      listServiceRequests({ limit: MAX_LIST }),
-      listMaintenanceTickets({ limit: MAX_LIST }),
+      listServiceRequests({ limit: MAX_LIST, organizationId }),
+      listMaintenanceTickets({ limit: MAX_LIST, organizationId }),
       listCalendarFeeds(),
     ]);
 

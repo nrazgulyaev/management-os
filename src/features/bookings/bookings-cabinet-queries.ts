@@ -140,6 +140,7 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
       gross7dUsdMinor: 0n,
     };
   }
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     bookings_mtd: string;
     revenue_mtd: string;
@@ -153,31 +154,40 @@ export async function getBookingsKpis(): Promise<BookingsKpis> {
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in >= date_trunc('month', CURRENT_DATE)::date
+        WHERE organization_id = ${organizationId}
+          AND check_in >= date_trunc('month', CURRENT_DATE)::date
           AND status IN ('confirmed','checked_in','checked_out')) AS bookings_mtd,
       COALESCE((SELECT SUM(gross_amount)::text FROM bookings
-        WHERE check_in >= date_trunc('month', CURRENT_DATE)::date
+        WHERE organization_id = ${organizationId}
+          AND check_in >= date_trunc('month', CURRENT_DATE)::date
           AND status IN ('confirmed','checked_in','checked_out')), '0') AS revenue_mtd,
       COALESCE((SELECT SUM(nights)::text FROM bookings
-        WHERE check_in >= date_trunc('month', CURRENT_DATE)::date
+        WHERE organization_id = ${organizationId}
+          AND check_in >= date_trunc('month', CURRENT_DATE)::date
           AND status IN ('confirmed','checked_in','checked_out')), '0') AS nights_mtd,
       COALESCE((SELECT AVG(EXTRACT(DAY FROM (check_in::timestamp - created_at)))::text
         FROM bookings
-        WHERE check_in >= date_trunc('year', CURRENT_DATE)::date
+        WHERE organization_id = ${organizationId}
+          AND check_in >= date_trunc('year', CURRENT_DATE)::date
           AND status IN ('confirmed','checked_in','checked_out')), '0') AS lead_time_avg,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE status = 'cancelled'
+        WHERE organization_id = ${organizationId}
+          AND status = 'cancelled'
           AND check_in >= date_trunc('year', CURRENT_DATE)::date) AS cancellations_ytd,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in >= date_trunc('year', CURRENT_DATE)::date) AS bookings_ytd,
+        WHERE organization_id = ${organizationId}
+          AND check_in >= date_trunc('year', CURRENT_DATE)::date) AS bookings_ytd,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in = CURRENT_DATE
+        WHERE organization_id = ${organizationId}
+          AND check_in = CURRENT_DATE
           AND status IN ('confirmed','checked_in')) AS today_arrivals,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in <= CURRENT_DATE AND check_out > CURRENT_DATE
+        WHERE organization_id = ${organizationId}
+          AND check_in <= CURRENT_DATE AND check_out > CURRENT_DATE
           AND status IN ('confirmed','checked_in')) AS in_stay_tonight,
       COALESCE((SELECT SUM(gross_amount)::text FROM bookings
-        WHERE check_in >= CURRENT_DATE - INTERVAL '7 days'
+        WHERE organization_id = ${organizationId}
+          AND check_in >= CURRENT_DATE - INTERVAL '7 days'
           AND check_in <= CURRENT_DATE
           AND status IN ('confirmed','checked_in','checked_out')), '0') AS gross_7d
   `);
@@ -469,10 +479,8 @@ export { usdToIdrMinor };
 // DAILY-DIGEST-SPRINT-1 P2 — date-scoped activity for the Daily Digest agent.
 // =============================================================================
 //
-// Note: the `bookings` table has no organization_id column today (schema-
-// level multi-tenancy gap tracked in the FUNCTIONAL-AUDIT-1 doc). All
-// queries are platform-wide; orgId is accepted for forward-compatibility
-// + audit trail but not yet used as a WHERE clause.
+// Queries are scoped to the caller's organization via the `orgId` param
+// threaded from the agent context (bookings.organization_id).
 
 export interface DigestBookingsForDate {
   date: string;
@@ -528,18 +536,23 @@ export async function getBookingsActivityForDate(input: {
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_in::date  = ${input.date}::date
+        WHERE organization_id = ${input.orgId}
+          AND check_in::date  = ${input.date}::date
           AND status IN ('confirmed','checked_in','checked_out')) AS check_ins,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE check_out::date = ${input.date}::date
+        WHERE organization_id = ${input.orgId}
+          AND check_out::date = ${input.date}::date
           AND status IN ('confirmed','checked_in','checked_out')) AS check_outs,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE created_at::date = ${input.date}::date) AS new_bookings,
+        WHERE organization_id = ${input.orgId}
+          AND created_at::date = ${input.date}::date) AS new_bookings,
       (SELECT COALESCE(SUM(gross_amount), 0)::text FROM bookings
-        WHERE created_at::date = ${input.date}::date
+        WHERE organization_id = ${input.orgId}
+          AND created_at::date = ${input.date}::date
           AND status IN ('confirmed','checked_in','checked_out')) AS new_revenue,
       (SELECT COUNT(*)::text FROM bookings
-        WHERE status = 'cancelled'
+        WHERE organization_id = ${input.orgId}
+          AND status = 'cancelled'
           AND updated_at::date = ${input.date}::date) AS cancellations
   `);
   const agg = rowsOf<{
@@ -561,7 +574,8 @@ export async function getBookingsActivityForDate(input: {
            b.nights::text AS nights, b.gross_amount::text AS gross_amount
       FROM bookings b
       JOIN villas v ON v.id = b.villa_id
-     WHERE b.check_in::date = ${input.date}::date
+     WHERE b.organization_id = ${input.orgId}
+       AND b.check_in::date = ${input.date}::date
        AND b.status IN ('confirmed','checked_in','checked_out')
      ORDER BY b.gross_amount DESC
      LIMIT 3

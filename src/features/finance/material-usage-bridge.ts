@@ -1,7 +1,8 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { taskMaterialUsage, inventoryItems, inventoryCategories } from "@/lib/db/schema/inventory";
 import { operationTasks } from "@/lib/db/schema/operations";
 import { expenseLines } from "@/lib/db/schema/finance";
@@ -51,6 +52,8 @@ export async function listMaterialUsageFinanceLinks(opts?: {
 }): Promise<WithSource<MaterialUsageBridgeRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — finance_material_usage_links carries organization_id.
+  const organizationId = await requireOrgId();
 
   const rows = await db
     .select({
@@ -66,7 +69,12 @@ export async function listMaterialUsageFinanceLinks(opts?: {
     )
     .innerJoin(operationTasks, eq(operationTasks.id, taskMaterialUsage.taskId))
     .innerJoin(inventoryItems, eq(inventoryItems.id, taskMaterialUsage.itemId))
-    .where(opts?.status ? eq(financeMaterialUsageLinks.status, opts.status) : undefined)
+    .where(
+      and(
+        eq(financeMaterialUsageLinks.organizationId, organizationId),
+        opts?.status ? eq(financeMaterialUsageLinks.status, opts.status) : undefined,
+      ),
+    )
     .orderBy(desc(financeMaterialUsageLinks.createdAt))
     .limit(opts?.limit ?? 200);
 

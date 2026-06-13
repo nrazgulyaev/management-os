@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, eq, gte, inArray, lte, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { bookings, guests } from "@/lib/db/schema/bookings";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { villaReadinessStates } from "@/lib/db/schema/availability";
@@ -87,6 +88,12 @@ export async function listArrivalReadiness(
   const db = getDb();
   if (!db) return [];
 
+  // TENANCY: bookings.organization_id is NOT NULL. Scope the gate query to the
+  // caller's org — all downstream villaIds/bookingIds derive from these rows so
+  // they inherit the scope. The service-role connection bypasses RLS, so without
+  // this every org's arrivals would leak into the readiness board.
+  const organizationId = await requireOrgId();
+
   const day = ymd(date);
 
   const arrivalRows = await db
@@ -103,6 +110,7 @@ export async function listArrivalReadiness(
     .leftJoin(guests, eq(guests.id, bookings.guestId))
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         eq(bookings.checkIn, day),
         inArray(bookings.status, ["confirmed", "tentative"]),
       ),

@@ -1,9 +1,12 @@
 import "server-only";
 
-import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import { villaWifiCredentials } from "@/lib/db/schema/villa-guides";
+import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { authSecurityEvents } from "@/lib/db/schema/security";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 10.M.4 — Read-only helpers for the WiFi credential migration
@@ -51,6 +54,15 @@ export async function summarizeWifiMigration(): Promise<WifiMigrationCounts> {
   };
   const db = getDb();
   if (!db) return empty;
+  const organizationId = await requireOrgId();
+  // villa_wifi_credentials has no org column. Scope via projects on either the
+  // project-scoped path (projectId) or the villa-scoped path
+  // (villaId → villas.projectId).
+  const aggVillaProject = alias(projectsTable, "agg_villa_project");
+  const orgScope = or(
+    eq(projectsTable.organizationId, organizationId),
+    eq(aggVillaProject.organizationId, organizationId),
+  );
 
   const [agg] = await db
     .select({
@@ -60,14 +72,26 @@ export async function summarizeWifiMigration(): Promise<WifiMigrationCounts> {
       legacyEncryptedCol: sql<number>`count(*) FILTER (WHERE ${villaWifiCredentials.passwordEncrypted} IS NOT NULL AND ${villaWifiCredentials.passwordCiphertext} IS NULL)::int`,
       neverHad: sql<number>`count(*) FILTER (WHERE ${villaWifiCredentials.displayPassword} IS NULL AND ${villaWifiCredentials.passwordCiphertext} IS NULL AND ${villaWifiCredentials.passwordEncrypted} IS NULL)::int`,
     })
-    .from(villaWifiCredentials);
+    .from(villaWifiCredentials)
+    .leftJoin(projectsTable, eq(projectsTable.id, villaWifiCredentials.projectId))
+    .leftJoin(villas, eq(villas.id, villaWifiCredentials.villaId))
+    .leftJoin(aggVillaProject, eq(aggVillaProject.id, villas.projectId))
+    .where(orgScope);
 
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const migVillaProject = alias(projectsTable, "mig_villa_project");
   const [migAgg] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(villaWifiCredentials)
+    .leftJoin(projectsTable, eq(projectsTable.id, villaWifiCredentials.projectId))
+    .leftJoin(villas, eq(villas.id, villaWifiCredentials.villaId))
+    .leftJoin(migVillaProject, eq(migVillaProject.id, villas.projectId))
     .where(
       and(
+        or(
+          eq(projectsTable.organizationId, organizationId),
+          eq(migVillaProject.organizationId, organizationId),
+        ),
         isNotNull(villaWifiCredentials.passwordMigratedAt),
         sql`${villaWifiCredentials.passwordMigratedAt} >= ${cutoff.toISOString()}`,
       ),
@@ -88,6 +112,7 @@ export async function listWifiMigrationEvents(
 ): Promise<WifiMigrationEvent[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const rows = await db
     .select({
@@ -98,7 +123,12 @@ export async function listWifiMigrationEvents(
       createdAt: authSecurityEvents.createdAt,
     })
     .from(authSecurityEvents)
-    .where(eq(authSecurityEvents.eventType, "wifi_password_migrated"))
+    .where(
+      and(
+        eq(authSecurityEvents.organizationId, organizationId),
+        eq(authSecurityEvents.eventType, "wifi_password_migrated"),
+      ),
+    )
     .orderBy(desc(authSecurityEvents.createdAt))
     .limit(limit);
 
@@ -138,6 +168,11 @@ export async function listPendingWifiMigrations(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
+  // villa_wifi_credentials has no org column. Scope via projects on either the
+  // project-scoped path (projectId) or the villa-scoped path
+  // (villaId → villas.projectId).
+  const pendingVillaProject = alias(projectsTable, "pending_villa_project");
   const rows = await db
     .select({
       id: villaWifiCredentials.id,
@@ -148,7 +183,18 @@ export async function listPendingWifiMigrations(): Promise<
       displayPassword: villaWifiCredentials.displayPassword,
     })
     .from(villaWifiCredentials)
-    .where(isNull(villaWifiCredentials.passwordCiphertext));
+    .leftJoin(projectsTable, eq(projectsTable.id, villaWifiCredentials.projectId))
+    .leftJoin(villas, eq(villas.id, villaWifiCredentials.villaId))
+    .leftJoin(pendingVillaProject, eq(pendingVillaProject.id, villas.projectId))
+    .where(
+      and(
+        or(
+          eq(projectsTable.organizationId, organizationId),
+          eq(pendingVillaProject.organizationId, organizationId),
+        ),
+        isNull(villaWifiCredentials.passwordCiphertext),
+      ),
+    );
 
   return rows
     .filter(

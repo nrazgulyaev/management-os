@@ -25,6 +25,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { ownerStatements, statementLines } from "@/lib/db/schema/finance";
 import { statementAnomalies } from "@/lib/db/schema/statement-anomalies";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   detectStatementAnomalies,
   type AnomalyLine,
@@ -116,10 +117,18 @@ export async function listStatementAnomalies(
 ): Promise<StatementAnomalyView[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — statement_anomalies carries organization_id; AND it so a
+  // foreign statementId never returns another org's flags.
+  const orgId = await requireOrgId();
   const rows = await db
     .select()
     .from(statementAnomalies)
-    .where(eq(statementAnomalies.statementId, statementId));
+    .where(
+      and(
+        eq(statementAnomalies.statementId, statementId),
+        eq(statementAnomalies.organizationId, orgId),
+      ),
+    );
   return rows
     .map((r) => ({
       id: r.id,

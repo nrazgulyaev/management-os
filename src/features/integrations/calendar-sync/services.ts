@@ -78,6 +78,9 @@ export interface BookingConflictRow {
 export async function listCalendarFeeds(): Promise<WithSource<CalendarFeedRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY (mig 0153): channel_calendar_feeds carries organization_id — scope
+  // so the Active-feeds surface never lists another org's feeds.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       f: channelCalendarFeeds,
@@ -94,6 +97,7 @@ export async function listCalendarFeeds(): Promise<WithSource<CalendarFeedRow>[]
     .leftJoin(projects, eq(projects.id, channelCalendarFeeds.projectId))
     .leftJoin(bookingChannels, eq(bookingChannels.id, channelCalendarFeeds.bookingChannelId))
     .leftJoin(appUsers, eq(appUsers.id, channelCalendarFeeds.createdBy))
+    .where(eq(channelCalendarFeeds.organizationId, organizationId))
     .orderBy(asc(channelCalendarFeeds.feedName));
 
   return rows.map((r) => ({
@@ -139,7 +143,10 @@ export async function listCalendarEvents(opts?: {
 }): Promise<WithSource<CalendarEventRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY (mig 0153): channel_calendar_events carries organization_id — seed
+  // the filters so the events surface never shows another org's events.
+  const organizationId = await requireOrgId();
+  const filters = [eq(channelCalendarEvents.organizationId, organizationId)];
   if (opts?.feedId) filters.push(eq(channelCalendarEvents.feedId, opts.feedId));
   if (opts?.status) filters.push(eq(channelCalendarEvents.status, opts.status));
   if (opts?.conflictStatus)
@@ -156,7 +163,7 @@ export async function listCalendarEvents(opts?: {
     .leftJoin(channelCalendarFeeds, eq(channelCalendarFeeds.id, channelCalendarEvents.feedId))
     .leftJoin(villas, eq(villas.id, channelCalendarFeeds.villaId))
     .leftJoin(bookings, eq(bookings.id, channelCalendarEvents.bookingId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(channelCalendarEvents.lastSeenAt))
     .limit(opts?.limit ?? 200);
 

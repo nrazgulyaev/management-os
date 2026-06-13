@@ -3,9 +3,10 @@ import "server-only";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { turnovers } from "@/lib/db/schema/turnovers";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { bookings } from "@/lib/db/schema/bookings";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { TurnoverCard, TurnoverStatus } from "@/components/operations/turnover-board";
 
 /**
@@ -56,11 +57,12 @@ function normalizeStatus(s: string): TurnoverStatus {
 export async function getTodaysTurnovers(): Promise<TurnoverRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
-  let rows = await readTurnoverRows(db);
+  let rows = await readTurnoverRows(db, organizationId);
   if (rows.length === 0) {
-    await deriveTodaysTurnovers(db);
-    rows = await readTurnoverRows(db);
+    await deriveTodaysTurnovers(db, organizationId);
+    rows = await readTurnoverRows(db, organizationId);
   }
   return rows;
 }
@@ -78,7 +80,10 @@ export function toTurnoverCards(rows: TurnoverRow[]): TurnoverCard[] {
   }));
 }
 
-async function readTurnoverRows(db: NonNullable<ReturnType<typeof getDb>>): Promise<TurnoverRow[]> {
+async function readTurnoverRows(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  organizationId: string,
+): Promise<TurnoverRow[]> {
   const result = await db
     .select({
       id: turnovers.id,
@@ -92,9 +97,16 @@ async function readTurnoverRows(db: NonNullable<ReturnType<typeof getDb>>): Prom
     })
     .from(turnovers)
     .innerJoin(villas, eq(villas.id, turnovers.villaId))
+    // TENANCY: turnovers has no organization_id — scope via villa → project.
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .leftJoin(appUsers, eq(appUsers.id, turnovers.assigneeUserId))
     .leftJoin(bookings, eq(bookings.id, turnovers.sourceBookingId))
-    .where(eq(turnovers.turnoverDate, sql`CURRENT_DATE`))
+    .where(
+      and(
+        eq(turnovers.turnoverDate, sql`CURRENT_DATE`),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(villas.unitCode));
 
   // checkOut/checkIn are wall-clock hints; bookings store dates only, so
@@ -119,7 +131,12 @@ async function readTurnoverRows(db: NonNullable<ReturnType<typeof getDb>>): Prom
  * Links the same-day check-in booking as the deadline + a "Same-day" badge.
  * ON CONFLICT DO NOTHING keeps this safe to run repeatedly.
  */
-async function deriveTodaysTurnovers(db: NonNullable<ReturnType<typeof getDb>>): Promise<void> {
+async function deriveTodaysTurnovers(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  organizationId: string,
+): Promise<void> {
+  // TENANCY: only derive turnovers from this org's bookings (out_b + in_b
+  // both scoped) so the INSERT can't seed cross-org rows.
   await db.execute(sql`
     INSERT INTO turnovers (villa_id, turnover_date, status, source_booking_id, next_booking_id, badge)
     SELECT
@@ -136,11 +153,13 @@ async function deriveTodaysTurnovers(db: NonNullable<ReturnType<typeof getDb>>):
       WHERE b2.villa_id = out_b.villa_id
         AND b2.check_in = CURRENT_DATE
         AND b2.status IN ('confirmed', 'checked_in')
+        AND b2.organization_id = ${organizationId}::uuid
       ORDER BY b2.created_at
       LIMIT 1
     ) in_b ON true
     WHERE out_b.check_out = CURRENT_DATE
       AND out_b.status IN ('confirmed', 'checked_in', 'checked_out')
+      AND out_b.organization_id = ${organizationId}::uuid
     ON CONFLICT (villa_id, turnover_date) DO NOTHING
   `);
 }

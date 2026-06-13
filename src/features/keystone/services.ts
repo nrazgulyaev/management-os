@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/schema/keystone-setup";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { appUsers } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 import { cellKey, type OverrideMap } from "./matrix";
 
 /** Live counts that drive the wizard's step completion + "empty system". */
@@ -20,11 +21,33 @@ export interface SetupCounts {
 export async function getSetupCounts(): Promise<SetupCounts> {
   const db = getDb();
   if (!db) return { villas: 0, projects: 0, teamMembers: 0 };
+  // TENANCY: scope every count to the caller's org. Unscoped, a fresh
+  // tenant counts ALL orgs' villas/projects/team, so isEmptySystem()
+  // returns false and the dashboard skips the zero-state. If the org
+  // can't be resolved, return zeros (the dashboard caller treats that
+  // as "empty" and shows the guided zero-state instead of leaking).
+  let organizationId: string;
+  try {
+    organizationId = await requireOrgId();
+  } catch {
+    return { villas: 0, projects: 0, teamMembers: 0 };
+  }
   const countExpr = sql<number>`count(*)::int`;
   const [vRows, pRows, tRows] = await Promise.all([
-    db.select({ n: countExpr }).from(villas),
-    db.select({ n: countExpr }).from(projects),
-    db.select({ n: countExpr }).from(appUsers),
+    // villas has no organization_id — scope via its project.
+    db
+      .select({ n: countExpr })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(projects.organizationId, organizationId)),
+    db
+      .select({ n: countExpr })
+      .from(projects)
+      .where(eq(projects.organizationId, organizationId)),
+    db
+      .select({ n: countExpr })
+      .from(appUsers)
+      .where(eq(appUsers.organizationId, organizationId)),
   ]);
   return {
     villas: vRows[0]?.n ?? 0,

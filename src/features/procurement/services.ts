@@ -1,7 +1,8 @@
 import "server-only";
 
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   purchaseOrderLines,
   purchaseOrders,
@@ -78,7 +79,13 @@ export async function listPurchaseRequests(opts?: {
 }): Promise<WithSource<PurchaseRequestRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const where = opts?.status ? eq(purchaseRequests.status, opts.status) : undefined;
+  const organizationId = await requireOrgId();
+  const where = opts?.status
+    ? and(
+        eq(purchaseRequests.organizationId, organizationId),
+        eq(purchaseRequests.status, opts.status),
+      )
+    : eq(purchaseRequests.organizationId, organizationId);
 
   const rows = await db
     .select({
@@ -137,6 +144,7 @@ export interface PurchaseRequestDetail {
 export async function getPurchaseRequestById(id: string): Promise<PurchaseRequestDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       r: purchaseRequests,
@@ -148,7 +156,7 @@ export async function getPurchaseRequestById(id: string): Promise<PurchaseReques
     .leftJoin(suppliers, eq(suppliers.id, purchaseRequests.supplierId))
     .leftJoin(projects, eq(projects.id, purchaseRequests.projectId))
     .leftJoin(appUsers, eq(appUsers.id, purchaseRequests.requestedBy))
-    .where(eq(purchaseRequests.id, id))
+    .where(and(eq(purchaseRequests.id, id), eq(purchaseRequests.organizationId, organizationId)))
     .limit(1);
   if (!r) return null;
 
@@ -194,6 +202,7 @@ export async function getPurchaseRequestById(id: string): Promise<PurchaseReques
 export async function listPurchaseOrders(): Promise<WithSource<PurchaseOrderRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       p: purchaseOrders,
@@ -204,6 +213,7 @@ export async function listPurchaseOrders(): Promise<WithSource<PurchaseOrderRow>
     .from(purchaseOrders)
     .leftJoin(suppliers, eq(suppliers.id, purchaseOrders.supplierId))
     .leftJoin(projects, eq(projects.id, purchaseOrders.projectId))
+    .where(eq(purchaseOrders.organizationId, organizationId))
     .orderBy(desc(purchaseOrders.createdAt))
     .limit(200);
 
@@ -242,6 +252,7 @@ export interface PurchaseOrderDetail {
 export async function getPurchaseOrderById(id: string): Promise<PurchaseOrderDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [p] = await db
     .select({
       p: purchaseOrders,
@@ -251,7 +262,7 @@ export async function getPurchaseOrderById(id: string): Promise<PurchaseOrderDet
     .from(purchaseOrders)
     .leftJoin(suppliers, eq(suppliers.id, purchaseOrders.supplierId))
     .leftJoin(projects, eq(projects.id, purchaseOrders.projectId))
-    .where(eq(purchaseOrders.id, id))
+    .where(and(eq(purchaseOrders.id, id), eq(purchaseOrders.organizationId, organizationId)))
     .limit(1);
   if (!p) return null;
 

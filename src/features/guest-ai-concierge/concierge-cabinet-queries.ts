@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Concierge cabinet reads.
@@ -28,6 +29,7 @@ export async function getConciergeKpis(): Promise<ConciergeKpis> {
   if (!db) {
     return { activeSessions: 0, messagesToday: 0, handoffsOpen: 0, refusalsToday: 0 };
   }
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     active_sessions: string;
     messages_today: string;
@@ -36,13 +38,17 @@ export async function getConciergeKpis(): Promise<ConciergeKpis> {
   }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM guest_ai_concierge_sessions
-        WHERE status = 'active') AS active_sessions,
+        WHERE organization_id = ${organizationId}::uuid
+          AND status = 'active') AS active_sessions,
       COALESCE((SELECT COUNT(*)::text FROM guest_ai_concierge_messages
-        WHERE created_at >= date_trunc('day', CURRENT_TIMESTAMP)), '0') AS messages_today,
+        WHERE organization_id = ${organizationId}::uuid
+          AND created_at >= date_trunc('day', CURRENT_TIMESTAMP)), '0') AS messages_today,
       COALESCE((SELECT COUNT(*)::text FROM guest_ai_handoffs
-        WHERE status IN ('pending','open','assigned')), '0') AS handoffs_open,
+        WHERE organization_id = ${organizationId}::uuid
+          AND status IN ('pending','open','assigned')), '0') AS handoffs_open,
       COALESCE((SELECT COUNT(*)::text FROM guest_ai_concierge_messages
-        WHERE created_at >= date_trunc('day', CURRENT_TIMESTAMP)
+        WHERE organization_id = ${organizationId}::uuid
+          AND created_at >= date_trunc('day', CURRENT_TIMESTAMP)
           AND safety_status = 'refused'), '0') AS refusals_today
   `);
   const r = rowsOf<{
@@ -73,6 +79,7 @@ export interface ConciergeSessionRow {
 export async function listConciergeSessionsForCabinet(limit = 6): Promise<ConciergeSessionRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     status: string;
@@ -95,6 +102,7 @@ export async function listConciergeSessionsForCabinet(limit = 6): Promise<Concie
       FROM guest_ai_concierge_sessions s
       LEFT JOIN bookings b ON b.id = s.booking_id
       LEFT JOIN villas v ON v.id = b.villa_id
+     WHERE s.organization_id = ${organizationId}::uuid
      ORDER BY s.last_message_at DESC NULLS LAST
      LIMIT ${limit}
   `);
@@ -194,6 +202,7 @@ export interface SafetyEventRow {
 export async function listSafetyEventsForCabinet(limit = 5): Promise<SafetyEventRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     villa_code: string | null;
@@ -210,7 +219,8 @@ export async function listSafetyEventsForCabinet(limit = 5): Promise<SafetyEvent
       LEFT JOIN guest_ai_concierge_sessions s ON s.id = m.session_id
       LEFT JOIN bookings b ON b.id = s.booking_id
       LEFT JOIN villas v ON v.id = b.villa_id
-     WHERE m.safety_status IS NOT NULL
+     WHERE m.organization_id = ${organizationId}::uuid
+       AND m.safety_status IS NOT NULL
        AND m.safety_status <> 'ok'
        AND m.created_at >= (NOW() - INTERVAL '24 hours')
      ORDER BY m.created_at DESC

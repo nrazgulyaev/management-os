@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { guestStayTokenVerifications } from "@/lib/db/schema/guest-stay-security";
 import { guestStayTokens } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
@@ -28,6 +29,7 @@ export default async function VerificationsPage({
 }) {
   const sp = await searchParams;
   const db = getDb();
+  const organizationId = await requireOrgId();
   const rows = db
     ? await db
         .select({
@@ -36,15 +38,18 @@ export default async function VerificationsPage({
           bookingCode: bookings.bookingCode,
         })
         .from(guestStayTokenVerifications)
-        .leftJoin(
+        .innerJoin(
           guestStayTokens,
           eq(guestStayTokens.id, guestStayTokenVerifications.guestStayTokenId),
         )
         .leftJoin(bookings, eq(bookings.id, guestStayTokens.bookingId))
         .where(
-          sp.status
-            ? eq(guestStayTokenVerifications.status, sp.status)
-            : undefined,
+          and(
+            eq(guestStayTokens.organizationId, organizationId),
+            sp.status
+              ? eq(guestStayTokenVerifications.status, sp.status)
+              : undefined,
+          ),
         )
         .orderBy(desc(guestStayTokenVerifications.createdAt))
         .limit(200)

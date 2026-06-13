@@ -15,6 +15,7 @@ import {
   detectConflicts,
 } from "@/features/availability/calendar";
 import { syncBookingCalendarBlock } from "@/features/availability/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   evaluateCandidate,
   impactLevelFromDelta,
@@ -56,6 +57,10 @@ export async function listRelocationCandidates(
 ): Promise<RelocationCandidateRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY — scope transitively through the parent request so a caller can
+  // only read candidates for a request in their own org (the only caller is the
+  // mgmt detail page; the parent request id is supplied by the route).
+  const organizationId = await requireOrgId();
   const fromVilla = villas;
   const toVilla = villas; // alias-less workaround; we project both via raw sql below.
   const rows = await db
@@ -64,9 +69,16 @@ export async function listRelocationCandidates(
       bookingCode: bookings.bookingCode,
     })
     .from(bookingRelocationCandidates)
+    .innerJoin(
+      ownerStayRequests,
+      eq(ownerStayRequests.id, bookingRelocationCandidates.ownerStayRequestId),
+    )
     .leftJoin(bookings, eq(bookings.id, bookingRelocationCandidates.bookingId))
     .where(
-      eq(bookingRelocationCandidates.ownerStayRequestId, ownerStayRequestId),
+      and(
+        eq(bookingRelocationCandidates.ownerStayRequestId, ownerStayRequestId),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
     )
     .orderBy(desc(bookingRelocationCandidates.score));
 

@@ -11,6 +11,7 @@ import {
 import { appUsers } from "@/lib/db/schema/identity";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import { demoOwnerIdFallback } from "@/features/demo-data/owner-fallback";
 import {
   isDemoOwnerFallbackActive,
@@ -160,6 +161,7 @@ export async function listNotificationPreferences(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       p: notificationPreferences,
@@ -167,6 +169,7 @@ export async function listNotificationPreferences(): Promise<
     })
     .from(notificationPreferences)
     .leftJoin(appUsers, eq(appUsers.id, notificationPreferences.appUserId))
+    .where(eq(notificationPreferences.organizationId, organizationId))
     .orderBy(asc(notificationPreferences.templateKey));
 
   return rows.map((r) => ({
@@ -325,7 +328,10 @@ export async function listNotificationDeliveries(opts?: {
 }): Promise<WithSource<DeliveryRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(notificationDeliveries.organizationId, organizationId),
+  ];
   if (opts?.status) filters.push(eq(notificationDeliveries.status, opts.status));
   if (opts?.channel) filters.push(eq(notificationDeliveries.channel, opts.channel));
   if (opts?.provider) filters.push(eq(notificationDeliveries.provider, opts.provider));
@@ -335,7 +341,7 @@ export async function listNotificationDeliveries(opts?: {
   const rows = await db
     .select()
     .from(notificationDeliveries)
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(notificationDeliveries.createdAt))
     .limit(opts?.limit ?? 200);
 
@@ -369,12 +375,15 @@ export async function listNotificationsWithAttempts(opts?: {
 }): Promise<WithSource<NotificationRowWithAttempts>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(notificationQueue.organizationId, organizationId),
+  ];
   if (opts?.status) filters.push(eq(notificationQueue.status, opts.status));
   const rows = await db
     .select()
     .from(notificationQueue)
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(notificationQueue.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({

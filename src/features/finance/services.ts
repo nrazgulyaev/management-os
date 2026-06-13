@@ -1,7 +1,9 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   expenseLines,
   feeLines,
@@ -208,10 +210,19 @@ export async function listRevenueLines(opts?: {
   const db = getDb();
   if (!db) return empty as unknown as WithSource<RevenueLineRow>[];
 
+  // TENANCY-FINANCE — revenue_lines has no organization_id. Anchor org via the
+  // row's villa (→ its project) or its own project_id, requiring COALESCE = org.
+  // Rows with neither anchor cannot be scoped and are excluded.
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_rev");
+
   const filters = [eq(revenueLines.status, "posted")];
   if (opts?.villaId) filters.push(eq(revenueLines.villaId, opts.villaId));
   if (opts?.periodStart) filters.push(gte(revenueLines.serviceDate, opts.periodStart));
   if (opts?.periodEnd) filters.push(lte(revenueLines.serviceDate, opts.periodEnd));
+  filters.push(
+    sql`COALESCE(${villaProject.organizationId}, ${projects.organizationId}) = ${organizationId}`,
+  );
 
   const rows = await db
     .select({
@@ -221,6 +232,7 @@ export async function listRevenueLines(opts?: {
     })
     .from(revenueLines)
     .leftJoin(villas, eq(villas.id, revenueLines.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
     .leftJoin(projects, eq(projects.id, revenueLines.projectId))
     .where(and(...filters))
     .orderBy(desc(revenueLines.serviceDate), desc(revenueLines.createdAt));
@@ -247,12 +259,23 @@ export async function listRevenueLines(opts?: {
 export async function listFeeLines(opts?: { villaId?: string }): Promise<WithSource<FeeLineRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — fee_lines has no organization_id. Anchor org via the
+  // row's villa (→ its project) or its own project_id; exclude rows with
+  // neither anchor.
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_fee");
+  const feeProject = alias(projects, "fee_project");
   const filters = [eq(feeLines.status, "posted")];
   if (opts?.villaId) filters.push(eq(feeLines.villaId, opts.villaId));
+  filters.push(
+    sql`COALESCE(${villaProject.organizationId}, ${feeProject.organizationId}) = ${organizationId}`,
+  );
   const rows = await db
     .select({ f: feeLines, villaCode: villas.unitCode })
     .from(feeLines)
     .leftJoin(villas, eq(villas.id, feeLines.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(feeProject, eq(feeProject.id, feeLines.projectId))
     .where(and(...filters))
     .orderBy(desc(feeLines.feeDate));
   return rows.map((row) => ({
@@ -276,13 +299,24 @@ export async function listExpenseLines(opts?: {
 }): Promise<WithSource<ExpenseLineRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — expense_lines has no organization_id. Anchor org via the
+  // row's villa (→ its project) or its own project_id, mirroring
+  // getManagementPnl. Payroll-generated lines with no villa/project anchor are
+  // excluded here (the P&L's payroll_run org branch is out of scope for this
+  // list view — see concerns).
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_exp");
   const filters = [eq(expenseLines.status, "posted")];
   if (opts?.villaId) filters.push(eq(expenseLines.villaId, opts.villaId));
   if (opts?.projectId) filters.push(eq(expenseLines.projectId, opts.projectId));
+  filters.push(
+    sql`COALESCE(${villaProject.organizationId}, ${projects.organizationId}) = ${organizationId}`,
+  );
   const rows = await db
     .select({ e: expenseLines, villaCode: villas.unitCode, projectName: projects.name })
     .from(expenseLines)
     .leftJoin(villas, eq(villas.id, expenseLines.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
     .leftJoin(projects, eq(projects.id, expenseLines.projectId))
     .where(and(...filters))
     .orderBy(desc(expenseLines.expenseDate));
@@ -308,12 +342,27 @@ export async function listExpenseLines(opts?: {
 export async function listTaxLines(): Promise<WithSource<TaxLineRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — tax_lines has no organization_id. Anchor org via the
+  // row's villa (→ its project) or its own project_id. Rows with neither anchor
+  // (NULL villa AND NULL project) cannot be scoped and are excluded — those
+  // would need an organization_id column (migration gap, see concerns).
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_tax");
+  const taxProject = alias(projects, "tax_project");
   const rows = await db
-    .select()
+    .select({ t: taxLines })
     .from(taxLines)
-    .where(eq(taxLines.status, "posted"))
+    .leftJoin(villas, eq(villas.id, taxLines.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(taxProject, eq(taxProject.id, taxLines.projectId))
+    .where(
+      and(
+        eq(taxLines.status, "posted"),
+        sql`COALESCE(${villaProject.organizationId}, ${taxProject.organizationId}) = ${organizationId}`,
+      ),
+    )
     .orderBy(desc(taxLines.taxDate));
-  return rows.map((r) => ({
+  return rows.map(({ t: r }) => ({
     source: "db" as const,
     id: r.id,
     villaId: r.villaId,
@@ -330,12 +379,26 @@ export async function listTaxLines(): Promise<WithSource<TaxLineRow>[]> {
 export async function listReserveMovements(): Promise<WithSource<ReserveMovementRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — reserve_movements has no organization_id. Anchor org via
+  // the row's villa (→ its project) or its own project_id; rows with neither
+  // anchor are excluded.
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_resmov");
+  const resProject = alias(projects, "res_project");
   const rows = await db
-    .select()
+    .select({ m: reserveMovements })
     .from(reserveMovements)
-    .where(eq(reserveMovements.status, "posted"))
+    .leftJoin(villas, eq(villas.id, reserveMovements.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(resProject, eq(resProject.id, reserveMovements.projectId))
+    .where(
+      and(
+        eq(reserveMovements.status, "posted"),
+        sql`COALESCE(${villaProject.organizationId}, ${resProject.organizationId}) = ${organizationId}`,
+      ),
+    )
     .orderBy(desc(reserveMovements.movementDate));
-  return rows.map((r) => ({
+  return rows.map(({ m: r }) => ({
     source: "db" as const,
     id: r.id,
     villaId: r.villaId,
@@ -373,9 +436,23 @@ export async function listManagementFeeRules(): Promise<WithSource<ManagementFee
 export async function listStatementPeriods(): Promise<WithSource<PeriodRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — statement_periods is a shared dimension with no
+  // organization_id. Lowest-risk scoping: restrict to periods that have at
+  // least one owner_statements row for the caller's org, so an empty tenant
+  // returns 0 rows instead of every period.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(statementPeriods)
+    .where(
+      inArray(
+        statementPeriods.id,
+        db
+          .select({ id: ownerStatements.periodId })
+          .from(ownerStatements)
+          .where(eq(ownerStatements.organizationId, organizationId)),
+      ),
+    )
     .orderBy(desc(statementPeriods.periodStart));
   return rows.map((r) => ({
     source: "db" as const,
@@ -412,7 +489,12 @@ export async function listOwnerStatements(opts?: {
 }): Promise<WithSource<OwnerStatementRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY-FINANCE — owner_statements has organization_id. Always scope to the
+  // caller's org. Every caller is an authenticated request context (mgmt
+  // dashboard, owners CRM, owner-portal via getOwnerStatementById), so resolving
+  // requireOrgId() here is safe — there is no cron/unauthenticated caller.
+  const organizationId = await requireOrgId();
+  const filters = [eq(ownerStatements.organizationId, organizationId)];
   if (opts?.ownerId) filters.push(eq(ownerStatements.ownerId, opts.ownerId));
   if (opts?.status && opts.status.length > 0) {
     filters.push(inArray(ownerStatements.status, opts.status));
@@ -432,7 +514,7 @@ export async function listOwnerStatements(opts?: {
     .innerJoin(statementPeriods, eq(statementPeriods.id, ownerStatements.periodId))
     .leftJoin(villas, eq(villas.id, ownerStatements.villaId))
     .leftJoin(projects, eq(projects.id, ownerStatements.projectId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(statementPeriods.periodStart), asc(owners.displayName));
 
   return rows.map((row) => ({
@@ -471,8 +553,67 @@ export async function listOwnerStatements(opts?: {
 export async function getOwnerStatementById(
   id: string,
 ): Promise<WithSource<OwnerStatementRow> | null> {
-  const list = await listOwnerStatements();
-  return list.find((s) => s.id === id) ?? null;
+  const db = getDb();
+  if (!db) return null;
+  // TENANCY-FINANCE — direct id+org scoped read (was: load every statement via
+  // listOwnerStatements() then find()). owner_statements has organization_id, so
+  // a foreign id returns null instead of leaking. Every caller (mgmt + owner
+  // portal page/pdf) is an authenticated request context.
+  const organizationId = await requireOrgId();
+  const [row] = await db
+    .select({
+      s: ownerStatements,
+      ownerName: owners.displayName,
+      villaCode: villas.unitCode,
+      projectName: projects.name,
+      periodLabel: statementPeriods.label,
+      periodStart: statementPeriods.periodStart,
+      periodEnd: statementPeriods.periodEnd,
+    })
+    .from(ownerStatements)
+    .innerJoin(owners, eq(owners.id, ownerStatements.ownerId))
+    .innerJoin(statementPeriods, eq(statementPeriods.id, ownerStatements.periodId))
+    .leftJoin(villas, eq(villas.id, ownerStatements.villaId))
+    .leftJoin(projects, eq(projects.id, ownerStatements.projectId))
+    .where(
+      and(
+        eq(ownerStatements.id, id),
+        eq(ownerStatements.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!row) return null;
+  return {
+    source: "db" as const,
+    id: row.s.id,
+    ownerId: row.s.ownerId,
+    ownerName: row.ownerName,
+    villaId: row.s.villaId,
+    villaCode: row.villaCode ?? null,
+    projectId: row.s.projectId,
+    projectName: row.projectName ?? null,
+    periodId: row.s.periodId,
+    periodLabel: row.periodLabel,
+    periodStart: row.periodStart,
+    periodEnd: row.periodEnd,
+    statementCode: row.s.statementCode,
+    managementModel: row.s.managementModel as OwnerStatementRow["managementModel"],
+    currency: row.s.currency,
+    grossRevenueMinor: BigInt(row.s.grossRevenueMinor),
+    totalFeesMinor: BigInt(row.s.totalFeesMinor),
+    totalExpensesMinor: BigInt(row.s.totalExpensesMinor),
+    totalTaxesMinor: BigInt(row.s.totalTaxesMinor),
+    totalReservesMinor: BigInt(row.s.totalReservesMinor),
+    managementFeeMinor: BigInt(row.s.managementFeeMinor),
+    netPayoutMinor: BigInt(row.s.netPayoutMinor),
+    occupancyRate: row.s.occupancyRate === null ? null : Number(row.s.occupancyRate),
+    adrMinor: row.s.adrMinor === null ? null : BigInt(row.s.adrMinor),
+    revparMinor: row.s.revparMinor === null ? null : BigInt(row.s.revparMinor),
+    status: row.s.status as OwnerStatementRow["status"],
+    ownerState: row.s.ownerState as OwnerStatementState,
+    issuedAt: row.s.issuedAt?.toISOString() ?? null,
+    createdAt: row.s.createdAt.toISOString(),
+  };
 }
 
 export async function listStatementLines(
@@ -481,14 +622,21 @@ export async function listStatementLines(
 ): Promise<StatementLineRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [eq(statementLines.statementId, statementId)];
+  // TENANCY-FINANCE — statement_lines has no organization_id. Scope via the
+  // parent owner_statements row's org so a foreign statementId returns nothing.
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(statementLines.statementId, statementId),
+    eq(ownerStatements.organizationId, organizationId),
+  ];
   if (opts?.ownerVisibleOnly) filters.push(eq(statementLines.ownerVisible, true));
   const rows = await db
-    .select()
+    .select({ l: statementLines })
     .from(statementLines)
+    .innerJoin(ownerStatements, eq(ownerStatements.id, statementLines.statementId))
     .where(and(...filters))
     .orderBy(asc(statementLines.sortOrder));
-  return rows.map((r) => ({
+  return rows.map(({ l: r }) => ({
     id: r.id,
     statementId: r.statementId,
     lineType: r.lineType as StatementLineRow["lineType"],
@@ -506,9 +654,12 @@ export async function listStatementLines(
 export async function listPayoutBatches(): Promise<WithSource<PayoutBatchRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — payout_batches has a NOT-NULL organization_id.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(payoutBatches)
+    .where(eq(payoutBatches.organizationId, organizationId))
     .orderBy(desc(payoutBatches.periodStart));
   // Compute totals per batch
   const result: WithSource<PayoutBatchRow>[] = [];
@@ -541,14 +692,16 @@ export async function listPayoutLines(opts?: {
 }): Promise<WithSource<PayoutLineRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY-FINANCE — payout_lines has a NOT-NULL organization_id; always AND it.
+  const organizationId = await requireOrgId();
+  const filters = [eq(payoutLines.organizationId, organizationId)];
   if (opts?.batchId) filters.push(eq(payoutLines.payoutBatchId, opts.batchId));
   if (opts?.ownerId) filters.push(eq(payoutLines.ownerId, opts.ownerId));
   const rows = await db
     .select({ p: payoutLines, ownerName: owners.displayName })
     .from(payoutLines)
     .innerJoin(owners, eq(owners.id, payoutLines.ownerId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(payoutLines.createdAt));
   return rows.map((row) => ({
     source: "db" as const,
@@ -589,10 +742,29 @@ export async function getFinanceSummary(currency = "USD"): Promise<FinanceDashbo
   const db = getDb();
   if (!db) return null;
 
+  // TENANCY-FINANCE — this aggregate is currently unwired (no live caller), but
+  // every leg is org-scoped so it is safe if revived: owner_statements /
+  // payout_lines via their organization_id, the revenue/fee/expense/tax/reserve
+  // line tables via the villa→project / project COALESCE org anchor (no org
+  // column on those). The period dimension is restricted to periods this org has
+  // statements for.
+  const organizationId = await requireOrgId();
+
   const [latestPeriod] = await db
     .select()
     .from(statementPeriods)
-    .where(inArray(statementPeriods.status, ["open", "closing", "closed", "locked"]))
+    .where(
+      and(
+        inArray(statementPeriods.status, ["open", "closing", "closed", "locked"]),
+        inArray(
+          statementPeriods.id,
+          db
+            .select({ id: ownerStatements.periodId })
+            .from(ownerStatements)
+            .where(eq(ownerStatements.organizationId, organizationId)),
+        ),
+      ),
+    )
     .orderBy(desc(statementPeriods.periodStart))
     .limit(1);
 
@@ -622,37 +794,96 @@ export async function getFinanceSummary(currency = "USD"): Promise<FinanceDashbo
   const sumOf = async <T extends { amountMinor: bigint | string }>(rows: T[]) =>
     rows.reduce<bigint>((acc, r) => acc + BigInt(r.amountMinor), 0n);
 
+  // Per-leg villa→project / project COALESCE org anchor for the line tables.
+  const revVillaProject = alias(projects, "fs_rev_villa_project");
+  const revProject = alias(projects, "fs_rev_project");
   const rev = await db
     .select({ amountMinor: revenueLines.amountMinor })
     .from(revenueLines)
-    .where(and(eq(revenueLines.status, "posted"), inRange(revenueLines.serviceDate)));
+    .leftJoin(villas, eq(villas.id, revenueLines.villaId))
+    .leftJoin(revVillaProject, eq(revVillaProject.id, villas.projectId))
+    .leftJoin(revProject, eq(revProject.id, revenueLines.projectId))
+    .where(
+      and(
+        eq(revenueLines.status, "posted"),
+        inRange(revenueLines.serviceDate),
+        sql`COALESCE(${revVillaProject.organizationId}, ${revProject.organizationId}) = ${organizationId}`,
+      ),
+    );
+  const feeVillaProject = alias(projects, "fs_fee_villa_project");
+  const feeProject = alias(projects, "fs_fee_project");
   const fees = await db
     .select({ amountMinor: feeLines.amountMinor })
     .from(feeLines)
-    .where(and(eq(feeLines.status, "posted"), inRange(feeLines.feeDate)));
+    .leftJoin(villas, eq(villas.id, feeLines.villaId))
+    .leftJoin(feeVillaProject, eq(feeVillaProject.id, villas.projectId))
+    .leftJoin(feeProject, eq(feeProject.id, feeLines.projectId))
+    .where(
+      and(
+        eq(feeLines.status, "posted"),
+        inRange(feeLines.feeDate),
+        sql`COALESCE(${feeVillaProject.organizationId}, ${feeProject.organizationId}) = ${organizationId}`,
+      ),
+    );
+  const expVillaProject = alias(projects, "fs_exp_villa_project");
+  const expProject = alias(projects, "fs_exp_project");
   const exps = await db
     .select({ amountMinor: expenseLines.amountMinor })
     .from(expenseLines)
-    .where(and(eq(expenseLines.status, "posted"), inRange(expenseLines.expenseDate)));
+    .leftJoin(villas, eq(villas.id, expenseLines.villaId))
+    .leftJoin(expVillaProject, eq(expVillaProject.id, villas.projectId))
+    .leftJoin(expProject, eq(expProject.id, expenseLines.projectId))
+    .where(
+      and(
+        eq(expenseLines.status, "posted"),
+        inRange(expenseLines.expenseDate),
+        sql`COALESCE(${expVillaProject.organizationId}, ${expProject.organizationId}) = ${organizationId}`,
+      ),
+    );
+  const taxVillaProject = alias(projects, "fs_tax_villa_project");
+  const taxProject = alias(projects, "fs_tax_project");
   const taxes = await db
     .select({ amountMinor: taxLines.amountMinor })
     .from(taxLines)
-    .where(and(eq(taxLines.status, "posted"), inRange(taxLines.taxDate)));
+    .leftJoin(villas, eq(villas.id, taxLines.villaId))
+    .leftJoin(taxVillaProject, eq(taxVillaProject.id, villas.projectId))
+    .leftJoin(taxProject, eq(taxProject.id, taxLines.projectId))
+    .where(
+      and(
+        eq(taxLines.status, "posted"),
+        inRange(taxLines.taxDate),
+        sql`COALESCE(${taxVillaProject.organizationId}, ${taxProject.organizationId}) = ${organizationId}`,
+      ),
+    );
+  const resVillaProject = alias(projects, "fs_res_villa_project");
+  const resProject = alias(projects, "fs_res_project");
   const reservesContrib = await db
     .select({ amountMinor: reserveMovements.amountMinor })
     .from(reserveMovements)
+    .leftJoin(villas, eq(villas.id, reserveMovements.villaId))
+    .leftJoin(resVillaProject, eq(resVillaProject.id, villas.projectId))
+    .leftJoin(resProject, eq(resProject.id, reserveMovements.projectId))
     .where(
       and(
         eq(reserveMovements.status, "posted"),
         eq(reserveMovements.movementType, "contribution"),
         inRange(reserveMovements.movementDate),
+        sql`COALESCE(${resVillaProject.organizationId}, ${resProject.organizationId}) = ${organizationId}`,
       ),
     );
   const pendingPayouts = await db
     .select()
     .from(payoutLines)
-    .where(inArray(payoutLines.status, ["pending", "approved"]));
-  const statementsCount = await db.select().from(ownerStatements);
+    .where(
+      and(
+        eq(payoutLines.organizationId, organizationId),
+        inArray(payoutLines.status, ["pending", "approved"]),
+      ),
+    );
+  const statementsCount = await db
+    .select()
+    .from(ownerStatements)
+    .where(eq(ownerStatements.organizationId, organizationId));
 
   const draftStatements = statementsCount.filter((s) => s.status === "draft").length;
   const issuedStatements = statementsCount.filter((s) => s.status === "issued").length;

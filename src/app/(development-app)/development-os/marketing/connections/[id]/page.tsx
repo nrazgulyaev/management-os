@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
+import { requireOrgId } from "@/features/auth/require-org";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
@@ -44,10 +45,16 @@ export default async function MarketingConnectionDetailPage({
       </DevelopmentShell>
     );
   }
+  const organizationId = await requireOrgId();
   const [conn] = await db
     .select()
     .from(marketingConnections)
-    .where(eq(marketingConnections.id, id))
+    .where(
+      and(
+        eq(marketingConnections.id, id),
+        eq(marketingConnections.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!conn) notFound();
 

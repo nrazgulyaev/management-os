@@ -82,7 +82,7 @@ export async function generateOperationsCopilotSummary(opts?: {
     .returning({ id: aiAssistantRuns.id });
 
   const runId = run!.id;
-  const snapshot = await buildOperationsSnapshot();
+  const snapshot = await buildOperationsSnapshot(new Date(), organizationId);
   const fallbackSummary = deterministicFallbackSummary(snapshot);
 
   let response: CopilotResponse = fallbackSummary;

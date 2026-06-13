@@ -8,6 +8,7 @@ import {
   computeVillaHealth,
   listOwnerVillaHealthSnapshots,
 } from "@/features/owner-intelligence/health-services";
+import { requireOrgId } from "@/features/auth/require-org";
 import { GenerateVillaSnapshotForm } from "@/components/owner-intelligence/snapshot-buttons";
 
 export const metadata = { title: "Villa health detail" };
@@ -30,7 +31,10 @@ export default async function HealthDetailPage({
   params: Promise<{ villaId: string }>;
 }) {
   const { villaId } = await params;
-  const snapshots = await listOwnerVillaHealthSnapshots({ villaId });
+  const snapshots = await listOwnerVillaHealthSnapshots({
+    villaId,
+    organizationId: await requireOrgId(),
+  });
   const today = new Date();
   const periodEnd = formatISODate(today);
   const periodStart = formatISODate(

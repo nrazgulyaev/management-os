@@ -259,12 +259,27 @@ export async function listMaintenanceTickets(opts?: {
   status?: string;
   villaId?: string;
   limit?: number;
+  organizationId?: string | null;
 }): Promise<WithSource<MaintenanceTicketRow>[]> {
   const db = getDb();
   if (!db) return [];
   const filters = [];
   if (opts?.status) filters.push(eq(maintenanceTickets.status, opts.status));
   if (opts?.villaId) filters.push(eq(maintenanceTickets.villaId, opts.villaId));
+  // TENANCY: maintenance_tickets has no organization_id — scope via villa →
+  // project when an org is supplied. Cron / un-attributed callers omit it.
+  if (opts?.organizationId) {
+    filters.push(
+      inArray(
+        maintenanceTickets.villaId,
+        db
+          .select({ id: villas.id })
+          .from(villas)
+          .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+          .where(eq(projectsTable.organizationId, opts.organizationId)),
+      ),
+    );
+  }
 
   const rows = await db
     .select({ m: maintenanceTickets, villaCode: villas.unitCode })
@@ -304,6 +319,7 @@ export async function getMaintenanceTicketById(
 ): Promise<WithSource<MaintenanceTicketRow> | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select({
       m: maintenanceTickets,
@@ -311,9 +327,17 @@ export async function getMaintenanceTicketById(
       taskAssignedTo: operationTasks.assignedTo,
     })
     .from(maintenanceTickets)
-    .leftJoin(villas, eq(villas.id, maintenanceTickets.villaId))
+    // TENANCY: inner-join villa → project so a cross-org ticket id resolves
+    // to no row. maintenance_tickets has no organization_id of its own.
+    .innerJoin(villas, eq(villas.id, maintenanceTickets.villaId))
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
     .leftJoin(operationTasks, eq(operationTasks.id, maintenanceTickets.taskId))
-    .where(eq(maintenanceTickets.id, id))
+    .where(
+      and(
+        eq(maintenanceTickets.id, id),
+        eq(projectsTable.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!r) return null;
 
@@ -365,9 +389,32 @@ export async function listPreventiveSchedules(opts?: {
 }): Promise<WithSource<PreventiveScheduleRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const filters = [];
   if (opts?.dueOnOrBefore) filters.push(lte(preventiveSchedules.nextDueOn, opts.dueOnOrBefore));
   if (opts?.status) filters.push(eq(preventiveSchedules.status, opts.status));
+  // TENANCY: preventive_schedules has no organization_id but carries both
+  // villaId and projectId. Scope via either: project in the org, or villa
+  // whose project is in the org (covers rows where one side is null).
+  filters.push(
+    or(
+      inArray(
+        preventiveSchedules.projectId,
+        db
+          .select({ id: projectsTable.id })
+          .from(projectsTable)
+          .where(eq(projectsTable.organizationId, organizationId)),
+      ),
+      inArray(
+        preventiveSchedules.villaId,
+        db
+          .select({ id: villas.id })
+          .from(villas)
+          .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+          .where(eq(projectsTable.organizationId, organizationId)),
+      ),
+    )!,
+  );
 
   const rows = await db
     .select({
@@ -413,12 +460,28 @@ export async function listServiceRequests(opts?: {
   status?: string;
   villaId?: string;
   limit?: number;
+  organizationId?: string | null;
 }): Promise<WithSource<ServiceRequestRow>[]> {
   const db = getDb();
   if (!db) return [];
   const filters = [];
   if (opts?.status) filters.push(eq(serviceRequests.status, opts.status));
   if (opts?.villaId) filters.push(eq(serviceRequests.villaId, opts.villaId));
+  // TENANCY: service_requests has no organization_id — scope via villa →
+  // project when an org is supplied. Cron / un-attributed callers omit it.
+  // (Rows with null villa_id are excluded under scope.)
+  if (opts?.organizationId) {
+    filters.push(
+      inArray(
+        serviceRequests.villaId,
+        db
+          .select({ id: villas.id })
+          .from(villas)
+          .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+          .where(eq(projectsTable.organizationId, opts.organizationId)),
+      ),
+    );
+  }
 
   const rows = await db
     .select({ s: serviceRequests, villaCode: villas.unitCode })
@@ -454,9 +517,22 @@ export async function listDamageReports(opts?: {
 }): Promise<WithSource<DamageReportRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const filters = [];
   if (opts?.status) filters.push(eq(damageReports.status, opts.status));
   if (opts?.villaId) filters.push(eq(damageReports.villaId, opts.villaId));
+  // TENANCY: damage_reports has no organization_id — scope via villa →
+  // project. Rows with null villa_id are excluded under scope.
+  filters.push(
+    inArray(
+      damageReports.villaId,
+      db
+        .select({ id: villas.id })
+        .from(villas)
+        .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+        .where(eq(projectsTable.organizationId, organizationId)),
+    ),
+  );
 
   const rows = await db
     .select({ d: damageReports, villaCode: villas.unitCode })
@@ -569,7 +645,9 @@ export interface OperationsMetrics {
   preventiveDue: number;
 }
 
-export async function getOperationsMetrics(): Promise<OperationsMetrics> {
+export async function getOperationsMetrics(
+  organizationId: string | null = null,
+): Promise<OperationsMetrics> {
   const db = getDb();
   const empty: OperationsMetrics = {
     open: 0,
@@ -586,6 +664,25 @@ export async function getOperationsMetrics(): Promise<OperationsMetrics> {
   if (!db) return empty;
 
   const today = todayYmd();
+  // TENANCY: operation_tasks carries organization_id directly; the other
+  // operational tables (maintenance_tickets / service_requests /
+  // preventive_schedules) have no org column, so scope them via villa →
+  // project. When no org is supplied (cron / un-attributed copilot run) the
+  // scope is skipped, preserving the prior platform-wide behaviour.
+  const orgVillaIds = organizationId
+    ? db
+        .select({ id: villas.id })
+        .from(villas)
+        .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+        .where(eq(projectsTable.organizationId, organizationId))
+    : null;
+  const orgProjectIds = organizationId
+    ? db
+        .select({ id: projectsTable.id })
+        .from(projectsTable)
+        .where(eq(projectsTable.organizationId, organizationId))
+    : null;
+
   const [taskAgg] = await db
     .select({
       open: sql<number>`count(*) filter (where ${operationTasks.status} = 'open')`.as("open"),
@@ -608,7 +705,12 @@ export async function getOperationsMetrics(): Promise<OperationsMetrics> {
         "maintenance",
       ),
     })
-    .from(operationTasks);
+    .from(operationTasks)
+    .where(
+      organizationId
+        ? eq(operationTasks.organizationId, organizationId)
+        : undefined,
+    );
 
   const [mtAgg] = await db
     .select({
@@ -616,7 +718,8 @@ export async function getOperationsMetrics(): Promise<OperationsMetrics> {
         "pending",
       ),
     })
-    .from(maintenanceTickets);
+    .from(maintenanceTickets)
+    .where(orgVillaIds ? inArray(maintenanceTickets.villaId, orgVillaIds) : undefined);
 
   const [srAgg] = await db
     .select({
@@ -624,7 +727,8 @@ export async function getOperationsMetrics(): Promise<OperationsMetrics> {
         "new_count",
       ),
     })
-    .from(serviceRequests);
+    .from(serviceRequests)
+    .where(orgVillaIds ? inArray(serviceRequests.villaId, orgVillaIds) : undefined);
 
   const [prevAgg] = await db
     .select({
@@ -632,7 +736,15 @@ export async function getOperationsMetrics(): Promise<OperationsMetrics> {
         "due",
       ),
     })
-    .from(preventiveSchedules);
+    .from(preventiveSchedules)
+    .where(
+      orgProjectIds
+        ? or(
+            inArray(preventiveSchedules.projectId, orgProjectIds),
+            inArray(preventiveSchedules.villaId, orgVillaIds!),
+          )
+        : undefined,
+    );
 
   return {
     open: Number(taskAgg?.open ?? 0),

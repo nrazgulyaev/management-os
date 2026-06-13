@@ -13,6 +13,7 @@ import {
 } from "@/lib/db/schema/inventory";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { appUsers } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 import { asNumber, isLowStock } from "./stock";
 
@@ -131,7 +132,12 @@ export interface TaskMaterialUsageRow {
 export async function listSuppliers(): Promise<WithSource<SupplierRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const rows = await db.select().from(suppliers).orderBy(asc(suppliers.name));
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(suppliers)
+    .where(eq(suppliers.organizationId, organizationId))
+    .orderBy(asc(suppliers.name));
   return rows.map((s) => ({
     source: "db" as const,
     id: s.id,
@@ -152,6 +158,7 @@ export async function listSuppliers(): Promise<WithSource<SupplierRow>[]> {
 export async function listInventoryLocations(): Promise<WithSource<InventoryLocationRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       l: inventoryLocations,
@@ -161,6 +168,7 @@ export async function listInventoryLocations(): Promise<WithSource<InventoryLoca
     .from(inventoryLocations)
     .leftJoin(villas, eq(villas.id, inventoryLocations.villaId))
     .leftJoin(projects, eq(projects.id, inventoryLocations.projectId))
+    .where(eq(inventoryLocations.organizationId, organizationId))
     .orderBy(asc(inventoryLocations.name));
   return rows.map((r) => ({
     source: "db" as const,
@@ -183,7 +191,12 @@ export async function listInventoryLocations(): Promise<WithSource<InventoryLoca
 export async function listInventoryCategories(): Promise<WithSource<InventoryCategoryRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const rows = await db.select().from(inventoryCategories).orderBy(asc(inventoryCategories.name));
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(inventoryCategories)
+    .where(eq(inventoryCategories.organizationId, organizationId))
+    .orderBy(asc(inventoryCategories.name));
   return rows.map((c) => ({
     source: "db" as const,
     id: c.id,
@@ -209,7 +222,8 @@ export async function listInventoryItems(opts?: {
   const db = getDb();
   if (!db) return [];
 
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(inventoryItems.organizationId, organizationId)];
   if (opts?.status) filters.push(eq(inventoryItems.status, opts.status));
   if (opts?.itemType) filters.push(eq(inventoryItems.itemType, opts.itemType));
 
@@ -283,7 +297,8 @@ export async function listStockLevels(opts?: {
 }): Promise<WithSource<StockLevelRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(inventoryStockLevels.organizationId, organizationId)];
   if (opts?.itemId) filters.push(eq(inventoryStockLevels.itemId, opts.itemId));
   if (opts?.locationId) filters.push(eq(inventoryStockLevels.locationId, opts.locationId));
   if (opts?.villaId) filters.push(eq(inventoryLocations.villaId, opts.villaId));
@@ -352,7 +367,8 @@ export async function listInventoryMovements(opts?: {
 }): Promise<WithSource<MovementRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(inventoryMovements.organizationId, organizationId)];
   if (opts?.itemId) filters.push(eq(inventoryMovements.itemId, opts.itemId));
   if (opts?.taskId) filters.push(eq(inventoryMovements.taskId, opts.taskId));
 

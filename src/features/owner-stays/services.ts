@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import {
   ownerStayPolicies,
@@ -66,7 +67,20 @@ export async function listOwnerStayPolicies(opts?: {
 }): Promise<OwnerStayPolicyRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY — policies have no org column. Scope through their parents: a policy
+  // resolves to an org via its project (project_id) OR via its villa's project
+  // (villa_id -> villas.project_id). policyProjectId/villaId are both nullable
+  // (global policies), so also allow rows that reference neither. The villa's
+  // project is reached via an aliased join (villas has no org column).
+  const organizationId = await requireOrgId();
+  const villaProj = alias(projectsTable, "villa_proj");
+  const filters = [
+    or(
+      eq(projectsTable.organizationId, organizationId),
+      eq(villaProj.organizationId, organizationId),
+      and(isNull(ownerStayPolicies.projectId), isNull(ownerStayPolicies.villaId)),
+    ),
+  ];
   if (opts?.projectId)
     filters.push(eq(ownerStayPolicies.projectId, opts.projectId));
   if (opts?.villaId)
@@ -80,6 +94,7 @@ export async function listOwnerStayPolicies(opts?: {
     })
     .from(ownerStayPolicies)
     .leftJoin(villas, eq(villas.id, ownerStayPolicies.villaId))
+    .leftJoin(villaProj, eq(villaProj.id, villas.projectId))
     .leftJoin(projectsTable, eq(projectsTable.id, ownerStayPolicies.projectId))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(asc(ownerStayPolicies.policyName));
@@ -114,8 +129,72 @@ export async function getApplicableOwnerStayPolicy(
 ): Promise<OwnerStayPolicyLike | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY — this runs in the owner-portal estimate path where requireOrgId()
+  // is wrong (caller's org may differ from the villa's). Scope to the VILLA's
+  // org instead: resolve it from the villa's project, then restrict the policy
+  // scan to policies that resolve to that org (via project_id OR villa_id ->
+  // villas.project_id) or are global (both null). This both fixes the cross-org
+  // match and avoids scanning every org's policies.
+  const [villaRow] = await db
+    .select({ organizationId: projectsTable.organizationId })
+    .from(villas)
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .where(eq(villas.id, villaId))
+    .limit(1);
+  const villaOrgId = villaRow?.organizationId ?? null;
   // Pull all candidates that could apply: villa-specific, project-specific, global.
   const filters = [eq(ownerStayPolicies.status, "active")];
+  if (villaOrgId) {
+    const villaProj = alias(projectsTable, "villa_proj_for_policy");
+    const scopedRows = await db
+      .select({ p: ownerStayPolicies })
+      .from(ownerStayPolicies)
+      .leftJoin(villas, eq(villas.id, ownerStayPolicies.villaId))
+      .leftJoin(villaProj, eq(villaProj.id, villas.projectId))
+      .leftJoin(projectsTable, eq(projectsTable.id, ownerStayPolicies.projectId))
+      .where(
+        and(
+          eq(ownerStayPolicies.status, "active"),
+          or(
+            eq(projectsTable.organizationId, villaOrgId),
+            eq(villaProj.organizationId, villaOrgId),
+            and(
+              isNull(ownerStayPolicies.projectId),
+              isNull(ownerStayPolicies.villaId),
+            ),
+          ),
+        ),
+      );
+    return pickApplicablePolicy(
+      scopedRows.map((row) => {
+        const r = row.p;
+        return {
+          id: r.id,
+          projectId: r.projectId,
+          villaId: r.villaId,
+          freeNightsPerYear: r.freeNightsPerYear,
+          freeNightsApplyToPeak: r.freeNightsApplyToPeak,
+          requiresApproval: r.requiresApproval,
+          allowDisplacingGuestBookings: r.allowDisplacingGuestBookings,
+          relocationAllowed: r.relocationAllowed,
+          operationalCostModel: r.operationalCostModel,
+          fixedOperationalCostMinor: r.fixedOperationalCostMinor,
+          currency: r.currency,
+          compensationModel: r.compensationModel,
+          compensationPercent:
+            r.compensationPercent != null
+              ? String(r.compensationPercent)
+              : null,
+          fixedCompensationMinor: r.fixedCompensationMinor,
+          blackoutDates: r.blackoutDates,
+          peakSeasonRules: r.peakSeasonRules,
+          status: r.status,
+        };
+      }),
+      villaId,
+      projectId,
+    );
+  }
   const rows = await db
     .select()
     .from(ownerStayPolicies)
@@ -549,9 +628,45 @@ export async function getOwnerStayRequestById(
     .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
     // NOTE: NOT org-scoped here on purpose — this by-id read is shared with the
     // owner portal (/owner/stays/[id]), where the caller's org may differ from
-    // the villa's org. The mgmt list (listOwnerStayRequests) IS org-scoped; a
-    // mgmt-only scoped by-id variant is a separate follow-up.
+    // the villa's org. The mgmt list (listOwnerStayRequests) IS org-scoped, and
+    // the mgmt detail page must call getOwnerStayRequestByIdForOrg (below).
     .where(eq(ownerStayRequests.id, id))
+    .limit(1);
+  return r
+    ? mapRequest(r.r, r.villaCode ?? null, r.projectName ?? null, r.ownerName ?? null)
+    : null;
+}
+
+/**
+ * TENANCY — mgmt-scoped by-id read. Backs the dashboard detail page
+ * src/app/(dashboard)/dashboard/owner-stays/requests/[id]/page.tsx, where the
+ * route is directly addressable: ANDing the caller's org prevents a mgmt admin
+ * from opening another org's request by guessing/iterating UUIDs. The shared
+ * getOwnerStayRequestById above stays portal-safe for /owner/stays/[id].
+ */
+export async function getOwnerStayRequestByIdForOrg(
+  id: string,
+): Promise<OwnerStayRequestRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select({
+      r: ownerStayRequests,
+      villaCode: villas.unitCode,
+      projectName: projectsTable.name,
+      ownerName: owners.displayName,
+    })
+    .from(ownerStayRequests)
+    .leftJoin(villas, eq(villas.id, ownerStayRequests.villaId))
+    .leftJoin(projectsTable, eq(projectsTable.id, ownerStayRequests.projectId))
+    .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
+    .where(
+      and(
+        eq(ownerStayRequests.id, id),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return r
     ? mapRequest(r.r, r.villaCode ?? null, r.projectName ?? null, r.ownerName ?? null)
@@ -652,6 +767,11 @@ export async function listOwnerPortalChoicesForCurrentUser(): Promise<
 export async function listEquivalenceGroups() {
   const db = getDb();
   if (!db) return [];
+  // TENANCY — groups have no org column; scope through their project. projectId
+  // is nullable (global groups), so allow either an in-org project OR a global
+  // group (null projectId). Backs the dashboard "N equivalence groups" KPI and
+  // the Equivalence Groups page.
+  const organizationId = await requireOrgId();
   const groups = await db
     .select({
       g: villaEquivalenceGroups,
@@ -659,6 +779,12 @@ export async function listEquivalenceGroups() {
     })
     .from(villaEquivalenceGroups)
     .leftJoin(projectsTable, eq(projectsTable.id, villaEquivalenceGroups.projectId))
+    .where(
+      or(
+        eq(projectsTable.organizationId, organizationId),
+        isNull(villaEquivalenceGroups.projectId),
+      ),
+    )
     .orderBy(asc(villaEquivalenceGroups.name));
   return groups.map((g) => ({
     id: g.g.id,
@@ -673,6 +799,11 @@ export async function listEquivalenceGroups() {
 export async function listEquivalenceMembers(groupId: string) {
   const db = getDb();
   if (!db) return [];
+  // TENANCY (defense-in-depth) — the only caller feeds group ids returned by the
+  // now-scoped listEquivalenceGroups, but gate the parent group's org here too so
+  // a directly-supplied out-of-org groupId returns nothing. Group scope = in-org
+  // project OR global (null projectId), matching listEquivalenceGroups.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       m: villaEquivalenceGroupMembers,
@@ -680,8 +811,21 @@ export async function listEquivalenceMembers(groupId: string) {
       villaStatus: villas.status,
     })
     .from(villaEquivalenceGroupMembers)
+    .innerJoin(
+      villaEquivalenceGroups,
+      eq(villaEquivalenceGroups.id, villaEquivalenceGroupMembers.groupId),
+    )
+    .leftJoin(projectsTable, eq(projectsTable.id, villaEquivalenceGroups.projectId))
     .leftJoin(villas, eq(villas.id, villaEquivalenceGroupMembers.villaId))
-    .where(eq(villaEquivalenceGroupMembers.groupId, groupId))
+    .where(
+      and(
+        eq(villaEquivalenceGroupMembers.groupId, groupId),
+        or(
+          eq(projectsTable.organizationId, organizationId),
+          isNull(villaEquivalenceGroups.projectId),
+        ),
+      ),
+    )
     .orderBy(asc(villaEquivalenceGroupMembers.qualityRank));
   return rows.map((r) => ({
     id: r.m.id,

@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface MarketingCabinetData {
   contentByStatus: Record<string, number>;
@@ -42,8 +43,11 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
       recentMarketingAssistantOutputs: [],
     };
   }
+  const organizationId = await requireOrgId();
   const statusRows = await db.execute<{ status: string; n: string }>(sql`
-    SELECT status, COUNT(*)::text AS n FROM content_pieces GROUP BY status
+    SELECT status, COUNT(*)::text AS n FROM content_pieces
+     WHERE organization_id = ${organizationId}
+     GROUP BY status
   `);
   const contentByStatus: Record<string, number> = {};
   for (const r of rowsOf<{ status: string; n: string }>(statusRows)) {
@@ -59,15 +63,15 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     hot: string;
   }>(sql`
     SELECT
-      (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'pending_review') AS review,
+      (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'pending_review' AND organization_id = ${organizationId}) AS review,
       (SELECT COUNT(*)::text FROM content_pieces
-        WHERE status = 'scheduled' AND scheduled_publish_at < now() + INTERVAL '7 days') AS sched_week,
+        WHERE status = 'scheduled' AND scheduled_publish_at < now() + INTERVAL '7 days' AND organization_id = ${organizationId}) AS sched_week,
       (SELECT COUNT(*)::text FROM content_pieces
-        WHERE status = 'published' AND published_at >= now() - INTERVAL '7 days') AS recent_pub,
-      (SELECT COUNT(*)::text FROM campaigns WHERE status = 'active') AS active_camp,
+        WHERE status = 'published' AND published_at >= now() - INTERVAL '7 days' AND organization_id = ${organizationId}) AS recent_pub,
+      (SELECT COUNT(*)::text FROM campaigns WHERE status = 'active' AND organization_id = ${organizationId}) AS active_camp,
       (SELECT COUNT(*)::text FROM leads
-        WHERE created_at >= now() - INTERVAL '7 days') AS leads_week,
-      (SELECT COUNT(*)::text FROM leads WHERE lifecycle_status = 'hot') AS hot
+        WHERE created_at >= now() - INTERVAL '7 days' AND organization_id = ${organizationId}) AS leads_week,
+      (SELECT COUNT(*)::text FROM leads WHERE lifecycle_status = 'hot' AND organization_id = ${organizationId}) AS hot
   `);
   const s =
     rowsOf<{
@@ -82,6 +86,7 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
   const latestMa = await db.execute<{ output_code: string }>(sql`
     SELECT output_code FROM agent_outputs
      WHERE agent_key = 'marketing_assistant'
+       AND organization_id = ${organizationId}
      ORDER BY created_at DESC LIMIT 1
   `);
 
@@ -94,6 +99,7 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
       FROM content_pieces
      WHERE status = 'published'
        AND published_at >= (now() - INTERVAL '7 days')
+       AND organization_id = ${organizationId}
      GROUP BY 1
      ORDER BY 1 ASC
   `);
@@ -105,6 +111,7 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     SELECT lifecycle_status, COUNT(*)::text AS count
       FROM leads
      WHERE lifecycle_status IS NOT NULL
+       AND organization_id = ${organizationId}
      GROUP BY lifecycle_status
   `);
 
@@ -117,6 +124,7 @@ export async function loadMarketingCabinet(): Promise<MarketingCabinetData> {
     SELECT output_code, title, summary, created_at::text
       FROM agent_outputs
      WHERE agent_key = 'marketing_assistant'
+       AND organization_id = ${organizationId}
      ORDER BY created_at DESC LIMIT 3
   `);
 
