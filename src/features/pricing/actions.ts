@@ -1,8 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   ratePlans,
   ratePlanSeasons,
@@ -192,10 +193,21 @@ export async function upsertRatePlanOverrideAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: rate plans/overrides are org-scoped (rate_plans_org_idx). Verify
+  // the parent plan is in the caller's org and stamp the override's org, so a
+  // crafted ratePlanId can't move another org's nightly pricing.
+  const organizationId = await requireOrgId();
+  const [plan] = await db
+    .select({ id: ratePlans.id })
+    .from(ratePlans)
+    .where(and(eq(ratePlans.id, parsed.data.ratePlanId), eq(ratePlans.organizationId, organizationId)))
+    .limit(1);
+  if (!plan) return { ok: false, error: "Rate plan not found." };
 
   await db
     .insert(ratePlanOverrides)
     .values({
+      organizationId,
       ratePlanId: parsed.data.ratePlanId,
       stayDate: parsed.data.stayDate,
       nightlyRateMinor: parsed.data.nightlyRateMinor ?? null,
