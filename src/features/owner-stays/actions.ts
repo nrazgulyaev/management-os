@@ -393,8 +393,12 @@ export async function cancelOwnerStayRequestAction(
   // Owner self-cancel: must hold an active grant on the owner_id.
   const isOwner = await ensureOwnerGrant(me?.id ?? null, before.ownerId);
   if (!isOwner) {
-    // Otherwise must be internal admin.
+    // Otherwise must be internal admin — and only within their OWN org
+    // (TENANCY: a cross-org request id reads as not-found on the admin path).
     await requirePermission("owner_stay.write");
+    if (before.organizationId !== (await requireOrgId())) {
+      return { ok: false, error: "Request not found." };
+    }
   }
 
   await db
@@ -449,13 +453,19 @@ export async function approveOwnerStayRequestAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: resolve the caller's org up front and verify the request belongs
+  // to it — otherwise an operator in org A could approve org B's request (a
+  // cross-org write-IDOR that mints a calendar block on the other org's villa).
+  const organizationId = await requireOrgId();
 
   const [req] = await db
     .select()
     .from(ownerStayRequests)
     .where(eq(ownerStayRequests.id, parsed.data.id))
     .limit(1);
-  if (!req) return { ok: false, error: "Request not found." };
+  if (!req || req.organizationId !== organizationId) {
+    return { ok: false, error: "Request not found." };
+  }
   if (
     req.status !== "requested" &&
     req.status !== "pending_admin_approval" &&
@@ -466,7 +476,6 @@ export async function approveOwnerStayRequestAction(
   }
 
   // Materialise the calendar block.
-  const organizationId = await requireOrgId();
   const startsAt = new Date(`${req.requestedStart as unknown as string}T00:00:00.000Z`);
   const endsAt = new Date(`${req.requestedEnd as unknown as string}T00:00:00.000Z`);
   const [block] = await db
@@ -542,13 +551,18 @@ export async function rejectOwnerStayRequestAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: verify the request belongs to the caller's org (cross-org reject
+  // would otherwise be possible by typed id).
+  const organizationId = await requireOrgId();
 
   const [req] = await db
     .select()
     .from(ownerStayRequests)
     .where(eq(ownerStayRequests.id, parsed.data.id))
     .limit(1);
-  if (!req) return { ok: false, error: "Request not found." };
+  if (!req || req.organizationId !== organizationId) {
+    return { ok: false, error: "Request not found." };
+  }
   if (req.status === "approved" || req.status === "completed") {
     return { ok: false, error: `Cannot reject ${req.status} request.` };
   }
