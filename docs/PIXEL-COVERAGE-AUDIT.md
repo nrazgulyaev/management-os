@@ -1,0 +1,310 @@
+# Pixel-redesign coverage audit (2026-06-10)
+
+Per-cabinet sub-screen coverage: mock #spec sub-screens vs live route, judged redesigned / present-not-pixel / route-missing. **148/239 = 62%.**
+
+## mgmt-p1
+- **bookings** — landing ✅ · sub-screens 4/4
+  - ✅ List (filters + KPIs + table) — page.tsx uses .page-header / <Kpi> / <Card padding=none> / sortable BookingsListClient (table.bk-tbl + HandoffBadge tones). Layer-B tokens (var(--terra)/--fores
+  - ✅ Booking detail (mock = slide-in drawer: status / notes / extra-service / move-dates) — Live surfaces the mock drawer as a full detail page [id]/page.tsx — DetailPage/DetailHeader/DetailMainAndSide assembly with tabs (Overview/Charges/Guests/Activi
+  - ✅ New-booking modal — BookingAddButton = ModalFirstAddButton wrapper opening the real BookingForm in the DS modal (mgmt modal-first pattern); zero legacy markers.
+  - ✅ Occupancy calendar (next-14-nights grid) — Mock's table/calendar surfaced as a DS calendar section on the landing (Card + villa×night grid, var(--terra) today marker) AND a dedicated /bookings/calendar r
+- **finance** — landing ✅ · sub-screens 6/6
+  - ✅ Statements list — statements/page.tsx: .page-header / <Kpi> / <Card padding=none> / table.data with row-title + HandoffBadge status tones (draft→approved→settled). Matches mock #
+  - ✅ Statement detail · 3 states (draft / approved / settled) — statements/[id]/page.tsx is the spec'd B1+B3+B8 assembly: DetailPage + DetailHeader + DetailActionBar gated by owner-statements state-machine, plus a wired stat
+  - ✅ Prepare flow — StatementAddButton + components/finance/prepare-modal.tsx — DS modal (modal-header/body/footer, field-label, btn-accent), 7 DS / 0 legacy markers.
+  - ✅ Approve modal — components/finance/approve-modal.tsx exists on DS primitives (confirm-sm). Approve transition also surfaced via DetailActionBar on detail.
+  - ✅ Payouts queue — finance/payouts/page.tsx (new route, matches spec): .page-header / <Card> / HandoffBadge batch+line tones, formatMoneyMinor. Plus payouts/new flow.
+  - ✅ IA / state-machine (#ia + #state-machine reference views) — Not a screen per se — realized as features/owner-statements/state-machine.ts driving the detail action bar (canApprove/canSend/canSettle gating). Implemented as
+- **operations** — landing ✅ · sub-screens 3/3
+  - ✅ Board / list (mock = kanban lanes New/Assigned/In-progress/Done + KPIs) — operations/page.tsx is a richer DS command-center: .page-header, ops-hero tiles, maintenance-queue (SLA pills), turnover-board kanban, status board, table.data 
+  - ✅ Task detail (mock = drawer: assign / status / notes / photo) — Live splits ops by domain; the mock task drawer maps to maintenance/[id]/page.tsx (and housekeeping/service-request detail) on the DetailPage/DetailHeader DS as
+  - ✅ New-task modal — Reached via landing '+ New ticket' → maintenance/new; create flow on DS field/btn primitives. (Note: live offers a /maintenance/new page rather than an in-place
+- **owners** — landing ✅ · sub-screens 5/5
+  - ✅ IA (#ia reference) — Realized as the owners list + detail-tabs structure (Overview/Villas/Statements/Contacts/Activity) — no standalone screen; matches spec assembly C.
+  - ✅ List — owners/page.tsx: <Kpi> + OwnersListClient with risk-level row tint (bg-warn-weak/bg-danger-weak), SourceBadge, saved-views/advanced filters. DS primitives, no l
+  - ✅ Detail (tabs: Overview · Villas · Statements · Contacts · Activity) — [id]/page.tsx = DetailPage + DetailHeader (B1+B2+B3+B5+B6) with DetailTabs, RiskPill, VillaMini, OwnerInsightPanel, churn panel, activity composer. Fully on DS.
+  - ✅ Onboard flow (3-step modal) — OnboardOwnerLauncher → OnboardOwnerModal (3-step wizard Identity/Commission/Villas+portal); 24 DS / 0 legacy markers. Matches spec 'no /new route — onboarding i
+  - ✅ Retention risk (AI insight panel) — RiskPill (risk-pill.tsx) + insight-card.tsx + _churn-panel.tsx wired via getOwnerRetentionRisk / retention-churn-service on the detail page. DS styling; owner-i
+
+## mgmt-p2
+- **channels** — landing ✅ · sub-screens 4/7
+  - ✅ Channels overview (hero grid: connected/sync-state/stale/direct-ratio KPIs + per-villa channel rows + sync events + direct funnel) — channels/page.tsx uses DS (page-header, kpi, badge, btn, table.data; data-product scope). 7 DS hits, 0 legacy. Matches mock §01/§02 overview.
+  - ✅ Per-channel health drill-in (mock §02 Variant B → spec /dashboard/channels/[slug]) — Realized as channels/manager (ARI grid + _sync-health + _conflict-resolver, all DS) rather than a [slug] route. No channels/[slug] dir exists, but the drill-in 
+  - ✅ Connect-channel wizard (mock §06 3-step → spec /dashboard/channels/connect) — channels/_connect-wizard.tsx is a DS client component (13 DS-class hits: field-label, input, badge, btn-accent, modal). No standalone channels/connect route, bu
+  - ✅ Resolve sync conflict modal (mock §05) — channels/_channel-modal.tsx + manager/_conflict-resolver.tsx are DS (10 DS-class hits incl. modal-header, btn-accent/secondary).
+  - ⛔ Direct bookings list (mock §03 → spec /dashboard/bookings/direct) — No bookings/direct route exists. dashboard/bookings is the general booking list (not the direct-only funnel the mock depicts). The direct-booking funnel surface
+  - ⛔ Direct booking detail (mock §04 → spec /dashboard/bookings/direct/[id], cross-channel coverage + concierge + owner-statement rail) — No bookings/direct/[id]. A generic bookings/[id] detail exists but is the standard booking detail, not the direct-channel detail with the cross-channel coverage
+  - ⛔ Create direct booking on behalf of guest (mock spec /dashboard/bookings/direct/new) — No bookings/direct/new. bookings/new exists for the general create flow, not the direct-channel-scoped one.
+- **dynamic-pricing** — landing ✅ · sub-screens 2/6
+  - ✅ Hero curve + pricing KPIs (mock §01: base/algo/active ADR/overrides/comp-index + 90-day forward curve) — pricing/page.tsx is DS (6 DS-class hits, 0 legacy: page-header, kpi, btn, badge). _rate-curve.tsx renders the curve.
+  - ✅ Pricing rules manager + live 30-day preview (mock §03 layout variants) — Surfaced on the redesigned landing (DS). The deeper editor route is pricing/rule-sets which is legacy (see below); the in-page rules/preview panel is pixel-pass
+  - 🟡 Pricing rules full editor (mock §03 rule-1 override editor) → pricing/rule-sets + [id] + new — pricing/rule-sets/page.tsx + new use legacy PageHeader/Section/raw markers (DS=1, LEGACY=3). rule-sets/[id] uses generic Badge + raw Tailwind, no DS page-header
+  - 🟡 Comp set — competitive intelligence (mock §04: median 7d-fwd, our position/rank, comp table) — Closest live surface is pricing/channel-push + pricing/logs + a comp panel on landing; the standalone comp-set views (channel-push/logs) are legacy PageHeader/S
+  - 🟡 Mobile (curve as primary surface) — mock §05 — No dedicated mobile route; landing is responsive but the mock's mobile-first curve/bottom-sheet treatment is not specifically built. Counted against the legacy/
+  - 🟡 Engine/agents/schema (mock §06 implementation spec) — Spec-only block; the engine is wired in features/dynamic-pricing/services, surfaced partly via pricing/calendar (legacy: DS=1 LEGACY=4). No pixel-passed UI surf
+- **front-office** — landing ✅ · sub-screens 1/5
+  - ✅ Shift & arrivals landing (shift bar + arrivals/departures cards + shift notes) — front-office/page.tsx mostly DS (page-header, btn, badge; 9 DS hits) with a richer hero/shift board than the mock. Lightly mixed: two legacy <Section> wrappers 
+  - 🟡 Check-in drawer / multi-step flow (mock: 4 steps verify/passport/registration/villa-code) → front-office/checkin/[bookingId] — checkin/[bookingId]/page.tsx + _checkin-client.tsx use legacy PageHeader + Section (DS=1, LEGACY=… PageHeader/Section). Functionally present, not pixel-matched 
+  - 🟡 Departures / check-out (mock departures card + check-out action) → front-office/departures — departures/page.tsx legacy PageHeader+Section (DS=1, LEGACY=3).
+  - 🟡 Handover modal (hand over shift to next operator) — Handover is surfaced via front-office/watch + in-house legacy pages (DS=1, LEGACY=3-5); no DS-styled handover modal matching the mock. The landing references it
+  - 🟡 Arrival readiness + guest requests boards (mock shift-notes/queues; live readiness/requests/in-house/arrivals) — arrivals/readiness/requests/in-house/watch all legacy PageHeader+Section (each DS=1, LEGACY=3-5). Built and linked from the DS landing but not pixel-passed.
+- **concierge** — landing ✅ · sub-screens 5/5
+  - ✅ Inbox / thread list + filters (All/Open/Escalations, status dots, unread) — _concierge-workspace.tsx (12 DS hits, 0 legacy) renders the 3-column inbox; concierge/page.tsx adds DS Kpi header (page-header + Kpi tiles). Matches mock thread
+  - ✅ Conversation view (guest/concierge/system message bubbles) — Workspace ct-msg bubble system + DS avatars/badges; mirrors mock ci-conv. DS client component.
+  - ✅ AI draft composer (review/edit/send/regenerate/take-over/escalate) — Wired to generateConciergeDraftAction / postConciergeStaffReplyAction / takeOver / escalate actions; DS btn-accent/secondary/ghost composer. Matches mock ci-dra
+  - ✅ Context rail + quick actions (villa/stay/status + cleaning/technician/add-service) — Quick actions wired to createConciergeCleaningRequest / TechnicianRequest / addExtraService actions; DS rail. Matches mock Context panel.
+  - ✅ Empty state (no conversation selected) — Workspace renders a DS empty/placeholder state when no thread is active, matching mock ci-empty.
+
+## mgmt-p3
+- **Guest Stays (cluster C1)** — landing ✅ · sub-screens 4/4
+  - ✅ Guest stays (overview / access tokens) — /dashboard/guest-stays/page.tsx uses SectionHeading+Kpi+gs-* DS classes, no PageHeader. Deep pages tokens/[id], security, security/events, security/verification
+  - ✅ Guest services (catalog / orders / categories) — /dashboard/guest-services landing redesigned (SectionHeading+btn btn-*). 8 of 9 deep pages (catalog, orders, categories, finance-bridge) still on legacy PageHea
+  - ✅ Guest journey (deterministic timed rules + reviews) — /dashboard/guest-journey landing redesigned. Sub-routes rules, runs, suggestions, reviews, rules/[id], rules/new all on legacy PageHeader (present-not-pixel).
+  - ✅ AI concierge (human-in-the-loop sessions) — /dashboard/guest-ai landing redesigned (SectionHeading+btn). Deep pages sessions, handoffs, handoffs/metrics, storage on legacy PageHeader/MetricCard.
+- **Distribution & Payments (cluster C2)** — landing ✅ · sub-screens 4/4
+  - ✅ Direct bookings (requests / holds / deposits / reconciliation) — /dashboard/direct-bookings landing redesigned (SectionHeading+btn). 12 of 13 deep pages (requests, holds, deposits, messages, reconciliation, guest-status + the
+  - ✅ Payments (providers / webhooks) — /dashboard/payments landing redesigned; providers list + webhooks list also DS. providers/[id] and providers/new still legacy PageHeader.
+  - ✅ Service fulfilment (fulfilments / vendors / invoices / ratings) — /dashboard/service-fulfilment landing redesigned (SectionHeading). 8 of 9 deep pages on legacy PageHeader.
+  - ✅ Integrations (calendar sync / conflicts / automation) — /dashboard/integrations landing redesigned (SectionHeading+btn). Deep pages automation, calendar-events, calendar-feeds/[id], calendar-feeds/new, conflicts on l
+- **Portfolio (cluster C3)** — landing ✅ · sub-screens 3/3
+  - ✅ Villas (list / detail / new / edit / availability) — Fully on DS: villas/page, [id], [id]/edit, [id]/availability, new all use SectionHeading/DetailPageHero/table.data, zero PageHeader/MetricCard imports across th
+  - ✅ Projects (estates list / detail / new / new-complex) — Fully DS: projects/page, [slug], [slug]/edit, new, new-complex use SectionHeading + pf-proj-grid + btn btn-*; zero legacy imports.
+  - ✅ Shares (ledger / new) — shares/page + shares/new on SectionHeading + sh-/pf- DS classes; zero legacy imports.
+- **Security & System (cluster C4)** — landing ✅ · sub-screens 5/5
+  - ✅ Security (events / cameras / MFA / login-attempts / auth) — /dashboard/security landing fully redesigned (gs-hero, gs-kpis, data tables). 6 of 7 deep pages (auth, cameras, events, mfa, login-attempts, cameras/new) still 
+  - ✅ Jobs (scheduler / runs / locks) — /dashboard/jobs landing redesigned (gs-card-h, kpi, data). runs, runs/[id], locks still on legacy PageHeader.
+  - ✅ Notifications (inbox / deliveries / preferences) — /dashboard/notifications landing redesigned (btn btn-*, DS classes). inbox, deliveries, preferences on legacy PageHeader/MetricCard.
+  - ✅ Audit log — /dashboard/audit single page fully DS (eyebrow, kpi, data table, gs-card-h); no deeper routes; no legacy imports.
+  - ✅ Settings (team / users / roles / security / integrations / ai-agents) — /dashboard/settings landing redesigned (btn btn-*, DS classes). 11 of 12 deep pages (team, users, roles/matrix, security, account-security, integrations, ai-age
+- **Availability & Intelligence (cluster C5)** — landing ✅ · sub-screens 4/4
+  - ✅ AI hub (agents / runs / usage / operations) — /dashboard/ai landing redesigned (SectionHeading). [agentCode] detail uses DetailPage/DetailHeader DS. Deep pages runs, runs/[id], usage, operations still legac
+  - ✅ Availability (board / blocks) — /dashboard/availability landing fully redesigned (av-board, av-sw-*, Kpi, SectionHeading). blocks list + blocks/new still legacy PageHeader.
+  - ✅ Readiness (alerts board) — /dashboard/readiness single page DS (Kpi, SectionHeading, av-card-h, rd-alert); no legacy imports, no deeper routes.
+  - ✅ Daily digests (list / detail) — /dashboard/digests delegates to DigestListView (Kpi+SectionHeading) and [id] to DigestDetailView; both DS, zero legacy imports.
+- **Integrations (standalone mock — connections catalog)** — landing ○ · sub-screens 1/3
+  - 🟡 Connections catalog (Connected + Available, channels/payments/messaging) — The standalone mock's connect/disconnect catalog maps to /dashboard/settings/integrations/page.tsx, which still imports legacy PageHeader (built, token-aware, b
+  - 🟡 Connect / disconnect flow (per-service modal) — Lives in settings/integrations via _platform-integration-card + _connected-integrations client components on the legacy PageHeader shell; functional but not pix
+  - ✅ Sync / activity log — Sync/conflict surfaces are realised in the redesigned /dashboard/integrations cluster (calendar-feeds, calendar-events, conflicts, automation) — landing is DS t
+
+## mgmt-new
+- **Workspace overview** — landing ✅ · sub-screens 5/5
+  - ✅ 01 Hero · greeting + 5-KPI strip — page.tsx uses SectionHeading eyebrow (time-of-day greeting) + Kpi primitives in a 5-up grid; live reads via getPortfolioMetrics/getTodaySchedule. Design-system,
+  - ✅ 02 Needs-attention feed (urgency-sorted) — AttentionFeedSection component (Suspense + AttentionFeedSkeleton) renders the urgency-sorted triage cards; design-system primitives, no legacy markers.
+  - ✅ 03 Today · ops snapshot — today-strip / today-grid / today-tile / ctx classes from the mock are reproduced verbatim with live arrivals/departures/in-house/turnover counts.
+  - ✅ 04 AI agents activity — AgentActivityCard fed by getAgentActivity(6); QuickActions grid alongside. Both are dedicated workspace-overview components citing mgmt-workspace.html §04.
+  - ✅ 05 Cabinet map with badge counts — CabinetMap component uses cm-card / has-attn markers and buildCabinets(counts); source-of-truth comment points to mgmt-workspace.html §05.
+- **Documents** — landing ✅ · sub-screens 2/6
+  - ✅ 01 Hero · filter bar + priority list + categories — page.tsx + DocumentsApp: mono crumb, text-display/text-terra header, filter chips with counts, priority doc-list and 8 category cards (rounded-md bg-accent-weak
+  - ⛔ Variant B · folder-tree browser (/documents/folders) — No /documents/folders route or folder-tree surface; DocumentsApp only has a flat tab/chip filter (all/expiring/ai/type), not the nested folder tree the mock dep
+  - ⛔ Variant C · timeline-by-year (/documents/timeline) — No /documents/timeline route and no audit-timeline-by-year view exists.
+  - ✅ 03 Document preview · e-sign 4-step flow (/documents/[id]) — Implemented as an inline DocumentPreviewPane (not a /documents/[id] route) using bg-surface/bg-cream-warm/bg-paper/text-terra/Badge + SignatureRequestButton + V
+  - ⛔ 04 Mobile · renewal alerts feed — No dedicated mobile renewal-alerts surface/route; the renewal/expiry signal exists only as desktop filter chips + KPIs.
+  - 🟡 /documents/upload · upload + categorise — /documents/new exists but uses the legacy PageHeader primitive (import @/components/ui/page-header), not the design-system .page-header header.
+- **Inventory & procurement** — landing ✅ · sub-screens 3/6
+  - ✅ 01 Hero · 3-column dashboard (stock + POs + vendors) — inventory/page.tsx: .page-header, Kpi 5-strip, 3-col card grid with low-stock reorder bars (bg-danger/bg-warning), open-PO status chips, vendor scorecard, table
+  - 🟡 Variant B · SKU master grouped by category (/inventory/stock) — /inventory/stock exists but uses legacy PageHeader + StockTable; not the category-grouped, design-system SKU-master card layout the mock shows. (Also a richer /
+  - ⛔ Variant C · PO delivery calendar (/inventory/calendar) — No /inventory/calendar or any PO-by-delivery-date calendar surface exists.
+  - ✅ 03 PO detail · 5-step approve flow (/inventory/po/[id]) — Lives at /procurement/orders/[id]: .page-header, table.data line items, left-to-right approval FLOW stepper (draft→sent→confirmed→partially_received→received), 
+  - ⛔ 04 Mobile · 1-tap reorder on low-stock — No mobile 1-tap-reorder surface; reorder is only via the desktop PurchaseOrderAddButton form. (Field cabinet not in scope here.)
+  - ✅ Procurement landing + sub-routes (orders/new, requests, requests/[id]) — /procurement landing is design-system (.page-header, Kpi, table.data, Badge, PurchaseOrderStatusPill). Note the create flows (orders/new, items/[id]) are legacy
+- **Owner intelligence** — landing ✅ · sub-screens 2/5
+  - ✅ 01 Hero · insights feed + per-owner retention risk — owner-intelligence/page.tsx uses .page-header (oi-header-flush), Kpi 5-strip, oi-insight up/down/flag/star cards, oi-risk-row tier/grade/risk rows + text-terra.
+  - ⛔ Variant B · tier matrix (A/B/C × tenure) (/owner-intel/tier-matrix) — No tier-matrix route or segmentation-by-tenure grid exists anywhere.
+  - ⛔ Variant C · churn cohort + LTV projection (/owner-intel/cohort) — No churn-cohort route / at-risk-LTV view; the owners list applies retention-risk row tints but there is no cohort+LTV surface.
+  - ✅ 03 Owner drill-in · score breakdown + save plan (/owner-intel/[ownerId]) — Not at /owner-intelligence/[ownerId] — implemented owner-level at /dashboard/owners/[id] via OwnerChurnPanel (getOwnerRetentionRisk + getOwnerChurnView, churn-a
+  - ⛔ 04 Mobile · insight feed + 1-tap save action — No mobile insight-feed surface/route.
+- **Utilities** — landing ✅ · sub-screens 1/5
+  - ✅ 01 Hero · accounts table + spike alerts + readings — utilities/page.tsx uses .page-header, Kpi 5-strip, table.data accounts + recent-readings tables, Badge, text-ink-3. Design-system. Note: spike-alert cards with 
+  - ⛔ Variant B · per-villa rollup (/utilities/villas) — No /utilities/villas per-villa rollup route exists.
+  - ⛔ Variant C · per-utility-type rollup (/utilities/by-type) — No /utilities/by-type per-utility rollup route exists.
+  - 🟡 03 Spike investigation · account drill-in (/utilities/account/[id]) — Lives at /utilities/accounts/[id] but uses legacy PageHeader + Section + raw <table className="w-full text-sm"> on bg-surface/bg-muted. Lacks the mock's 12-mont
+  - ⛔ 04 Mobile · alert feed + 1-tap dispatch — No mobile utility-alert feed / 1-tap dispatch surface exists.
+
+## dev-p1
+- **projects** — landing ✅ · sub-screens 2/5
+  - ✅ IA / sidebar + nav — DevelopmentShell + sidebar render the dev-OS amber/concrete ds chrome; landing matches mock IA.
+  - ✅ List (project card grid) — projects/page.tsx uses purpose-built ds ProjectCard grid + Kpi + .projects-kpi-strip/.projects-grid + HealthPill — the mock's exact list language (Phase 2.2 dev
+  - 🟡 Project detail (Overview tab + 4 KPIs + milestones/RFIs panels + PM/contractors/investors rail) — [slug]/page.tsx built and rich, but on legacy generic primitives: <PageHeader>/<Section>/<DevelopmentMetricCard>/legacy <Table>/THead/EmptyState. ProjectDetailT
+  - 🟡 Milestone editor (flat gantt-lite list + status/dependency + side-sheet) — [slug]/milestones renders the ds MilestoneRow component (+ .btn btn-primary), but the page is wrapped in legacy <PageHeader>/<Section> and rows seed from phases
+  - ✅ New project · 4-step lg flow (Identity→Site→Phasing→Team) — NewProjectModal exists and is fully ds (Modal/ModalSteps + .field/.field-label/.input.mono, 4 steps exactly per spec). BUT it is NOT mounted on the live project
+- **cfo** — landing ✅ · sub-screens 1/4
+  - ✅ Transactions / P&L ledger (KPI strip + ledger table + expense-breakdown bars) — cfo/page.tsx uses the mock's exact ds brick: raw .page-header, .cfo-kpis/Kpi, table.data P&L, .cfo-cashstrip + .cfo-bar expense breakdown, btn-amber/btn-dark. H
+  - 🟡 Add/Edit transaction modal — No in-cabinet modal — landing links out to /development-os/finance/transactions/quick-entry (+ Journal entry). The journal-entry surface is outside the cfo dir;
+  - 🟡 Cashflow forecast (sub-route) — cfo/cashflow/page.tsx exists but on legacy <PageHeader>; not the mock pixel language (mock has no separate cashflow screen — this is an extra live sub-route sti
+  - 🟡 Capital calls / Distributions (sub-routes) — cfo/capital-calls + cfo/distributions exist but on legacy <PageHeader>/EmptyState; extra live surfaces not depicted in mock and not pixel-passed.
+- **boq-qs** — landing ✅ · sub-screens 2/6
+  - ✅ Estimate-vs-actual list (KPIs + category-grouped table, inline-editable qty/rate/actual) — boq/page.tsx uses the mock ds language: raw .page-header, Kpi strip, .boq-cat-head + .boq-est table, HandoffBadge, btn-dark/AddBoqButton(accent). (List of docum
+  - ✅ BOQ document detail (sections + line items + variance) — boq/[code]/page.tsx uses raw .page-header, .card, table classes, HandoffBadge, btn-dark — ds pixel language. This is where the mock's inline estimate-vs-actual 
+  - 🟡 New BOQ (create) — boq/new/page.tsx on legacy <PageHeader>/EmptyState. Not in the mock anchors but a built create surface, not pixel-passed.
+  - 🟡 Quick entry (add-line fast path) — boq/quick-entry on legacy <PageHeader>/EmptyState; closest live analog to the mock's add-line modal but not pixel-matched.
+  - 🟡 Drawing takeoff workbench — boq/takeoff on legacy <PageHeader>/<Section>; extra live surface beyond the mock, not pixel-passed.
+  - 🟡 Import / Export (detail sub-routes) — boq/[code]/import + boq/[code]/export exist; CSV in/out flows, not pixel-redesigned (not depicted in mock).
+- **procurement** — landing ✅ · sub-screens 1/5
+  - ✅ Request queue list (per-role queue, status-flow rows + wait chips + KPIs) — purchase-requests/page.tsx renders purpose-built ds-token QueueCard/QueueRow/WaitChip (text-ink/text-display/border-line-soft/bg-bg-2/font-mono/rounded-full bad
+  - 🟡 Request detail drawer (KV summary + timeline + lifecycle action buttons) — purchase-requests/[code]/page.tsx is a full page (not the mock's right-side drawer) on legacy <PageHeader>/<Section>/legacy <Table>+THead/<Timeline>. Lifecycle 
+  - 🟡 New request flow (create PR) — purchase-requests/new/page.tsx on legacy <PageHeader>/<Section>/EmptyState; built but not pixel-matched to the mock's new-request modal.
+  - ⛔ Role switcher (Supervisor / Buyer / Accountant / CFO views) — The mock's defining role-switcher driving 4 distinct role queues has no live equivalent — live exposes a single PR list with a ?status= filter, no per-role view
+  - 🟡 Quotation comparison matrix (extra live surface, not in mock) — procurement/quotation-comparison + [requestCode] + _matrix-island exist on legacy <PageHeader>/<Section>/THead. Not depicted in the procurement mock (mock is th
+
+## dev-p2
+- **sales** — landing ○ · sub-screens 0/5
+  - 🟡 Buyers & installments list (KPIs + table) — Mock is a buyers/installments desk, NOT the lead CRM that lives at /sales. Functional equivalent is /development-os/installments/page.tsx — same data (stage, pa
+  - 🟡 Buyer detail drawer (price / paid / remaining + payment schedule) — Lives as the per-buyer expand/detail inside InstallmentDesk (and /buyers/[code]/page.tsx). Built and functional but on legacy primitives — bg-muted/bg-surface p
+  - 🟡 Mark-paid + per-line Remind actions — Functionally present in InstallmentDesk (manual mark-paid, per-milestone remind). Styling is legacy Tailwind (bg-accent/bg-muted toggles, raw buttons), not .btn
+  - 🟡 Auto-remind toggle — Present in InstallmentDesk as a custom toggle (bg-accent ? : bg-muted, rounded-full bg-surface knob) — not the design-system .toggle/.sl-toggle treatment.
+  - 🟡 Send reminders (bulk / auto-blast) + toast — Bulk-select + send-reminders exists in InstallmentDesk; the /sales landing also exposes a Send-reminders action. Legacy button styling, not the mock's .btn-acce
+- **investors** — landing ○ · sub-screens 2/6
+  - 🟡 Fund overview — KPIs + distribution waterfall + LPA rules / AI agents — investors/page.tsx KPI strip IS pixel-ported (Kpi from dashboard/primitives → .kpi, SectionRule mock .iv-sec, badge badge-ok/warn/soft) but the page header is s
+  - ✅ LP positions table — investors/page.tsx renders the LP table with `table.data .lp-table`, `.row-title`, `badge badge-ok/warn/soft`, text-ink-3, and the mock's `.iv-wire` footer repr
+  - ✅ LP detail drawer / ledger — investors/[code]/page.tsx + capital-account/page.tsx render the LP ledger via `<table className="data w-full">` + `<Kpi>` (.kpi) + `.card overflow-hidden` + `ba
+  - 🟡 Capital calls list (per-LP allocations + Confirm wire) — Functionally present at /development-os/cfo/capital-calls (+ /[id]) — issue calls, per-LP allocations, settlement. Built on legacy PageHeader/EmptyState; no .iv
+  - 🟡 Capital-call wizard (amount → pro-rata → issue & notify) — Capital-call issuance with pro-rata allocations exists via FundWaterfallPanel and the cfo/capital-calls flow, but it is the legacy Section-wrapped panel, not th
+  - 🟡 Distribution wizard (amount → waterfall → pro-rata → approve) — Distributions exist at /development-os/distributions (+ /new, /[id]) and /cfo/distributions. Functional but legacy chrome (PageHeader/EmptyState); not the mock'
+- **site-supervisor** — landing ✅ · sub-screens 5/5
+  - ✅ Crew-on-shift counter — _capture-console.tsx renders the crew stepper inside a `.card` with .label and design-system steppers; page.tsx wraps it in SectionHeading + Kpi (Layer-B). No r
+  - ✅ Active-zone chips (toggle + add zone) — Zone chips use rounded-[999px] border-carbon bg-carbon (on) / border-line-2 bg-bg-2 text-ink-3 (off) inside a .card — matches the mock's .ss-zone. Add-zone inli
+  - ✅ Capture — Photo / Incident / Voice (+ field note) modal — Capture action row uses .label, btn-amber accents, lucide Camera/TriangleAlert/Mic (text-amber), incident severity via badge badge-danger/badge-warn, .textarea 
+  - ✅ Today's feed (frames list + delete) — Feed list uses .display heading, .ss-thumb-fill thumbnails, .mono timestamps, border-line-soft rows, X delete — matches mock .ss-frame. Plus the read-only diary
+  - ✅ AI daily digest — Compile & send daily summary — `btn btn-amber w-full` compile button with .ss-spin loader, and the digest band rendered as rounded-[16px] bg-carbon text-white with mono text-amber eyebrow — m
+
+## dev-p3-new
+- **Dev Finance** — landing ✅ · sub-screens 4/7
+  - ✅ CFO console — finance/page.tsx: raw <div className="page-header">, Kpi/Card/HandoffBadge from dashboard/primitives, DevelopmentShell, FinanceTabs, safeQuery. DS=12 markers, z
+  - ✅ Cashflow forecast — cashflow-forecast/page.tsx: page-header class + Kpi/Card/HandoffBadge; one stray style={{}} only. Pixel-passed.
+  - ✅ Profitability — profitability/page.tsx: page-header class + Kpi/Card/HandoffBadge, no legacy markers.
+  - ✅ Banking — banking/page.tsx: page-header class + Kpi/Card/HandoffBadge + safeQuery, no legacy.
+  - 🟡 Tax reports — finance/tax-reports/page.tsx: legacy PageHeader component + generic Table/THead/TBody (not table.data) + _finalize-button. Built, not on cabinet hero.
+  - 🟡 Document extractions — finance/document-extractions/page.tsx: full legacy stack PageHeader + Section + generic Table. Has [id] detail route, also legacy.
+  - 🟡 Revenue streams — revenue-streams/page.tsx: heaviest legacy stack — Section + MetricCard + generic Table + inline style={{ width }}. Clearly pre-DS.
+- **Dev Contracts** — landing ○ · sub-screens 0/4
+  - 🟡 Contracts — contracts/page.tsx: legacy PageHeader component (text-display tokens) + Kpi/Card + table.data. Lighter than cabinet hero but on generic ui/page-header, not pixe
+  - 🟡 Invoices — invoices/page.tsx (top-level): PageHeader component + Kpi/Card + table.data. Generic-primitive treatment, not the cabinet hero. (Separate finance/invoices also 
+  - 🟡 Discounts — discounts/page.tsx: PageHeader component + table.data + _approval-actions. Generic primitives, not pixel-passed.
+  - 🟡 Commitments — commitments/page.tsx (top-level): PageHeader component + Kpi/Card + table.data, plus [id] detail. Generic-primitive, not cabinet hero. (Separate finance/commitm
+- **Dev Knowledge and Docs** — landing ✅ · sub-screens 4/4
+  - ✅ Knowledge hub — knowledge/page.tsx: hand-rolled DS header (display text-[42px], label text-amber, text-ink-3) + Card/HandoffBadge + table.data + btn btn-amber. Full handoff tok
+  - ✅ Drawings — drawings/page.tsx: Card/Kpi/HandoffBadge + DS-token header (display text-[42px] font-medium) + DevelopmentShell. [code] detail, distribution, new sub-routes all
+  - ✅ Method statements — method-statements/page.tsx: Card/Kpi/HandoffBadge + DS tokens; [code] + new sub-routes exist.
+  - ✅ Materials — materials/page.tsx: raw className="page-header" + DS primitives; [poCode] detail also page-header. Pixel-passed.
+- **Dev Ops** — landing ✅ · sub-screens 4/4
+  - ✅ Marketing — marketing/page.tsx (landing): SectionHeading + Kpi/Card + HandoffBadge + 34 DS-token hits (text-amber/text-ink/btn-amber). Note: only the landing is DS — most m
+  - ✅ Unified inbox — inbox/page.tsx: SectionHeading (DS primitive) + EmptyState + DS tokens; [threadId] thread + ai-composer, templates, auto-responses sub-routes present.
+  - ✅ Project cycle — project-cycle/page.tsx: SectionHeading + DS tokens + _review-actions client component.
+  - ✅ Productivity — productivity/page.tsx: SectionHeading + DS tokens; productivity/log sub-route also DevelopmentShell/DS.
+- **dev-workspace (role-aware landing)** — landing ✅ · sub-screens 1/4
+  - ✅ Hero · role-aware production view (PM default) — development-os/page.tsx: Kpi/SectionHeading/HandoffBadge from dashboard/primitives + getDevPortfolioKpis + accent-weak/text-amber tokens. This is the Dev OS lan
+  - ⛔ Role variants · 9 role views (/workspace/role/[role]) — Mock shows topbar role switcher swapping KPI/attention per 9 roles + persisted user_role_state table. No /workspace or /workspace/role/[role] route exists; land
+  - ⛔ Project drill-in (/workspace/project/[id]) — Mock: click project card → workspace shell scoped to one project. No /workspace/project/[id] route. Net-new (projects/[slug] exists but is the legacy project de
+  - ⛔ Phone · role-aware workspace — Responsive mobile variant of the role-aware shell with role switch + project tap-through. Depends on the missing /workspace role system; no dedicated responsive
+- **dev-executive (portfolio dashboard)** — landing ○ · sub-screens 0/5
+  - ⛔ Hero · portfolio rollup + risk radar + digests — Mock = unified Executive cabinet replacing 4 legacy items with portfolio_risks + digest composer. No /executive route exists. Closest live surfaces are separate
+  - ⛔ Time-range variants — quarterly (/executive/quarterly) — Board-cadence quarterly KPI view. No /executive/quarterly route.
+  - ⛔ Time-range variants — YTD (/executive/ytd) — Annual YTD rollup view. No /executive/ytd route.
+  - ⛔ Risk drill-in (/executive/risk/[id]) — Mock: owner/impact/mitigation/history. No /executive/risk/[id]. risk-radar/[code]/page.tsx exists but is legacy (PageHeader + Section) and not the executive mit
+  - ⛔ Daily digests archive (/executive/digests) — No /executive/digests. digests/ + digests/[code] exist but are legacy (PageHeader + Section), not the executive digest archive.
+- **dev-marketing (funnel/campaigns/content cabinet)** — landing ✅ · sub-screens 1/6
+  - ✅ Hero · funnel + live campaigns + lead sources — marketing/page.tsx: SectionHeading + Kpi/Card + HandoffBadge, ~34 DS-token hits. Landing is pixel-passed (matches Dev Ops marketing screen).
+  - 🟡 Campaign detail · daily chart + budget (/marketing/campaign/[id]) — Mock route /marketing/campaign/[id]; live equivalent marketing/campaigns/[code]/page.tsx exists but legacy (PageHeader + Section). A/B + daily chart + costs sub
+  - 🟡 Content pipeline · 3-lane kanban (/marketing/content) — marketing/content/page.tsx exists with a Kanban board, but legacy PageHeader + Section stack; _status-control client comp. Built, not pixel-matched.
+  - 🟡 Lead sources / leads (/marketing/leads) — marketing/lead-sources/page.tsx exists (legacy PageHeader + Section). Mock's /marketing/leads filtered-leads route specifically is missing, but lead-sources cov
+  - 🟡 Attribution variant (/marketing/attribution) — marketing/attribution/page.tsx exists but legacy PageHeader + Section + generic Table.
+  - ⛔ Performance variant (/marketing/performance) — Mock variant C /marketing/performance. No such route (marketing/manager-performance exists but is a different manager-scoreboard surface, legacy).
+- **dev-warehouse (receiving/stock/movements)** — landing ✅ · sub-screens 1/6
+  - ✅ Hero · dock + stock + movements production view — warehouse/page.tsx: SectionHeading + Kpi/Card + HandoffBadge + btn btn-amber + safeQuery(loadWarehouseCabinet). DS-styled, though simpler than the mock (live KP
+  - ⛔ Receiving detail · PO drill-in + QC chain (/warehouse/receive/[poId]) — No /warehouse/receive/[poId]. inventory/receiving/[poId]/page.tsx exists (legacy PageHeader + Section + Table) but is the inventory receiving surface, not the w
+  - ⛔ Stock · full SKU list + count (/warehouse/stock) — No /warehouse/stock. inventory/items (DS) + inventory/stocktake (legacy) cover stock under a different inventory tree, not /warehouse/*.
+  - ⛔ Picks · today by destination (/warehouse/picks) — No /warehouse/picks route or equivalent picks surface.
+  - ⛔ Movements log · filterable (/warehouse/movements) — No /warehouse/movements. inventory/movements/page.tsx is DS-styled but lives in the inventory tree, not /warehouse/*.
+  - ⛔ Bins variant · bin-map (/warehouse/bins) — No /warehouse/bins route; inventory/locations (DS) is the closest but is a different locations surface, not the warehouse bin-map variant.
+
+## owner
+- **Home / Dashboard (01-home)** — landing ✅ · sub-screens 2/2
+  - ✅ Home — desktop (greeting + narrative, 3-tile hero YTD/Pending/Next, villa card, upcoming 14d, 4 quick actions) — page.tsx uses owner-portal primitives OwnerGreeting/HeroTile/VillaCard/UpcomingList/OwnerQuickActions, .hero-grid, owner-sec-title, btn-accent. Fully pixel-pass
+  - ✅ Home — mobile single-column flow — Same redesigned components are responsive (flex-col gap, hero-grid collapses). Mobile is a responsive variant of the same route, not a separate file — covered b
+- **Statements (02-statement)** — landing ✅ · sub-screens 6/6
+  - ✅ Statement list (narrative card rows, gold pending row, owner-status pill) — statements/page.tsx: data-density narrative, owner-h1/owner-narr, .stmt-list/.stmt-row, OwnerStatusPill. Matches mock list.
+  - ✅ Statement detail (net hero + how-the-math table + YTD/help cards) — statements/[id]/page.tsx: NetHero, OwnerStatementMathTable (desktop) / OwnerStatementMobileBreakdown, owner-h1, .card, .text-accent.
+  - ✅ Owner state machine (Pending/Viewed/Acknowledged/Auto-ack/Disputed/Revised) — Lifecycle is wired via getStatementDisputeState + state-machine.ts; surfaced through OwnerStatusPill on list and terminal labels on detail. Diagram in mock is a
+  - ✅ Acknowledge sign-off modal (confirm-sm) — OwnerStatementActionBar -> StatementAcknowledgeButton; owner-actionbar DS bar, ui/button. Wired acknowledge action.
+  - ✅ Dispute sign-off modal (reason radio x4 + free text -> opens thread) — StatementDisputeButton -> DisputeModal (owner-portal): .dispute-reasons/.dispute-reason radio cards + .field free text, mirrors mock reason picker.
+  - ✅ Download PDF — Action-bar secondary button links to statements/[id]/pdf/route.ts (live route exists).
+- **Villas (03-villas)** — landing ✅ · sub-screens 4/4
+  - ✅ Villa detail — hero (2-col photo + amenity badges + KPI strip) — villas/[id]/page.tsx: VillaHero with code/amenities/kpis, villa-detail-head/vd-title. Mock's primary 'landing' is the single-villa detail.
+  - ✅ Photo gallery grid (4-col -> lightbox) — PhotoGrid primitive, villa-gallery-head/vg-title; '12 photos open all' link matches mock.
+  - ✅ Occupancy bars (last 6 months) + recent maintenance log — OccupancyBars + MaintenanceLog primitives inside villa-panel cards; matches mock performance + maintenance sections.
+  - ✅ Villas list (only for 2+ villas; else redirect to detail) — villas/page.tsx: redesigned VillaCard grid + SectionHeading (DS dashboard primitive), redirects single-villa owners to detail per spec.
+- **Calendar (04-calendar)** — landing ✅ · sub-screens 5/5
+  - ✅ Month calendar grid (free/busy/personal day states, month nav) — calendar/page.tsx: MonthCalendar, owner-eyebrow/owner-h1/owner-cal-sub, btn-ghost month nav, legend. Pixel port of 04-calendar.
+  - ✅ Rental-pool manager — Take out of pool / Return to pool (14d cooling-off) — PoolManager + PoolStatusLegend; DS tokens (bg-surface/rounded-lg/text-display), cooling-off, status toggle. Matches mock pool state machine.
+  - ✅ Free-nights quota counter — PoolManager allowance card: getOwnerStayQuota wired, used/remaining/freeNightsPerYear with progress bar.
+  - ✅ My stays / upcoming personal-stay list — PipelineList of upcoming stays in DS rail; mock 'My stays' panel. Full list at /owner/stays.
+  - ✅ Personal-stay book/confirm + cancel (Pay-&-book vs Book-free, cancel-stay) — PoolManager supports in-grid date selection for pay-&-book + cancel per its docblock; the dedicated new-flow at /owner/stays/new is also present (mostly DS, one
+- **Inbox (05-inbox)** — landing ✅ · sub-screens 2/3
+  - ✅ Thread list (master) — unread accent, kind grouping — inbox/page.tsx -> OwnerInboxClient/ThreadList, inbox-head/ih-title DS. Matches mock list pane.
+  - ✅ Thread view (?thread=id) — message bubbles + sticky reply + inline action chips — ThreadView/MsgBubble with scheduling inline-actions + attachments; reply via postOwnerThreadReplyAction. Master-detail by ?thread query as spec'd.
+  - ⛔ Compose / new message (spec: /owner/inbox/new mobile-alt compose form) — Spec calls for owner/inbox/new compose route; no inbox/new/page.tsx exists and OwnerInboxClient has no new-thread/compose affordance. Threads are only created c
+- **Documents (06-documents)** — landing ✅ · sub-screens 4/4
+  - ✅ Agreements group (MSA / annex / legal) — documents/page.tsx: DocGroup/DocRow primitives + SectionHeading; getOwnerdocuments buckets owner-visible rows. Matches mock grouped lists.
+  - ✅ Tax group (tax_summary / tax_cert) — Same DocGroup/DocRow rendering, kind/status pills; download via /api/documents/[id]/download.
+  - ✅ Statements PDF archive group — DocGroup with statement_pdf kind; cross-links to /owner/statements. DS row primitives.
+  - ✅ Property & insurance group — DocGroup with property/insurance/policy kinds; consistent DocRow design language.
+- **Settings (07-settings)** — landing ✅ · sub-screens 5/6
+  - ✅ Profile section (name/email/phone/language rows) — preferences/page.tsx: SettingsSection/SettingsRow primitives + SectionHeading; edit buttons render as DS ghost affordances (deferred 2FA flow).
+  - ✅ Payout method (method/currency/masked account/wire schedule + 2FA-gated change & reveal) — SettingsRow with masked account (mono), DS btn-secondary/ghost change+reveal buttons disabled pending 2FA; matches mock payout section visuals.
+  - ✅ Notifications (6 toggles) — OwnerNotificationToggles wired to getOwnerNotificationPrefs + updateOwnerNotificationPrefsAction; DS Toggle. Fully interactive.
+  - ✅ Portal access (primary user + delegates + 2FA manage) — SettingsSection rows; delegate/2FA controls render as DS disabled affordances (deferred to 2.5 per spec). Visually pixel-matched.
+  - ✅ Leaving Arconique (request termination call -> Inbox) — Warn-tone SettingsSection with btn-warn-soft linking to /owner/inbox; matches mock termination row.
+  - ⛔ Edit payout method 2FA flow (spec: /owner/settings/payout/edit + owner-2fa) — Spec's dedicated 2FA-gated payout-edit route is not built; live page renders the change/reveal buttons disabled instead. Net-new build.
+
+## guest
+- **Guest Stay Portal** — landing ✅ · sub-screens 11/12
+  - ✅ Home / Stay (hero + countdown + your-service rows + stay timeline) — mock variants A editorial / B concierge-forward — demo/page.tsx + StayShell + stay-ui (Eyebrow/SectionTitle/StayRow/Timeline). Layer-B tokens: text-display, text-ink, bg-surface, border-line-soft, --r-hero/--r-
+  - ✅ Check-in (stepper / guest+documents form, ETA chips) — demo/check-in/page.tsx on StayShell, design-system tokens only (legacy=0). Real flow lives in components/stay/guest-checkin-form.tsx (also DS). Mock's 4-step st
+  - ✅ Concierge (chat: them/me/agent bubbles, composer, service card) — demo/concierge/page.tsx (client) — bubble list (self-end bg-ink / self-start bg-muted border-line-soft), suggested-prompt chips, composer with Button+Send icon.
+  - ✅ Services & orders (category chips + service/svc cards + cart bar) — demo/services/page.tsx + demo/services/[id] order form, DS tokens (border-line-soft bg-surface text-ink, Badge, font-mono price). Mock's horizontal category chi
+  - ✅ Guide / Villa guide (Wi-Fi forest card + in-house rows + house-rules) — demo/guide/page.tsx, DS tokens (legacy=0). Mock's dark-forest Wi-Fi hero card with copy button + .row 'В доме' list is flattened to bullet sections; pixel langu
+  - ✅ Wi-Fi (network + password + QR placeholder) — demo/wifi/page.tsx — split out from Guide. Forest icon tile (bg-ink text-ink-inverse), font-mono creds, QR placeholder grid, DS tokens (legacy=0). Tap-to-copy i
+  - ✅ House rules (rule list with check marks) — demo/house-rules/page.tsx, DS list (border-line-soft bg-surface divide-line-soft, ScrollText icon, Badge). legacy=0. Mock's sage check-icon per-rule treatment s
+  - ✅ Emergency / Help & contacts (SOS card + contact cards with call buttons + villa address) — demo/emergency/page.tsx + floating SOS in StayTabBar (bg-surface border-line, danger icon, hidden on concierge/emergency per mock). Danger-toned contact list, S
+  - ✅ Explore / Nearby / Neighborhood (map + category chips + place cards) — demo/neighborhood/page.tsx, DS tokens (legacy=0). Map is an explicit placeholder block (production renders interactive map); mock's pin-map + chip filters (Всё/
+  - ✅ Requests (active/done request cards with status pills + timeline) — demo/requests/page.tsx, DS (Badge tone warning/info/success, font-mono code, border-l timeline, border-line-soft bg-surface). legacy=0. Maps mock's 'Запросы' Ак
+  - ✅ Service detail / order form (sub-screen behind a service card) — demo/services/[id]/page.tsx — date/time/qty/note form on DS tokens, Badge, Button; intentionally disabled (demo). Production service-request-form.tsx same DS sc
+  - 🟡 Offline guide (printable summary — present in live, not in mock) — demo/offline/page.tsx exists and uses DS tokens, but it is a LIVE extra (PDF/offline summary) that the mock does NOT depict — so it has no mock pixel target to 
+
+## investor
+- **Investor Portal** — landing ✅ · sub-screens 3/13
+  - ✅ Overview / Dashboard (variant A — portfolio command: KPI grid + distribution waterfall + capital-deployment + activity) — Live /dashboard/page.tsx is fully pixel-passed: uses award primitives (InvestorHeroGreetingAI, FundAnalyticsStrip, DistributionWaterfall variant ink-deep, AreaC
+  - 🟡 Overview / Dashboard (variant B — per-project narrative: dark KPI band + project cards with progress + IRR/MOIC) — No dedicated per-project card view matching mock overviewB. The dashboard renders an active-commitments grid of small project-link cards (bg-panel, .display) bu
+  - ✅ Commitments — list (KPI strip + table + participation/SPV structure) — /commitments/page.tsx uses the pixel language: .label eyebrow, .display text-[29px], bg-panel, border-line, hover:bg-bg-3 data table, Badge. Missing the mock's 
+  - 🟡 Commitment — detail (drawdowns + wallet activity) — /commitments/[id]/page.tsx exists and is functional but on generic primitives: plain Stat boxes (rounded-lg border-line-soft bg-surface), bg-muted table heads, 
+  - 🟡 Capital calls — list (outstanding alert banner + KPI + history table + amber Pay) — /capital-calls/page.tsx exists and works (outstanding/history split, Badge statuses) but is legacy/semantic: font-display text-3xl heading, no .label eyebrow, n
+  - 🟡 Capital call — detail / Call #4 breakdown panel (pro-rata + amber Pay + download requisites) — /capital-calls/[id]/page.tsx exists with a richer flow than the mock (WireStepper lifecycle + ConfirmWireForm). Functionally strong but on generic primitives (S
+  - 🟡 Distributions — list (KPI strip + waterfall chart + history table + next-distribution card) — /distributions/page.tsx uses legacy PageHeader (@/components/ui/page-header) + bg-muted table head + rounded-lg. Functional list with Badge, but NO KPI strip, N
+  - 🟡 Distribution — detail (allocation breakdown: capital return / profit split) — /distributions/[id]/page.tsx exists and works (Stat grid for total/allocation/capital-return/profit, Badge status, wallet-ledger link) but on generic primitives
+  - 🟡 Forecasts (KPI + amber MOIC + XIRR curve chart + exit scenarios + assumptions) — /forecasts/page.tsx is legacy/generic: font-display text-3xl heading, bg-muted callout box, striped bg-surface/bg-muted table. Missing the mock's KPI strip, amb
+  - 🟡 Documents (grouped cards: Agreements / Reports / Tax + per-file download buttons) — /documents/page.tsx renders one flat divide-y list (lucide FileText rows, rounded-lg bg-surface) — not the mock's grouped .card 'Соглашения/Отчёты/Налоговое' se
+  - 🟡 Requests / My requests (withdrawal/reinvest/transfer lifecycle + cancel) — /requests/page.tsx exists and is functionally rich (RequestLifecycle, RequestStatusBadge, CancelRequestButton, withdraw/reinvest CTAs) but on generic primitives
+  - 🟡 Wallet (available-to-withdraw amber KPI + payout method + movements ledger) — mock's 7th nav item — Lives across /wallet/[commitmentId], /wallet/withdraw, /wallet/reinvest. Surfaces exist and are functional but built on generic primitives, not the mock's .kpi.
+  - 🟡 Profile / account — /profile/page.tsx exists and is linked in the shell sidebar. Not depicted in the mock; built on generic primitives (not in the mock's 7-section scope but presen
+
+## platform-auth
+- **Platform Console** — landing ✅ · sub-screens 5/5
+  - ✅ Organizations (list) — src/app/(platform-app)/platform/organizations/page.tsx — full DS primitives: PageHeader, DashboardKpi 5-tile strip, FilterPills, ListTableCard + Table/THead/TBo
+  - ✅ Revenue — revenue/page.tsx — PageHeader + DashboardKpi (hero variant) + ListTableCard + Table; per-tier MRR table mirrors mock s-revenue. 'emerald-soft' is a DashboardKpi
+  - ✅ Usage — usage/page.tsx — same DS stack (PageHeader/DashboardKpi/ListTableCard/Table), 18 DS markers, 0 legacy. Mirrors mock s-usage products-per-org table.
+  - ✅ AI agents (registry) — agents/page.tsx — pixel-passed to the Agent Studio registry: .page-header/.crumb/.btn btn-accent/table.data/.badge/.card/.ag-kpis raw DS classes + Kpi primitive
+  - ✅ Audit log — audit/page.tsx — PageHeader + DashboardKpi 4-tile + ListTableCard + Table + Badge action tags (org.impersonate / plan.comp_grant etc.). 19 DS markers, 0 legacy.
+- **Agent Studio** — landing ✅ · sub-screens 4/5
+  - ✅ Registry (agent list) — agents/page.tsx — .page-header + .ag-kpis (Active/Global/Inactive/Cost·30d) + table.data registry with .ag-ava, row-title, badge-info/soft scope, badge-ok/warn 
+  - ✅ Agent detail (tabs) — agents/[id]/page.tsx (1012 lines) — detail-tabs + .card card-pad sections, 74 DS markers / 0 legacy. Live tabs cover Identity, Model, Limits, API key, Subscript
+  - ✅ New agent flow — agents/new/page.tsx — SectionHeading + .card card-pad + .input mono fields + .btn btn-ghost/btn-accent. Live implements the mock's NewAgentModal as a dedicated 
+  - ✅ Test chat panel — agents/[id]/test-chat.tsx client component wired into the detail 'Test chat' tab; matches mock TestChat tab. On DS chrome inside the detail shell.
+  - ✅ Run log / runs analytics tab — Within agents/[id]/page.tsx — ag-h3 'Status breakdown · 30d', 'Daily runs · last 30 days', 'Recent runs · last 50' cards on table.data. Maps to mock's Run-log t
+- **Auth Suite** — landing ✅ · sub-screens 5/7
+  - ✅ Sign in — (auth)/login/page.tsx + form.tsx — RESKIN-AUTH-1 port of the Auth Suite mock: self-stamped data-product, split-screen lg:grid-cols-2 with BrandMark + quote bran
+  - ✅ Sign up — (auth)/sign-up is a redirect to canonical (public)/signup/page.tsx, which is on DS tokens (bg-canvas, text-label, font-display, text-ink, border-line-soft, bg-s
+  - ✅ Forgot password — (auth)/forgot-password/page.tsx + form.tsx — DS tokens: text-label/text-display 44-56px headline, bg-canvas, text-ink-secondary, Logo, danger-weak notice; form 
+  - ✅ Reset password — (auth)/reset-password/page.tsx + form.tsx — same DS-token treatment as forgot (text-display/text-label/bg-canvas; form on bg-surface/border-line/text-ink). On t
+  - 🟡 MFA verify — (auth)/setup/mfa/verify/page.tsx (+ setup/mfa, recovery-codes) — built and functional but on the older @/components/dashboard/primitives SectionHeading + Card i
+  - ✅ Admin bootstrap — (auth)/setup/admin-bootstrap/page.tsx + form.tsx — DS tokens + @/components/ui primitives: Badge tone='gold' Setup, Button, Logo, text-display 36px, bg-canvas, 
+  - ⛔ Done / 'You're in' success — Mock has a dedicated post-auth success screen (auth-done card, 'You're in. Redirecting…'). No standalone live route exists — successful sign-in/bootstrap redire
