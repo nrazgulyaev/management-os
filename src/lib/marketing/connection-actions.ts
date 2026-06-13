@@ -25,6 +25,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { selectMarketingProvider } from "./select-provider";
 import {
   sealCredentials,
@@ -459,10 +460,13 @@ export async function syncMarketingConnectionNowAction(args: {
   | { ok: false; error: string }
 > {
   await requirePermission("marketing.write");
+  // TENANCY: bind the connection to the caller's org so a foreign connectionId
+  // can't trigger campaign/metric writes against another org's connection.
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   try {
     const { syncCampaignsForConnection } = await import("./service");
-    const result = await syncCampaignsForConnection(args.connectionId);
+    const result = await syncCampaignsForConnection(args.connectionId, organizationId);
     if (!result.ok) {
       return {
         ok: false,
