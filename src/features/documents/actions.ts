@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { documents } from "@/lib/db/schema/documents";
@@ -80,9 +80,19 @@ async function transition(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(documents).where(eq(documents.id, id)).limit(1);
+  // TENANCY-FINANCE-DOCS — operator context; org from the session. Scope the
+  // load AND the update so a cross-org id reads as "not found" (and TOCTOU-safe).
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(documents)
+    .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Document not found." };
-  await db.update(documents).set({ status: next }).where(eq(documents.id, id));
+  await db
+    .update(documents)
+    .set({ status: next })
+    .where(and(eq(documents.id, id), eq(documents.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action,

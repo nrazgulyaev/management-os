@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { waterfallRules } from "@/lib/db/schema/waterfall-rules";
@@ -95,11 +95,17 @@ export async function createWaterfallRule(
 
 export async function deactivateWaterfallRule(input: { id: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(waterfallRules)
     .set({ isActive: false, effectiveUntil: new Date().toISOString().slice(0, 10) })
-    .where(eq(waterfallRules.id, input.id))
+    .where(
+      and(
+        eq(waterfallRules.id, input.id),
+        eq(waterfallRules.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }
@@ -113,12 +119,18 @@ export async function updateWaterfallRuleParameters(
   input: z.input<typeof updateParamsSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateParamsSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .update(waterfallRules)
     .set({ ruleParameters: parsed.ruleParameters })
-    .where(eq(waterfallRules.id, parsed.id))
+    .where(
+      and(
+        eq(waterfallRules.id, parsed.id),
+        eq(waterfallRules.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

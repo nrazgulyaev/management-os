@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { bankTransactions, reconciliationRules } from "@/lib/db/schema/banking";
+import { contractGroups, invoices } from "@/lib/db/schema/sales";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
@@ -64,6 +65,7 @@ export async function assignCategoryAction(
     );
     return;
   }
+  const orgId = await resolveActiveOrgId();
   const user = await getCurrentAppUser();
   const db = requireDb();
   await db
@@ -75,7 +77,12 @@ export async function assignCategoryAction(
       categorizedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(bankTransactions.id, parsed.data.bankTransactionId));
+    .where(
+      and(
+        eq(bankTransactions.id, parsed.data.bankTransactionId),
+        eq(bankTransactions.organizationId, orgId),
+      ),
+    );
   revalidatePath("/development-os/finance/bank-review");
 }
 
@@ -96,8 +103,34 @@ export async function matchInvoiceAction(formData: FormData): Promise<void> {
     );
     return;
   }
+  const orgId = await resolveActiveOrgId();
   const user = await getCurrentAppUser();
   const db = requireDb();
+
+  // Validate the target invoice belongs to the caller's org before linking.
+  // `invoices` has no org column of its own — resolve it through its
+  // contract group (contract_groups.organization_id, migration 0162/0163).
+  if (parsed.data.invoiceId) {
+    const [inv] = await db
+      .select({ id: invoices.id })
+      .from(invoices)
+      .innerJoin(
+        contractGroups,
+        eq(contractGroups.id, invoices.contractGroupId),
+      )
+      .where(
+        and(
+          eq(invoices.id, parsed.data.invoiceId),
+          eq(contractGroups.organizationId, orgId),
+        ),
+      )
+      .limit(1);
+    if (!inv) {
+      console.error("matchInvoiceAction: invoice not found");
+      return;
+    }
+  }
+
   await db
     .update(bankTransactions)
     .set({
@@ -109,7 +142,12 @@ export async function matchInvoiceAction(formData: FormData): Promise<void> {
       matchedBy: parsed.data.invoiceId ? user?.id ?? null : null,
       updatedAt: new Date(),
     })
-    .where(eq(bankTransactions.id, parsed.data.bankTransactionId));
+    .where(
+      and(
+        eq(bankTransactions.id, parsed.data.bankTransactionId),
+        eq(bankTransactions.organizationId, orgId),
+      ),
+    );
   revalidatePath("/development-os/finance/bank-review");
   revalidatePath("/development-os/finance/reconciliation");
 }
@@ -131,11 +169,17 @@ export async function ignoreTransactionAction(
     );
     return;
   }
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   await db
     .update(bankTransactions)
     .set({ matchStatus: "ignored", updatedAt: new Date() })
-    .where(eq(bankTransactions.id, parsed.data.bankTransactionId));
+    .where(
+      and(
+        eq(bankTransactions.id, parsed.data.bankTransactionId),
+        eq(bankTransactions.organizationId, orgId),
+      ),
+    );
   revalidatePath("/development-os/finance/bank-review");
   revalidatePath("/development-os/finance/reconciliation");
 }
@@ -218,11 +262,17 @@ export async function setRuleActiveAction(
   ruleId: string,
   isActive: boolean,
 ): Promise<void> {
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   await db
     .update(reconciliationRules)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(reconciliationRules.id, ruleId));
+    .where(
+      and(
+        eq(reconciliationRules.id, ruleId),
+        eq(reconciliationRules.organizationId, orgId),
+      ),
+    );
   revalidatePath("/development-os/finance/rules");
 }
 
@@ -308,10 +358,12 @@ export async function reopenPeriodAction(formData: FormData): Promise<void> {
     );
     return;
   }
+  const orgId = await resolveActiveOrgId();
   const user = await getCurrentAppUser();
   if (!user) return;
   await reopenPeriod({
     periodId: parsed.data.periodId,
+    organizationId: orgId,
     reopenedBy: user.id,
     reason: parsed.data.reason,
   });

@@ -80,12 +80,22 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     .limit(1);
   if (!period) return { ok: false, reason: "period_not_found" };
 
+  // TENANCY (write-flow IDOR): the owner is the tenant boundary for a
+  // statement. owners.organizationId is a nullable backfill column (migration
+  // 0173): NULL = pre-threading row (allowed); set-but-mismatched = a foreign
+  // org's owner → reject with the same opaque reason as "not found" so the two
+  // cases are indistinguishable to a probing caller.
   const [owner] = await db
     .select()
     .from(owners)
     .where(eq(owners.id, input.ownerId))
     .limit(1);
-  if (!owner) return { ok: false, reason: "owner_not_found" };
+  if (
+    !owner ||
+    (owner.organizationId && owner.organizationId !== input.organizationId)
+  ) {
+    return { ok: false, reason: "owner_not_found" };
+  }
 
   const currency = input.currency ?? "USD";
 
@@ -110,6 +120,14 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         eq(ownershipShares.status, "active"),
         lte(ownershipShares.startsOn, periodEnd),
         or(isNull(ownershipShares.endsOn), gte(ownershipShares.endsOn, periodStart)),
+        // TENANCY (write-flow IDOR): ownership_shares.organizationId is a
+        // nullable backfill column (migration 0154, not query-threaded). Keep
+        // NULL (pre-threading) rows so legacy statements still compute, but
+        // exclude any share explicitly anchored to a different tenant.
+        or(
+          isNull(ownershipShares.organizationId),
+          eq(ownershipShares.organizationId, input.organizationId),
+        ),
       ),
     );
 

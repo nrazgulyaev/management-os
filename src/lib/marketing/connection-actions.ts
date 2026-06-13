@@ -318,11 +318,20 @@ export async function testMarketingConnectionAction(args: {
   await requirePermission("marketing.read");
   const db = requireDb();
   const me = await getCurrentAppUser();
+  // TENANCY — marketing_connections.organization_id is notNull; bind every
+  // read/write to the caller's org so a foreign connectionId reads as
+  // not-found and cannot trigger writes against another org's connection.
+  const organizationId = await requireOrgId();
 
   const [row] = await db
     .select()
     .from(marketingConnections)
-    .where(eq(marketingConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(marketingConnections.id, args.connectionId),
+        eq(marketingConnections.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
@@ -345,7 +354,12 @@ export async function testMarketingConnectionAction(args: {
         lastSyncError: msg,
         updatedAt: new Date(),
       })
-      .where(eq(marketingConnections.id, args.connectionId));
+      .where(
+        and(
+          eq(marketingConnections.id, args.connectionId),
+          eq(marketingConnections.organizationId, organizationId),
+        ),
+      );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "marketing.connection.test_failed",
@@ -380,7 +394,12 @@ export async function testMarketingConnectionAction(args: {
           : "testConnection returned false",
       updatedAt: new Date(),
     })
-    .where(eq(marketingConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(marketingConnections.id, args.connectionId),
+        eq(marketingConnections.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -413,13 +432,19 @@ export async function disconnectMarketingConnectionAction(args: {
   reason?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   await requirePermission("marketing.write");
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
 
   const [before] = await db
     .select()
     .from(marketingConnections)
-    .where(eq(marketingConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(marketingConnections.id, args.connectionId),
+        eq(marketingConnections.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Connection not found." };
   if (before.status === "archived") {
@@ -434,7 +459,12 @@ export async function disconnectMarketingConnectionAction(args: {
       archiveReason: args.reason ?? "operator-initiated",
       updatedAt: new Date(),
     })
-    .where(eq(marketingConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(marketingConnections.id, args.connectionId),
+        eq(marketingConnections.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { securityCameraDevices } from "@/lib/db/schema/availability";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -95,13 +95,14 @@ export async function updateSecurityCameraDeviceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const externalAppUrl =
     parsed.data.externalAppUrl && parsed.data.externalAppUrl !== ""
       ? parsed.data.externalAppUrl
       : null;
 
-  await db
+  const [updated] = await db
     .update(securityCameraDevices)
     .set({
       projectId: parsed.data.projectId ?? null,
@@ -118,7 +119,12 @@ export async function updateSecurityCameraDeviceAction(
         : {}),
       updatedAt: new Date(),
     })
-    .where(eq(securityCameraDevices.id, parsed.data.id));
+    .where(and(
+      eq(securityCameraDevices.id, parsed.data.id),
+      eq(securityCameraDevices.organizationId, organizationId),
+    ))
+    .returning({ id: securityCameraDevices.id });
+  if (!updated) return { ok: false, error: "Camera not found." };
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -146,10 +152,14 @@ export async function archiveSecurityCameraDeviceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .update(securityCameraDevices)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(securityCameraDevices.id, id))
+    .where(and(
+      eq(securityCameraDevices.id, id),
+      eq(securityCameraDevices.organizationId, organizationId),
+    ))
     .returning({ id: securityCameraDevices.id });
   if (!row) return { ok: false, error: "Camera not found." };
   await recordAuditEvent({

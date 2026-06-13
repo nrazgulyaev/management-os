@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, or, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,7 +9,22 @@ import {
   investorWallets,
 } from "@/lib/db/schema/investor-capital";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import type { SQL } from "drizzle-orm";
+
+/**
+ * TENANCY: capital_commitments.organization_id is a NULLABLE legacy
+ * column (added by migration 0072 for pre-threading rows). A NULL org
+ * means a pre-threading row (operate as before); a set-but-mismatched
+ * org means a cross-org commitment and must NOT be mutable. This builds
+ * the legacy-safe org predicate for an UPDATE/SELECT WHERE.
+ */
+const orgScoped = (organizationId: string): SQL | undefined =>
+  or(
+    isNull(capitalCommitments.organizationId),
+    eq(capitalCommitments.organizationId, organizationId),
+  );
 import type { CreateCommitmentInput } from "@/lib/development/types/investors";
 
 const createCommitmentSchema = z.object({
@@ -92,6 +107,7 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<{
     const [c] = await tx
       .insert(capitalCommitments)
       .values({
+        organizationId,
         investorId: parsed.investorId,
         projectId: parsed.projectId ?? null,
         commitmentCode: parsed.commitmentCode,
@@ -148,6 +164,8 @@ export async function updateCommitmentTerms(
   id: string,
   patch: z.input<typeof updateCommitmentTermsSchema>,
 ): Promise<void> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateCommitmentTermsSchema.parse(patch);
   const db = requireDb();
   await db
@@ -166,7 +184,7 @@ export async function updateCommitmentTerms(
       ...(parsed.notes !== undefined && { notes: parsed.notes }),
       updatedAt: new Date(),
     })
-    .where(eq(capitalCommitments.id, id));
+    .where(and(eq(capitalCommitments.id, id), orgScoped(organizationId)));
 }
 
 /**
@@ -183,9 +201,21 @@ export async function cancelCommitment(
   if (!reason || reason.trim().length < 3) {
     throw new Error("cancelCommitment: reason is required (min 3 chars)");
   }
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   await db.transaction(async (tx) => {
+    // Org-scope the existence read so a cross-org id reads as "not found"
+    // (the legacy-safe predicate allows NULL pre-threading rows).
+    const [commitment] = await tx
+      .select({ id: capitalCommitments.id })
+      .from(capitalCommitments)
+      .where(and(eq(capitalCommitments.id, id), orgScoped(organizationId)))
+      .limit(1);
+    if (!commitment) {
+      throw new Error("Commitment not found");
+    }
     const [existing] = await tx
       .select({ id: capitalDrawdowns.id })
       .from(capitalDrawdowns)
@@ -203,7 +233,7 @@ export async function cancelCommitment(
         notes: reason,
         updatedAt: new Date(),
       })
-      .where(eq(capitalCommitments.id, id));
+      .where(and(eq(capitalCommitments.id, id), orgScoped(organizationId)));
   });
 }
 
@@ -213,16 +243,25 @@ export async function cancelCommitment(
  * commitment is a no-op.
  */
 export async function closeCommitment(id: string): Promise<void> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   await db.transaction(async (tx) => {
+    // investor_wallets.organization_id is NOT NULL — scope the read so a
+    // cross-org commitment's wallet is invisible (reads as "not found").
     const [w] = await tx
       .select({
         availableBalanceUsdMinor: investorWallets.availableBalanceUsdMinor,
         holdBalanceUsdMinor: investorWallets.holdBalanceUsdMinor,
       })
       .from(investorWallets)
-      .where(eq(investorWallets.commitmentId, id))
+      .where(
+        and(
+          eq(investorWallets.commitmentId, id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!w) {
       throw new Error("Wallet not found for commitment");
@@ -240,6 +279,7 @@ export async function closeCommitment(id: string): Promise<void> {
       .where(
         and(
           eq(capitalCommitments.id, id),
+          orgScoped(organizationId),
           // Don't downgrade an already-cancelled or already-closed commitment
         ),
       );

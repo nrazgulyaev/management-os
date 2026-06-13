@@ -570,9 +570,19 @@ export async function deliverPendingNotifications(
   };
 }
 
-/** Reset a notification back to queued so the worker picks it up again. */
+/**
+ * Reset a notification back to queued so the worker picks it up again.
+ *
+ * TENANCY — `organizationId` is optional so system callers (cron/worker) can
+ * keep calling unscoped (pass null). Request-path callers MUST pass
+ * `await requireOrgId()` so a foreign queue id cannot be requeued. The org
+ * column is a nullable legacy anchor (migration 0151): NULL rows are
+ * pre-threading and allowed; a set-but-mismatched org is refused as "not
+ * found" so existence is not leaked.
+ */
 export async function requeueNotification(
   notificationId: string,
+  organizationId: string | null = null,
 ): Promise<{ ok: boolean; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "db unavailable" };
@@ -582,6 +592,8 @@ export async function requeueNotification(
     .where(eq(notificationQueue.id, notificationId))
     .limit(1);
   if (!row) return { ok: false, reason: "not found" };
+  if (organizationId && row.organizationId && row.organizationId !== organizationId)
+    return { ok: false, reason: "not found" };
   await db
     .update(notificationQueue)
     .set({

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, lt, lte, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   directBookingExpiryRuns,
@@ -332,13 +332,29 @@ export async function updateRequestStatus(
   id: string,
   status: DirectBookingRequest["status"],
   patch?: Partial<DirectBookingRequest>,
+  // TENANCY: request-path callers pass the verified caller org so a cross-org
+  // id resolves to no row (returns null = "Request not found"). Cron/system
+  // callers (expiry.ts) pass nothing and stay org-agnostic. The org column is
+  // a nullable legacy anchor (migration 0153) — a NULL pre-backfill row is
+  // still writable by the internal caller; only a set-but-mismatched org is
+  // rejected.
+  organizationId: string | null = null,
 ): Promise<DirectBookingRequest | null> {
   const db = getDb();
   if (!db) return null;
+  const where = organizationId
+    ? and(
+        eq(directBookingRequests.id, id),
+        or(
+          isNull(directBookingRequests.organizationId),
+          eq(directBookingRequests.organizationId, organizationId),
+        ),
+      )
+    : eq(directBookingRequests.id, id);
   const [row] = await db
     .update(directBookingRequests)
     .set({ status, updatedAt: new Date(), ...(patch ?? {}) })
-    .where(eq(directBookingRequests.id, id))
+    .where(where)
     .returning();
   return row ?? null;
 }

@@ -25,6 +25,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { selectBankProvider } from "./select-provider";
 import {
   sealCredentials,
@@ -238,13 +239,19 @@ export async function testBankConnectionAction(args: {
   | { ok: false; error: string }
 > {
   await requirePermission("banking.read");
+  const orgId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
 
   const [row] = await db
     .select()
     .from(bankConnections)
-    .where(eq(bankConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(bankConnections.id, args.connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "Connection not found." };
 
@@ -267,7 +274,12 @@ export async function testBankConnectionAction(args: {
         lastSyncError: msg,
         updatedAt: new Date(),
       })
-      .where(eq(bankConnections.id, args.connectionId));
+      .where(
+        and(
+          eq(bankConnections.id, args.connectionId),
+          eq(bankConnections.organizationId, orgId),
+        ),
+      );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "banking.connection.test_failed",
@@ -300,7 +312,12 @@ export async function testBankConnectionAction(args: {
           : "testConnection returned false",
       updatedAt: new Date(),
     })
-    .where(eq(bankConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(bankConnections.id, args.connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -328,13 +345,19 @@ export async function disconnectBankConnectionAction(args: {
   reason?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   await requirePermission("banking.write");
+  const orgId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
 
   const [before] = await db
     .select()
     .from(bankConnections)
-    .where(eq(bankConnections.id, args.connectionId))
+    .where(
+      and(
+        eq(bankConnections.id, args.connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Connection not found." };
   if (before.status === "archived") {
@@ -349,7 +372,12 @@ export async function disconnectBankConnectionAction(args: {
       archiveReason: args.reason ?? "operator-initiated",
       updatedAt: new Date(),
     })
-    .where(eq(bankConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(bankConnections.id, args.connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

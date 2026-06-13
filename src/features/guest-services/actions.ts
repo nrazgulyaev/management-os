@@ -130,6 +130,7 @@ export async function upsertServiceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
 
   const values = {
@@ -161,10 +162,30 @@ export async function upsertServiceAction(
   };
 
   if (v.id) {
+    // Tenancy guard: guest_services.organization_id is NOT NULL. Confirm the
+    // target service belongs to the caller's org before mutating (price /
+    // internal cost are live money), and AND the org into the UPDATE WHERE for
+    // TOCTOU defense-in-depth. A cross-org id reads as "not found".
+    const [owned] = await db
+      .select({ id: guestServices.id })
+      .from(guestServices)
+      .where(
+        and(
+          eq(guestServices.id, v.id),
+          eq(guestServices.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!owned) return { ok: false, error: "Service not found." };
     await db
       .update(guestServices)
       .set({ ...values, updatedAt: new Date() })
-      .where(eq(guestServices.id, v.id));
+      .where(
+        and(
+          eq(guestServices.id, v.id),
+          eq(guestServices.organizationId, organizationId),
+        ),
+      );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "guest_services.service.update",
@@ -177,7 +198,6 @@ export async function upsertServiceAction(
     return { ok: true, id: v.id };
   }
 
-  const organizationId = await requireOrgId();
   const [row] = await db
     .insert(guestServices)
     .values({ ...values, organizationId, createdBy: me?.id ?? null })
@@ -210,7 +230,24 @@ export async function upsertServiceOptionAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
+
+  // Tenancy guard: guest_service_options has no org column. Anchor every write
+  // to the caller's org via the parent service (guest_services.organization_id
+  // NOT NULL). The target serviceId is client-supplied, so verify it belongs to
+  // the caller before inserting/updating against it.
+  const [serviceOwned] = await db
+    .select({ id: guestServices.id })
+    .from(guestServices)
+    .where(
+      and(
+        eq(guestServices.id, v.serviceId),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!serviceOwned) return { ok: false, error: "Service not found." };
 
   const values = {
     serviceId: v.serviceId,
@@ -225,6 +262,23 @@ export async function upsertServiceOptionAction(
   };
 
   if (v.id) {
+    // Also confirm the existing option's CURRENT parent service is in the
+    // caller's org, so a cross-org option id can't be hijacked / re-parented.
+    const [optionOwned] = await db
+      .select({ id: guestServiceOptions.id })
+      .from(guestServiceOptions)
+      .innerJoin(
+        guestServices,
+        eq(guestServices.id, guestServiceOptions.serviceId),
+      )
+      .where(
+        and(
+          eq(guestServiceOptions.id, v.id),
+          eq(guestServices.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!optionOwned) return { ok: false, error: "Option not found." };
     await db
       .update(guestServiceOptions)
       .set({ ...values, updatedAt: new Date() })

@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 import { getDb } from "@/lib/db/client";
 import { ownerThreads, ownerMessages } from "@/lib/db/schema/owner-threads";
 import { canManageEntity } from "@/features/auth/permissions";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import { callGuestConcierge } from "@/features/guest-ai-concierge/provider";
 import {
@@ -191,11 +192,18 @@ export async function postMgmtThreadReplyAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  // The thread must exist.
+  const organizationId = await requireOrgId();
+
+  // The thread must exist AND belong to the caller's org.
   const [exists] = await db
     .select({ id: ownerThreads.id })
     .from(ownerThreads)
-    .where(eq(ownerThreads.id, threadId))
+    .where(
+      and(
+        eq(ownerThreads.id, threadId),
+        eq(ownerThreads.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!exists) return { ok: false, error: "Conversation not found." };
 
@@ -217,7 +225,12 @@ export async function postMgmtThreadReplyAction(
       unreadCount: 0,
       updatedAt: new Date(),
     })
-    .where(eq(ownerThreads.id, threadId));
+    .where(
+      and(
+        eq(ownerThreads.id, threadId),
+        eq(ownerThreads.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -257,11 +270,17 @@ export async function setOwnerThreadStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const updated = await db
     .update(ownerThreads)
     .set({ status: parsedStatus.data, updatedAt: new Date() })
-    .where(eq(ownerThreads.id, threadId))
+    .where(
+      and(
+        eq(ownerThreads.id, threadId),
+        eq(ownerThreads.organizationId, organizationId),
+      ),
+    )
     .returning({ id: ownerThreads.id });
   if (updated.length === 0) {
     return { ok: false, error: "Conversation not found." };

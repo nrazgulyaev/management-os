@@ -304,17 +304,36 @@ export async function disableMfaFactor(input: {
   return { ok: true };
 }
 
+/**
+ * Admin-side factor revoke. Shared helper: called both from the request path
+ * (revokeMfaFactorAction → must scope to the caller's org) and from the
+ * platform super-admin path (cross-org by design → passes null to skip the
+ * org guard). When `organizationId` is provided, a factor anchored to a
+ * different org is treated as "not found" (NULL org anchor = pre-backfill
+ * row, migration 0154 — allowed; set-but-mismatched = rejected).
+ */
 export async function revokeMfaFactorAsAdmin(input: {
   factorId: string;
+  organizationId?: string | null;
 }): Promise<{ ok: boolean; appUserId?: string }> {
   const db = getDb();
   if (!db) return { ok: false };
+  const scopeOrgId = input.organizationId ?? null;
   const [factor] = await db
-    .select({ id: authMfaFactors.id, appUserId: authMfaFactors.appUserId })
+    .select({
+      id: authMfaFactors.id,
+      appUserId: authMfaFactors.appUserId,
+      organizationId: authMfaFactors.organizationId,
+    })
     .from(authMfaFactors)
     .where(eq(authMfaFactors.id, input.factorId))
     .limit(1);
   if (!factor) return { ok: false };
+  // TENANCY — request-path callers scope to their session org; a factor in
+  // another org is invisible (do not revoke, do not leak existence).
+  if (scopeOrgId && factor.organizationId && factor.organizationId !== scopeOrgId) {
+    return { ok: false };
+  }
   const now = new Date();
   await db
     .update(authMfaFactors)

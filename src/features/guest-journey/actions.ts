@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestJourneyRules,
@@ -100,11 +100,31 @@ async function setRuleStatus(
   await requirePermission(permission);
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+  // Tenancy guard: guest_journey_rules.organization_id is NOT NULL (0152/0158).
+  // Confirm the rule belongs to the caller's org before flipping its status; a
+  // cross-org id reads as not-found.
+  const [owned] = await db
+    .select({ id: guestJourneyRules.id })
+    .from(guestJourneyRules)
+    .where(
+      and(
+        eq(guestJourneyRules.id, id),
+        eq(guestJourneyRules.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Rule not found." };
   await db
     .update(guestJourneyRules)
     .set({ status, updatedAt: new Date() })
-    .where(eq(guestJourneyRules.id, id));
+    .where(
+      and(
+        eq(guestJourneyRules.id, id),
+        eq(guestJourneyRules.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `guest_journey.rule.${status}`,

@@ -14,6 +14,8 @@ import {
   taskChecklistItems,
   taskChecklists,
 } from "@/lib/db/schema/operations";
+import { villas, projects } from "@/lib/db/schema/projects";
+import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -143,11 +145,17 @@ export async function updateOperationTaskStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(operationTasks)
-    .where(eq(operationTasks.id, parsed.data.id))
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Task not found." };
 
@@ -170,7 +178,15 @@ export async function updateOperationTaskStatusAction(
   if (parsed.data.status === "completed" && !before.completedAt) patch.completedAt = now;
   if (parsed.data.status === "cancelled" && !before.cancelledAt) patch.cancelledAt = now;
 
-  await db.update(operationTasks).set(patch).where(eq(operationTasks.id, parsed.data.id));
+  await db
+    .update(operationTasks)
+    .set(patch)
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -198,11 +214,17 @@ export async function assignOperationTaskAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(operationTasks)
-    .where(eq(operationTasks.id, parsed.data.id))
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Task not found." };
 
@@ -212,7 +234,12 @@ export async function assignOperationTaskAction(
       assignedTo: parsed.data.assignedTo,
       status: before.status === "open" ? "scheduled" : before.status,
     })
-    .where(eq(operationTasks.id, parsed.data.id));
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -238,11 +265,17 @@ export async function approveOperationTaskAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(operationTasks)
-    .where(eq(operationTasks.id, parsed.data.id))
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Task not found." };
   if (!["completed", "needs_review"].includes(before.status)) {
@@ -253,7 +286,12 @@ export async function approveOperationTaskAction(
   await db
     .update(operationTasks)
     .set({ status: "approved", approvedAt: now, approvedBy: me?.id ?? null })
-    .where(eq(operationTasks.id, parsed.data.id));
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -530,6 +568,47 @@ export async function approveChecklistAction(
 // Maintenance tickets
 // -----------------------------------------------------------------------------
 
+/**
+ * TENANCY: `maintenance_tickets` has no organization_id column — its only org
+ * anchor is the (nullable) villaId / projectId / bookingId. This resolves the
+ * row's owning org transitively (villa -> project, else project, else booking)
+ * and returns true only when it matches the caller's org. If all three anchors
+ * are null OR the resolved org differs, the ticket is treated as not found so a
+ * cross-org operator can't mutate it.
+ */
+async function ticketBelongsToOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  anchors: { villaId: string | null; projectId: string | null; bookingId: string | null },
+  organizationId: string,
+): Promise<boolean> {
+  if (anchors.villaId) {
+    const [v] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, anchors.villaId))
+      .limit(1);
+    if (v?.organizationId) return v.organizationId === organizationId;
+  }
+  if (anchors.projectId) {
+    const [p] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(projects)
+      .where(eq(projects.id, anchors.projectId))
+      .limit(1);
+    if (p?.organizationId) return p.organizationId === organizationId;
+  }
+  if (anchors.bookingId) {
+    const [b] = await db
+      .select({ organizationId: bookings.organizationId })
+      .from(bookings)
+      .where(eq(bookings.id, anchors.bookingId))
+      .limit(1);
+    if (b?.organizationId) return b.organizationId === organizationId;
+  }
+  return false;
+}
+
 export async function createMaintenanceTicketAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -594,6 +673,7 @@ export async function updateMaintenanceTicketStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
@@ -601,6 +681,9 @@ export async function updateMaintenanceTicketStatusAction(
     .where(eq(maintenanceTickets.id, parsed.data.id))
     .limit(1);
   if (!before) return { ok: false, error: "Ticket not found." };
+  if (!(await ticketBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Ticket not found." };
+  }
   if (!canTransition(MAINTENANCE_TRANSITIONS, before.status, parsed.data.status)) {
     return {
       ok: false,
@@ -874,6 +957,45 @@ async function transitionServiceRequest(
 // Damage reports
 // -----------------------------------------------------------------------------
 
+/**
+ * TENANCY: `damage_reports` has no organization_id column. Resolve its owning
+ * org transitively (villa -> project, else booking, else linked task) and
+ * return true only when it matches the caller's org. All-null / mismatch is
+ * treated as not found so a cross-org operator can't mutate the row.
+ */
+async function damageReportBelongsToOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  anchors: { villaId: string | null; bookingId: string | null; taskId: string | null },
+  organizationId: string,
+): Promise<boolean> {
+  if (anchors.villaId) {
+    const [v] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, anchors.villaId))
+      .limit(1);
+    if (v?.organizationId) return v.organizationId === organizationId;
+  }
+  if (anchors.bookingId) {
+    const [b] = await db
+      .select({ organizationId: bookings.organizationId })
+      .from(bookings)
+      .where(eq(bookings.id, anchors.bookingId))
+      .limit(1);
+    if (b?.organizationId) return b.organizationId === organizationId;
+  }
+  if (anchors.taskId) {
+    const [t] = await db
+      .select({ organizationId: operationTasks.organizationId })
+      .from(operationTasks)
+      .where(eq(operationTasks.id, anchors.taskId))
+      .limit(1);
+    if (t?.organizationId) return t.organizationId === organizationId;
+  }
+  return false;
+}
+
 export async function createDamageReportAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -946,12 +1068,18 @@ export async function editOperationTaskAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
     .select()
     .from(operationTasks)
-    .where(eq(operationTasks.id, d.id))
+    .where(
+      and(
+        eq(operationTasks.id, d.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Task not found." };
   if (before.status === "archived") {
@@ -981,7 +1109,12 @@ export async function editOperationTaskAction(
         d.internalNotes && d.internalNotes !== "" ? d.internalNotes : null,
       updatedAt: new Date(),
     })
-    .where(eq(operationTasks.id, d.id));
+    .where(
+      and(
+        eq(operationTasks.id, d.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -1015,12 +1148,18 @@ export async function archiveOperationTaskAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
     .select()
     .from(operationTasks)
-    .where(eq(operationTasks.id, d.id))
+    .where(
+      and(
+        eq(operationTasks.id, d.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Task not found." };
   if (before.status === "archived") {
@@ -1038,7 +1177,12 @@ export async function archiveOperationTaskAction(
         : before.internalNotes,
       updatedAt: now,
     })
-    .where(eq(operationTasks.id, d.id));
+    .where(
+      and(
+        eq(operationTasks.id, d.id),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -1072,6 +1216,7 @@ export async function editMaintenanceTicketAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
@@ -1080,6 +1225,9 @@ export async function editMaintenanceTicketAction(
     .where(eq(maintenanceTickets.id, d.id))
     .limit(1);
   if (!before) return { ok: false, error: "Ticket not found." };
+  if (!(await ticketBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Ticket not found." };
+  }
   if (before.status === "archived") {
     return {
       ok: false,
@@ -1138,6 +1286,7 @@ export async function archiveMaintenanceTicketAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
@@ -1146,6 +1295,9 @@ export async function archiveMaintenanceTicketAction(
     .where(eq(maintenanceTickets.id, d.id))
     .limit(1);
   if (!before) return { ok: false, error: "Ticket not found." };
+  if (!(await ticketBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Ticket not found." };
+  }
   if (before.status === "archived") {
     return { ok: false, error: "Already archived." };
   }
@@ -1191,6 +1343,7 @@ export async function editDamageReportAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
@@ -1199,6 +1352,9 @@ export async function editDamageReportAction(
     .where(eq(damageReports.id, d.id))
     .limit(1);
   if (!before) return { ok: false, error: "Report not found." };
+  if (!(await damageReportBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Report not found." };
+  }
   if (before.status === "archived") {
     return {
       ok: false,
@@ -1249,6 +1405,7 @@ export async function archiveDamageReportAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [before] = await db
@@ -1257,6 +1414,9 @@ export async function archiveDamageReportAction(
     .where(eq(damageReports.id, d.id))
     .limit(1);
   if (!before) return { ok: false, error: "Report not found." };
+  if (!(await damageReportBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Report not found." };
+  }
   if (before.status === "archived") {
     return { ok: false, error: "Already archived." };
   }
@@ -1308,6 +1468,7 @@ export async function assignMaintenanceTicketAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [ticket] = await db
     .select()
@@ -1315,6 +1476,9 @@ export async function assignMaintenanceTicketAction(
     .where(eq(maintenanceTickets.id, parsed.data.ticketId))
     .limit(1);
   if (!ticket) return { ok: false, error: "Ticket not found." };
+  if (!(await ticketBelongsToOrg(db, ticket, organizationId))) {
+    return { ok: false, error: "Ticket not found." };
+  }
   if (ticket.status === "archived") {
     return { ok: false, error: "Cannot assign an archived ticket." };
   }
@@ -1328,7 +1492,12 @@ export async function assignMaintenanceTicketAction(
     const [task] = await db
       .select()
       .from(operationTasks)
-      .where(eq(operationTasks.id, ticket.taskId))
+      .where(
+        and(
+          eq(operationTasks.id, ticket.taskId),
+          eq(operationTasks.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!task) return { ok: false, error: "Linked task not found." };
     await db
@@ -1339,7 +1508,12 @@ export async function assignMaintenanceTicketAction(
         status: task.status === "open" ? "scheduled" : task.status,
         updatedAt: new Date(),
       })
-      .where(eq(operationTasks.id, ticket.taskId));
+      .where(
+        and(
+          eq(operationTasks.id, ticket.taskId),
+          eq(operationTasks.organizationId, organizationId),
+        ),
+      );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "operations.maintenance.assign",
@@ -1355,7 +1529,6 @@ export async function assignMaintenanceTicketAction(
   } else {
     const counter = await nextDailyCounter("OPS");
     const taskCode = buildTaskCode(counter);
-    const organizationId = await requireOrgId();
     const [newTask] = await db
       .insert(operationTasks)
       .values({

@@ -34,11 +34,12 @@ export async function updateBookingNotesAction(
   if (!db) return { ok: false, error: "Database is not configured." };
 
   const clean = notes.trim().slice(0, 2000);
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select({ notes: bookings.notes })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!before) return { ok: false, error: "Booking not found." };
 
@@ -50,7 +51,7 @@ export async function updateBookingNotesAction(
   await db
     .update(bookings)
     .set({ notes: next, updatedAt: new Date() })
-    .where(eq(bookings.id, bookingId));
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)));
 
   const me = await getCurrentAppUser();
   await recordAuditEvent({
@@ -101,12 +102,14 @@ export async function addBookingGuestAction(
     };
   }
   const d = parsed.data;
+  const organizationId = await requireOrgId();
 
-  // Child row inherits the parent booking's org (tenancy).
+  // Child row inherits the parent booking's org (tenancy); a cross-org
+  // booking id reads as not-found before any insert.
   const [parent] = await db
     .select({ organizationId: bookings.organizationId })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!parent) return { ok: false, error: "Booking not found." };
 
@@ -118,7 +121,7 @@ export async function addBookingGuestAction(
   const role = d.kind === "child" ? "child" : d.role;
 
   await db.insert(bookingGuests).values({
-    organizationId: parent.organizationId,
+    organizationId,
     bookingId,
     fullName: d.fullName,
     role,
@@ -177,12 +180,14 @@ export async function addBookingChargeAction(
   }
   const d = parsed.data;
   const signed = d.direction === "deduction" ? -Math.abs(d.amount) : Math.abs(d.amount);
+  const organizationId = await requireOrgId();
 
-  // Child row inherits the parent booking's org (tenancy).
+  // Child row inherits the parent booking's org (tenancy); a cross-org
+  // booking id reads as not-found before any money line is inserted.
   const [parent] = await db
     .select({ organizationId: bookings.organizationId })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!parent) return { ok: false, error: "Booking not found." };
 
@@ -194,7 +199,7 @@ export async function addBookingChargeAction(
   const today = new Date().toISOString().slice(0, 10);
 
   await db.insert(bookingCharges).values({
-    organizationId: parent.organizationId,
+    organizationId,
     bookingId,
     chargeType: d.chargeType,
     description: d.description,
@@ -242,6 +247,7 @@ export async function extendBookingStayAction(
     return { ok: false, error: "Pick a valid check-out date." };
   }
   const newCheckOut = parsed.data.checkOut;
+  const organizationId = await requireOrgId();
 
   const [bk] = await db
     .select({
@@ -250,7 +256,7 @@ export async function extendBookingStayAction(
       checkOut: bookings.checkOut,
     })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!bk) return { ok: false, error: "Booking not found." };
   if (new Date(newCheckOut) <= new Date(bk.checkIn)) {
@@ -263,6 +269,7 @@ export async function extendBookingStayAction(
     .from(bookings)
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         eq(bookings.villaId, bk.villaId),
         ne(bookings.id, bookingId),
         sql`${bookings.checkOut} > ${bk.checkIn}`,
@@ -279,7 +286,7 @@ export async function extendBookingStayAction(
   await db
     .update(bookings)
     .set({ checkOut: newCheckOut, nights, updatedAt: new Date() })
-    .where(eq(bookings.id, bookingId));
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, organizationId)));
 
   const me = await getCurrentAppUser();
   await recordAuditEvent({

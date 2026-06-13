@@ -60,6 +60,14 @@ export interface RebuildOutcome {
 export async function rebuildStatementTransparency(
   statementId: string,
   actorUserId: string | null = null,
+  /**
+   * TENANCY (write-flow IDOR): caller org. This helper is shared with the
+   * bulk/cron sweeps (rebuildAll / forOwner), so scoping is opt-in: when a
+   * request action passes the org, a cross-org statementId resolves to nothing
+   * (and nothing is wiped/rebuilt). owner_statements.organizationId is NOT
+   * NULL so a strict equality is safe here.
+   */
+  organizationId: string | null = null,
 ): Promise<RebuildOutcome> {
   const db = getDb();
   const empty: RebuildOutcome = {
@@ -75,7 +83,14 @@ export async function rebuildStatementTransparency(
   const [statement] = await db
     .select()
     .from(ownerStatements)
-    .where(eq(ownerStatements.id, statementId))
+    .where(
+      organizationId
+        ? and(
+            eq(ownerStatements.id, statementId),
+            eq(ownerStatements.organizationId, organizationId),
+          )
+        : eq(ownerStatements.id, statementId),
+    )
     .limit(1);
   if (!statement) return empty;
 
@@ -352,15 +367,28 @@ export async function rebuildAllStatementTransparency(
 export async function rebuildStatementTransparencyForOwner(
   ownerId: string,
   actorUserId: string | null = null,
+  /**
+   * TENANCY (write-flow IDOR): caller org. When provided, only this org's
+   * statements for the owner are rebuilt, and the org is threaded into each
+   * per-statement rebuild. Null preserves legacy/cron behavior.
+   */
+  organizationId: string | null = null,
 ): Promise<{ statementsProcessed: number }> {
   const db = getDb();
   if (!db) return { statementsProcessed: 0 };
   const stmts = await db
     .select({ id: ownerStatements.id })
     .from(ownerStatements)
-    .where(eq(ownerStatements.ownerId, ownerId));
+    .where(
+      organizationId
+        ? and(
+            eq(ownerStatements.ownerId, ownerId),
+            eq(ownerStatements.organizationId, organizationId),
+          )
+        : eq(ownerStatements.ownerId, ownerId),
+    );
   for (const s of stmts) {
-    await rebuildStatementTransparency(s.id, actorUserId);
+    await rebuildStatementTransparency(s.id, actorUserId, organizationId);
   }
   return { statementsProcessed: stmts.length };
 }

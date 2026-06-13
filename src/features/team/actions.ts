@@ -1137,13 +1137,14 @@ export async function inviteOwnerToPortalAction(
   const orgId = me.organizationId;
   if (!orgId) return { ok: false, error: "No organization context available." };
 
-  // Resolve the owner. (`owners` has no organization_id column today, so we
-  // can't org-filter the SELECT; the invitation row we create IS org-scoped,
-  // and the resulting grant is org-anchored to the caller's org.)
+  // Resolve the owner, scoped to the caller's org (owners.organization_id,
+  // migration 0173) so a foreign ownerId cannot seed a cross-org invite/grant
+  // or leak the foreign owner's email. The invitation + grant we create are
+  // org-anchored to the caller's org.
   const owner = await db
     .select({ id: owners.id, email: owners.email, displayName: owners.displayName })
     .from(owners)
-    .where(eq(owners.id, data.ownerId))
+    .where(and(eq(owners.id, data.ownerId), eq(owners.organizationId, orgId)))
     .limit(1)
     .then((rows) => rows[0]);
   if (!owner) return { ok: false, error: "Owner not found." };

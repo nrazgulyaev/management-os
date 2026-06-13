@@ -5,7 +5,10 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { bookings } from "@/lib/db/schema/bookings";
-import { villas as villasTable } from "@/lib/db/schema/projects";
+import {
+  projects as projectsTable,
+  villas as villasTable,
+} from "@/lib/db/schema/projects";
 import {
   channelConnections,
   channelSyncLog,
@@ -71,12 +74,15 @@ export async function enqueueAriPushAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not authorised." };
+  const organizationId = me.organizationId;
   const { villaId, channelKey, dateStart, dateEnd } = parsed.data;
   if (dateEnd < dateStart) {
     return { ok: false, error: "End date must be on or after the start date." };
   }
 
-  // Resolve villa (org scope is enforced by RLS; we still confirm it exists).
+  // Tenant scope: villas carry no org column — resolve via
+  // projects.organization_id so a foreign villaId returns no row and the
+  // existing not-found guard covers it without leaking existence.
   const [villa] = await db
     .select({
       id: villasTable.id,
@@ -86,7 +92,13 @@ export async function enqueueAriPushAction(
       adr: villasTable.currentNightlyRateUsd,
     })
     .from(villasTable)
-    .where(eq(villasTable.id, villaId))
+    .innerJoin(projectsTable, eq(projectsTable.id, villasTable.projectId))
+    .where(
+      and(
+        eq(villasTable.id, villaId),
+        eq(projectsTable.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!villa) return { ok: false, error: "Villa not found." };
 
@@ -151,6 +163,7 @@ export async function enqueueAriPushAction(
     const [row] = await db
       .insert(channelPushEvents)
       .values({
+        organizationId,
         eventCode,
         eventType: parsed.data.eventType,
         channelKey,
@@ -319,8 +332,10 @@ export async function retryConnectionSyncAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not authorised." };
+  const organizationId = me.organizationId;
   const { connectionId, syncType } = parsed.data;
 
+  // Tenant scope: a cross-org connectionId reads as the existing not-found path.
   const [conn] = await db
     .select({
       id: channelConnections.id,
@@ -329,7 +344,12 @@ export async function retryConnectionSyncAction(
       status: channelConnections.status,
     })
     .from(channelConnections)
-    .where(eq(channelConnections.id, connectionId))
+    .where(
+      and(
+        eq(channelConnections.id, connectionId),
+        eq(channelConnections.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!conn) return { ok: false, error: "Connection not found." };
 
@@ -338,7 +358,7 @@ export async function retryConnectionSyncAction(
     // Simulated success — clears the error + advances the connection back to
     // active. A real integration would call the provider client here; deferred.
     await db.insert(channelSyncLog).values({
-      organizationId: conn.organizationId,
+      organizationId,
       channelConnectionId: conn.id,
       syncType,
       triggerSource: "manual",
@@ -372,7 +392,12 @@ export async function retryConnectionSyncAction(
               updatedAt: now,
             },
       )
-      .where(eq(channelConnections.id, conn.id));
+      .where(
+        and(
+          eq(channelConnections.id, conn.id),
+          eq(channelConnections.organizationId, organizationId),
+        ),
+      );
   } catch (err) {
     return {
       ok: false,

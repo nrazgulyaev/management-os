@@ -276,6 +276,14 @@ export async function sendInboxReplyAction(
     return { ok: false, error: "No organization context available." };
   }
 
+  // Org-ownership guard: the caller supplies threadId; resolve the thread and
+  // reject any cross-org id (reads as "not found") BEFORE we dispatch or roll
+  // up thread state. The DB role bypasses RLS, so this is the tenant boundary.
+  const thread = await getThreadById(parsed.data.threadId);
+  if (!thread || thread.organizationId !== orgId) {
+    return { ok: false, error: "Thread not found." };
+  }
+
   // Auto-send guard: if the client claims this is an auto-mode send, confirm
   // the agent is still in auto. A semi/off agent can only be sent by a human
   // pressing Send (which carries aiAuto=false) — never the auto path.

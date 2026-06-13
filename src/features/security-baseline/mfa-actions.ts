@@ -210,7 +210,10 @@ export async function revokeMfaFactorAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Invalid factor id." };
-  const out = await revokeMfaFactorAsAdmin({ factorId: parsed.data.factorId });
+  const out = await revokeMfaFactorAsAdmin({
+    factorId: parsed.data.factorId,
+    organizationId: me?.organizationId ?? null,
+  });
   if (!out.ok) return { ok: false, error: "Factor not found." };
   await recordSecurityEvent({
     eventType: "mfa_revoked",

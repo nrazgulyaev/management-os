@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -8,6 +8,8 @@ import {
   investorWallets,
   walletTransactions,
 } from "@/lib/db/schema/investor-capital";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Wallet write actions. **All transactional**: every balance change
@@ -37,6 +39,8 @@ export async function withdrawFromWallet(
   walletTransactionId: string;
   newAvailableBalanceUsdMinor: string;
 }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = withdrawSchema.parse(input);
   const db = requireDb();
   const amountUsd = toBig(parsed.amountUsdMinor);
@@ -49,7 +53,12 @@ export async function withdrawFromWallet(
     const [w] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.id, parsed.walletId))
+      .where(
+        and(
+          eq(investorWallets.id, parsed.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!w) throw new Error("Wallet not found");
     if (BigInt(w.availableBalanceUsdMinor) < amountUsd) {
@@ -69,7 +78,12 @@ export async function withdrawFromWallet(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, w.id));
+      .where(
+        and(
+          eq(investorWallets.id, w.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [walletTx] = await tx
       .insert(walletTransactions)
@@ -116,6 +130,8 @@ export async function reinvestFromWallet(
   outTransactionId: string;
   inTransactionId: string;
 }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = reinvestSchema.parse(input);
   const db = requireDb();
   const amountUsd = toBig(parsed.amountUsdMinor);
@@ -128,7 +144,12 @@ export async function reinvestFromWallet(
     const [source] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.id, parsed.sourceWalletId))
+      .where(
+        and(
+          eq(investorWallets.id, parsed.sourceWalletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!source) throw new Error("Source wallet not found");
     if (BigInt(source.availableBalanceUsdMinor) < amountUsd) {
@@ -139,11 +160,21 @@ export async function reinvestFromWallet(
       .select({
         id: capitalCommitments.id,
         status: capitalCommitments.status,
+        organizationId: capitalCommitments.organizationId,
       })
       .from(capitalCommitments)
       .where(eq(capitalCommitments.id, parsed.targetCommitmentId))
       .limit(1);
-    if (!targetCommitment) throw new Error("Target commitment not found");
+    // capital_commitments.organization_id is a nullable legacy column
+    // (migration 0072): NULL = pre-threading row (allowed); a set-but-
+    // mismatched org means a cross-org target and is rejected.
+    if (
+      !targetCommitment ||
+      (targetCommitment.organizationId &&
+        targetCommitment.organizationId !== organizationId)
+    ) {
+      throw new Error("Target commitment not found");
+    }
     if (targetCommitment.status !== "active") {
       throw new Error(
         `Target commitment must be active (got '${targetCommitment.status}')`,
@@ -156,7 +187,12 @@ export async function reinvestFromWallet(
     const [target] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.commitmentId, targetCommitment.id))
+      .where(
+        and(
+          eq(investorWallets.commitmentId, targetCommitment.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!target) {
       throw new Error("Target wallet not found (commitment lacks a wallet row)");
@@ -174,7 +210,12 @@ export async function reinvestFromWallet(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, source.id));
+      .where(
+        and(
+          eq(investorWallets.id, source.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [outTx] = await tx
       .insert(walletTransactions)
@@ -205,7 +246,12 @@ export async function reinvestFromWallet(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, target.id));
+      .where(
+        and(
+          eq(investorWallets.id, target.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [inTx] = await tx
       .insert(walletTransactions)
@@ -237,6 +283,8 @@ const holdSchema = z.object({
 export async function setWalletHold(
   input: z.input<typeof holdSchema>,
 ): Promise<{ walletTransactionId: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = holdSchema.parse(input);
   const db = requireDb();
   const amountUsd = toBig(parsed.amountUsdMinor);
@@ -246,7 +294,12 @@ export async function setWalletHold(
     const [w] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.id, parsed.walletId))
+      .where(
+        and(
+          eq(investorWallets.id, parsed.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!w) throw new Error("Wallet not found");
     if (BigInt(w.availableBalanceUsdMinor) < amountUsd) {
@@ -265,7 +318,12 @@ export async function setWalletHold(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, w.id));
+      .where(
+        and(
+          eq(investorWallets.id, w.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [walletTx] = await tx
       .insert(walletTransactions)
@@ -288,6 +346,8 @@ export async function setWalletHold(
 export async function releaseWalletHold(
   input: z.input<typeof holdSchema>,
 ): Promise<{ walletTransactionId: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = holdSchema.parse(input);
   const db = requireDb();
   const amountUsd = toBig(parsed.amountUsdMinor);
@@ -297,7 +357,12 @@ export async function releaseWalletHold(
     const [w] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.id, parsed.walletId))
+      .where(
+        and(
+          eq(investorWallets.id, parsed.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!w) throw new Error("Wallet not found");
     if (BigInt(w.holdBalanceUsdMinor) < amountUsd) {
@@ -316,7 +381,12 @@ export async function releaseWalletHold(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, w.id));
+      .where(
+        and(
+          eq(investorWallets.id, w.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [walletTx] = await tx
       .insert(walletTransactions)
@@ -350,6 +420,8 @@ const adjustmentSchema = z.object({
 export async function walletAdjustment(
   input: z.input<typeof adjustmentSchema>,
 ): Promise<{ walletTransactionId: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = adjustmentSchema.parse(input);
   const db = requireDb();
   const delta = toBig(parsed.amountUsdMinor);
@@ -358,7 +430,12 @@ export async function walletAdjustment(
     const [w] = await tx
       .select()
       .from(investorWallets)
-      .where(eq(investorWallets.id, parsed.walletId))
+      .where(
+        and(
+          eq(investorWallets.id, parsed.walletId),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!w) throw new Error("Wallet not found");
 
@@ -376,7 +453,12 @@ export async function walletAdjustment(
         lastActivityAt: occurredAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, w.id));
+      .where(
+        and(
+          eq(investorWallets.id, w.id),
+          eq(investorWallets.organizationId, organizationId),
+        ),
+      );
 
     const [walletTx] = await tx
       .insert(walletTransactions)

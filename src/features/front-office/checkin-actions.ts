@@ -7,12 +7,13 @@
  * counter check-in (the existing single-shot button never issued a code).
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db/client";
 import { bookingCheckinFlow } from "@/lib/db/schema/checkin-flow";
 import { bookings } from "@/lib/db/schema/bookings";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { recordAuditEvent } from "@/features/audit/services";
 
@@ -27,13 +28,20 @@ export async function completeCheckinAction(input: {
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const now = new Date();
 
-  // Child row inherits the parent booking's org (tenancy).
+  // Tenant scope: a foreign bookingId must 404 before we write the check-in
+  // flow row or flip the booking. Child row inherits the verified caller org.
   const [parent] = await db
     .select({ organizationId: bookings.organizationId })
     .from(bookings)
-    .where(eq(bookings.id, input.bookingId))
+    .where(
+      and(
+        eq(bookings.id, input.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!parent) return { ok: false, error: "Booking not found." };
 
@@ -49,7 +57,7 @@ export async function completeCheckinAction(input: {
   await db
     .insert(bookingCheckinFlow)
     .values({
-      organizationId: parent.organizationId,
+      organizationId,
       bookingId: input.bookingId,
       ...row,
     })
@@ -58,7 +66,12 @@ export async function completeCheckinAction(input: {
   await db
     .update(bookings)
     .set({ status: "checked_in" })
-    .where(eq(bookings.id, input.bookingId));
+    .where(
+      and(
+        eq(bookings.id, input.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

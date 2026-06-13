@@ -14,6 +14,7 @@ import { serviceRequests } from "@/lib/db/schema/operations";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { hashIpForLog, hashStayToken } from "@/features/guest-stays/token";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -341,6 +342,7 @@ export async function acknowledgeHandoffAction(
   formData: FormData,
 ): Promise<AdminActionResult> {
   await requirePermission("guest_ai.handoff.manage");
+  const organizationId = await requireOrgId();
   const parsed = acknowledgeHandoffSchema.safeParse({
     id: formData.get("id"),
   });
@@ -353,7 +355,15 @@ export async function acknowledgeHandoffAction(
     .from(guestAiHandoffs)
     .where(eq(guestAiHandoffs.id, parsed.data.id))
     .limit(1);
-  if (!handoff) return { ok: false, error: "Handoff not found." };
+  // Tenancy guard: guest_ai_handoffs.organization_id is a nullable 0154
+  // backfill anchor. NULL = pre-threading row (allowed); set-but-mismatched
+  // = another tenant's handoff (rejected as not-found).
+  if (
+    !handoff ||
+    (handoff.organizationId && handoff.organizationId !== organizationId)
+  ) {
+    return { ok: false, error: "Handoff not found." };
+  }
   await db
     .update(guestAiHandoffs)
     .set({
@@ -386,6 +396,7 @@ export async function resolveHandoffAction(
   formData: FormData,
 ): Promise<AdminActionResult> {
   await requirePermission("guest_ai.handoff.manage");
+  const callerOrgId = await requireOrgId();
   const parsed = resolveHandoffSchema.safeParse({
     id: formData.get("id"),
     note: formData.get("note") || undefined,
@@ -399,7 +410,14 @@ export async function resolveHandoffAction(
     .from(guestAiHandoffs)
     .where(eq(guestAiHandoffs.id, parsed.data.id))
     .limit(1);
-  if (!handoff) return { ok: false, error: "Handoff not found." };
+  // Tenancy guard: nullable 0154 backfill anchor. NULL = pre-threading
+  // (allowed); set-but-mismatched = cross-org (rejected as not-found).
+  if (
+    !handoff ||
+    (handoff.organizationId && handoff.organizationId !== callerOrgId)
+  ) {
+    return { ok: false, error: "Handoff not found." };
+  }
   await db
     .update(guestAiHandoffs)
     .set({

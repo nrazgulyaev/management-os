@@ -59,7 +59,7 @@ export async function markDirectBookingUnderReviewAction(
   const updated = await updateRequestStatus(parsed.data.id, "under_review", {
     reviewedBy: me?.id ?? null,
     reviewedAt: new Date(),
-  });
+  }, await requireOrgId());
   if (!updated) return { ok: false, error: "Request not found." };
   await appendRequestEvent({
     requestId: parsed.data.id,
@@ -98,7 +98,7 @@ export async function approveDirectBookingRequestAction(
     reviewedBy: me?.id ?? null,
     reviewedAt: new Date(),
     decisionNote: parsed.data.decisionNote ?? null,
-  });
+  }, await requireOrgId());
   if (!updated) return { ok: false, error: "Request not found." };
   await appendRequestEvent({
     requestId: parsed.data.id,
@@ -140,7 +140,7 @@ export async function rejectDirectBookingRequestAction(
     reviewedBy: me?.id ?? null,
     reviewedAt: new Date(),
     decisionNote: parsed.data.decisionNote ?? null,
-  });
+  }, await requireOrgId());
   if (!updated) return { ok: false, error: "Request not found." };
   // Release the underlying hold + calendar block.
   await updateHoldStatus(updated.holdId, "rejected");
