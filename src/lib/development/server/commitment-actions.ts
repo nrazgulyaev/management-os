@@ -7,7 +7,9 @@ import {
   capitalCommitments,
   capitalDrawdowns,
   investorWallets,
+  investors,
 } from "@/lib/db/schema/investor-capital";
+import { projects } from "@/lib/db/schema/projects";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -76,6 +78,24 @@ export async function createCommitment(input: CreateCommitmentInput): Promise<{
   const parsed = createCommitmentSchema.parse(input);
   const db = requireDb();
   const organizationId = await requireOrgId();
+
+  // Tenant integrity: the investor — and the project, when supplied — must
+  // belong to the caller's org. You cannot open a commitment against another
+  // tenant's investor/project even though the row itself is org-stamped below.
+  const [inv] = await db
+    .select({ id: investors.id })
+    .from(investors)
+    .where(and(eq(investors.id, parsed.investorId), eq(investors.organizationId, organizationId)))
+    .limit(1);
+  if (!inv) throw new Error("Investor not found in your organization.");
+  if (parsed.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, parsed.projectId), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    if (!proj) throw new Error("Project not found in your organization.");
+  }
 
   const committedAmountMinor = toBig(parsed.committedAmountMinor);
   const fxRate = Number(parsed.fxRateAtCommitment);
