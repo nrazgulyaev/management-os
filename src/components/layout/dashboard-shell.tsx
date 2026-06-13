@@ -37,27 +37,27 @@ export async function DashboardShell({
 }: {
   children: React.ReactNode;
 }) {
-  let unreadCount = 0;
-  try {
-    unreadCount = await countUnreadForCurrentUser();
-  } catch {
-    unreadCount = 0;
-  }
+  // PERF: the three independent reads run in parallel (one wall-clock round
+  // trip instead of three serial ones). allSettled keeps each read's
+  // individual fallback. They share the now-cache()'d auth lookup, so no
+  // redundant Supabase round-trip either.
+  const [unreadRes, trialRes, ctxRes] = await Promise.allSettled([
+    countUnreadForCurrentUser(),
+    getCurrentOrgTrial(),
+    getCurrentUserContext(),
+  ]);
 
-  let trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> = null;
-  try {
-    trial = await getCurrentOrgTrial();
-  } catch {
-    trial = null;
-  }
+  const unreadCount = unreadRes.status === "fulfilled" ? unreadRes.value : 0;
+  const trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> =
+    trialRes.status === "fulfilled" ? trialRes.value : null;
 
   // Stage 10 — pull a display name + role for the topbar user chip.
   // Always safe; falls back to demo values when DB / auth isn't wired.
   let userName = "Operator";
   let userRole = "Manager";
   let userInitials = "AR";
-  try {
-    const ctx = await getCurrentUserContext();
+  if (ctxRes.status === "fulfilled") {
+    const ctx = ctxRes.value;
     if (ctx.appUser?.fullName) {
       userName = ctx.appUser.fullName;
       userInitials = computeInitials(ctx.appUser.fullName);
@@ -65,8 +65,6 @@ export async function DashboardShell({
     if (ctx.roles.length > 0) {
       userRole = humaniseRole(ctx.roles[0]);
     }
-  } catch {
-    // keep fallbacks
   }
 
   return (

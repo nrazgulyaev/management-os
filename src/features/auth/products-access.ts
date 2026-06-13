@@ -4,7 +4,6 @@ import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { getDb } from "@/lib/db/client";
-import { appUsers } from "@/lib/db/schema/identity";
 import { organizations } from "@/lib/db/schema/saas";
 import {
   coerceProductSlugs,
@@ -58,22 +57,16 @@ export const getProductsEnabledForCurrentUser = cache(
     const db = getDb();
     if (!db) return null;
 
-    // appUsers.organizationId is NOT NULL in v0071+; fall back to null in
-    // case a legacy row slipped through without it.
-    const [row] = await db
-      .select({
-        orgId: appUsers.organizationId,
-      })
-      .from(appUsers)
-      .where(eq(appUsers.id, me.id))
-      .limit(1);
-
-    if (!row?.orgId) return null;
+    // PERF: getCurrentAppUser() already returns organizationId (NOT NULL in
+    // v0071+), so the previous re-SELECT of appUsers.organizationId here was a
+    // redundant DB round-trip on every layout render. Use me.organizationId
+    // directly — one query instead of two.
+    if (!me.organizationId) return null;
 
     const [org] = await db
       .select({ productsEnabled: organizations.productsEnabled })
       .from(organizations)
-      .where(eq(organizations.id, row.orgId))
+      .where(eq(organizations.id, me.organizationId))
       .limit(1);
 
     return coerceProductSlugs(org?.productsEnabled);
