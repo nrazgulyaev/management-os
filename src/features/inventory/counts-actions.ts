@@ -1,9 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   inventoryCountLines,
   inventoryCounts,
@@ -174,12 +175,15 @@ export async function approveInventoryCountAction(
   if (!parsed.success) return { ok: false, error: "Missing count id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
+  // TENANCY: a cross-org count id reads as not-found (its per-line
+  // applyMovement is org-guarded too).
   const [count] = await db
     .select()
     .from(inventoryCounts)
-    .where(eq(inventoryCounts.id, parsed.data.id))
+    .where(and(eq(inventoryCounts.id, parsed.data.id), eq(inventoryCounts.organizationId, organizationId)))
     .limit(1);
   if (!count) return { ok: false, error: "Count not found." };
   if (count.status !== "submitted") {
@@ -217,7 +221,7 @@ export async function approveInventoryCountAction(
       approvedAt: new Date(),
       approvedBy: me?.id ?? null,
     })
-    .where(eq(inventoryCounts.id, parsed.data.id));
+    .where(and(eq(inventoryCounts.id, parsed.data.id), eq(inventoryCounts.organizationId, organizationId)));
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
