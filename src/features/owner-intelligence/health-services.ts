@@ -383,10 +383,15 @@ export async function generateVillaHealthSnapshot(
 export async function listOwnerVillaHealthSnapshots(opts?: {
   ownerId?: string;
   villaId?: string;
+  organizationId?: string | null;
 }): Promise<VillaHealthSnapshot[]> {
   const db = getDb();
   if (!db) return [];
   const filters = [];
+  if (opts?.organizationId)
+    filters.push(
+      eq(villaHealthSnapshots.organizationId, opts.organizationId),
+    );
   if (opts?.villaId) filters.push(eq(villaHealthSnapshots.villaId, opts.villaId));
   if (opts?.ownerId) {
     const villaIds = (

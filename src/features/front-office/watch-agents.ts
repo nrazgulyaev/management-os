@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, isNotNull } from "drizzle-orm";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { guestIdDocuments } from "@/lib/db/schema/guest-stays";
 import { bookings, guests } from "@/lib/db/schema/bookings";
 import { villas } from "@/lib/db/schema/projects";
@@ -71,6 +72,10 @@ export async function detectVipPrep(date: Date = new Date()): Promise<VipFlag[]>
 export async function detectVisaWatch(now: Date = new Date()): Promise<VisaFlag[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: scope via the booking join — bookings.organization_id is NOT NULL.
+  // The service-role connection bypasses RLS, so without this every org's guest
+  // ID documents leak into the visa-watcher panel.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       bookingId: bookings.id,
@@ -83,7 +88,12 @@ export async function detectVisaWatch(now: Date = new Date()): Promise<VisaFlag[
     .innerJoin(bookings, eq(bookings.id, guestIdDocuments.bookingId))
     .leftJoin(villas, eq(villas.id, bookings.villaId))
     .leftJoin(guests, eq(guests.id, bookings.guestId))
-    .where(isNotNull(guestIdDocuments.expiresAt))
+    .where(
+      and(
+        isNotNull(guestIdDocuments.expiresAt),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
     .limit(500);
 
   const flags: VisaFlag[] = [];

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { and, asc, eq, inArray, isNull, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import {
   villaGuideSections,
@@ -9,6 +10,7 @@ import {
   villaNeighborhoodPlaces,
 } from "@/lib/db/schema/villa-guides";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   resolveByKey,
   resolveListWithFallback,
@@ -105,7 +107,8 @@ export async function listGuideSectionsAdmin(opts?: {
 }): Promise<GuideSectionRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(villaGuideSections.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(villaGuideSections.villaId, opts.villaId));
   if (opts?.projectId)
     filters.push(eq(villaGuideSections.projectId, opts.projectId));
@@ -202,7 +205,17 @@ export async function listWifiAdmin(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  // villa_wifi_credentials has no org column. Scope via projects: rows can be
+  // project-scoped (projectId set) or villa-scoped (villaId set, projectId
+  // NULL). Require the caller's org on either path.
+  const wifiVillaProject = alias(projectsTable, "wifi_villa_project");
+  const filters = [
+    or(
+      eq(projectsTable.organizationId, organizationId),
+      eq(wifiVillaProject.organizationId, organizationId),
+    ),
+  ];
   if (opts?.villaId) filters.push(eq(villaWifiCredentials.villaId, opts.villaId));
   if (opts?.projectId)
     filters.push(eq(villaWifiCredentials.projectId, opts.projectId));
@@ -215,6 +228,7 @@ export async function listWifiAdmin(opts?: {
     .from(villaWifiCredentials)
     .leftJoin(villas, eq(villas.id, villaWifiCredentials.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, villaWifiCredentials.projectId))
+    .leftJoin(wifiVillaProject, eq(wifiVillaProject.id, villas.projectId))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(asc(villaWifiCredentials.networkName));
   return rows.map((r) => ({
@@ -296,7 +310,17 @@ export async function listEmergencyContactsAdmin(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  // villa_emergency_contacts has no org column. Scope via projects on either
+  // the project-scoped path (projectId) or the villa-scoped path
+  // (villaId → villas.projectId).
+  const contactVillaProject = alias(projectsTable, "contact_villa_project");
+  const filters = [
+    or(
+      eq(projectsTable.organizationId, organizationId),
+      eq(contactVillaProject.organizationId, organizationId),
+    ),
+  ];
   if (opts?.villaId)
     filters.push(eq(villaEmergencyContacts.villaId, opts.villaId));
   if (opts?.projectId)
@@ -310,6 +334,7 @@ export async function listEmergencyContactsAdmin(opts?: {
     .from(villaEmergencyContacts)
     .leftJoin(villas, eq(villas.id, villaEmergencyContacts.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, villaEmergencyContacts.projectId))
+    .leftJoin(contactVillaProject, eq(contactVillaProject.id, villas.projectId))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(
       asc(villaEmergencyContacts.contactType),
@@ -395,7 +420,17 @@ export async function listNeighborhoodAdmin(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  // villa_neighborhood_places has no org column. Scope via projects on either
+  // the project-scoped path (projectId) or the villa-scoped path
+  // (villaId → villas.projectId).
+  const placeVillaProject = alias(projectsTable, "place_villa_project");
+  const filters = [
+    or(
+      eq(projectsTable.organizationId, organizationId),
+      eq(placeVillaProject.organizationId, organizationId),
+    ),
+  ];
   if (opts?.villaId)
     filters.push(eq(villaNeighborhoodPlaces.villaId, opts.villaId));
   if (opts?.projectId)
@@ -409,6 +444,7 @@ export async function listNeighborhoodAdmin(opts?: {
     .from(villaNeighborhoodPlaces)
     .leftJoin(villas, eq(villas.id, villaNeighborhoodPlaces.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, villaNeighborhoodPlaces.projectId))
+    .leftJoin(placeVillaProject, eq(placeVillaProject.id, villas.projectId))
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(
       asc(villaNeighborhoodPlaces.category),

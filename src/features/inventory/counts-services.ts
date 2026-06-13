@@ -1,7 +1,8 @@
 import "server-only";
 
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   inventoryCountLines,
   inventoryCounts,
@@ -44,6 +45,7 @@ export interface InventoryCountLineRow {
 export async function listInventoryCounts(): Promise<WithSource<InventoryCountRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       c: inventoryCounts,
@@ -59,6 +61,7 @@ export async function listInventoryCounts(): Promise<WithSource<InventoryCountRo
     .from(inventoryCounts)
     .innerJoin(inventoryLocations, eq(inventoryLocations.id, inventoryCounts.locationId))
     .leftJoin(appUsers, eq(appUsers.id, inventoryCounts.countedBy))
+    .where(eq(inventoryCounts.organizationId, organizationId))
     .orderBy(desc(inventoryCounts.createdAt))
     .limit(200);
 
@@ -98,6 +101,7 @@ export async function getInventoryCountById(
 ): Promise<InventoryCountDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [c] = await db
     .select({
       c: inventoryCounts,
@@ -105,7 +109,7 @@ export async function getInventoryCountById(
     })
     .from(inventoryCounts)
     .innerJoin(inventoryLocations, eq(inventoryLocations.id, inventoryCounts.locationId))
-    .where(eq(inventoryCounts.id, id))
+    .where(and(eq(inventoryCounts.id, id), eq(inventoryCounts.organizationId, organizationId)))
     .limit(1);
   if (!c) return null;
 
@@ -153,13 +157,19 @@ export async function preloadCountLinesForLocation(
 ): Promise<number> {
   const db = getDb();
   if (!db) return 0;
+  const organizationId = await requireOrgId();
   const stocks = await db
     .select({
       itemId: inventoryStockLevels.itemId,
       quantity: inventoryStockLevels.quantity,
     })
     .from(inventoryStockLevels)
-    .where(eq(inventoryStockLevels.locationId, locationId));
+    .where(
+      and(
+        eq(inventoryStockLevels.organizationId, organizationId),
+        eq(inventoryStockLevels.locationId, locationId),
+      ),
+    );
   if (stocks.length === 0) return 0;
 
   await db.insert(inventoryCountLines).values(

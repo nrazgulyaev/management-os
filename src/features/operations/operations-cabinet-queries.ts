@@ -102,6 +102,7 @@ export interface VillaStatusTile {
 export async function getVillaStatusBoard(): Promise<VillaStatusTile[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     unit_code: string;
@@ -117,9 +118,11 @@ export async function getVillaStatusBoard(): Promise<VillaStatusTile[]> {
                 AND CURRENT_DATE >= b.check_in
                 AND CURRENT_DATE <  b.check_out
                 AND b.status IN ('confirmed','checked_in')
+                AND b.organization_id = ${orgId}
            ))::text                              AS has_active_booking
       FROM villas v
      WHERE v.status NOT IN ('archived')
+       AND v.project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId})
      ORDER BY v.unit_code ASC
   `);
   return rowsOf<{
@@ -156,6 +159,7 @@ export interface MaintenanceTicketRow {
 export async function getMaintenanceTickets(limit = 12): Promise<MaintenanceTicketRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     ticket_code: string;
@@ -179,6 +183,8 @@ export async function getMaintenanceTickets(limit = 12): Promise<MaintenanceTick
       FROM maintenance_tickets mt
       LEFT JOIN villas v ON v.id = mt.villa_id
      WHERE mt.status NOT IN ('closed','cancelled')
+       AND mt.villa_id IN (SELECT id FROM villas
+                            WHERE project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId}))
      ORDER BY mt.reported_at DESC NULLS LAST
      LIMIT ${limit}
   `);

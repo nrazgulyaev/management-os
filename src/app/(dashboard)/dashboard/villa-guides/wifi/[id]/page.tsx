@@ -1,10 +1,13 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { PageHeader } from "@/components/ui/page-header";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getDb } from "@/lib/db/client";
 import { villaWifiCredentials } from "@/lib/db/schema/villa-guides";
+import { villas as villasTable, projects as projectsTable } from "@/lib/db/schema/projects";
+import { alias } from "drizzle-orm/pg-core";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { WifiForm } from "@/components/villa-guides/wifi-form";
@@ -21,11 +24,31 @@ export default async function EditWifiPage({
   const { id } = await params;
   const db = getDb();
   if (!db) notFound();
-  const [row] = await db
-    .select()
+  const organizationId = await requireOrgId();
+  // villa_wifi_credentials has no org column. Scope via projects: a row is
+  // visible if its project (project-scoped row) OR its villa's project
+  // (villa-scoped row, projectId NULL) belongs to the caller's org.
+  const villaProject = alias(projectsTable, "villa_project");
+  const [result] = await db
+    .select({ row: villaWifiCredentials })
     .from(villaWifiCredentials)
-    .where(eq(villaWifiCredentials.id, id))
+    .leftJoin(
+      projectsTable,
+      eq(projectsTable.id, villaWifiCredentials.projectId),
+    )
+    .leftJoin(villasTable, eq(villasTable.id, villaWifiCredentials.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villasTable.projectId))
+    .where(
+      and(
+        eq(villaWifiCredentials.id, id),
+        or(
+          eq(projectsTable.organizationId, organizationId),
+          eq(villaProject.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
+  const row = result?.row;
   if (!row) notFound();
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   const keyVersion = ciphertextKeyVersion(row.passwordCiphertext ?? null);

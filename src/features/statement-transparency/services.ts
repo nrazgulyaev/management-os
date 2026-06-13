@@ -13,6 +13,7 @@ import {
   type StatementExplanationSnapshot,
 } from "@/lib/db/schema/statement-transparency";
 import { ownerStatements } from "@/lib/db/schema/finance";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   buildReconciliationStatus,
   buildReconciliationHealthScore,
@@ -29,10 +30,17 @@ export async function listStatementSourceGroups(
 ): Promise<StatementSourceGroup[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — statement_source_groups carries organization_id.
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(statementSourceGroups)
-    .where(eq(statementSourceGroups.ownerStatementId, statementId))
+    .where(
+      and(
+        eq(statementSourceGroups.ownerStatementId, statementId),
+        eq(statementSourceGroups.organizationId, orgId),
+      ),
+    )
     .orderBy(statementSourceGroups.sortOrder);
 }
 
@@ -41,10 +49,17 @@ export async function listStatementSourceGroupLines(
 ): Promise<StatementSourceGroupLine[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — statement_source_group_lines carries organization_id.
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(statementSourceGroupLines)
-    .where(eq(statementSourceGroupLines.ownerStatementId, statementId));
+    .where(
+      and(
+        eq(statementSourceGroupLines.ownerStatementId, statementId),
+        eq(statementSourceGroupLines.organizationId, orgId),
+      ),
+    );
 }
 
 export interface ListWarningsOpts {
@@ -59,7 +74,12 @@ export async function listStatementReconciliationWarnings(
 ): Promise<StatementReconciliationWarning[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — statement_reconciliation_warnings carries organization_id.
+  // Push the org predicate unconditionally (uniform fix): when statementId is
+  // null this is the only org anchor; when present it is belt-and-braces.
+  const orgId = await requireOrgId();
   const conditions = [] as ReturnType<typeof eq>[];
+  conditions.push(eq(statementReconciliationWarnings.organizationId, orgId));
   if (statementId) {
     conditions.push(
       eq(statementReconciliationWarnings.ownerStatementId, statementId),
@@ -88,10 +108,17 @@ export async function getStatementExplanationSnapshot(
 ): Promise<StatementExplanationSnapshot | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY-FINANCE — statement_explanation_snapshots carries organization_id.
+  const orgId = await requireOrgId();
   const [row] = await db
     .select()
     .from(statementExplanationSnapshots)
-    .where(eq(statementExplanationSnapshots.ownerStatementId, statementId))
+    .where(
+      and(
+        eq(statementExplanationSnapshots.ownerStatementId, statementId),
+        eq(statementExplanationSnapshots.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -125,9 +152,13 @@ export async function listTransparencyStatementRows(opts?: {
 }): Promise<AdminTransparencyStatementRow[]> {
   const db = getDb();
   if (!db) return [];
-  const where = opts?.ownerId
-    ? eq(ownerStatements.ownerId, opts.ownerId)
-    : undefined;
+  // TENANCY-FINANCE — always org-scope the base owner_statements scan. The
+  // downstream inArray(ids) fan-outs then only touch this org's children.
+  const organizationId = await requireOrgId();
+  const where = and(
+    eq(ownerStatements.organizationId, organizationId),
+    opts?.ownerId ? eq(ownerStatements.ownerId, opts.ownerId) : undefined,
+  );
   const stmts = await db
     .select({
       id: ownerStatements.id,
@@ -243,9 +274,13 @@ export async function getTransparencyHubMetrics(): Promise<{
       lastRebuildAt: null,
     };
   }
+  // TENANCY-FINANCE — all three tables carry organization_id; scope each leg so
+  // the hub counts only the caller's tenant (was a tenant-wide crash/leak).
+  const organizationId = await requireOrgId();
   const allStmts = await db
     .select({ id: ownerStatements.id })
-    .from(ownerStatements);
+    .from(ownerStatements)
+    .where(eq(ownerStatements.organizationId, organizationId));
   const totalStatements = allStmts.length;
   const snapsRows = await db
     .select({
@@ -253,6 +288,7 @@ export async function getTransparencyHubMetrics(): Promise<{
       generatedAt: statementExplanationSnapshots.generatedAt,
     })
     .from(statementExplanationSnapshots)
+    .where(eq(statementExplanationSnapshots.organizationId, organizationId))
     .orderBy(desc(statementExplanationSnapshots.generatedAt))
     .limit(500);
   const lastRebuildAt =
@@ -265,7 +301,12 @@ export async function getTransparencyHubMetrics(): Promise<{
       severity: statementReconciliationWarnings.severity,
     })
     .from(statementReconciliationWarnings)
-    .where(eq(statementReconciliationWarnings.status, "open"));
+    .where(
+      and(
+        eq(statementReconciliationWarnings.status, "open"),
+        eq(statementReconciliationWarnings.organizationId, organizationId),
+      ),
+    );
   return {
     totalStatements,
     statementsWithSnapshot,

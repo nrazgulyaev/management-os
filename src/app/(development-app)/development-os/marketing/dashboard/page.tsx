@@ -8,6 +8,7 @@ import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata: Metadata = {
   title: "Marketing dashboard · Development OS",
@@ -25,6 +26,8 @@ export default async function MarketingDashboardPage() {
     );
   }
 
+  const organizationId = await requireOrgId();
+
   const summaryResult = await safeQuery(
     "marketingSummary",
     db.execute<{
@@ -35,11 +38,11 @@ export default async function MarketingDashboardPage() {
       open_followup_alerts: string;
     }>(sql`
       SELECT
-        (SELECT COUNT(*)::text FROM campaigns WHERE status = 'active') AS active_campaigns,
-        (SELECT COUNT(*)::text FROM leads) AS total_leads,
-        (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'published') AS content_published,
-        (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'scheduled') AS content_scheduled,
-        (SELECT COUNT(*)::text FROM risk_radar_alerts WHERE detection_method = 'rule:missed-followup' AND status IN ('open','acknowledged','investigating')) AS open_followup_alerts
+        (SELECT COUNT(*)::text FROM campaigns WHERE status = 'active' AND organization_id = ${organizationId}) AS active_campaigns,
+        (SELECT COUNT(*)::text FROM leads WHERE organization_id = ${organizationId}) AS total_leads,
+        (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'published' AND organization_id = ${organizationId}) AS content_published,
+        (SELECT COUNT(*)::text FROM content_pieces WHERE status = 'scheduled' AND organization_id = ${organizationId}) AS content_scheduled,
+        (SELECT COUNT(*)::text FROM risk_radar_alerts WHERE detection_method = 'rule:missed-followup' AND status IN ('open','acknowledged','investigating') AND organization_id = ${organizationId}) AS open_followup_alerts
     `),
     null as unknown as Awaited<ReturnType<typeof db.execute>>,
   );
@@ -57,7 +60,8 @@ export default async function MarketingDashboardPage() {
     db.execute<{ source: string; n: string }>(sql`
       SELECT COALESCE(lead_source_key, 'unknown') AS source,
              COUNT(*)::text AS n
-        FROM leads
+        FROM leads l
+       WHERE l.organization_id = ${organizationId}
        GROUP BY lead_source_key
        ORDER BY n DESC
        LIMIT 8

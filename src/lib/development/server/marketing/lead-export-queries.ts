@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * design-live gap plan · P1 — read-only loader backing the "Export
@@ -27,6 +28,7 @@ export interface LeadExportRow {
 export async function loadLeadsForExport(limit = 5000): Promise<LeadExportRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const rows = await db.execute<{
     lead_code: string;
@@ -56,6 +58,7 @@ export async function loadLeadsForExport(limit = 5000): Promise<LeadExportRow[]>
     FROM leads l
     LEFT JOIN marketing_lead_sources s ON s.source_key = l.lead_source_key
     LEFT JOIN campaigns c ON c.id = l.campaign_id
+    WHERE l.organization_id = ${organizationId}
     ORDER BY l.created_at DESC
     LIMIT ${limit}
   `);

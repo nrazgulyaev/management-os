@@ -2,8 +2,9 @@ import "server-only";
 
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { bookings, bookingChannels } from "@/lib/db/schema/bookings";
-import { villas as villasTable } from "@/lib/db/schema/projects";
+import { villas as villasTable, projects } from "@/lib/db/schema/projects";
 import {
   channelConnections,
   channelSyncLog,
@@ -114,6 +115,10 @@ export async function getAriPushGrid(input: GetAriGridInput = {}): Promise<AriGr
     return { dates, villas: [], channelKeys: [], anchor };
   }
 
+  // TENANCY: villas have no organization_id — scope via projects. The
+  // downstream bookings / push reads inherit the boundary via villaIds.
+  const organizationId = await requireOrgId();
+
   const villaRows = await db
     .select({
       id: villasTable.id,
@@ -122,7 +127,13 @@ export async function getAriPushGrid(input: GetAriGridInput = {}): Promise<AriGr
       adr: villasTable.currentNightlyRateUsd,
     })
     .from(villasTable)
-    .where(sql`${villasTable.status} NOT IN ('archived', 'out_of_service')`)
+    .innerJoin(projects, eq(projects.id, villasTable.projectId))
+    .where(
+      and(
+        sql`${villasTable.status} NOT IN ('archived', 'out_of_service')`,
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .orderBy(villasTable.unitCode);
 
   if (villaRows.length === 0) {
@@ -141,6 +152,7 @@ export async function getAriPushGrid(input: GetAriGridInput = {}): Promise<AriGr
     .from(bookings)
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         inArray(bookings.villaId, villaIds),
         inArray(bookings.status, ["confirmed", "checked_in", "tentative"]),
         sql`${bookings.checkIn} <= ${windowEnd} AND ${bookings.checkOut} > ${windowStart}`,
@@ -268,7 +280,11 @@ export async function detectDoubleBookings(opts: { villaId?: string } = {}): Pro
   const db = getDb();
   if (!db) return [];
 
+  // TENANCY: scope to caller org so cross-org bookings never surface; also
+  // shrinks the scan to 0 rows for an empty tenant.
+  const organizationId = await requireOrgId();
   const conds = [
+    eq(bookings.organizationId, organizationId),
     inArray(bookings.status, ["confirmed", "checked_in", "tentative"]),
   ];
   if (opts.villaId) conds.push(eq(bookings.villaId, opts.villaId));
@@ -394,6 +410,10 @@ export async function listConnectionSyncHealth(): Promise<ConnectionSyncHealth[]
   const db = getDb();
   if (!db) return [];
 
+  // TENANCY: channel_connections carries organization_id — scope so the
+  // sync-health surface never lists another org's connections.
+  const organizationId = await requireOrgId();
+
   const conns = await db
     .select({
       id: channelConnections.id,
@@ -411,7 +431,12 @@ export async function listConnectionSyncHealth(): Promise<ConnectionSyncHealth[]
     })
     .from(channelConnections)
     .leftJoin(villasTable, eq(villasTable.id, channelConnections.villaId))
-    .where(sql`${channelConnections.status} <> 'archived'`)
+    .where(
+      and(
+        eq(channelConnections.organizationId, organizationId),
+        sql`${channelConnections.status} <> 'archived'`,
+      ),
+    )
     .orderBy(channelConnections.channel);
 
   if (conns.length === 0) return [];
@@ -424,6 +449,7 @@ export async function listConnectionSyncHealth(): Promise<ConnectionSyncHealth[]
     .from(channelSyncLog)
     .where(
       and(
+        eq(channelSyncLog.organizationId, organizationId),
         inArray(
           channelSyncLog.channelConnectionId,
           conns.map((c) => c.id),

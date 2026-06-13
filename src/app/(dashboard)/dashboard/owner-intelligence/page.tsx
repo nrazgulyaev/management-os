@@ -4,6 +4,7 @@ import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
 import { listAdminReviews } from "@/features/owner-intelligence/reviews-services";
 import { listVillas } from "@/features/villas/services";
@@ -80,8 +81,9 @@ type Insight = {
 export default async function OwnerIntelligenceHub() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
+  const organizationId = await requireOrgId();
   const [snapshots, reviews, villas, ownerRows, lastDigestRun] = await Promise.all([
-    listOwnerVillaHealthSnapshots(),
+    listOwnerVillaHealthSnapshots({ organizationId }),
     listAdminReviews({ limit: 100 }),
     listVillas(),
     listOwnerIntel().catch(() => [] as Awaited<ReturnType<typeof listOwnerIntel>>),

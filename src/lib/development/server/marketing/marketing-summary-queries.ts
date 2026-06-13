@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * design-live gap plan · P1 — real data for the /development-os/marketing
@@ -41,6 +42,7 @@ export async function loadActiveCampaigns(
 ): Promise<ActiveCampaignRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const rows = await db.execute<{
     id: string;
@@ -62,9 +64,10 @@ export async function loadActiveCampaigns(
       c.spent_to_date_minor::text  AS spent_to_date_minor,
       c.total_budget_minor::text   AS total_budget_minor,
       c.currency,
-      (SELECT COUNT(*)::text FROM leads l WHERE l.campaign_id = c.id) AS lead_count
+      (SELECT COUNT(*)::text FROM leads l WHERE l.campaign_id = c.id AND l.organization_id = ${organizationId}) AS lead_count
     FROM campaigns c
     WHERE c.status IN ('active', 'in_preparation', 'paused')
+      AND c.organization_id = ${organizationId}
     ORDER BY
       CASE c.status WHEN 'active' THEN 0 WHEN 'in_preparation' THEN 1 ELSE 2 END,
       c.campaign_start DESC
@@ -122,6 +125,7 @@ export interface SourceAttributionRow {
 export async function loadSourceAttribution(): Promise<SourceAttributionRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const rows = await db.execute<{
     source_key: string;
@@ -152,6 +156,7 @@ export async function loadSourceAttribution(): Promise<SourceAttributionRow[]> {
           AS reservation_count
       FROM leads l
       WHERE l.lead_source_key IS NOT NULL
+        AND l.organization_id = ${organizationId}
       GROUP BY l.lead_source_key
     ),
     cost_agg AS (
@@ -160,6 +165,7 @@ export async function loadSourceAttribution(): Promise<SourceAttributionRow[]> {
         COALESCE(SUM(cc.cost_minor), 0)::text AS spend_minor,
         MIN(cc.currency) AS currency
       FROM campaign_costs cc
+      WHERE cc.organization_id = ${organizationId}
       GROUP BY cc.source_key
     )
     SELECT

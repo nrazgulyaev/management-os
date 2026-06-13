@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { getDb } from "@/lib/db/client";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listVillaCalendarBlocks } from "@/features/availability/services";
 import { getCurrentVillaReadiness } from "@/features/readiness/services";
 import { quoteForRange } from "@/features/pricing/services";
@@ -47,6 +48,8 @@ export default async function VillaAvailabilityPage({
   const db = getDb();
   if (!db) notFound();
 
+  const organizationId = await requireOrgId();
+
   const [villa] = await db
     .select({
       id: villas.id,
@@ -55,8 +58,8 @@ export default async function VillaAvailabilityPage({
       projectName: projectsTable.name,
     })
     .from(villas)
-    .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
-    .where(eq(villas.id, id))
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .where(and(eq(villas.id, id), eq(projectsTable.organizationId, organizationId)))
     .limit(1);
   if (!villa) notFound();
 

@@ -12,6 +12,7 @@ import {
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { owners } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   calculateOwnerStayFinanceAmounts,
   decideBridge,
@@ -70,10 +71,18 @@ export async function createFinanceRowsForOwnerStay(
     };
   }
 
+  // TENANCY (write-flow follow-up) — gate the bridge to the caller's org so an
+  // admin cannot materialise finance rows for another org's request by id.
+  const organizationId = await requireOrgId();
   const [req] = await db
     .select()
     .from(ownerStayRequests)
-    .where(eq(ownerStayRequests.id, requestId))
+    .where(
+      and(
+        eq(ownerStayRequests.id, requestId),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!req || (expectedOrgId !== null && req.organizationId !== expectedOrgId)) {
     return {
@@ -558,7 +567,11 @@ export async function listFinanceLinks(opts?: {
 }): Promise<FinanceLinkRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY — this is a sensitive money surface (Finance Bridge page lists
+  // bridged management-fee / expense amounts + owner names). Scope strictly to
+  // the caller's org so it never lists another org's bridged links.
+  const organizationId = await requireOrgId();
+  const filters = [eq(ownerStayFinanceLinks.organizationId, organizationId)];
   if (opts?.status) {
     if (Array.isArray(opts.status))
       filters.push(inArray(ownerStayFinanceLinks.bridgeStatus, opts.status));
@@ -664,6 +677,10 @@ export async function reverseFinanceBridgeForOwnerStay(
       currency: "USD",
     };
   }
+  // TENANCY: this is a write path also reachable from cron (expectedOrgId
+  // null = system, no scoping). The caller-supplied expectedOrgId is the
+  // cron-safe gate — do NOT swap in requireOrgId() here (it would fall back
+  // to the default org and mis-scope cron reversals).
   if (expectedOrgId !== null) {
     const [reqOrg] = await db
       .select({ organizationId: ownerStayRequests.organizationId })

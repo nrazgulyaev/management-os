@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   conversationThreads,
   conversationMessages,
@@ -14,8 +15,9 @@ import {
 /**
  * Stage 6.P2.F — Read queries for the messaging UI.
  *
- * RLS at the DB layer keeps per-org isolation honest; we don't filter
- * by organization_id in these queries because the policy already does.
+ * Every read is scoped to the caller's organization via
+ * `requireOrgId()`; the org predicate is ANDed into each WHERE so a
+ * BYPASSRLS DB role cannot leak another tenant's threads/messages.
  */
 
 export interface ThreadFilters {
@@ -47,7 +49,10 @@ export async function listThreads(
 ): Promise<ThreadListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [] as ReturnType<typeof eq>[];
+  const organizationId = await requireOrgId();
+  const conds = [
+    eq(conversationThreads.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (filters.channel) {
     conds.push(
       sql`${filters.channel} = ANY(${conversationThreads.channelsUsed})` as never,
@@ -69,7 +74,7 @@ export async function listThreads(
     conds.push(sql`${conversationThreads.subject} ILIKE ${needle}` as never);
   }
 
-  const where = conds.length > 0 ? and(...conds) : sql`true`;
+  const where = and(...conds);
   return (await db
     .select({
       id: conversationThreads.id,
@@ -94,10 +99,16 @@ export async function listThreads(
 export async function getThreadById(threadId: string) {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(conversationThreads)
-    .where(eq(conversationThreads.id, threadId))
+    .where(
+      and(
+        eq(conversationThreads.id, threadId),
+        eq(conversationThreads.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -107,10 +118,16 @@ export async function listThreadMessages(threadId: string, opts: {
 } = {}) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(conversationMessages)
-    .where(eq(conversationMessages.threadId, threadId))
+    .where(
+      and(
+        eq(conversationMessages.threadId, threadId),
+        eq(conversationMessages.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(conversationMessages.receivedAt))
     .limit(opts.limit ?? 200);
 }
@@ -118,9 +135,13 @@ export async function listThreadMessages(threadId: string, opts: {
 export async function listTemplates(opts: { activeOnly?: boolean } = {}) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const where = opts.activeOnly
-    ? eq(messageTemplates.status, "active")
-    : sql`true`;
+    ? and(
+        eq(messageTemplates.organizationId, organizationId),
+        eq(messageTemplates.status, "active"),
+      )
+    : eq(messageTemplates.organizationId, organizationId);
   return db
     .select()
     .from(messageTemplates)
@@ -131,8 +152,10 @@ export async function listTemplates(opts: { activeOnly?: boolean } = {}) {
 export async function listAutoResponseRules() {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(autoResponseRules)
+    .where(eq(autoResponseRules.organizationId, organizationId))
     .orderBy(asc(autoResponseRules.priority));
 }

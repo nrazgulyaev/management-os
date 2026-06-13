@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   ratePlans,
   ratePlanSeasons,
@@ -31,7 +32,10 @@ export async function listRatePlans(opts?: {
 }): Promise<RatePlanRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: rate_plans carries organization_id — seed the filters so the
+  // catalog never lists another org's plans.
+  const organizationId = await requireOrgId();
+  const filters = [eq(ratePlans.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(ratePlans.villaId, opts.villaId));
   if (opts?.projectId) filters.push(eq(ratePlans.projectId, opts.projectId));
   if (opts?.status) filters.push(eq(ratePlans.status, opts.status));
@@ -52,6 +56,9 @@ export async function listRatePlans(opts?: {
 export async function getRatePlanById(id: string): Promise<RatePlanRow | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY: scope the lookup so another org's plan resolves to null
+  // (-> notFound). This is the primary IDOR boundary for plan detail.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       r: ratePlans,
@@ -61,7 +68,7 @@ export async function getRatePlanById(id: string): Promise<RatePlanRow | null> {
     .from(ratePlans)
     .leftJoin(villas, eq(villas.id, ratePlans.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, ratePlans.projectId))
-    .where(eq(ratePlans.id, id))
+    .where(and(eq(ratePlans.id, id), eq(ratePlans.organizationId, organizationId)))
     .limit(1);
   return row
     ? mapPlan(row.r, row.villaCode ?? null, row.projectName ?? null)
@@ -136,13 +143,25 @@ export async function getRatePlanForVilla(
 
 export async function listSeasonsForPlan(
   ratePlanId: string,
+  // TENANCY (defense-in-depth): SHARED HELPER. Reached via quoteForRange from
+  // the public /api/v1/quote route and owner-stays (no org context), so DO NOT
+  // hard-call requireOrgId here — scope only when an org is explicitly passed.
+  // The primary IDOR boundary is the org-scoped getRatePlanById / resolver.
+  organizationId: string | null = null,
 ): Promise<(typeof ratePlanSeasons.$inferSelect)[]> {
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(ratePlanSeasons)
-    .where(eq(ratePlanSeasons.ratePlanId, ratePlanId))
+    .where(
+      and(
+        eq(ratePlanSeasons.ratePlanId, ratePlanId),
+        organizationId
+          ? eq(ratePlanSeasons.organizationId, organizationId)
+          : undefined,
+      ),
+    )
     .orderBy(asc(ratePlanSeasons.startsOn));
 }
 
@@ -150,6 +169,11 @@ export async function listOverridesForPlanInRange(
   ratePlanId: string,
   startDate: string,
   endDate: string,
+  // TENANCY (defense-in-depth): SHARED HELPER. Reached via quoteForRange from
+  // the public /api/v1/quote route and owner-stays (no org context), so DO NOT
+  // hard-call requireOrgId here — scope only when an org is explicitly passed.
+  // The primary IDOR boundary is the org-scoped getRatePlanById / resolver.
+  organizationId: string | null = null,
 ): Promise<(typeof ratePlanOverrides.$inferSelect)[]> {
   const db = getDb();
   if (!db) return [];
@@ -157,7 +181,14 @@ export async function listOverridesForPlanInRange(
   const all = await db
     .select()
     .from(ratePlanOverrides)
-    .where(eq(ratePlanOverrides.ratePlanId, ratePlanId))
+    .where(
+      and(
+        eq(ratePlanOverrides.ratePlanId, ratePlanId),
+        organizationId
+          ? eq(ratePlanOverrides.organizationId, organizationId)
+          : undefined,
+      ),
+    )
     .orderBy(asc(ratePlanOverrides.stayDate));
   return all.filter((o) => {
     const d = o.stayDate as unknown as string;

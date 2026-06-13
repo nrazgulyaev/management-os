@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestStaySecurityEvents,
   type GuestStaySecurityEvent,
@@ -108,7 +109,8 @@ export async function listSecurityEvents(opts?: {
 }): Promise<SecurityEventRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(guestStaySecurityEvents.organizationId, organizationId)];
   if (opts?.severity) {
     if (Array.isArray(opts.severity)) {
       filters.push(
@@ -144,12 +146,14 @@ export async function countOpenHighSeverityEvents(
 ): Promise<number> {
   const db = getDb();
   if (!db) return 0;
+  const organizationId = await requireOrgId();
   const since = new Date(Date.now() - hoursWindow * 60 * 60 * 1000);
   const [r] = await db
     .select({ c: sql<number>`count(*)` })
     .from(guestStaySecurityEvents)
     .where(
       and(
+        eq(guestStaySecurityEvents.organizationId, organizationId),
         sql`${guestStaySecurityEvents.severity} IN ('high','critical')`,
         sql`${guestStaySecurityEvents.createdAt} >= ${since.toISOString()}`,
       ),

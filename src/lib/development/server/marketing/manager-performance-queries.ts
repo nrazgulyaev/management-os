@@ -242,10 +242,12 @@ export async function countLeadsForCampaign(
 ): Promise<number> {
   const db = getDb();
   if (!db) return 0;
+  const organizationId = await requireOrgId();
   const result = await db.execute<{ lead_count: string }>(sql`
     SELECT COUNT(*)::text AS lead_count
     FROM leads l
     WHERE l.campaign_id = ${campaignId}
+      AND l.organization_id = ${organizationId}
   `);
   const rows = rowsOf<{ lead_count: string }>(result);
   return Number(rows[0]?.lead_count ?? "0");

@@ -413,7 +413,12 @@ export async function listCheckinCheckoutRequests(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: checkin_checkout_requests.organization_id is NOT NULL (0155). Seed
+  // the filter list with the org predicate so the existing
+  // `.where(filters.length ? and(...filters) : undefined)` always ANDs the org
+  // scope — the service-role connection bypasses RLS otherwise.
+  const organizationId = await requireOrgId();
+  const filters = [eq(checkinCheckoutRequests.organizationId, organizationId)];
   if (opts?.status)
     filters.push(eq(checkinCheckoutRequests.status, opts.status));
   if (opts?.bookingId)

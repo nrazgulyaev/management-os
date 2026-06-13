@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestReviews,
   type GuestReview,
@@ -138,7 +139,8 @@ export async function listAdminReviews(opts?: {
 }): Promise<AdminReviewView[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  const filters = [eq(guestReviews.organizationId, organizationId)];
   if (opts?.villaId) filters.push(eq(guestReviews.villaId, opts.villaId));
   if (opts?.status) filters.push(eq(guestReviews.status, opts.status));
   if (opts?.source) filters.push(eq(guestReviews.source, opts.source));

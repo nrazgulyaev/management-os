@@ -10,10 +10,11 @@
  */
 
 import "server-only";
-import { asc, ne, notInArray } from "drizzle-orm";
+import { and, asc, eq, ne, notInArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { bookingChannels } from "@/lib/db/schema/bookings";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { channelCalendarFeeds } from "@/lib/db/schema/integrations";
 import type { ChannelGridVilla, ChannelGridChannel, RateCell, Stay } from "@/components/channels/channel-grid";
 
@@ -39,10 +40,20 @@ export async function getChannelVillaCoverage(): Promise<ChannelVillaCoverage> {
   const db = getDb();
   if (!db) return { villaCount: 0, channels: [] };
 
+  // TENANCY: villas have no organization_id — scope via projects. Feeds
+  // carry organization_id directly. bookingChannels is a global catalog.
+  const organizationId = await requireOrgId();
+
   const villaRows = await db
     .select({ id: villas.id })
     .from(villas)
-    .where(notInArray(villas.status, ["archived", "out_of_service"]));
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        notInArray(villas.status, ["archived", "out_of_service"]),
+        eq(projects.organizationId, organizationId),
+      ),
+    );
   const villaCount = villaRows.length;
 
   const chans = await db
@@ -61,7 +72,8 @@ export async function getChannelVillaCoverage(): Promise<ChannelVillaCoverage> {
       channelId: channelCalendarFeeds.bookingChannelId,
       villaId: channelCalendarFeeds.villaId,
     })
-    .from(channelCalendarFeeds);
+    .from(channelCalendarFeeds)
+    .where(eq(channelCalendarFeeds.organizationId, organizationId));
 
   const byChannel = new Map<string, Set<string>>();
   for (const f of feeds) {

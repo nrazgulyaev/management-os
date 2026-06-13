@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * W2 owner-concierge — MGMT-side reads for the staff owner-inbox.
@@ -14,12 +15,11 @@ import { getDb, rowsOf } from "@/lib/db/client";
  * All raw reads use rowsOf<T>() — the owner-portal slice had the
  * postgres-js `.rows` shape bug (OWNER-PORTAL-SHAPE-1); do not reintroduce.
  *
- * TODO(org-scoping): owner_threads has no organization_id, and the
- * owners → projects → organization_id join is unreliable (projects was
- * never org-migrated; see STATEMENT-1 audit / getOwnerOrgId). For v1 the
- * staff list is gated only by the `owners.write` permission (internal
- * staff), mirroring the guest-concierge cabinet which also lists all
- * sessions. When projects carries organization_id, add a WHERE clause.
+ * Org-scoping: owner_threads now carries organization_id (owner-threads.ts:43)
+ * and owners / ownership_shares / owner_statements are org-migrated, so every
+ * read here is scoped to the caller's organization via requireOrgId() in
+ * addition to the `owners.write` permission gate. Threads, transcripts and the
+ * AI grounding bundle never cross the tenant boundary.
  */
 
 export interface MgmtOwnerThreadListItem {
@@ -44,6 +44,7 @@ export async function listOwnerThreadsForMgmt(
 ): Promise<MgmtOwnerThreadListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute(sql`
     SELECT t.id::text                       AS id,
            t.owner_id::text                  AS owner_id,
@@ -65,6 +66,7 @@ export async function listOwnerThreadsForMgmt(
          ORDER BY m.sent_at DESC
          LIMIT 1
       ) lm ON true
+     WHERE t.organization_id = ${organizationId}::uuid
      ORDER BY t.last_message_at DESC
      LIMIT ${limit}
   `);
@@ -119,6 +121,7 @@ export async function getOwnerThreadForMgmt(
 ): Promise<MgmtOwnerThreadDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
 
   const head = rowsOf<{
     id: string;
@@ -138,6 +141,7 @@ export async function getOwnerThreadForMgmt(
         FROM owner_threads t
         JOIN owners o ON o.id = t.owner_id
        WHERE t.id = ${threadId}::uuid
+         AND t.organization_id = ${organizationId}::uuid
        LIMIT 1
     `),
   )[0];
@@ -157,8 +161,10 @@ export async function getOwnerThreadForMgmt(
              m.body              AS body,
              m.sent_at::text     AS sent_at
         FROM owner_messages m
+        JOIN owner_threads t ON t.id = m.thread_id
         LEFT JOIN app_users au ON au.id = m.actor_id
        WHERE m.thread_id = ${threadId}::uuid
+         AND t.organization_id = ${organizationId}::uuid
        ORDER BY m.sent_at ASC
        LIMIT 500
     `),
@@ -211,12 +217,16 @@ export async function getOwnerGroundingContext(
   const facts: string[] = [];
   let ownerName = "this owner";
   if (!db) return { ownerName, facts };
+  const organizationId = await requireOrgId();
 
   // Owner identity.
   try {
     const o = rowsOf<{ display_name: string }>(
       await db.execute(sql`
-        SELECT display_name FROM owners WHERE id = ${ownerId}::uuid LIMIT 1
+        SELECT display_name FROM owners
+         WHERE id = ${ownerId}::uuid
+           AND organization_id = ${organizationId}::uuid
+         LIMIT 1
       `),
     )[0];
     if (o?.display_name) ownerName = o.display_name;
@@ -231,7 +241,9 @@ export async function getOwnerGroundingContext(
         SELECT v.unit_code AS unit_code, v.name AS name
           FROM ownership_shares os
           JOIN villas v ON v.id = os.villa_id
-         WHERE os.owner_id = ${ownerId}::uuid AND os.status = 'active'
+         WHERE os.owner_id = ${ownerId}::uuid
+           AND os.status = 'active'
+           AND os.organization_id = ${organizationId}::uuid
          LIMIT 12
       `),
     );
@@ -264,6 +276,7 @@ export async function getOwnerGroundingContext(
                s.sent_at::text              AS sent_at
           FROM owner_statements s
          WHERE s.owner_id = ${ownerId}::uuid
+           AND s.organization_id = ${organizationId}::uuid
          ORDER BY s.period_month DESC NULLS LAST, s.created_at DESC
          LIMIT 6
       `),
@@ -291,6 +304,7 @@ export async function getOwnerGroundingContext(
         SELECT COALESCE(SUM(s.net_to_owner_usd_minor), 0)::text AS ytd
           FROM owner_statements s
          WHERE s.owner_id = ${ownerId}::uuid
+           AND s.organization_id = ${organizationId}::uuid
            AND s.status = 'sent'
            AND s.net_to_owner_usd_minor IS NOT NULL
            AND EXTRACT(YEAR FROM s.period_month) = ${new Date().getUTCFullYear()}

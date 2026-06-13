@@ -262,6 +262,7 @@ export async function listSuggestionsForPlan(planId: string) {
 export async function listOpenSuggestions(limit = 100) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       s: maintenanceWindowSuggestions,
@@ -279,7 +280,12 @@ export async function listOpenSuggestions(limit = 100) {
       maintenanceTemplates,
       eq(maintenanceTemplates.id, villaMaintenancePlans.templateId),
     )
-    .where(eq(maintenanceWindowSuggestions.status, "suggested"))
+    .where(
+      and(
+        eq(maintenanceWindowSuggestions.organizationId, organizationId),
+        eq(maintenanceWindowSuggestions.status, "suggested"),
+      ),
+    )
     .orderBy(desc(maintenanceWindowSuggestions.score))
     .limit(limit);
   return rows.map((r) => ({

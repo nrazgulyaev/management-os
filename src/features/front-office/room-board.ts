@@ -2,6 +2,7 @@ import "server-only";
 
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { RoomDayStatus } from "@/components/award";
 
 export interface RoomBoardRow {
@@ -33,6 +34,12 @@ export async function loadFrontOfficeRoomBoard(
   const db = getDb();
   if (!db) return { dates, rows: [] };
 
+  // TENANCY: villas have NO organization_id column, so scope them via the
+  // projects join (PR #241 pattern). bookings.organization_id is NOT NULL and is
+  // scoped directly. The service-role connection bypasses RLS — without these,
+  // the room/day matrix would leak every org's villas + bookings.
+  const organizationId = await requireOrgId();
+
   const start = dates[0];
   const end = dates[dates.length - 1];
 
@@ -47,7 +54,8 @@ export async function loadFrontOfficeRoomBoard(
   }>(sql`
     SELECT v.id::text, v.unit_code, p.name AS project_name
       FROM villas v
-      LEFT JOIN projects p ON p.id = v.project_id
+      JOIN projects p ON p.id = v.project_id
+     WHERE p.organization_id = ${organizationId}
      ORDER BY v.unit_code ASC
      LIMIT 24
   `);
@@ -68,6 +76,7 @@ export async function loadFrontOfficeRoomBoard(
     SELECT villa_id::text, check_in::text, check_out::text, status
       FROM bookings
      WHERE status IN ('confirmed', 'checked_in', 'checked_out', 'tentative')
+       AND organization_id = ${organizationId}
        AND check_in <= ${end}
        AND check_out >= ${start}
   `);

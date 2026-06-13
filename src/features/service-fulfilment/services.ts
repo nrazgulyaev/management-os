@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestServiceFulfilments,
   guestServiceRatings,
@@ -44,7 +45,10 @@ export async function listServiceVendors(opts?: {
 }): Promise<ServiceVendor[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [] as ReturnType<typeof eq>[];
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(serviceVendors.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.status) filters.push(eq(serviceVendors.status, opts.status));
   if (opts?.vendorType)
     filters.push(eq(serviceVendors.vendorType, opts.vendorType));
@@ -61,10 +65,16 @@ export async function getServiceVendorById(
 ): Promise<ServiceVendor | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(serviceVendors)
-    .where(eq(serviceVendors.id, id))
+    .where(
+      and(
+        eq(serviceVendors.id, id),
+        eq(serviceVendors.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -79,6 +89,7 @@ export async function listVendorServices(
 ): Promise<VendorServiceRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({ link: serviceVendorServices, service: guestServices })
     .from(serviceVendorServices)
@@ -86,7 +97,12 @@ export async function listVendorServices(
       guestServices,
       eq(guestServices.id, serviceVendorServices.serviceId),
     )
-    .where(eq(serviceVendorServices.vendorId, vendorId))
+    .where(
+      and(
+        eq(serviceVendorServices.vendorId, vendorId),
+        eq(serviceVendorServices.organizationId, organizationId),
+      ),
+    )
     .orderBy(guestServices.name);
   return rows.map((r) => ({ link: r.link, service: r.service ?? null }));
 }
@@ -108,7 +124,10 @@ export async function listGuestServiceFulfilments(opts?: {
 }): Promise<FulfilmentRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(guestServiceFulfilments.organizationId, organizationId),
+  ];
   if (opts?.status)
     filters.push(eq(guestServiceFulfilments.status, opts.status));
   if (opts?.vendorId)
@@ -157,6 +176,7 @@ export interface FulfilmentDetail extends FulfilmentRow {
 
 export async function getGuestServiceFulfilmentById(
   id: string,
+  organizationId: string | null = null,
 ): Promise<FulfilmentDetail | null> {
   const db = getDb();
   if (!db) return null;
@@ -182,7 +202,14 @@ export async function getGuestServiceFulfilmentById(
       eq(serviceVendors.id, guestServiceFulfilments.vendorId),
     )
     .leftJoin(villas, eq(villas.id, guestServiceOrders.villaId))
-    .where(eq(guestServiceFulfilments.id, id))
+    .where(
+      and(
+        eq(guestServiceFulfilments.id, id),
+        organizationId
+          ? eq(guestServiceFulfilments.organizationId, organizationId)
+          : undefined,
+      ),
+    )
     .limit(1);
   if (!base) return null;
   const [events, invoices, ratings, financeLinkRow, optionLabel] =
@@ -233,10 +260,16 @@ export async function getFulfilmentForGuestOrder(
 ): Promise<GuestServiceFulfilment | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(guestServiceFulfilments)
-    .where(eq(guestServiceFulfilments.orderId, orderId))
+    .where(
+      and(
+        eq(guestServiceFulfilments.orderId, orderId),
+        eq(guestServiceFulfilments.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -268,7 +301,10 @@ export async function listVendorInvoices(opts?: {
 }): Promise<VendorInvoiceRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(serviceVendorInvoices.organizationId, organizationId),
+  ];
   if (opts?.status)
     filters.push(eq(serviceVendorInvoices.invoiceStatus, opts.status));
   if (opts?.vendorId)
@@ -305,7 +341,10 @@ export async function listGuestServiceRatings(opts?: {
 }): Promise<GuestServiceRating[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(guestServiceRatings.organizationId, organizationId),
+  ];
   if (opts?.vendorId)
     filters.push(eq(guestServiceRatings.vendorId, opts.vendorId));
   if (opts?.status)
@@ -467,6 +506,7 @@ export async function getFulfilmentMetrics(
       marginCurrency: null,
     };
   }
+  const organizationId = await requireOrgId();
   const todayIso = now.toISOString().slice(0, 10);
   const startOfDay = new Date(`${todayIso}T00:00:00.000Z`);
   const endOfDay = new Date(`${todayIso}T23:59:59.999Z`);
@@ -477,6 +517,7 @@ export async function getFulfilmentMetrics(
       count: sql<number>`count(*)::int`,
     })
     .from(guestServiceFulfilments)
+    .where(eq(guestServiceFulfilments.organizationId, organizationId))
     .groupBy(guestServiceFulfilments.status);
 
   const [{ count: scheduledTodayCount = 0 } = { count: 0 }] = await db
@@ -484,6 +525,7 @@ export async function getFulfilmentMetrics(
     .from(guestServiceFulfilments)
     .where(
       and(
+        eq(guestServiceFulfilments.organizationId, organizationId),
         eq(guestServiceFulfilments.status, "scheduled"),
         sql`${guestServiceFulfilments.scheduledFor} >= ${startOfDay.toISOString()}`,
         sql`${guestServiceFulfilments.scheduledFor} <= ${endOfDay.toISOString()}`,
@@ -502,6 +544,7 @@ export async function getFulfilmentMetrics(
     )
     .where(
       and(
+        eq(guestServiceFulfilments.organizationId, organizationId),
         eq(guestServiceFulfilments.status, "completed"),
         isNull(serviceFulfilmentFinanceLinks.id),
       ),
@@ -513,7 +556,12 @@ export async function getFulfilmentMetrics(
       currency: guestServiceFulfilments.currency,
     })
     .from(guestServiceFulfilments)
-    .where(eq(guestServiceFulfilments.status, "completed"));
+    .where(
+      and(
+        eq(guestServiceFulfilments.status, "completed"),
+        eq(guestServiceFulfilments.organizationId, organizationId),
+      ),
+    );
   let totalMargin = 0n;
   let marginCurrency: string | null = null;
   for (const r of marginRows) {

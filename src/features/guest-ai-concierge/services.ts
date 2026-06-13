@@ -49,15 +49,41 @@ export async function ensureActiveSession(args: {
 export async function listMessagesForSession(
   sessionId: string,
   limit = 60,
+  organizationId: string | null = null,
 ): Promise<GuestAiConciergeMessage[]> {
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(guestAiConciergeMessages)
-    .where(eq(guestAiConciergeMessages.sessionId, sessionId))
+    .where(
+      and(
+        eq(guestAiConciergeMessages.sessionId, sessionId),
+        organizationId
+          ? eq(guestAiConciergeMessages.organizationId, organizationId)
+          : undefined,
+      ),
+    )
     .orderBy(asc(guestAiConciergeMessages.createdAt))
     .limit(limit);
+}
+
+/**
+ * Resolve the org a concierge session belongs to (its own column).
+ * Returns null when the session is unknown or its org is unbackfilled
+ * (legacy) — callers treat a non-null mismatch as a cross-tenant access.
+ */
+export async function getConciergeSessionOrganizationId(
+  sessionId: string,
+): Promise<string | null> {
+  const db = getDb();
+  if (!db) return null;
+  const [s] = await db
+    .select({ organizationId: guestAiConciergeSessions.organizationId })
+    .from(guestAiConciergeSessions)
+    .where(eq(guestAiConciergeSessions.id, sessionId))
+    .limit(1);
+  return s?.organizationId ?? null;
 }
 
 /**

@@ -11,20 +11,23 @@ import {
   attributionConversions,
   attributionTouchpoints,
 } from "@/lib/db/schema/attribution";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 6.P4.F — Read queries for the marketing UI.
  *
- * RLS at the DB layer keeps per-org isolation honest; we don't
- * filter by organization_id here.
+ * The DB role is BYPASSRLS, so per-org isolation is enforced
+ * explicitly here via requireOrgId() + an organization_id predicate.
  */
 
 export async function listConnectionsForUi() {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(marketingConnections)
+    .where(eq(marketingConnections.organizationId, organizationId))
     .orderBy(desc(marketingConnections.createdAt))
     .limit(100);
 }
@@ -42,9 +45,11 @@ export async function listCampaignsForUi(opts: { limit?: number } = {}) {
 export async function listConversionsForUi(opts: { limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(attributionConversions)
+    .where(eq(attributionConversions.organizationId, organizationId))
     .orderBy(desc(attributionConversions.convertedAt))
     .limit(opts.limit ?? 200);
 }
@@ -52,9 +57,11 @@ export async function listConversionsForUi(opts: { limit?: number } = {}) {
 export async function listRecentTouchpointsForUi(opts: { limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(attributionTouchpoints)
+    .where(eq(attributionTouchpoints.organizationId, organizationId))
     .orderBy(desc(attributionTouchpoints.touchpointAt))
     .limit(opts.limit ?? 100);
 }

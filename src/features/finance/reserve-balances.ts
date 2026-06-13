@@ -1,8 +1,11 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import { reserveMovements } from "@/lib/db/schema/finance";
+import { villas, projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 
 export interface ReserveBalanceRow {
@@ -27,6 +30,13 @@ export interface ReserveBalanceRow {
 export async function listReserveBalances(): Promise<WithSource<ReserveBalanceRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY-FINANCE — reserve_movements has no organization_id. Anchor org
+  // through the movement's villa (→ its project) or its own project_id, and
+  // require COALESCE(villaProject.org, project.org) = caller's org. Movements
+  // with neither anchor are excluded (cannot be scoped). Without this the
+  // aggregate scans every tenant's movements and leaks balances.
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project");
 
   const rows = await db
     .select({
@@ -42,7 +52,15 @@ export async function listReserveBalances(): Promise<WithSource<ReserveBalanceRo
       lastMovement: sql<string>`MAX(${reserveMovements.movementDate})`,
     })
     .from(reserveMovements)
-    .where(eq(reserveMovements.status, "posted"))
+    .leftJoin(villas, eq(villas.id, reserveMovements.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(projects, eq(projects.id, reserveMovements.projectId))
+    .where(
+      and(
+        eq(reserveMovements.status, "posted"),
+        sql`COALESCE(${villaProject.organizationId}, ${projects.organizationId}) = ${organizationId}`,
+      ),
+    )
     .groupBy(
       reserveMovements.villaId,
       reserveMovements.projectId,
