@@ -1,13 +1,16 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestServiceFulfilments,
   serviceFulfilmentEvents,
   serviceFulfilmentFinanceLinks,
 } from "@/lib/db/schema/service-fulfilment";
-import { guestServiceOrders } from "@/lib/db/schema/guest-services";
+import {
+  guestServiceOrders,
+  guestServices,
+} from "@/lib/db/schema/guest-services";
 import { revenueLines, expenseLines } from "@/lib/db/schema/finance";
 import { findLockingPeriod } from "@/features/finance/validation";
 import {
@@ -51,6 +54,7 @@ export type FulfilmentBridgeOutcome =
 export async function bridgeFulfilmentToFinance(
   fulfilmentId: string,
   actorAppUserId: string | null = null,
+  organizationId: string | null = null,
 ): Promise<FulfilmentBridgeOutcome> {
   const db = getDb();
   if (!db) return { ok: false, status: "failed", reason: "no_db" };
@@ -62,6 +66,34 @@ export async function bridgeFulfilmentToFinance(
     .limit(1);
   if (!fulfilment) {
     return { ok: false, status: "failed", reason: "fulfilment_not_found" };
+  }
+  // Tenant scope: when a caller org is supplied (request-scoped actions),
+  // confirm the fulfilment belongs to it via the durable NOT-NULL anchor
+  // guest_services.organization_id. A cross-org id reads as not-found so no
+  // revenue/expense line can be minted against another tenant's books.
+  // (Cron batch passes null → system-wide, unscoped by design.)
+  if (organizationId) {
+    const [owned] = await db
+      .select({ id: guestServiceFulfilments.id })
+      .from(guestServiceFulfilments)
+      .innerJoin(
+        guestServiceOrders,
+        eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+      )
+      .innerJoin(
+        guestServices,
+        eq(guestServices.id, guestServiceOrders.serviceId),
+      )
+      .where(
+        and(
+          eq(guestServiceFulfilments.id, fulfilmentId),
+          eq(guestServices.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!owned) {
+      return { ok: false, status: "failed", reason: "fulfilment_not_found" };
+    }
   }
   if (!shouldBridgeFinance(fulfilment.status as "completed")) {
     return {
@@ -260,12 +292,23 @@ export async function bridgeFulfilmentToFinance(
 export async function bridgePendingFulfilmentsToFinance(
   limit = 50,
   actorAppUserId: string | null = null,
+  organizationId: string | null = null,
 ): Promise<{ processed: number; bridged: number; skipped: number; failed: number }> {
   const db = getDb();
   if (!db) return { processed: 0, bridged: 0, skipped: 0, failed: 0 };
+  // When org-scoped (operator action), only sweep this tenant's fulfilments
+  // via the guest_services org anchor. Cron passes null → system-wide.
   const completed = await db
     .select({ id: guestServiceFulfilments.id })
     .from(guestServiceFulfilments)
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
     .leftJoin(
       serviceFulfilmentFinanceLinks,
       eq(
@@ -273,13 +316,20 @@ export async function bridgePendingFulfilmentsToFinance(
         guestServiceFulfilments.id,
       ),
     )
-    .where(eq(guestServiceFulfilments.status, "completed"))
+    .where(
+      organizationId
+        ? and(
+            eq(guestServiceFulfilments.status, "completed"),
+            eq(guestServices.organizationId, organizationId),
+          )
+        : eq(guestServiceFulfilments.status, "completed"),
+    )
     .limit(limit);
   let bridged = 0;
   let skipped = 0;
   let failed = 0;
   for (const f of completed) {
-    const out = await bridgeFulfilmentToFinance(f.id, actorAppUserId);
+    const out = await bridgeFulfilmentToFinance(f.id, actorAppUserId, organizationId);
     if (out.ok) {
       if (out.status === "bridged") bridged++;
       else skipped++;

@@ -35,6 +35,7 @@ import { serviceRequests } from "@/lib/db/schema/operations";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { queueNotification } from "@/features/notifications/services";
 import { buildServiceRequestCode } from "@/features/operations/codes";
 import { nextDailyCounter } from "@/features/operations/services";
@@ -129,6 +130,14 @@ async function guardSession(
   }
   const ctx = await loadSessionContext(sessionId);
   if (!ctx) return { ok: false, error: "Session not found." };
+  // Tenant scope: the gate above only checks the verb. A concierge session
+  // carries an org anchor (its own column, falling back to the booking's);
+  // a cross-org session reads as not-found so no work / booking charge can be
+  // spawned against another tenant. NULL org = legacy/unresolved → allowed.
+  const organizationId = await requireOrgId();
+  if (ctx.organizationId && ctx.organizationId !== organizationId) {
+    return { ok: false, error: "Session not found." };
+  }
   return { ok: true, ctx };
 }
 
