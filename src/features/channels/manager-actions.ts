@@ -223,7 +223,10 @@ export async function resolveDoubleBookingAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not authorised." };
+  const organizationId = me.organizationId;
 
+  // Tenant scope: both bookings must belong to the caller's org. A cross-org
+  // id simply doesn't come back, so the not-found guard below cancels nothing.
   const rows = await db
     .select({
       id: bookings.id,
@@ -235,7 +238,12 @@ export async function resolveDoubleBookingAction(
       checkOut: bookings.checkOut,
     })
     .from(bookings)
-    .where(inArray(bookings.id, [winnerBookingId, loserBookingId]));
+    .where(
+      and(
+        inArray(bookings.id, [winnerBookingId, loserBookingId]),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
   const winner = rows.find((r) => r.id === winnerBookingId);
   const loser = rows.find((r) => r.id === loserBookingId);
   if (!winner || !loser) return { ok: false, error: "Booking not found." };
@@ -254,7 +262,12 @@ export async function resolveDoubleBookingAction(
         notes: sql`COALESCE(${bookings.notes} || E'\n', '') || ${`Cancelled via channel-conflict resolution — superseded by ${winner.bookingCode}.`}`,
         updatedAt: new Date(),
       })
-      .where(eq(bookings.id, loser.id));
+      .where(
+        and(
+          eq(bookings.id, loser.id),
+          eq(bookings.organizationId, organizationId),
+        ),
+      );
   } catch (err) {
     return {
       ok: false,

@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { directBookingRequests } from "@/lib/db/schema/direct-booking";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { queueNotification } from "@/features/notifications/services";
 import {
   appendDepositEvent,
@@ -38,11 +39,18 @@ export async function createOrRecreateDepositSessionAction(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+  // TENANCY: a cross-org request id reads as not-found before any deposit write.
   const [request] = await db
     .select()
     .from(directBookingRequests)
-    .where(eq(directBookingRequests.id, parsed.data.requestId))
+    .where(
+      and(
+        eq(directBookingRequests.id, parsed.data.requestId),
+        eq(directBookingRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!request) return { ok: false, error: "Request not found." };
   // Cancel any outstanding deposit first so we recreate cleanly.
@@ -102,9 +110,14 @@ export async function markDepositManuallyPaidAction(
   await requirePermission("direct_booking.deposit.mark_paid");
   const parsed = depositIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const deposit = await getDepositById(parsed.data.id);
-  if (!deposit) return { ok: false, error: "Deposit not found." };
+  // TENANCY: reject a deposit owned by another org (NULL org = legacy pre-
+  // backfill, allowed for the internal caller).
+  if (!deposit || (deposit.organizationId && deposit.organizationId !== organizationId)) {
+    return { ok: false, error: "Deposit not found." };
+  }
   if (
     deposit.status === "paid" ||
     deposit.status === "manually_marked_paid"
@@ -163,8 +176,12 @@ export async function markDepositFailedAction(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
   const reason = (formData.get("reason") as string | null) ?? null;
+  const organizationId = await requireOrgId();
   const deposit = await getDepositById(parsed.data.id);
-  if (!deposit) return { ok: false, error: "Deposit not found." };
+  // TENANCY: reject a deposit owned by another org (NULL = legacy, allowed).
+  if (!deposit || (deposit.organizationId && deposit.organizationId !== organizationId)) {
+    return { ok: false, error: "Deposit not found." };
+  }
   if (
     deposit.status === "paid" ||
     deposit.status === "manually_marked_paid"
@@ -209,8 +226,12 @@ export async function cancelDepositAction(
   const parsed = depositIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const deposit = await getDepositById(parsed.data.id);
-  if (!deposit) return { ok: false, error: "Deposit not found." };
+  // TENANCY: reject a deposit owned by another org (NULL = legacy, allowed).
+  if (!deposit || (deposit.organizationId && deposit.organizationId !== organizationId)) {
+    return { ok: false, error: "Deposit not found." };
+  }
   if (
     deposit.status === "paid" ||
     deposit.status === "manually_marked_paid"
@@ -261,8 +282,12 @@ export async function refundDepositPlaceholderAction(
   const parsed = depositIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const deposit = await getDepositById(parsed.data.id);
-  if (!deposit) return { ok: false, error: "Deposit not found." };
+  // TENANCY: reject a deposit owned by another org (NULL = legacy, allowed).
+  if (!deposit || (deposit.organizationId && deposit.organizationId !== organizationId)) {
+    return { ok: false, error: "Deposit not found." };
+  }
   if (
     deposit.status !== "paid" &&
     deposit.status !== "manually_marked_paid"

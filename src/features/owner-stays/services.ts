@@ -626,10 +626,11 @@ export async function getOwnerStayRequestById(
     .leftJoin(villas, eq(villas.id, ownerStayRequests.villaId))
     .leftJoin(projectsTable, eq(projectsTable.id, ownerStayRequests.projectId))
     .leftJoin(owners, eq(owners.id, ownerStayRequests.ownerId))
-    // NOTE: NOT org-scoped here on purpose — this by-id read is shared with the
-    // owner portal (/owner/stays/[id]), where the caller's org may differ from
-    // the villa's org. The mgmt list (listOwnerStayRequests) IS org-scoped, and
-    // the mgmt detail page must call getOwnerStayRequestByIdForOrg (below).
+    // NOTE: deliberately NOT org-scoped — this by-id read is shared with the
+    // owner portal (/owner/stays/[id]), where the caller's org can legitimately
+    // differ from the villa's org and the page enforces access via ownerId
+    // instead. The MGMT detail page must use getOwnerStayRequestByIdForOrg()
+    // below so a cross-org id reads as not-found.
     .where(eq(ownerStayRequests.id, id))
     .limit(1);
   return r
@@ -638,11 +639,10 @@ export async function getOwnerStayRequestById(
 }
 
 /**
- * TENANCY — mgmt-scoped by-id read. Backs the dashboard detail page
- * src/app/(dashboard)/dashboard/owner-stays/requests/[id]/page.tsx, where the
- * route is directly addressable: ANDing the caller's org prevents a mgmt admin
- * from opening another org's request by guessing/iterating UUIDs. The shared
- * getOwnerStayRequestById above stays portal-safe for /owner/stays/[id].
+ * Mgmt-only by-id read: like getOwnerStayRequestById but ANDs the caller's org
+ * so a cross-org request id reads as not-found (closes the typed-id IDOR on the
+ * /dashboard/owner-stays/requests/[id] detail page). Do NOT use from the owner
+ * portal — see the note above.
  */
 export async function getOwnerStayRequestByIdForOrg(
   id: string,

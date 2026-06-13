@@ -55,6 +55,9 @@ const BRIDGE_DESCRIPTION_PREFIX = "Owner stay";
 export async function createFinanceRowsForOwnerStay(
   requestId: string,
   actorUserId: string | null = null,
+  // TENANCY: when set, only bridge a request belonging to this org (a cross-org
+  // id reads as not-found). The action layer passes requireOrgId().
+  expectedOrgId: string | null = null,
 ): Promise<BridgeOutcome> {
   const db = getDb();
   if (!db) {
@@ -81,7 +84,7 @@ export async function createFinanceRowsForOwnerStay(
       ),
     )
     .limit(1);
-  if (!req) {
+  if (!req || (expectedOrgId !== null && req.organizationId !== expectedOrgId)) {
     return {
       ok: false,
       requestId,
@@ -606,6 +609,7 @@ export async function listFinanceLinks(opts?: {
 
 export async function listPendingBridgeRequests(
   limit = 50,
+  orgId: string | null = null,
 ): Promise<{ id: string }[]> {
   const db = getDb();
   if (!db) return [];
@@ -620,6 +624,8 @@ export async function listPendingBridgeRequests(
           "failed",
           "skipped_locked_period",
         ]),
+        // TENANCY: only the caller's org's pending stays.
+        ...(orgId ? [eq(ownerStayRequests.organizationId, orgId)] : []),
       ),
     )
     .orderBy(asc(ownerStayRequests.requestedEnd))
@@ -635,11 +641,13 @@ export async function listPendingBridgeRequests(
 export async function bridgePendingOwnerStays(
   actorUserId: string | null,
   limit = 50,
+  // TENANCY: scope the batch to the caller's org (passed from the action).
+  orgId: string | null = null,
 ): Promise<{ checked: number; outcomes: BridgeOutcome[] }> {
-  const targets = await listPendingBridgeRequests(limit);
+  const targets = await listPendingBridgeRequests(limit, orgId);
   const outcomes: BridgeOutcome[] = [];
   for (const t of targets) {
-    const out = await createFinanceRowsForOwnerStay(t.id, actorUserId);
+    const out = await createFinanceRowsForOwnerStay(t.id, actorUserId, orgId);
     outcomes.push(out);
   }
   return { checked: targets.length, outcomes };
@@ -655,6 +663,8 @@ export async function reverseFinanceBridgeForOwnerStay(
   requestId: string,
   actorUserId: string | null,
   reason: string,
+  // TENANCY: when set, only reverse a request belonging to this org.
+  expectedOrgId: string | null = null,
 ): Promise<BridgeOutcome> {
   const db = getDb();
   if (!db) {
@@ -667,18 +677,31 @@ export async function reverseFinanceBridgeForOwnerStay(
       currency: "USD",
     };
   }
-  // TENANCY (write-flow follow-up) — gate the reverse to the caller's org so an
-  // admin cannot reverse another org's bridged finance rows by request id.
-  const organizationId = await requireOrgId();
+  // TENANCY: this is a write path also reachable from cron (expectedOrgId
+  // null = system, no scoping). The caller-supplied expectedOrgId is the
+  // cron-safe gate — do NOT swap in requireOrgId() here (it would fall back
+  // to the default org and mis-scope cron reversals).
+  if (expectedOrgId !== null) {
+    const [reqOrg] = await db
+      .select({ organizationId: ownerStayRequests.organizationId })
+      .from(ownerStayRequests)
+      .where(eq(ownerStayRequests.id, requestId))
+      .limit(1);
+    if (!reqOrg || reqOrg.organizationId !== expectedOrgId) {
+      return {
+        ok: false,
+        requestId,
+        status: "failed",
+        reason: "request not found",
+        amountMinor: 0,
+        currency: "USD",
+      };
+    }
+  }
   const [link] = await db
     .select()
     .from(ownerStayFinanceLinks)
-    .where(
-      and(
-        eq(ownerStayFinanceLinks.ownerStayRequestId, requestId),
-        eq(ownerStayFinanceLinks.organizationId, organizationId),
-      ),
-    )
+    .where(eq(ownerStayFinanceLinks.ownerStayRequestId, requestId))
     .limit(1);
   if (!link || link.bridgeStatus !== "bridged") {
     return {

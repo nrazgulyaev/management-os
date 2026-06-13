@@ -15,6 +15,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   createInventoryCategorySchema,
   createInventoryItemSchema,
@@ -503,6 +504,29 @@ export async function applyMovement(input: {
   const db = getDb();
   if (!db) return { error: "Database is not configured." };
 
+  // TENANCY: every movement-mutating action funnels through here. Verify the
+  // item + any referenced locations belong to the caller's org (a cross-org id
+  // reads as not-found) and stamp the org on the movement. This single guard
+  // covers create/receive/transfer/write-off/adjust/consume + count + PO
+  // receipt, all of which call applyMovement.
+  const organizationId = await requireOrgId();
+  const [orgItem] = await db
+    .select({ id: inventoryItems.id })
+    .from(inventoryItems)
+    .where(and(eq(inventoryItems.id, input.itemId), eq(inventoryItems.organizationId, organizationId)))
+    .limit(1);
+  if (!orgItem) return { error: "Item not found." };
+  for (const locId of [input.fromLocationId, input.toLocationId]) {
+    if (locId) {
+      const [loc] = await db
+        .select({ id: inventoryLocations.id })
+        .from(inventoryLocations)
+        .where(and(eq(inventoryLocations.id, locId), eq(inventoryLocations.organizationId, organizationId)))
+        .limit(1);
+      if (!loc) return { error: "Location not found." };
+    }
+  }
+
   const shapeError = validateMovementShape({
     type: input.type,
     quantity: input.quantity,
@@ -540,6 +564,7 @@ export async function applyMovement(input: {
   const [movement] = await db
     .insert(inventoryMovements)
     .values({
+      organizationId,
       movementCode,
       itemId: input.itemId,
       movementType: input.type,
@@ -696,14 +721,16 @@ export async function createTaskMaterialUsageAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
 
-  // Pull item to capture unit cost / currency on the usage row.
+  // Pull item (scoped to the caller's org) to capture unit cost / currency.
+  // applyMovement re-validates org too — this also stops a cross-org cost read.
   const [item] = await db
     .select()
     .from(inventoryItems)
-    .where(eq(inventoryItems.id, d.itemId))
+    .where(and(eq(inventoryItems.id, d.itemId), eq(inventoryItems.organizationId, organizationId)))
     .limit(1);
   if (!item) return { ok: false, error: "Item not found." };
 

@@ -20,6 +20,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   assignFulfilmentStaffSchema,
   assignFulfilmentVendorSchema,
@@ -796,6 +797,30 @@ export async function completeFulfilmentAction(
   const me = await getCurrentAppUser();
   const ts = new Date();
   const v = parsed.data;
+  // Tenant scope: prove the fulfilment belongs to the caller's org via the
+  // durable NOT-NULL anchor guest_services.organization_id before completing
+  // it (completion mints guest price + internal cost margin). A cross-org id
+  // reads as not-found.
+  const organizationId = await requireOrgId();
+  const [owned] = await db
+    .select({ id: guestServiceFulfilments.id })
+    .from(guestServiceFulfilments)
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceFulfilments.id, v.id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Fulfilment not found." };
   const guestPriceBig =
     v.guestPriceMinor != null ? BigInt(v.guestPriceMinor) : undefined;
   const internalCostBig =
@@ -1465,6 +1490,7 @@ export async function bridgeFulfilmentToFinanceAction(
   const out = await bridgeFulfilmentToFinance(
     parsed.data.fulfilmentId,
     me?.id ?? null,
+    await requireOrgId(),
   );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -1495,7 +1521,11 @@ export async function bridgePendingFulfilmentsToFinanceAction(
 > {
   await requirePermission("service_fulfilment.finance_bridge");
   const me = await getCurrentAppUser();
-  const out = await bridgePendingFulfilmentsToFinance(50, me?.id ?? null);
+  const out = await bridgePendingFulfilmentsToFinance(
+    50,
+    me?.id ?? null,
+    await requireOrgId(),
+  );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "service_fulfilment.finance_bridge.bulk",

@@ -1,10 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -173,13 +173,32 @@ export async function assignBookingToVillaAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // Tenant scope: a foreign bookingId must 404 before any reassignment.
   const [booking] = await db
     .select()
     .from(bookings)
-    .where(eq(bookings.id, parsed.data.bookingId))
+    .where(
+      and(
+        eq(bookings.id, parsed.data.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!booking) return { ok: false, error: "Booking not found." };
+
+  // The *target* villa must belong to the same org. Villas carry no org
+  // column — resolve via projects.organization_id (mirrors listProjects/#241).
+  const [targetVilla] = await db
+    .select({ orgId: projects.organizationId })
+    .from(villas)
+    .leftJoin(projects, eq(projects.id, villas.projectId))
+    .where(eq(villas.id, parsed.data.villaId))
+    .limit(1);
+  if (!targetVilla || targetVilla.orgId !== organizationId) {
+    return { ok: false, error: "Target villa not found." };
+  }
 
   const startsAt = new Date(`${booking.checkIn as unknown as string}T00:00:00.000Z`);
   const endsAt = new Date(`${booking.checkOut as unknown as string}T00:00:00.000Z`);
@@ -200,7 +219,12 @@ export async function assignBookingToVillaAction(
   await db
     .update(bookings)
     .set({ villaId: parsed.data.villaId, updatedAt: new Date() })
-    .where(eq(bookings.id, parsed.data.bookingId));
+    .where(
+      and(
+        eq(bookings.id, parsed.data.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
 
   // Re-sync — the existing block (if any) gets updated to the new villa.
   await syncBookingCalendarBlock(parsed.data.bookingId, me?.id ?? null);

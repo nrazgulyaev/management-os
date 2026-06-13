@@ -50,12 +50,23 @@ export interface SyncCampaignsResult {
 
 export async function syncCampaignsForConnection(
   connectionId: string,
+  // TENANCY: when set, only sync a connection owned by this org (a foreign id
+  // reads as "connection not found" before any campaign/metric write). The
+  // user-facing action passes requireOrgId(); the platform cron passes null.
+  organizationId: string | null = null,
 ): Promise<SyncCampaignsResult> {
   const db = requireDb();
   const [conn] = await db
     .select()
     .from(marketingConnections)
-    .where(eq(marketingConnections.id, connectionId))
+    .where(
+      organizationId
+        ? and(
+            eq(marketingConnections.id, connectionId),
+            eq(marketingConnections.organizationId, organizationId),
+          )
+        : eq(marketingConnections.id, connectionId),
+    )
     .limit(1);
   if (!conn) {
     return {

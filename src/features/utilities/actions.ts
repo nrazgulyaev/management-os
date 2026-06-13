@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   utilityAccounts,
@@ -302,11 +302,21 @@ export async function markUtilityPaymentPaidAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: marking paid can mint an expense_line on the account's villa/
+  // project. utility_payment_reminders.organization_id is NOT NULL — scope the
+  // load so a foreign reminder id reads as not-found (the account is then
+  // necessarily in-org via the reminder's FK).
+  const organizationId = await requireOrgId();
 
   const [reminder] = await db
     .select()
     .from(utilityPaymentReminders)
-    .where(eq(utilityPaymentReminders.id, parsed.data.id))
+    .where(
+      and(
+        eq(utilityPaymentReminders.id, parsed.data.id),
+        eq(utilityPaymentReminders.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!reminder) return { ok: false, error: "Reminder not found." };
   if (reminder.status === "paid")

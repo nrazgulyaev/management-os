@@ -8,6 +8,8 @@ import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { and } from "drizzle-orm";
 import {
   bridgePendingOwnerStays,
   createFinanceRowsForOwnerStay,
@@ -30,7 +32,11 @@ export async function bridgeOwnerStayRequestAction(
   const parsed = idSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing request id." };
   const me = await getCurrentAppUser();
-  const out = await createFinanceRowsForOwnerStay(parsed.data.id, me?.id ?? null);
+  const out = await createFinanceRowsForOwnerStay(
+    parsed.data.id,
+    me?.id ?? null,
+    await requireOrgId(),
+  );
   if (out.ok && out.status === "bridged") {
     // Owner-facing notification — informational only.
     try {
@@ -54,7 +60,7 @@ export async function bridgePendingOwnerStaysAction(
   void _formData;
   await requirePermission("owner_stay.finance_bridge");
   const me = await getCurrentAppUser();
-  const out = await bridgePendingOwnerStays(me?.id ?? null);
+  const out = await bridgePendingOwnerStays(me?.id ?? null, 50, await requireOrgId());
   const bridged = out.outcomes.filter((o) => o.status === "bridged").length;
   const skipped = out.outcomes.filter((o) =>
     ["skipped_no_charge", "skipped_locked_period"].includes(o.status),
@@ -82,6 +88,7 @@ export async function reverseOwnerStayFinanceBridgeAction(
     parsed.data.id,
     me?.id ?? null,
     parsed.data.reason,
+    await requireOrgId(),
   );
   revalidatePath("/dashboard/owner-stays/finance-bridge");
   revalidatePath(`/dashboard/owner-stays/requests/${parsed.data.id}`);
@@ -106,11 +113,19 @@ export async function completeOwnerStayRequestAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: only complete a request in the caller's org (cross-org id → not
+  // found) — completing mints the owner-stay's downstream money lifecycle.
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(ownerStayRequests)
-    .where(eq(ownerStayRequests.id, parsed.data.id))
+    .where(
+      and(
+        eq(ownerStayRequests.id, parsed.data.id),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Request not found." };
   if (before.status !== "approved") {

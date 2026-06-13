@@ -2,13 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { ownershipShares } from "@/lib/db/schema/ownership";
+import { ownershipShares, owners } from "@/lib/db/schema/ownership";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createShareSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -35,10 +37,41 @@ export async function createShareAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
+  // TENANCY: shares drive distribution/statement math. Stamp the caller's org
+  // and verify every FK (owner/villa/project) belongs to it, so a crafted POST
+  // can't attach another org's owner/villa to a share (cross-org ledger
+  // poisoning). Mirrors onboardOwnerAction's villa validation.
+  const organizationId = await requireOrgId();
+  const [owner] = await db
+    .select({ id: owners.id })
+    .from(owners)
+    .where(and(eq(owners.id, d.ownerId), eq(owners.organizationId, organizationId)))
+    .limit(1);
+  if (!owner) {
+    return { ok: false, error: "Owner is not available in your organisation." };
+  }
+  if (d.villaId && d.villaId !== "") {
+    const [v] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(and(eq(villas.id, d.villaId), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    if (!v) return { ok: false, error: "Villa is not available in your organisation." };
+  }
+  if (d.projectId && d.projectId !== "") {
+    const [p] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, d.projectId), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    if (!p) return { ok: false, error: "Project is not available in your organisation." };
+  }
 
   const [row] = await db
     .insert(ownershipShares)
     .values({
+      organizationId,
       ownerId: d.ownerId,
       villaId: d.villaId && d.villaId !== "" ? d.villaId : null,
       projectId: d.projectId && d.projectId !== "" ? d.projectId : null,
@@ -72,14 +105,29 @@ export async function archiveShareAction(
   if (!id.success) return { ok: false, error: "Missing share id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+  // TENANCY: only end a share in the caller's org (cross-org id → not found).
   const [before] = await db
     .select()
     .from(ownershipShares)
-    .where(eq(ownershipShares.id, id.data))
+    .where(
+      and(
+        eq(ownershipShares.id, id.data),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Share not found." };
-  await db.update(ownershipShares).set({ status: "ended" }).where(eq(ownershipShares.id, id.data));
+  await db
+    .update(ownershipShares)
+    .set({ status: "ended" })
+    .where(
+      and(
+        eq(ownershipShares.id, id.data),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "share.end",
@@ -123,12 +171,19 @@ export async function updateShareAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
+  // TENANCY: only edit a share in the caller's org (cross-org id → not found).
   const [before] = await db
     .select()
     .from(ownershipShares)
-    .where(eq(ownershipShares.id, id.data))
+    .where(
+      and(
+        eq(ownershipShares.id, id.data),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Share not found." };
   // Mutate only the operationally-correctable fields. The form may post
@@ -142,7 +197,12 @@ export async function updateShareAction(
       endsOn: d.endsOn && d.endsOn !== "" ? d.endsOn : null,
       status: d.status,
     })
-    .where(eq(ownershipShares.id, id.data));
+    .where(
+      and(
+        eq(ownershipShares.id, id.data),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "share.update",

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   bookingChannels,
@@ -181,11 +181,19 @@ export async function convertDirectBookingRequestToBookingAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: resolve the caller's org up front (reused for the booking insert)
+  // and AND it into the request load — a cross-org id → "Request not found".
+  const organizationId = await requireOrgId();
 
   const [request] = await db
     .select()
     .from(directBookingRequests)
-    .where(eq(directBookingRequests.id, parsed.data.id))
+    .where(
+      and(
+        eq(directBookingRequests.id, parsed.data.id),
+        eq(directBookingRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!request) return { ok: false, error: "Request not found." };
   if (!["approved", "submitted", "under_review"].includes(request.status)) {
@@ -242,10 +250,7 @@ export async function convertDirectBookingRequestToBookingAction(
     channelId = direct?.id ?? null;
   }
 
-  // Resolve the caller's org once — stamps both the guest (0176) and booking.
-  const organizationId = await requireOrgId();
-
-  // Guest record.
+  // Guest record (org resolved above).
   const guestId =
     request.guestId ??
     (await upsertGuestByEmail({

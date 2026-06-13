@@ -354,8 +354,15 @@ export async function recordCommissionChangeAction(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY: commission_pct feeds owner-statement/payout math. Scope load +
+  // update to the caller's org so a foreign owner id can't be re-priced.
+  const organizationId = await requireOrgId();
 
-  const [owner] = await db.select().from(owners).where(eq(owners.id, d.ownerId)).limit(1);
+  const [owner] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, d.ownerId), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!owner) return { ok: false, error: "Owner not found." };
 
   // Persist as a FRACTION in [0,1] (0.20 = 20%), shape-compatible with
@@ -367,7 +374,7 @@ export async function recordCommissionChangeAction(
   await db
     .update(owners)
     .set({ commissionPct: commissionFraction })
-    .where(eq(owners.id, d.ownerId));
+    .where(and(eq(owners.id, d.ownerId), eq(owners.organizationId, organizationId)));
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

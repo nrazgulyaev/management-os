@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   inventoryItems,
@@ -13,6 +13,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { applyMovement } from "@/features/inventory/actions";
 import {
   PO_TRANSITIONS,
@@ -51,6 +52,7 @@ export async function createPurchaseRequestAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const counter = await nextProcurementCounter("PR");
@@ -59,6 +61,7 @@ export async function createPurchaseRequestAction(
   const [row] = await db
     .insert(purchaseRequests)
     .values({
+      organizationId,
       requestCode,
       title: d.title,
       description: d.description && d.description !== "" ? d.description : null,
@@ -96,13 +99,19 @@ async function transitionPurchaseRequest(
   if (!parsed.success) return { ok: false, error: "Missing id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(purchaseRequests)
     .where(eq(purchaseRequests.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "Purchase request not found." };
+  // Tenant scope: a foreign PR id reads as not-found. organization_id is a
+  // nullable legacy anchor (0153) — a NULL row predates threading and is
+  // allowed; a set-but-mismatched org is rejected.
+  if (!before || (before.organizationId && before.organizationId !== organizationId)) {
+    return { ok: false, error: "Purchase request not found." };
+  }
   if (!canTransition(PR_TRANSITIONS, before.status, to)) {
     return { ok: false, error: `Cannot move PR from "${before.status}" to "${to}".` };
   }
@@ -166,13 +175,18 @@ export async function createPurchaseOrderFromRequestAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [pr] = await db
     .select()
     .from(purchaseRequests)
     .where(eq(purchaseRequests.id, parsed.data.id))
     .limit(1);
-  if (!pr) return { ok: false, error: "Purchase request not found." };
+  // Tenant scope: foreign PR 404s before any PO (money + future stock) is
+  // minted. NULL org = legacy, allowed.
+  if (!pr || (pr.organizationId && pr.organizationId !== organizationId)) {
+    return { ok: false, error: "Purchase request not found." };
+  }
   if (pr.status !== "approved") {
     return { ok: false, error: "Only approved purchase requests can be ordered." };
   }
@@ -185,9 +199,12 @@ export async function createPurchaseOrderFromRequestAction(
   const counter = await nextProcurementCounter("PO");
   const poCode = buildPurchaseOrderCode(counter);
 
+  // Stamp the caller's verified org on the new PO + its lines.
+  const poOrgId = pr.organizationId ?? organizationId;
   const [po] = await db
     .insert(purchaseOrders)
     .values({
+      organizationId: poOrgId,
       poCode,
       requestId: pr.id,
       supplierId: pr.supplierId,
@@ -203,6 +220,7 @@ export async function createPurchaseOrderFromRequestAction(
   if (lines.length > 0) {
     await db.insert(purchaseOrderLines).values(
       lines.map((l) => ({
+        organizationId: poOrgId,
         purchaseOrderId: po.id,
         itemId: l.itemId,
         description: l.description,
@@ -248,6 +266,7 @@ export async function createPurchaseOrderAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const counter = await nextProcurementCounter("PO");
@@ -256,6 +275,7 @@ export async function createPurchaseOrderAction(
   const [po] = await db
     .insert(purchaseOrders)
     .values({
+      organizationId,
       poCode,
       supplierId: d.supplierId ?? null,
       projectId: d.projectId ?? null,
@@ -290,13 +310,17 @@ async function transitionPurchaseOrder(
   if (!parsed.success) return { ok: false, error: "Missing id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(purchaseOrders)
     .where(eq(purchaseOrders.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "PO not found." };
+  // Tenant scope: foreign PO 404s. NULL org = legacy, allowed.
+  if (!before || (before.organizationId && before.organizationId !== organizationId)) {
+    return { ok: false, error: "PO not found." };
+  }
   if (!canTransition(PO_TRANSITIONS, before.status, to)) {
     return { ok: false, error: `Cannot move PO from "${before.status}" to "${to}".` };
   }
@@ -359,6 +383,7 @@ export async function receivePurchaseOrderLineAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
 
   const [line] = await db
@@ -366,7 +391,11 @@ export async function receivePurchaseOrderLineAction(
     .from(purchaseOrderLines)
     .where(eq(purchaseOrderLines.id, d.lineId))
     .limit(1);
-  if (!line) return { ok: false, error: "PO line not found." };
+  // Tenant scope: foreign PO line 404s before any stock receive (which mints
+  // inventory via applyMovement, itself org-guarded). NULL org = legacy.
+  if (!line || (line.organizationId && line.organizationId !== organizationId)) {
+    return { ok: false, error: "PO line not found." };
+  }
   if (line.purchaseOrderId !== d.purchaseOrderId) {
     return { ok: false, error: "Line does not belong to this PO." };
   }
@@ -455,13 +484,17 @@ export async function markPurchaseOrderReceivedAction(
   if (!parsed.success) return { ok: false, error: "Missing id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(purchaseOrders)
     .where(eq(purchaseOrders.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "PO not found." };
+  // Tenant scope: foreign PO 404s. NULL org = legacy, allowed.
+  if (!before || (before.organizationId && before.organizationId !== organizationId)) {
+    return { ok: false, error: "PO not found." };
+  }
   if (before.status === "received") return { ok: true };
 
   await db
