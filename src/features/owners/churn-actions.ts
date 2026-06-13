@@ -28,7 +28,7 @@ import { owners } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
-import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
+import { requireOrgId } from "@/features/auth/require-org";
 import { listOwnershipShares } from "./services";
 import { getOwnerRetentionRisk } from "./retention-risk-service";
 import { computeChurnScore, INTERVENTION_LABEL, type InterventionKind } from "./retention-churn";
@@ -73,7 +73,16 @@ export async function runChurnAnalysisAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  const [owner] = await db.select().from(owners).where(eq(owners.id, ownerId)).limit(1);
+  // TENANCY (0173): owners is org-scoped via its own organization_id. Resolve
+  // the caller's org and scope the owner load to it so a foreign owner id reads
+  // as "not found" and no insight can be written cross-org. The verified caller
+  // org also stamps the new insight (no owner-derived org).
+  const organizationId = await requireOrgId();
+  const [owner] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, ownerId), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!owner) return { ok: false, error: "Owner not found." };
 
   const villaIds = await ownerVillaIds(ownerId);
@@ -81,11 +90,6 @@ export async function runChurnAnalysisAction(
   const breakdown = computeChurnScore(risk ?? { level: "ok", signals: [] });
 
   const me = await getCurrentAppUser();
-  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
-  const organizationId = await getOwnerOrgId(ownerId);
-  if (!organizationId) {
-    return { ok: false, error: "Could not resolve the owner's organisation." };
-  }
   await db.insert(ownerInsights).values({
     organizationId,
     ownerId,
@@ -126,15 +130,18 @@ async function openIntervention(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  const [owner] = await db.select().from(owners).where(eq(owners.id, ownerId)).limit(1);
+  // TENANCY (0173): resolve the caller's org and scope the owner load to it so a
+  // foreign owner id reads as "not found" and no intervention can be opened
+  // cross-org. The verified caller org also stamps the new insight row.
+  const organizationId = await requireOrgId();
+  const [owner] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, ownerId), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!owner) return { ok: false, error: "Owner not found." };
 
   const me = await getCurrentAppUser();
-  // Org anchor (TENANCY 0158) — owner → ownership_shares → project.org.
-  const organizationId = await getOwnerOrgId(ownerId);
-  if (!organizationId) {
-    return { ok: false, error: "Could not resolve the owner's organisation." };
-  }
   const label = INTERVENTION_LABEL[churnKind];
   const [row] = await db
     .insert(ownerInsights)
@@ -219,6 +226,10 @@ export async function resolveInterventionAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY: owner_insights.organization_id is notNull (0152/0158). Bind the
+  // resolve to the caller's org so a foreign insight reads as "not found" and
+  // can never be dismissed cross-org.
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [updated] = await db
     .update(ownerInsights)
@@ -231,6 +242,7 @@ export async function resolveInterventionAction(
       and(
         eq(ownerInsights.id, interventionId.data),
         eq(ownerInsights.ownerId, ownerId.data),
+        eq(ownerInsights.organizationId, organizationId),
       ),
     )
     .returning({ id: ownerInsights.id });

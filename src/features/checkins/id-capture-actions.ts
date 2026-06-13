@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { checkins, guestIdDocuments } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
@@ -50,10 +50,12 @@ export async function captureGuestIdAction(
   if (!(file instanceof File) || file.size === 0) return { ok: false, error: "Attach a scan image." };
   if (file.size > MAX_BYTES) return { ok: false, error: "File too large (max 8MB)." };
 
+  // Tenant scope: a foreign bookingId must read as "not found" before any
+  // upload / guest_id_documents upsert / checkins write touches org B's data.
   const [bk] = await db
     .select({ id: bookings.id, guestId: bookings.guestId })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(and(eq(bookings.id, bookingId), eq(bookings.organizationId, orgId)))
     .limit(1);
   if (!bk) return { ok: false, error: "Booking not found." };
 
@@ -133,11 +135,22 @@ export async function approveGuestIdAction(bookingId: string): Promise<IdCapture
   if (!(await canManageEntity("booking"))) return { ok: false, error: "Not authorised." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const orgId = await requireOrgId();
   const user = await getCurrentAppUser();
+
+  // Org-scope through the parent booking (guest_id_documents has no org column):
+  // the join makes a cross-org document invisible, so the approve no-ops as
+  // "no ID on file" rather than mutating org B's row.
   const [row] = await db
     .select({ id: guestIdDocuments.id })
     .from(guestIdDocuments)
-    .where(eq(guestIdDocuments.bookingId, bookingId))
+    .innerJoin(bookings, eq(bookings.id, guestIdDocuments.bookingId))
+    .where(
+      and(
+        eq(guestIdDocuments.bookingId, bookingId),
+        eq(bookings.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "No ID on file for this booking." };
   await db

@@ -246,7 +246,15 @@ export async function updateOwnerAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(owners).where(eq(owners.id, id.data)).limit(1);
+  // TENANCY (0173): owners is org-scoped via its own organization_id. Scope the
+  // load AND the update to the caller's org so a foreign owner id reads as
+  // "not found" and can never be mutated cross-org (defense-in-depth vs TOCTOU).
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, id.data), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Owner not found." };
 
   await db
@@ -261,7 +269,7 @@ export async function updateOwnerAction(
       taxResidency: nullable(d.taxResidency),
       status: d.status,
     })
-    .where(eq(owners.id, id.data));
+    .where(and(eq(owners.id, id.data), eq(owners.organizationId, organizationId)));
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -289,10 +297,20 @@ async function transition(
   if (!(await canManageEntity("owner"))) return { ok: false, error: "Not authorised." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY (0173): scope archive/unarchive to the caller's org so a foreign
+  // owner id reads as "not found" and can never be transitioned cross-org.
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(owners).where(eq(owners.id, id)).limit(1);
+  const [before] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, id), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Owner not found." };
-  await db.update(owners).set({ status: next }).where(eq(owners.id, id));
+  await db
+    .update(owners)
+    .set({ status: next })
+    .where(and(eq(owners.id, id), eq(owners.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action,

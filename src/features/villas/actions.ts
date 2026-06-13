@@ -2,14 +2,15 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createVillaSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -43,6 +44,19 @@ export async function createVillaAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
+
+  // TENANCY: villas have no direct org column — their anchor is transitive via
+  // villas.project_id -> projects.organization_id. Verify the target project is
+  // in the caller's org so a villa can't be created under another org's project.
+  const organizationId = await requireOrgId();
+  const [proj] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, d.projectId), eq(projects.organizationId, organizationId)))
+    .limit(1);
+  if (!proj) {
+    return { ok: false, error: "Project not found in your organization." };
+  }
 
   let id: string;
   try {
@@ -125,8 +139,27 @@ export async function updateVillaAction(
 
   const d = parsed.data;
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(villas).where(eq(villas.id, id.data)).limit(1);
+
+  // TENANCY: prove the target villa belongs to the caller's org via its project
+  // (villas have no direct org column), and treat a cross-org id as not-found.
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(villas)
+    .innerJoin(projects, eq(villas.projectId, projects.id))
+    .where(and(eq(villas.id, id.data), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Villa not found." };
+
+  // Reject moving the villa into another org's project.
+  const [destProject] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, d.projectId), eq(projects.organizationId, organizationId)))
+    .limit(1);
+  if (!destProject) {
+    return { ok: false, error: "Project not found in your organization." };
+  }
 
   try {
     await db
@@ -162,9 +195,9 @@ export async function updateVillaAction(
     entityType: "villa",
     entityId: id.data,
     before: {
-      ...before,
-      createdAt: before.createdAt.toISOString(),
-      updatedAt: before.updatedAt.toISOString(),
+      ...before.villas,
+      createdAt: before.villas.createdAt.toISOString(),
+      updatedAt: before.villas.updatedAt.toISOString(),
     },
     after: d,
   });
@@ -183,7 +216,16 @@ async function transition(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(villas).where(eq(villas.id, id)).limit(1);
+  // TENANCY: scope the transition to the caller's org via the project anchor
+  // (villas have no direct org column) so a crafted id can't flip another org's
+  // villa status; a cross-org id reads as the existing not-found path.
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select({ status: villas.status })
+    .from(villas)
+    .innerJoin(projects, eq(villas.projectId, projects.id))
+    .where(and(eq(villas.id, id), eq(projects.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Villa not found." };
   await db.update(villas).set({ status: next }).where(eq(villas.id, id));
   await recordAuditEvent({

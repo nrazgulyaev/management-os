@@ -17,13 +17,14 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface BulkResult {
   ok: boolean;
@@ -53,18 +54,27 @@ export async function bulkOwnerStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY (0173): owners is org-scoped via its own organization_id. Scope the
+  // bulk write to the caller's org so any foreign ids in the selection are
+  // silently filtered out, and report the TRUE affected count from the row set.
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  await db.update(owners).set({ status, updatedAt: new Date() }).where(inArray(owners.id, ids));
+  const updated = await db
+    .update(owners)
+    .set({ status, updatedAt: new Date() })
+    .where(and(inArray(owners.id, ids), eq(owners.organizationId, organizationId)))
+    .returning({ id: owners.id });
+  const updatedIds = updated.map((r) => r.id);
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner.bulk_status",
     entityType: "owner",
     entityId: null,
-    after: { status, ownerIds: ids, count: ids.length },
+    after: { status, ownerIds: updatedIds, count: updatedIds.length },
   });
   revalidatePath("/dashboard/owners");
-  return { ok: true, affected: ids.length };
+  return { ok: true, affected: updatedIds.length };
 }
 
 const bulkTagSchema = z.object({

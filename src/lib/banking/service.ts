@@ -381,10 +381,13 @@ export async function closePeriod(
 
 export async function reopenPeriod(input: {
   periodId: string;
+  organizationId: string;
   reopenedBy: string;
   reason: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const db = requireDb();
+  // TENANCY: scope the reopen to the caller's org so an operator cannot
+  // reopen another tenant's closed accounting period by id.
   await db
     .update(closedPeriods)
     .set({
@@ -393,7 +396,12 @@ export async function reopenPeriod(input: {
       reopenReason: input.reason,
       updatedAt: new Date(),
     })
-    .where(eq(closedPeriods.id, input.periodId));
+    .where(
+      and(
+        eq(closedPeriods.id, input.periodId),
+        eq(closedPeriods.organizationId, input.organizationId),
+      ),
+    );
   return { ok: true };
 }
 

@@ -129,11 +129,34 @@ export async function setVillaReadiness(input: {
   relatedTaskId?: string | null;
   notes?: string | null;
   changedBy?: string | null;
+  // TENANCY: request-path callers pass their resolved org so a foreign villa
+  // is rejected before the timeline is mutated. The system task-status hook
+  // (autoSetReadinessFromTask) has already org-scoped its task and passes null.
+  expectedOrgId?: string | null;
 }): Promise<{ stateId: string | null; changed: boolean }> {
   const db = getDb();
   if (!db) return { stateId: null, changed: false };
 
   return await db.transaction(async (tx) => {
+    // Resolve the villa's owning org (villa -> project) up front. When the
+    // caller supplied an expected org, refuse a villa that resolves to a
+    // different org (cross-org write-IDOR) before touching the timeline.
+    const [villaOrgRow] = await tx
+      .select({ organizationId: projectsTable.organizationId })
+      .from(villas)
+      .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+      .where(eq(villas.id, input.villaId))
+      .limit(1);
+    const resolvedVillaOrg = villaOrgRow?.organizationId ?? null;
+    if (
+      input.expectedOrgId &&
+      resolvedVillaOrg &&
+      resolvedVillaOrg !== input.expectedOrgId
+    ) {
+      // Foreign villa — behave as a no-op (no row exists for the caller's org).
+      return { stateId: null, changed: false };
+    }
+
     const [current] = await tx
       .select()
       .from(villaReadinessStates)
@@ -157,17 +180,9 @@ export async function setVillaReadiness(input: {
         .where(eq(villaReadinessStates.id, current.id));
     }
 
-    // Org: reuse the prior open row's org, else resolve via villa -> project.
-    let organizationId = current?.organizationId ?? null;
-    if (!organizationId) {
-      const [v] = await tx
-        .select({ organizationId: projectsTable.organizationId })
-        .from(villas)
-        .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
-        .where(eq(villas.id, input.villaId))
-        .limit(1);
-      organizationId = v?.organizationId ?? null;
-    }
+    // Org for the new row: reuse the prior open row's org, else the resolved
+    // villa -> project org.
+    const organizationId = current?.organizationId ?? resolvedVillaOrg;
 
     const insertRow: NewVillaReadinessState = {
       organizationId,

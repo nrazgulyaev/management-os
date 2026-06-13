@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { projects, villas } from "@/lib/db/schema/projects";
@@ -58,16 +58,19 @@ export async function createVillaCalendarBlockAction(
     };
   }
 
-  // Resolve project_id from the villa if not supplied.
-  let projectId = parsed.data.projectId ?? null;
-  if (!projectId) {
-    const [v] = await db
-      .select({ projectId: villas.projectId })
-      .from(villas)
-      .where(eq(villas.id, parsed.data.villaId))
-      .limit(1);
-    projectId = v?.projectId ?? null;
+  // Tenant scope: the villaId is the cross-org vector. Villas carry no org
+  // column — resolve via projects.organization_id and reject foreign/missing
+  // villas before any insert (also resolves project_id when not supplied).
+  const [v] = await db
+    .select({ projectId: villas.projectId, orgId: projects.organizationId })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(eq(villas.id, parsed.data.villaId))
+    .limit(1);
+  if (!v || v.orgId !== organizationId) {
+    return { ok: false, error: "Villa not found." };
   }
+  const projectId = parsed.data.projectId ?? v.projectId ?? null;
 
   const [row] = await db
     .insert(villaCalendarBlocks)
@@ -119,13 +122,21 @@ export async function cancelVillaCalendarBlockAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(villaCalendarBlocks)
     .where(eq(villaCalendarBlocks.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "Block not found." };
+  // Tenant scope: NULL org = pre-threading (migration 0149) row, allowed;
+  // a set-but-mismatched org is a cross-org id → treat as not found.
+  if (
+    !before ||
+    (before.organizationId && before.organizationId !== organizationId)
+  ) {
+    return { ok: false, error: "Block not found." };
+  }
   if (before.sourceType === "booking") {
     return {
       ok: false,
@@ -140,7 +151,16 @@ export async function cancelVillaCalendarBlockAction(
   await db
     .update(villaCalendarBlocks)
     .set({ status: "cancelled", updatedAt: new Date() })
-    .where(eq(villaCalendarBlocks.id, parsed.data.id));
+    .where(
+      and(
+        eq(villaCalendarBlocks.id, parsed.data.id),
+        // Defense-in-depth vs TOCTOU: allow NULL-org (legacy) or own-org only.
+        or(
+          isNull(villaCalendarBlocks.organizationId),
+          eq(villaCalendarBlocks.organizationId, organizationId),
+        ),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

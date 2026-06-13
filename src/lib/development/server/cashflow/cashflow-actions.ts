@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { cashflowForecasts } from "@/lib/db/schema/profitability-cashflow";
@@ -136,6 +136,9 @@ export async function transitionCashflowForecast(
   input: z.input<typeof transitionSchema>,
 ) {
   const ctx = await requireInternalUser();
+  // TENANCY: scope to the caller's org so a cross-org forecastId
+  // updates nothing (cashflow_forecasts.organization_id is NOT NULL).
+  const organizationId = await requireOrgId();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
   const updates: Record<string, unknown> = { status: parsed.to };
@@ -146,7 +149,12 @@ export async function transitionCashflowForecast(
   const [row] = await db
     .update(cashflowForecasts)
     .set(updates)
-    .where(eq(cashflowForecasts.id, parsed.forecastId))
+    .where(
+      and(
+        eq(cashflowForecasts.id, parsed.forecastId),
+        eq(cashflowForecasts.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

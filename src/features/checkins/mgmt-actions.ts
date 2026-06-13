@@ -7,6 +7,7 @@ import { checkins } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
 import { villaReadinessStates } from "@/lib/db/schema/availability";
 import { canManageEntity } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { createOrGetStubSmartLockCode } from "@/features/guest-stays/smart-lock-stub";
 import { assertTransition, canApprove, type CheckinStatus } from "./state-machine";
@@ -27,6 +28,22 @@ export async function approveStayCheckinAction(bookingId: string): Promise<Appro
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const user = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenant scope: the booking must belong to the caller's org up front, else a
+  // foreign bookingId reads as "no check-in" before we issue a door code or
+  // flip the booking. We also reuse villaId below for the readiness gate.
+  const [bkOrg] = await db
+    .select({ id: bookings.id, villaId: bookings.villaId })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.id, bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!bkOrg) return { ok: false, error: "No check-in has been submitted for this booking." };
 
   const [c] = await db
     .select({ id: checkins.id, status: checkins.status })
@@ -43,19 +60,14 @@ export async function approveStayCheckinAction(bookingId: string): Promise<Appro
 
   // Readiness gate (FC-MANAGEMENT-FRONT-OFFICE §readiness): block issuing the
   // door code until the villa is ready. Server-enforced (the UI also disables
-  // Approve when not ready).
-  const [bk] = await db
-    .select({ villaId: bookings.villaId })
-    .from(bookings)
-    .where(eq(bookings.id, bookingId))
-    .limit(1);
-  if (bk?.villaId) {
+  // Approve when not ready). villaId comes from the org-scoped booking load.
+  if (bkOrg.villaId) {
     const [rd] = await db
       .select({ status: villaReadinessStates.readinessStatus })
       .from(villaReadinessStates)
       .where(
         and(
-          eq(villaReadinessStates.villaId, bk.villaId),
+          eq(villaReadinessStates.villaId, bkOrg.villaId),
           isNull(villaReadinessStates.effectiveTo),
         ),
       )
@@ -89,7 +101,15 @@ export async function approveStayCheckinAction(bookingId: string): Promise<Appro
     .where(eq(checkins.id, c.id));
 
   // Self-check-in is the check-in: flip the booking so the manager panel shows it.
-  await db.update(bookings).set({ status: "checked_in" }).where(eq(bookings.id, bookingId));
+  await db
+    .update(bookings)
+    .set({ status: "checked_in" })
+    .where(
+      and(
+        eq(bookings.id, bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
 
   await emitCheckinEvent({ verb: "approved", checkinId: c.id, bookingId, actorUserId: user?.id });
   await emitCheckinEvent({ verb: "code_issued", checkinId: c.id, bookingId, actorUserId: user?.id });

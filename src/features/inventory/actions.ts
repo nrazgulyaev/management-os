@@ -244,11 +244,12 @@ export async function updateSupplierAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(suppliers)
     .set(emptyToNull(parsed.data) as Partial<typeof suppliers.$inferInsert>)
-    .where(eq(suppliers.id, input.id))
+    .where(and(eq(suppliers.id, input.id), eq(suppliers.organizationId, organizationId)))
     .returning({ id: suppliers.id });
   if (!row) return { ok: false, error: "Supplier not found." };
   await recordAuditEvent({
@@ -266,11 +267,12 @@ export async function archiveSupplierAction(input: IdActionInput): Promise<Actio
   await requirePermission("procurement.write");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(suppliers)
     .set({ status: "archived" })
-    .where(eq(suppliers.id, input.id))
+    .where(and(eq(suppliers.id, input.id), eq(suppliers.organizationId, organizationId)))
     .returning({ id: suppliers.id });
   if (!row) return { ok: false, error: "Supplier not found." };
   await recordAuditEvent({
@@ -302,11 +304,12 @@ export async function updateInventoryLocationAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(inventoryLocations)
     .set(emptyToNull(parsed.data) as Partial<typeof inventoryLocations.$inferInsert>)
-    .where(eq(inventoryLocations.id, input.id))
+    .where(and(eq(inventoryLocations.id, input.id), eq(inventoryLocations.organizationId, organizationId)))
     .returning({ id: inventoryLocations.id });
   if (!row) return { ok: false, error: "Location not found." };
   await recordAuditEvent({
@@ -324,11 +327,12 @@ export async function archiveInventoryLocationAction(input: IdActionInput): Prom
   await requirePermission("inventory.write");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(inventoryLocations)
     .set({ status: "archived" })
-    .where(eq(inventoryLocations.id, input.id))
+    .where(and(eq(inventoryLocations.id, input.id), eq(inventoryLocations.organizationId, organizationId)))
     .returning({ id: inventoryLocations.id });
   if (!row) return { ok: false, error: "Location not found." };
   await recordAuditEvent({
@@ -360,11 +364,12 @@ export async function updateInventoryCategoryAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(inventoryCategories)
     .set(emptyToNull(parsed.data) as Partial<typeof inventoryCategories.$inferInsert>)
-    .where(eq(inventoryCategories.id, input.id))
+    .where(and(eq(inventoryCategories.id, input.id), eq(inventoryCategories.organizationId, organizationId)))
     .returning({ id: inventoryCategories.id });
   if (!row) return { ok: false, error: "Category not found." };
   await recordAuditEvent({
@@ -382,11 +387,12 @@ export async function archiveInventoryCategoryAction(input: IdActionInput): Prom
   await requirePermission("inventory.write");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(inventoryCategories)
     .set({ status: "archived" })
-    .where(eq(inventoryCategories.id, input.id))
+    .where(and(eq(inventoryCategories.id, input.id), eq(inventoryCategories.organizationId, organizationId)))
     .returning({ id: inventoryCategories.id });
   if (!row) return { ok: false, error: "Category not found." };
   await recordAuditEvent({
@@ -418,6 +424,7 @@ export async function updateInventoryItemAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
   const [row] = await db
@@ -440,7 +447,7 @@ export async function updateInventoryItemAction(
       ownerChargeable: d.ownerChargeable,
       trackSerial: d.trackSerial,
     })
-    .where(eq(inventoryItems.id, input.id))
+    .where(and(eq(inventoryItems.id, input.id), eq(inventoryItems.organizationId, organizationId)))
     .returning({ id: inventoryItems.id });
   if (!row) return { ok: false, error: "Item not found." };
   await recordAuditEvent({
@@ -458,11 +465,12 @@ export async function archiveInventoryItemAction(input: IdActionInput): Promise<
   await requirePermission("inventory.write");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const [row] = await db
     .update(inventoryItems)
     .set({ status: "archived" })
-    .where(eq(inventoryItems.id, input.id))
+    .where(and(eq(inventoryItems.id, input.id), eq(inventoryItems.organizationId, organizationId)))
     .returning({ id: inventoryItems.id });
   if (!row) return { ok: false, error: "Item not found." };
   await recordAuditEvent({

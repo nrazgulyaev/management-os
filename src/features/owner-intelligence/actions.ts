@@ -1,16 +1,18 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestReviews,
   ownerCalendarPreferences,
   villaHealthSnapshots,
 } from "@/lib/db/schema/owner-intelligence";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   createManualGuestReviewSchema,
   generateAllSnapshotsSchema,
@@ -103,10 +105,14 @@ export async function generateVillaHealthSnapshotAction(
     };
   }
   const me = await getCurrentAppUser();
+  // TENANCY (write-flow IDOR): pass the verified caller org so a cross-org
+  // villaId is rejected inside computeVillaHealth and the snapshot is stamped.
+  const organizationId = await requireOrgId();
   const row = await generateVillaHealthSnapshot(
     parsed.data.villaId,
     parsed.data.periodStart,
     parsed.data.periodEnd,
+    organizationId,
   );
   if (!row) {
     return { ok: false, error: "Couldn't generate snapshot." };
@@ -149,27 +155,41 @@ export async function generateAllOwnerHealthSnapshotsAction(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
-  const villaRows = await db
-    .select({ id: villaHealthSnapshots.villaId })
-    .from(villaHealthSnapshots);
-  void villaRows; // unused — we sweep all villas instead
+  // TENANCY (write-flow IDOR): only sweep villas in the caller's org. The
+  // prior version generated snapshots for EVERY tenant's villas. Snapshots
+  // have a nullable org anchor, so the prior-snapshot sweep includes NULL
+  // (pre-threading) rows but excludes those anchored to a different org; the
+  // canonical org membership for a villa is its project, joined below.
+  const organizationId = await requireOrgId();
   const allVillas = (
     await db
       .select({ id: villaHealthSnapshots.villaId })
       .from(villaHealthSnapshots)
+      .innerJoin(villas, eq(villas.id, villaHealthSnapshots.villaId))
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(projects.organizationId, organizationId))
       .groupBy(villaHealthSnapshots.villaId)
   ).map((r) => r.id);
 
-  // Fall back to listing real villas when there are no prior snapshots.
+  // Fall back to listing real villas (scoped to the org via their project)
+  // when there are no prior snapshots.
   let target = allVillas;
   if (target.length === 0) {
-    const { villas } = await import("@/lib/db/schema/projects");
-    const rows = await db.select({ id: villas.id }).from(villas);
+    const rows = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(projects.organizationId, organizationId));
     target = rows.map((r) => r.id);
   }
   let generated = 0;
   for (const villaId of target) {
-    const out = await generateVillaHealthSnapshot(villaId, start, end);
+    const out = await generateVillaHealthSnapshot(
+      villaId,
+      start,
+      end,
+      organizationId,
+    );
     if (out) generated++;
   }
   const me = await getCurrentAppUser();
@@ -215,9 +235,27 @@ export async function createManualGuestReviewAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  // TENANCY (write-flow IDOR): the villa is org-anchored via its project.
+  // Resolve the caller org and confirm the villa belongs to it BEFORE the
+  // insert; a foreign villaId reads as "not found". Stamp the VERIFIED caller
+  // org on the new review (do not trust any child-derived value).
+  const organizationId = await requireOrgId();
+  const [villa] = await db
+    .select({ orgId: projects.organizationId })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, v.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villa) return { ok: false, error: "Villa not found." };
   const [row] = await db
     .insert(guestReviews)
     .values({
+      organizationId,
       villaId: v.villaId,
       bookingId: v.bookingId ?? null,
       source: v.source,
@@ -257,14 +295,30 @@ export async function hideGuestReviewAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  await db
+  // TENANCY (write-flow IDOR): guest_reviews.organizationId is a nullable
+  // backfill column (migration 0154, not threaded yet). AND a legacy-safe org
+  // predicate into the UPDATE — NULL (pre-threading) rows stay mutable, a row
+  // anchored to a different tenant is rejected — and fail closed on zero rows
+  // so a foreign id cannot silently no-op as success.
+  const orgId = await requireOrgId();
+  const hidden = await db
     .update(guestReviews)
     .set({
       ownerVisible: false,
       status: "hidden",
       updatedAt: new Date(),
     })
-    .where(eq(guestReviews.id, parsed.data.id));
+    .where(
+      and(
+        eq(guestReviews.id, parsed.data.id),
+        or(
+          isNull(guestReviews.organizationId),
+          eq(guestReviews.organizationId, orgId),
+        ),
+      ),
+    )
+    .returning({ id: guestReviews.id });
+  if (hidden.length === 0) return { ok: false, error: "Review not found." };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "guest_review.hide",
@@ -285,14 +339,27 @@ export async function markGuestReviewOwnerVisibleAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  await db
+  // TENANCY (write-flow IDOR): same legacy-safe org scoping as
+  // hideGuestReviewAction — guest_reviews.organizationId is nullable.
+  const orgId = await requireOrgId();
+  const published = await db
     .update(guestReviews)
     .set({
       ownerVisible: true,
       status: "published",
       updatedAt: new Date(),
     })
-    .where(eq(guestReviews.id, parsed.data.id));
+    .where(
+      and(
+        eq(guestReviews.id, parsed.data.id),
+        or(
+          isNull(guestReviews.organizationId),
+          eq(guestReviews.organizationId, orgId),
+        ),
+      ),
+    )
+    .returning({ id: guestReviews.id });
+  if (published.length === 0) return { ok: false, error: "Review not found." };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "guest_review.publish",

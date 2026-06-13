@@ -284,7 +284,12 @@ export async function sendOutboundMessage(
         lastOutboundAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(conversationThreads.id, input.threadId));
+      .where(
+        and(
+          eq(conversationThreads.id, input.threadId),
+          eq(conversationThreads.organizationId, input.organizationId),
+        ),
+      );
   }
 
   return {

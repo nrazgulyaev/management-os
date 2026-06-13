@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   rebuildAllStatementTransparency,
   rebuildStatementTransparency,
@@ -39,10 +40,14 @@ export async function rebuildStatementTransparencyAction(
     statementId: formData.get("statementId"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid statementId" };
+  // TENANCY (write-flow IDOR): pass the caller org so a cross-org statementId
+  // resolves to nothing and nothing is wiped/rebuilt.
+  const orgId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await rebuildStatementTransparency(
     parsed.data.statementId,
     me?.id ?? null,
+    orgId,
   );
   revalidatePath(`/owner/statements/${parsed.data.statementId}`);
   revalidatePath(
@@ -95,10 +100,13 @@ export async function rebuildStatementTransparencyForOwnerAction(
     ownerId: formData.get("ownerId"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid ownerId" };
+  // TENANCY (write-flow IDOR): scope the per-owner rebuild to the caller org.
+  const orgId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await rebuildStatementTransparencyForOwner(
     parsed.data.ownerId,
     me?.id ?? null,
+    orgId,
   );
   revalidatePath("/dashboard/finance/transparency");
   return { ok: true, statementsProcessed: out.statementsProcessed };
@@ -113,10 +121,17 @@ async function applyWarningStatus(
   status: "acknowledged" | "resolved" | "dismissed",
 ): Promise<ActionResult> {
   await requirePermission("statement_reconciliation.manage");
+  // TENANCY (write-flow IDOR): scope the warning UPDATE to the caller org so a
+  // foreign warningId fails closed (the helper returns ok:false on zero rows).
+  const orgId = await requireOrgId();
   const me = await getCurrentAppUser();
-  if (status === "acknowledged") await acknowledgeStatementWarning(warningId);
-  else if (status === "resolved") await resolveStatementWarning(warningId);
-  else await dismissStatementWarning(warningId);
+  let result: { ok: boolean };
+  if (status === "acknowledged")
+    result = await acknowledgeStatementWarning(warningId, orgId);
+  else if (status === "resolved")
+    result = await resolveStatementWarning(warningId, orgId);
+  else result = await dismissStatementWarning(warningId, orgId);
+  if (!result.ok) return { ok: false, error: "Warning not found." };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `statement_warning.${status}`,

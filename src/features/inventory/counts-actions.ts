@@ -83,11 +83,17 @@ export async function updateInventoryCountLineAction(
   if (!parsed.success) return { ok: false, error: "Please review the line." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
+  // TENANCY: scope the load (and the update) so a cross-org line id reads as
+  // "not found" before we touch it.
   const [line] = await db
     .select()
     .from(inventoryCountLines)
-    .where(eq(inventoryCountLines.id, parsed.data.lineId))
+    .where(and(
+      eq(inventoryCountLines.id, parsed.data.lineId),
+      eq(inventoryCountLines.organizationId, organizationId),
+    ))
     .limit(1);
   if (!line) return { ok: false, error: "Line not found." };
 
@@ -105,7 +111,10 @@ export async function updateInventoryCountLineAction(
       varianceQuantity: String(variance),
       notes: parsed.data.notes && parsed.data.notes !== "" ? parsed.data.notes : line.notes,
     })
-    .where(eq(inventoryCountLines.id, parsed.data.lineId));
+    .where(and(
+      eq(inventoryCountLines.id, parsed.data.lineId),
+      eq(inventoryCountLines.organizationId, organizationId),
+    ));
 
   return { ok: true };
 }
@@ -119,12 +128,14 @@ export async function submitInventoryCountAction(
   if (!parsed.success) return { ok: false, error: "Missing count id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
+  // TENANCY: a cross-org count id reads as not-found before any line/status write.
   const [count] = await db
     .select()
     .from(inventoryCounts)
-    .where(eq(inventoryCounts.id, parsed.data.id))
+    .where(and(eq(inventoryCounts.id, parsed.data.id), eq(inventoryCounts.organizationId, organizationId)))
     .limit(1);
   if (!count) return { ok: false, error: "Count not found." };
   if (count.status !== "draft") {
@@ -151,7 +162,7 @@ export async function submitInventoryCountAction(
   await db
     .update(inventoryCounts)
     .set({ status: "submitted", countedAt: new Date(), countedBy: me?.id ?? null })
-    .where(eq(inventoryCounts.id, parsed.data.id));
+    .where(and(eq(inventoryCounts.id, parsed.data.id), eq(inventoryCounts.organizationId, organizationId)));
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

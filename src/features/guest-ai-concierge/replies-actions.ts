@@ -12,6 +12,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { hashIpForLog, hashStayToken } from "@/features/guest-stays/token";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -209,6 +210,7 @@ export async function createStaffHandoffReplyAction(
   formData: FormData,
 ): Promise<ReplyActionState> {
   await requirePermission("guest_ai.handoff.manage");
+  const organizationId = await requireOrgId();
   const parsed = staffReplySchema.safeParse({
     handoffId: formData.get("handoffId"),
     visibility: formData.get("visibility") || undefined,
@@ -230,7 +232,16 @@ export async function createStaffHandoffReplyAction(
     .from(guestAiHandoffs)
     .where(eq(guestAiHandoffs.id, v.handoffId))
     .limit(1);
-  if (!handoff) return { ok: false, error: "Handoff not found." };
+  // Tenancy guard: guest_ai_handoffs.organization_id is a nullable 0154
+  // backfill anchor. NULL = pre-threading (allowed); set-but-mismatched =
+  // another tenant's handoff (rejected) — never post a staff/guest-visible
+  // reply into another org's thread.
+  if (
+    !handoff ||
+    (handoff.organizationId && handoff.organizationId !== organizationId)
+  ) {
+    return { ok: false, error: "Handoff not found." };
+  }
   if (!canStaffReply(handoff.status as HandoffStatus)) {
     return {
       ok: false,

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { differenceInCalendarDays } from "date-fns";
 import { getDb } from "@/lib/db/client";
@@ -140,7 +140,12 @@ export async function updateBookingAction(
   if (nights <= 0) return { ok: false, error: "Check-out must be after check-in." };
 
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(bookings).where(eq(bookings.id, id.data)).limit(1);
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(bookings)
+    .where(and(eq(bookings.id, id.data), eq(bookings.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Booking not found." };
   const netExpected =
     d.grossAmount + d.cleaningFeeAmount - d.channelFeeAmount - d.paymentFeeAmount;
@@ -167,7 +172,7 @@ export async function updateBookingAction(
       netExpectedAmount: String(netExpected),
       notes: d.notes && d.notes !== "" ? d.notes : null,
     })
-    .where(eq(bookings.id, id.data));
+    .where(and(eq(bookings.id, id.data), eq(bookings.organizationId, organizationId)));
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -202,16 +207,17 @@ export async function setBookingStatusAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const [before] = await db
     .select()
     .from(bookings)
-    .where(eq(bookings.id, parsed.data.id))
+    .where(and(eq(bookings.id, parsed.data.id), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!before) return { ok: false, error: "Booking not found." };
   await db
     .update(bookings)
     .set({ status: parsed.data.status })
-    .where(eq(bookings.id, parsed.data.id));
+    .where(and(eq(bookings.id, parsed.data.id), eq(bookings.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "booking.status.update",

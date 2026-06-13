@@ -285,11 +285,19 @@ export async function acceptMaintenanceWindowSuggestionAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // Tenant scope: a foreign suggestion id must read as "not found" before any
+  // task/block/plan mutation.
   const [s] = await db
     .select()
     .from(maintenanceWindowSuggestions)
-    .where(eq(maintenanceWindowSuggestions.id, parsed.data.id))
+    .where(
+      and(
+        eq(maintenanceWindowSuggestions.id, parsed.data.id),
+        eq(maintenanceWindowSuggestions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!s) return { ok: false, error: "Suggestion not found." };
   if (s.status !== "suggested")
@@ -298,18 +306,25 @@ export async function acceptMaintenanceWindowSuggestionAction(
       error: `Suggestion is ${s.status}, can't accept.`,
     };
 
-  // Generate the task at the suggested start.
+  // Generate the task at the suggested start (org-scoped: refuses a plan in
+  // another org even if the suggestion row were somehow cross-linked).
   const result = await generateTaskFromPlan(
     s.villaMaintenancePlanId,
     s.suggestedStart.toISOString(),
     me?.id ?? null,
+    organizationId,
   );
   if (!result.ok) return { ok: false, error: result.reason ?? "task generation failed" };
 
   await db
     .update(maintenanceWindowSuggestions)
     .set({ status: "accepted", updatedAt: new Date() })
-    .where(eq(maintenanceWindowSuggestions.id, parsed.data.id));
+    .where(
+      and(
+        eq(maintenanceWindowSuggestions.id, parsed.data.id),
+        eq(maintenanceWindowSuggestions.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -346,13 +361,25 @@ export async function generateTaskFromPlan(
   planId: string,
   suggestedStartIso: string | null,
   actorUserId: string | null,
+  // TENANCY: when called from a request path, the caller passes its resolved
+  // org so a foreign-org plan reads as "not found" before any task/block/plan
+  // mutation. System/batch callers that have already org-scoped their plan
+  // selection can pass null.
+  expectedOrgId: string | null = null,
 ): Promise<GenerateOutcome> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no db" };
   const [plan] = await db
     .select()
     .from(villaMaintenancePlans)
-    .where(eq(villaMaintenancePlans.id, planId))
+    .where(
+      expectedOrgId
+        ? and(
+            eq(villaMaintenancePlans.id, planId),
+            eq(villaMaintenancePlans.organizationId, expectedOrgId),
+          )
+        : eq(villaMaintenancePlans.id, planId),
+    )
     .limit(1);
   if (!plan) return { ok: false, reason: "plan not found" };
   if (plan.status !== "active")
@@ -427,7 +454,14 @@ export async function generateTaskFromPlan(
       lastGeneratedTaskId: task!.id,
       updatedAt: new Date(),
     })
-    .where(eq(villaMaintenancePlans.id, planId));
+    .where(
+      expectedOrgId
+        ? and(
+            eq(villaMaintenancePlans.id, planId),
+            eq(villaMaintenancePlans.organizationId, expectedOrgId),
+          )
+        : eq(villaMaintenancePlans.id, planId),
+    );
 
   return { ok: true, taskId: task!.id };
 }
@@ -443,10 +477,12 @@ export async function generateMaintenanceTaskFromPlanAction(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const out = await generateTaskFromPlan(
     parsed.data.planId,
     parsed.data.suggestedStart ?? null,
     me?.id ?? null,
+    organizationId,
   );
   if (!out.ok) return { ok: false, error: out.reason ?? "task generation failed" };
   await recordAuditEvent({
@@ -474,19 +510,22 @@ export async function generateDueMaintenanceTasksAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const now = new Date();
+  // Tenant scope: the batch only sweeps the caller's own due plans.
   const due = await db
     .select({ id: villaMaintenancePlans.id })
     .from(villaMaintenancePlans)
     .where(
       and(
+        eq(villaMaintenancePlans.organizationId, organizationId),
         eq(villaMaintenancePlans.status, "active"),
         lte(villaMaintenancePlans.nextDueAt, now),
       ),
     );
   let generated = 0;
   for (const p of due) {
-    const out = await generateTaskFromPlan(p.id, null, me?.id ?? null);
+    const out = await generateTaskFromPlan(p.id, null, me?.id ?? null, organizationId);
     if (out.ok) generated++;
   }
   await recordAuditEvent({

@@ -20,7 +20,7 @@ import {
   preventiveSchedules,
 } from "@/lib/db/schema/operations";
 import { maintenanceRiskEvents } from "@/lib/db/schema/maintenance-intelligence";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import {
   guestReviews,
   villaHealthSnapshots,
@@ -67,6 +67,14 @@ export async function computeVillaHealth(
   villaId: string,
   periodStart: string,
   periodEnd: string,
+  /**
+   * TENANCY (write-flow IDOR): the caller's organization. This helper is
+   * shared between org-scoped server pages (read) and the snapshot-write
+   * actions. When non-null we assert the villa belongs to the org via its
+   * project anchor (villas has no org column); a cross-org villaId then reads
+   * as "not found". Read callers that don't pass an org keep legacy behavior.
+   */
+  organizationId: string | null = null,
 ): Promise<ComputedHealth | null> {
   const db = getDb();
   if (!db) return null;
@@ -77,7 +85,15 @@ export async function computeVillaHealth(
       unitCode: villas.unitCode,
     })
     .from(villas)
-    .where(eq(villas.id, villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      organizationId
+        ? and(
+            eq(villas.id, villaId),
+            eq(projects.organizationId, organizationId),
+          )
+        : eq(villas.id, villaId),
+    )
     .limit(1);
   if (!villa) return null;
 
@@ -303,6 +319,12 @@ export async function generateVillaHealthSnapshot(
   villaId: string,
   periodStart: string,
   periodEnd: string,
+  /**
+   * TENANCY (write-flow IDOR): caller org. Threaded into computeVillaHealth
+   * (which rejects a cross-org villa) and stamped on the snapshot row. The
+   * write actions pass `await requireOrgId()`; null preserves legacy behavior.
+   */
+  organizationId: string | null = null,
 ): Promise<VillaHealthSnapshot | null> {
   const db = getDb();
   if (!db) return null;
@@ -310,6 +332,7 @@ export async function generateVillaHealthSnapshot(
     villaId,
     periodStart,
     periodEnd,
+    organizationId,
   );
   if (!computed) return null;
 
@@ -327,6 +350,7 @@ export async function generateVillaHealthSnapshot(
 
   const values = {
     villaId,
+    organizationId,
     projectId: null as string | null,
     periodStart,
     periodEnd,

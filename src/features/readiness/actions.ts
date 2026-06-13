@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { setReadinessSchema } from "@/features/availability/schema";
 import { setVillaReadiness } from "./services";
 import type { ActionResult } from "@/features/projects/actions";
@@ -22,6 +23,7 @@ export async function setVillaReadinessAction(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const out = await setVillaReadiness({
     villaId: parsed.data.villaId,
@@ -30,6 +32,9 @@ export async function setVillaReadinessAction(
     relatedTaskId: parsed.data.relatedTaskId ?? null,
     notes: parsed.data.notes ?? null,
     changedBy: me?.id ?? null,
+    // Tenant gate: the villa must belong to the caller's org (helper resolves
+    // villa->project org and rejects a mismatch). System hook passes null.
+    expectedOrgId: organizationId,
   });
 
   if (out.changed) {

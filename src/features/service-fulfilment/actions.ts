@@ -386,13 +386,26 @@ export async function assignFulfilmentVendorAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
+  // Tenancy guard: confirm the fulfilment belongs to the caller's org via the
+  // durable guest_services.organization_id anchor before re-pointing it at a
+  // vendor. A cross-org id reads as not-found.
+  const owned = await loadFulfilmentInOrg(db, v.id, organizationId);
+  if (!owned) return { ok: false, error: "Fulfilment not found." };
   const [vendor] = await db
     .select()
     .from(serviceVendors)
     .where(eq(serviceVendors.id, v.vendorId))
     .limit(1);
-  if (!vendor) return { ok: false, error: "Vendor not found." };
+  // Vendor org is a nullable 0153 backfill anchor: NULL = pre-threading
+  // (allowed), set-but-mismatched = another tenant's vendor (rejected).
+  if (
+    !vendor ||
+    (vendor.organizationId && vendor.organizationId !== organizationId)
+  ) {
+    return { ok: false, error: "Vendor not found." };
+  }
 
   await db
     .update(guestServiceFulfilments)
@@ -1213,10 +1226,17 @@ export async function createVendorInvoiceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
+  // Tenancy guard: an invoice is a payout obligation. Confirm the parent
+  // fulfilment belongs to the caller's org (via order → guest_services org
+  // anchor) before minting one, and stamp the verified caller org on the row.
+  const owned = await loadFulfilmentInOrg(db, v.fulfilmentId, organizationId);
+  if (!owned) return { ok: false, error: "Fulfilment not found." };
   const [row] = await db
     .insert(serviceVendorInvoices)
     .values({
+      organizationId,
       fulfilmentId: v.fulfilmentId,
       vendorId: v.vendorId,
       invoiceNumber: v.invoiceNumber ?? null,
@@ -1266,6 +1286,34 @@ async function setInvoiceStatus(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // Tenancy guard: approving / rejecting / paying flips a payout state. Scope
+  // the invoice to the caller's org via the durable fulfilment → order →
+  // guest_services org anchor (the invoice's own org column is a nullable 0153
+  // backfill). A cross-org invoice id reads as not-found.
+  const [owned] = await db
+    .select({ id: serviceVendorInvoices.id })
+    .from(serviceVendorInvoices)
+    .innerJoin(
+      guestServiceFulfilments,
+      eq(guestServiceFulfilments.id, serviceVendorInvoices.fulfilmentId),
+    )
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(serviceVendorInvoices.id, id),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Invoice not found." };
   const ts = new Date();
   const updates: Record<string, unknown> = {
     invoiceStatus: status,
@@ -1548,6 +1596,18 @@ export async function reverseFulfilmentFinanceBridgeAction(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // Tenancy guard: a reversal un-books revenue/expense lines. Confirm the
+  // fulfilment belongs to the caller's org via the durable guest_services
+  // anchor before reversing — a cross-org id reads as not-found.
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const owned = await loadFulfilmentInOrg(
+    db,
+    parsed.data.fulfilmentId,
+    organizationId,
+  );
+  if (!owned) return { ok: false, error: "Fulfilment not found." };
   const out = await reverseFulfilmentFinanceBridge(
     parsed.data.fulfilmentId,
     parsed.data.reason ?? "manual_reversal",
@@ -1595,6 +1655,39 @@ async function appendEvent(
     description: args.description ?? null,
     metadataJson: args.metadataJson ?? null,
   });
+}
+
+/**
+ * Tenancy guard for fulfilment-anchored writes. guest_service_fulfilments
+ * has only a nullable (0153) org anchor, and guest_service_orders has NO org
+ * column, so we anchor on the durable NOT-NULL guest_services.organization_id
+ * reached transitively (fulfilment → order → service). Returns the fulfilment
+ * id only when it belongs to `orgId`, else null (caller maps to not-found).
+ */
+async function loadFulfilmentInOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  fulfilmentId: string,
+  orgId: string,
+): Promise<{ id: string } | null> {
+  const [row] = await db
+    .select({ id: guestServiceFulfilments.id })
+    .from(guestServiceFulfilments)
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceFulfilments.id, fulfilmentId),
+        eq(guestServices.organizationId, orgId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
 }
 
 async function fulfilmentCodeOf(

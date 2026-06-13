@@ -36,13 +36,18 @@ export async function markNotificationSentAction(
   if (!parsed.success) return { ok: false, error: "Missing notification id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY — notification_queue.organization_id is a nullable legacy anchor
+  // (migration 0151, backfilled). NULL = pre-threading row (allowed);
+  // set-but-mismatched = foreign org (rejected as not-found).
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
     .from(notificationQueue)
     .where(eq(notificationQueue.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "Notification not found." };
+  if (!before || (before.organizationId && before.organizationId !== organizationId))
+    return { ok: false, error: "Notification not found." };
 
   await db
     .update(notificationQueue)
@@ -72,6 +77,8 @@ export async function markNotificationFailedAction(
   if (!parsed.success) return { ok: false, error: "Missing notification id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY — nullable legacy org anchor; NULL allowed, mismatch rejected.
+  const organizationId = await requireOrgId();
 
   const reason = String(formData.get("reason") ?? "manual");
   const [before] = await db
@@ -79,7 +86,8 @@ export async function markNotificationFailedAction(
     .from(notificationQueue)
     .where(eq(notificationQueue.id, parsed.data.id))
     .limit(1);
-  if (!before) return { ok: false, error: "Notification not found." };
+  if (!before || (before.organizationId && before.organizationId !== organizationId))
+    return { ok: false, error: "Notification not found." };
 
   await db
     .update(notificationQueue)
@@ -109,6 +117,16 @@ export async function cancelNotificationAction(
   if (!parsed.success) return { ok: false, error: "Missing notification id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY — nullable legacy org anchor; NULL allowed, mismatch rejected.
+  const organizationId = await requireOrgId();
+
+  const [before] = await db
+    .select({ organizationId: notificationQueue.organizationId })
+    .from(notificationQueue)
+    .where(eq(notificationQueue.id, parsed.data.id))
+    .limit(1);
+  if (!before || (before.organizationId && before.organizationId !== organizationId))
+    return { ok: false, error: "Notification not found." };
 
   await db
     .update(notificationQueue)
@@ -159,6 +177,16 @@ export async function updateNotificationPreferenceAction(
   };
 
   if (d.id) {
+    // TENANCY — notification_preferences.organization_id is a nullable legacy
+    // anchor (migration 0151). Guard the target row: NULL = pre-threading
+    // (allowed), set-but-mismatched = foreign org (rejected).
+    const [existing] = await db
+      .select({ organizationId: notificationPreferences.organizationId })
+      .from(notificationPreferences)
+      .where(eq(notificationPreferences.id, d.id))
+      .limit(1);
+    if (!existing || (existing.organizationId && existing.organizationId !== organizationId))
+      return { ok: false, error: "Preference not found." };
     await db
       .update(notificationPreferences)
       .set(values)
@@ -261,7 +289,11 @@ export async function retryNotificationAction(
   await requirePermission("notifications.manage");
   const parsed = queueIdSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing notification id." };
-  const reset = await requeueNotification(parsed.data.id);
+  // TENANCY — bind to the caller's org so a foreign queue id cannot be
+  // requeued/redelivered. requeueNotification refuses set-but-mismatched
+  // org rows (NULL legacy rows still allowed).
+  const organizationId = await requireOrgId();
+  const reset = await requeueNotification(parsed.data.id, organizationId);
   if (!reset.ok) return { ok: false, error: reset.reason ?? "requeue failed" };
   const out = await deliverNotification(parsed.data.id);
   await recordAuditEvent({

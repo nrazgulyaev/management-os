@@ -9,6 +9,7 @@ import {
   ratePlanSeasons,
   ratePlanOverrides,
 } from "@/lib/db/schema/pricing";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -46,11 +47,44 @@ export async function createRatePlanAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+
+  // TENANCY: validate any supplied parent (project / villa-via-project) belongs
+  // to the caller's org, then stamp the verified caller org on the new plan so a
+  // crafted projectId/villaId can't anchor pricing to another org's tree.
+  if (parsed.data.projectId) {
+    const [p] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, parsed.data.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!p) return { ok: false, error: "Invalid project." };
+  }
+  if (parsed.data.villaId) {
+    const [v] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(villas.projectId, projects.id))
+      .where(
+        and(
+          eq(villas.id, parsed.data.villaId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!v) return { ok: false, error: "Invalid villa." };
+  }
 
   const [row] = await db
     .insert(ratePlans)
     .values({
+      organizationId,
       name: parsed.data.name,
       projectId: parsed.data.projectId ?? null,
       villaId: parsed.data.villaId ?? null,
@@ -93,9 +127,13 @@ export async function updateRatePlanAction(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
-  await db
+  // TENANCY: rate_plans.organization_id is the org anchor (pricing.ts:29).
+  // Scope the update to the caller's org and confirm a row was hit so a
+  // crafted id can't mutate another org's nightly pricing.
+  const updated = await db
     .update(ratePlans)
     .set({
       name: parsed.data.name,
@@ -110,7 +148,14 @@ export async function updateRatePlanAction(
       ...(parsed.data.status ? { status: parsed.data.status } : {}),
       updatedAt: new Date(),
     })
-    .where(eq(ratePlans.id, parsed.data.id));
+    .where(
+      and(
+        eq(ratePlans.id, parsed.data.id),
+        eq(ratePlans.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: ratePlans.id });
+  if (!updated[0]) return { ok: false, error: "Rate plan not found." };
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -146,9 +191,26 @@ export async function createRatePlanSeasonAction(
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
 
+  // TENANCY: verify the parent plan is in the caller's org before inserting,
+  // and anchor the season's org, so a crafted ratePlanId can't attach a season
+  // to another org's plan.
+  const organizationId = await requireOrgId();
+  const [parentPlan] = await db
+    .select({ id: ratePlans.id })
+    .from(ratePlans)
+    .where(
+      and(
+        eq(ratePlans.id, parsed.data.ratePlanId),
+        eq(ratePlans.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!parentPlan) return { ok: false, error: "Rate plan not found." };
+
   const [row] = await db
     .insert(ratePlanSeasons)
     .values({
+      organizationId,
       ratePlanId: parsed.data.ratePlanId,
       name: parsed.data.name,
       startsOn: parsed.data.startsOn,

@@ -62,14 +62,23 @@ export async function markDocumentSignedAction(input: {
   if (!db) return { ok: false, error: "Database is not configured." };
 
   const [before] = await db
-    .select({ signedAt: documents.signedAt })
+    .select({ signedAt: documents.signedAt, organizationId: documents.organizationId })
     .from(documents)
     .where(eq(documents.id, id.data))
     .limit(1);
   if (!before) return { ok: false, error: "Document not found." };
+  // TENANCY-FINANCE-DOCS — nullable org anchor (migration 0151, backfilled):
+  // NULL = pre-threading row (allowed); set-but-mismatched = cross-org (reject
+  // without leaking existence).
+  if (before.organizationId && before.organizationId !== g.organizationId) {
+    return { ok: false, error: "Document not found." };
+  }
 
   const next = input.signed ? new Date() : null;
-  await db.update(documents).set({ signedAt: next }).where(eq(documents.id, id.data));
+  await db
+    .update(documents)
+    .set({ signedAt: next })
+    .where(eq(documents.id, id.data));
   await recordAuditEvent({
     actorUserId: g.userId,
     action: input.signed ? "document.sign" : "document.unsign",
@@ -97,11 +106,13 @@ export async function deleteDocumentAppAction(input: {
   const [before] = await db
     .select({ title: documents.title })
     .from(documents)
-    .where(eq(documents.id, id.data))
+    .where(and(eq(documents.id, id.data), eq(documents.organizationId, g.organizationId)))
     .limit(1);
   if (!before) return { ok: false, error: "Document not found." };
 
-  await db.delete(documents).where(eq(documents.id, id.data));
+  await db
+    .delete(documents)
+    .where(and(eq(documents.id, id.data), eq(documents.organizationId, g.organizationId)));
   await recordAuditEvent({
     actorUserId: g.userId,
     action: "document.delete",
@@ -137,7 +148,7 @@ export async function createSignatureRequestAction(
   const [doc] = await db
     .select({ id: documents.id, organizationId: documents.organizationId })
     .from(documents)
-    .where(eq(documents.id, d.documentId))
+    .where(and(eq(documents.id, d.documentId), eq(documents.organizationId, g.organizationId)))
     .limit(1);
   if (!doc) return { ok: false, error: "Document not found." };
 
@@ -145,8 +156,9 @@ export async function createSignatureRequestAction(
   const [row] = await db
     .insert(documentSignatureRequests)
     .values({
-      // TENANCY-FINANCE-DOCS — child copies the parent document's org.
-      organizationId: doc.organizationId ?? g.organizationId,
+      // TENANCY-FINANCE-DOCS — stamp the VERIFIED caller org (doc was
+      // org-scoped above), never a value inherited from the child.
+      organizationId: g.organizationId,
       documentId: d.documentId,
       signerName: d.signerName,
       signerEmail: d.signerEmail || null,
@@ -181,7 +193,10 @@ export async function sendSignatureReminderAction(input: {
   const [req] = await db
     .select()
     .from(documentSignatureRequests)
-    .where(eq(documentSignatureRequests.id, id.data))
+    .where(and(
+      eq(documentSignatureRequests.id, id.data),
+      eq(documentSignatureRequests.organizationId, g.organizationId),
+    ))
     .limit(1);
   if (!req) return { ok: false, error: "Signature request not found." };
   if (req.status === "signed" || req.status === "countersigned") {
@@ -197,7 +212,10 @@ export async function sendSignatureReminderAction(input: {
       status: req.status === "pending" ? "sent" : req.status,
       updatedAt: now,
     })
-    .where(eq(documentSignatureRequests.id, id.data));
+    .where(and(
+      eq(documentSignatureRequests.id, id.data),
+      eq(documentSignatureRequests.organizationId, g.organizationId),
+    ));
   await recordAuditEvent({
     actorUserId: g.userId,
     action: "document.signature_reminder",
@@ -222,7 +240,10 @@ export async function markCountersignedAction(input: {
   const [req] = await db
     .select()
     .from(documentSignatureRequests)
-    .where(eq(documentSignatureRequests.id, id.data))
+    .where(and(
+      eq(documentSignatureRequests.id, id.data),
+      eq(documentSignatureRequests.organizationId, g.organizationId),
+    ))
     .limit(1);
   if (!req) return { ok: false, error: "Signature request not found." };
 
@@ -235,12 +256,20 @@ export async function markCountersignedAction(input: {
       countersignedAt: now,
       updatedAt: now,
     })
-    .where(eq(documentSignatureRequests.id, id.data));
-  // Mark the underlying document signed too, capturing the moment.
+    .where(and(
+      eq(documentSignatureRequests.id, id.data),
+      eq(documentSignatureRequests.organizationId, g.organizationId),
+    ));
+  // Mark the underlying document signed too, capturing the moment. Scope the
+  // cross-table write to the caller's org as well (defense-in-depth).
   await db
     .update(documents)
     .set({ signedAt: now })
-    .where(and(eq(documents.id, req.documentId), sql`${documents.signedAt} IS NULL`));
+    .where(and(
+      eq(documents.id, req.documentId),
+      eq(documents.organizationId, g.organizationId),
+      sql`${documents.signedAt} IS NULL`,
+    ));
   await recordAuditEvent({
     actorUserId: g.userId,
     action: "document.countersigned",
@@ -277,7 +306,7 @@ export async function addDocumentVersionAction(
   const [doc] = await db
     .select()
     .from(documents)
-    .where(eq(documents.id, d.documentId))
+    .where(and(eq(documents.id, d.documentId), eq(documents.organizationId, g.organizationId)))
     .limit(1);
   if (!doc) return { ok: false, error: "Document not found." };
 
@@ -289,15 +318,19 @@ export async function addDocumentVersionAction(
     .limit(1);
   const nextNo = (last?.versionNo ?? 0) + 1;
 
-  // Demote prior current.
+  // Demote prior current (org-scoped — defense-in-depth vs cross-org rows).
   await db
     .update(documentVersions)
     .set({ isCurrent: false })
-    .where(eq(documentVersions.documentId, d.documentId));
+    .where(and(
+      eq(documentVersions.documentId, d.documentId),
+      eq(documentVersions.organizationId, g.organizationId),
+    ));
 
   await db.insert(documentVersions).values({
-    // TENANCY-FINANCE-DOCS — child copies the parent document's org.
-    organizationId: doc.organizationId ?? g.organizationId,
+    // TENANCY-FINANCE-DOCS — stamp the VERIFIED caller org (doc was org-scoped
+    // above), never a value inherited from the child.
+    organizationId: g.organizationId,
     documentId: d.documentId,
     versionNo: nextNo,
     title: d.title,
@@ -405,7 +438,7 @@ export async function generateFromTemplateAction(
   const [tpl] = await db
     .select()
     .from(documentTemplates)
-    .where(eq(documentTemplates.id, d.templateId))
+    .where(and(eq(documentTemplates.id, d.templateId), eq(documentTemplates.organizationId, g.organizationId)))
     .limit(1);
   if (!tpl) return { ok: false, error: "Template not found." };
 
@@ -414,9 +447,9 @@ export async function generateFromTemplateAction(
     | "owner"
     | "guest"
     | "public";
-  // TENANCY-FINANCE-DOCS — generated doc inherits the template's org
-  // (falls back to the operator's session org).
-  const organizationId = tpl.organizationId ?? g.organizationId;
+  // TENANCY-FINANCE-DOCS — stamp the VERIFIED caller org (template was
+  // org-scoped above), never a value inherited from the template row.
+  const organizationId = g.organizationId;
   const [row] = await db
     .insert(documents)
     .values({
