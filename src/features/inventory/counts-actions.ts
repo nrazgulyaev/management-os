@@ -262,11 +262,30 @@ export async function cancelInventoryCountAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenant scope: a foreign count id reads as not-found before the cancel.
+  const [count] = await db
+    .select({ id: inventoryCounts.id })
+    .from(inventoryCounts)
+    .where(
+      and(
+        eq(inventoryCounts.id, parsed.data.id),
+        eq(inventoryCounts.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!count) return { ok: false, error: "Count not found." };
 
   await db
     .update(inventoryCounts)
     .set({ status: "cancelled" })
-    .where(eq(inventoryCounts.id, parsed.data.id));
+    .where(
+      and(
+        eq(inventoryCounts.id, parsed.data.id),
+        eq(inventoryCounts.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
