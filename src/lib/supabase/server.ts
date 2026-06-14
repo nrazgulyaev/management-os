@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
@@ -67,12 +68,19 @@ export async function getSupabaseServer(): Promise<SupabaseClient | null> {
 /**
  * Returns the current session's user, or null if Supabase is not configured
  * or the visitor is anonymous.
+ *
+ * PERF: wrapped in React `cache()` so the underlying `supabase.auth.getUser()`
+ * network round-trip to Supabase Auth runs at most ONCE per request render,
+ * even though the layout guard, products-access, the dashboard shell and the
+ * page body each resolve the user. Previously this fired 2–4× per page render
+ * — pure latency on every navigation. `cache()` dedup is request-scoped only
+ * (no cross-request staleness).
  */
-export async function getCurrentAuthUser() {
+export const getCurrentAuthUser = cache(async () => {
   const supabase = await getSupabaseServer();
   if (!supabase) return null;
   const {
     data: { user },
   } = await supabase.auth.getUser();
   return user;
-}
+});
