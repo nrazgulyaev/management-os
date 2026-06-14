@@ -7,6 +7,7 @@ import {
   Building2,
   Home,
   Users,
+  SlidersHorizontal,
   Check,
   ArrowLeft,
   ArrowRight,
@@ -22,7 +23,7 @@ import {
 import type { SetupCounts } from "@/features/keystone/services";
 
 interface StepDef {
-  n: 1 | 2 | 3;
+  n: 1 | 2 | 3 | 4;
   title: string;
   eyebrow: string;
   blurb: string;
@@ -37,47 +38,61 @@ export function SetupWizard({
   initialStep,
 }: {
   counts: SetupCounts;
-  /** 0 = welcome screen; 1..3 = the matching wizard step. */
+  /** 0 = welcome screen; 1..4 = the matching wizard step. */
   initialStep: number;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  // Clamp into 0..3. 0 renders the welcome panel.
-  const [step, setStep] = useState<number>(Math.min(Math.max(initialStep, 0), 3));
+  // Clamp into 0..4. 0 renders the welcome panel.
+  const [step, setStep] = useState<number>(Math.min(Math.max(initialStep, 0), 4));
 
   const steps: StepDef[] = [
     {
       n: 1,
-      title: "Add your villas",
-      eyebrow: "Step 1 of 3",
-      blurb:
-        "Register the units you manage. Each villa carries its own calendar, rates, and owner share — the spine of everything downstream.",
-      icon: <Home className="h-5 w-5" strokeWidth={1.75} />,
-      createHref: "/dashboard/villas/new",
-      createLabel: "Add a villa",
-      count: counts.villas,
-    },
-    {
-      n: 2,
       title: "Add your projects",
-      eyebrow: "Step 2 of 3",
+      eyebrow: "Step 1 of 4",
       blurb:
-        "Group villas under a development or estate. Projects organise reporting, ownership, and handover milestones.",
+        "Start with the development or estate. A project groups its villas and organises reporting, ownership, and handover — and every villa is created under one, so this comes first.",
       icon: <Building2 className="h-5 w-5" strokeWidth={1.75} />,
       createHref: "/dashboard/projects/new",
       createLabel: "Add a project",
       count: counts.projects,
     },
     {
+      n: 2,
+      title: "Add your villas",
+      eyebrow: "Step 2 of 4",
+      blurb:
+        "Register the units you manage under their project. Each villa carries its own calendar, rates, and owner share — the spine of everything downstream.",
+      icon: <Home className="h-5 w-5" strokeWidth={1.75} />,
+      createHref: "/dashboard/villas/new",
+      createLabel: "Add a villa",
+      count: counts.villas,
+    },
+    {
       n: 3,
       title: "Invite your team",
-      eyebrow: "Step 3 of 3",
+      eyebrow: "Step 3 of 4",
       blurb:
-        "Bring in the people who run day-to-day operations. Each teammate gets a role that scopes what they can see and do.",
+        "Bring in the people who run day-to-day operations — villa managers, booking managers, reception, housekeeping, security. Each teammate gets a role.",
       icon: <Users className="h-5 w-5" strokeWidth={1.75} />,
       createHref: "/dashboard/settings/team",
       createLabel: "Invite a teammate",
       count: counts.teamMembers,
+    },
+    {
+      n: 4,
+      title: "Configure roles & access",
+      eyebrow: "Step 4 of 4",
+      blurb:
+        "Set how each role works — which cabinets and tools a villa manager, booking manager, receptionist, cleaner, or security guard can see and use.",
+      icon: <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} />,
+      createHref: "/dashboard/settings/roles/matrix",
+      createLabel: "Configure roles",
+      // No auto-count yet — this is a "visit + tune" step the founder finishes
+      // manually. A real completion check (role_access_overrides count) is a
+      // follow-up; see the role-configuration plan.
+      count: 0,
     },
   ];
 
@@ -109,12 +124,13 @@ export function SetupWizard({
           Let's set up your workspace
         </h2>
         <p className="text-ink-secondary mt-3 leading-relaxed max-w-2xl">
-          Three quick steps and you're operational: register your villas,
-          group them into projects, and invite the team. You can leave and
-          come back any time — we'll remember where you stopped.
+          Four quick steps and you're operational: create your projects,
+          register the villas under them, invite your team, and set how each
+          role works. You can leave and come back any time — we'll remember
+          where you stopped.
         </p>
 
-        <ol className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <ol className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {steps.map((s) => (
             <li
               key={s.n}
@@ -208,7 +224,7 @@ export function SetupWizard({
           <Button variant="ghost" onClick={() => finish("skip")} disabled={pending}>
             Skip for now
           </Button>
-          {step < 3 ? (
+          {step < 4 ? (
             <Button onClick={() => goTo(step + 1)} disabled={pending}>
               Next
               <ArrowRight className="h-4 w-4" />
