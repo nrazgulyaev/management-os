@@ -1,9 +1,28 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { getOperationsKpis } from "@/features/operations/operations-cabinet-queries";
 import { requireOrgId } from "@/features/auth/require-org";
+
+/**
+ * PERF (Phase 4): the Overview's heavy revenue/portfolio AGGREGATES are cached
+ * per-org for 60s via unstable_cache, so the dashboard renders from the Vercel
+ * Data Cache instead of re-running these multi-subquery rollups on every load.
+ *
+ * Two rules make this safe:
+ *  1. org is resolved OUTSIDE the cache (requireOrgId reads cookies, which the
+ *     cache callback cannot) and passed in as a cache-key part, so tenants
+ *     never share a cache entry.
+ *  2. only the RAW DB rows (all `::text` strings) are cached — never the
+ *     computed shapes, which contain bigint (IDR minor) that JSON/the Data
+ *     Cache cannot serialize. The cheap bigint/occupancy maths runs live,
+ *     outside the cache.
+ * Lists/details are deliberately NOT cached — a new booking shows immediately;
+ * only the rollup KPIs trail by up to 60s.
+ */
+const KPI_REVALIDATE_SECONDS = 60;
 
 /**
  * Sprint TASK-6-DATA-PART-1 — Mgmt OS Overview live read aggregates.
@@ -50,17 +69,19 @@ const EMPTY_METRICS: PortfolioMetrics = {
 const OPERATOR_COMMISSION = 0.2;
 
 export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
-  const db = getDb();
-  if (!db) return EMPTY_METRICS;
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return EMPTY_METRICS;
 
-  const row = await db.execute<{
-    villa_count: string;
-    booked_nights_ytd: string;
-    revenue_ytd_usd: string;
-    revenue_mtd_usd: string;
-  }>(sql`
+  const r = await unstable_cache(
+    async () => {
+      const db = getDb();
+      if (!db) return null;
+      const row = await db.execute<{
+        villa_count: string;
+        booked_nights_ytd: string;
+        revenue_ytd_usd: string;
+        revenue_mtd_usd: string;
+      }>(sql`
     WITH yr AS (
       SELECT date_trunc('year', CURRENT_DATE)::date AS year_start
     ),
@@ -90,15 +111,21 @@ export async function getPortfolioMetrics(): Promise<PortfolioMetrics> {
            AND b.organization_id = ${orgId}
       ), '0') AS revenue_mtd_usd
   `);
-  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape. The
-  // prior `.rows?.[0]` accessor read `undefined` on this driver, so this
-  // query silently returned EMPTY_METRICS even when the DB had data.
-  const r = rowsOf<{
-    villa_count: string;
-    booked_nights_ytd: string;
-    revenue_ytd_usd: string;
-    revenue_mtd_usd: string;
-  }>(row)[0];
+      // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape. The
+      // prior `.rows?.[0]` accessor read `undefined` on this driver, so this
+      // query silently returned EMPTY_METRICS even when the DB had data.
+      return (
+        rowsOf<{
+          villa_count: string;
+          booked_nights_ytd: string;
+          revenue_ytd_usd: string;
+          revenue_mtd_usd: string;
+        }>(row)[0] ?? null
+      );
+    },
+    ["dash", "portfolio-metrics", orgId],
+    { revalidate: KPI_REVALIDATE_SECONDS },
+  )();
   if (!r) return EMPTY_METRICS;
 
   const villaCount = Number(r.villa_count || "0");
@@ -130,26 +157,32 @@ export interface ChannelMixRow {
 }
 
 export async function getRevenueByChannel(monthsBack = 1): Promise<ChannelMixRow[]> {
-  const db = getDb();
-  if (!db) return [];
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return [];
-  const rows = await db.execute<{
-    channel: string;
-    total_usd: string;
-  }>(sql`
-    SELECT COALESCE(bc.name, 'Direct') AS channel,
-           SUM(b.gross_amount)::text AS total_usd
-      FROM bookings b
-      LEFT JOIN booking_channels bc ON bc.id = b.channel_id
-     WHERE b.status IN ('confirmed','checked_in','checked_out')
-       AND b.organization_id = ${orgId}
-       AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${monthsBack - 1} || ' months')::interval)::date
-     GROUP BY 1
-     ORDER BY SUM(b.gross_amount) DESC NULLS LAST
-     LIMIT 6
-  `);
-  const data = rowsOf<{ channel: string; total_usd: string }>(rows);
+  const data = await unstable_cache(
+    async (): Promise<{ channel: string; total_usd: string }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        channel: string;
+        total_usd: string;
+      }>(sql`
+        SELECT COALESCE(bc.name, 'Direct') AS channel,
+               SUM(b.gross_amount)::text AS total_usd
+          FROM bookings b
+          LEFT JOIN booking_channels bc ON bc.id = b.channel_id
+         WHERE b.status IN ('confirmed','checked_in','checked_out')
+           AND b.organization_id = ${orgId}
+           AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${monthsBack - 1} || ' months')::interval)::date
+         GROUP BY 1
+         ORDER BY SUM(b.gross_amount) DESC NULLS LAST
+         LIMIT 6
+      `);
+      return rowsOf<{ channel: string; total_usd: string }>(rows);
+    },
+    ["dash", "revenue-by-channel", orgId, String(monthsBack)],
+    { revalidate: KPI_REVALIDATE_SECONDS },
+  )();
   const total = data.reduce((s, r) => s + Number(r.total_usd || 0), 0);
   return data.map((r) => {
     const amt = Number(r.total_usd || 0);
@@ -168,21 +201,27 @@ export interface MonthlyRevenueRow {
 }
 
 export async function getMonthlyRevenueStrip(months = 6): Promise<MonthlyRevenueRow[]> {
-  const db = getDb();
-  if (!db) return [];
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return [];
-  const rows = await db.execute<{ month_iso: string; total_usd: string }>(sql`
-    SELECT to_char(date_trunc('month', b.check_in), 'YYYY-MM') AS month_iso,
-           SUM(b.gross_amount)::text AS total_usd
-      FROM bookings b
-     WHERE b.status IN ('confirmed','checked_in','checked_out')
-       AND b.organization_id = ${orgId}
-       AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${months - 1} || ' months')::interval)::date
-     GROUP BY 1
-     ORDER BY 1 ASC
-  `);
-  const data = rowsOf<{ month_iso: string; total_usd: string }>(rows);
+  const data = await unstable_cache(
+    async (): Promise<{ month_iso: string; total_usd: string }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{ month_iso: string; total_usd: string }>(sql`
+        SELECT to_char(date_trunc('month', b.check_in), 'YYYY-MM') AS month_iso,
+               SUM(b.gross_amount)::text AS total_usd
+          FROM bookings b
+         WHERE b.status IN ('confirmed','checked_in','checked_out')
+           AND b.organization_id = ${orgId}
+           AND b.check_in >= (date_trunc('month', CURRENT_DATE) - (${months - 1} || ' months')::interval)::date
+         GROUP BY 1
+         ORDER BY 1 ASC
+      `);
+      return rowsOf<{ month_iso: string; total_usd: string }>(rows);
+    },
+    ["dash", "monthly-revenue-strip", orgId, String(months)],
+    { revalidate: KPI_REVALIDATE_SECONDS },
+  )();
   return data.map((r) => {
     const [year, month] = r.month_iso.split("-");
     const monthLabel = new Date(Number(year), Number(month) - 1, 1).toLocaleString("en", {
@@ -206,20 +245,29 @@ export interface OwnerPayoutRow {
 }
 
 export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
-  const db = getDb();
-  if (!db) return [];
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return [];
   // Owner's share of (booking gross × (1 - commission)), aggregated across
   // the villas they own via ownership_shares.share_percent.
-  const rows = await db.execute<{
-    owner_id: string;
-    name: string;
-    villas_count: string;
-    project_name: string | null;
-    payout_usd: string;
-    villa_revenue_usd: string;
-  }>(sql`
+  const data = await unstable_cache(
+    async (): Promise<{
+      owner_id: string;
+      name: string;
+      villas_count: string;
+      project_name: string | null;
+      payout_usd: string;
+      villa_revenue_usd: string;
+    }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        owner_id: string;
+        name: string;
+        villas_count: string;
+        project_name: string | null;
+        payout_usd: string;
+        villa_revenue_usd: string;
+      }>(sql`
     WITH villa_yr_revenue AS (
       SELECT b.villa_id,
              SUM(b.gross_amount) AS revenue_usd
@@ -255,14 +303,19 @@ export async function getOwnersYtdPayouts(top = 3): Promise<OwnerPayoutRow[]> {
      ORDER BY payout_usd DESC NULLS LAST
      LIMIT ${top}
   `);
-  return rowsOf<{
-    owner_id: string;
-    name: string;
-    villas_count: string;
-    project_name: string | null;
-    payout_usd: string;
-    villa_revenue_usd: string;
-  }>(rows).map((r) => {
+      return rowsOf<{
+        owner_id: string;
+        name: string;
+        villas_count: string;
+        project_name: string | null;
+        payout_usd: string;
+        villa_revenue_usd: string;
+      }>(rows);
+    },
+    ["dash", "owners-ytd-payouts", orgId, String(top)],
+    { revalidate: KPI_REVALIDATE_SECONDS },
+  )();
+  return data.map((r) => {
     const payout = Number(r.payout_usd || 0);
     const revenue = Number(r.villa_revenue_usd || 0);
     const yieldPct = revenue > 0 ? (payout / revenue) * 100 : 0;
@@ -289,19 +342,29 @@ export interface PortfolioProjectRow {
 }
 
 export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
-  const db = getDb();
-  if (!db) return [];
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return [];
-  const rows = await db.execute<{
-    project_id: string;
-    project_name: string;
-    location: string;
-    villas_count: string;
-    model: string;
-    booked_nights_ytd: string;
-    revenue_ytd_usd: string;
-  }>(sql`
+  const data = await unstable_cache(
+    async (): Promise<{
+      project_id: string;
+      project_name: string;
+      location: string;
+      villas_count: string;
+      model: string;
+      booked_nights_ytd: string;
+      revenue_ytd_usd: string;
+    }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        project_id: string;
+        project_name: string;
+        location: string;
+        villas_count: string;
+        model: string;
+        booked_nights_ytd: string;
+        revenue_ytd_usd: string;
+      }>(sql`
     SELECT p.id::text                AS project_id,
            p.name                     AS project_name,
            p.location                 AS location,
@@ -334,18 +397,23 @@ export async function getPortfolioProjects(): Promise<PortfolioProjectRow[]> {
               p.created_at DESC
      LIMIT 6
   `);
+      return rowsOf<{
+        project_id: string;
+        project_name: string;
+        location: string;
+        villas_count: string;
+        model: string;
+        booked_nights_ytd: string;
+        revenue_ytd_usd: string;
+      }>(rows);
+    },
+    ["dash", "portfolio-projects", orgId],
+    { revalidate: KPI_REVALIDATE_SECONDS },
+  )();
   const dayOfYear = Math.floor(
     (Date.now() - new Date(new Date().getFullYear(), 0, 1).getTime()) / 86400000,
   ) + 1;
-  return rowsOf<{
-    project_id: string;
-    project_name: string;
-    location: string;
-    villas_count: string;
-    model: string;
-    booked_nights_ytd: string;
-    revenue_ytd_usd: string;
-  }>(rows).map((r) => {
+  return data.map((r) => {
     const villas = Number(r.villas_count || 0);
     const nights = Number(r.booked_nights_ytd || 0);
     const revenue = Number(r.revenue_ytd_usd || 0);
