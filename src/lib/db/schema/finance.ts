@@ -412,6 +412,13 @@ export const ownerStatements = pgTable(
     index("owner_statements_period_idx").on(t.periodId),
     index("owner_statements_status_idx").on(t.status),
     index("owner_statements_org_idx").on(t.organizationId),
+    // PERF: the statements list/dashboard filters org + status and org +
+    // period_month together.
+    index("owner_statements_org_status_idx").on(t.organizationId, t.status),
+    index("owner_statements_org_period_month_idx").on(
+      t.organizationId,
+      t.periodMonth,
+    ),
     index("owner_statements_period_month_idx").on(t.periodMonth),
     index("owner_statements_owner_state_auto_ack_idx").on(t.ownerState, t.autoAckAt),
     index("owner_statements_superseded_by_idx").on(t.supersededById),

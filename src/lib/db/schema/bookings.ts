@@ -109,6 +109,14 @@ export const bookings = pgTable(
     index("bookings_status_idx").on(t.status),
     index("bookings_channel_idx").on(t.channelId),
     index("bookings_organization_idx").on(t.organizationId),
+    // PERF: dashboard KPI/aggregate queries filter org + status + a check-in
+    // range together; the single-column org index forces a separate scan/sort.
+    index("bookings_org_status_checkin_idx").on(
+      t.organizationId,
+      t.status,
+      t.checkIn,
+    ),
+    index("bookings_org_checkin_idx").on(t.organizationId, t.checkIn),
     index("bookings_is_vip_idx").on(t.isVip),
   ],
 );

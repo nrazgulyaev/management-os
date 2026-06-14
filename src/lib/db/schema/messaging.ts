@@ -150,6 +150,9 @@ export const conversationMessages = pgTable(
     index("conversation_messages_thread_idx").on(t.threadId),
     index("conversation_messages_direction_idx").on(t.direction),
     index("conversation_messages_status_idx").on(t.status),
+    // PERF: org-scoped message reads had no org index (this is the highest-
+    // volume messaging table).
+    index("conversation_messages_org_idx").on(t.organizationId),
   ],
 );
 

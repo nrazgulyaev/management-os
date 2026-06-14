@@ -171,6 +171,12 @@ export const inventoryItems = pgTable(
     index("inv_items_supplier_idx").on(t.defaultSupplierId),
     index("inv_items_type_idx").on(t.itemType),
     index("inv_items_org_idx").on(t.organizationId),
+    // PERF: the items list filters org [+ status/type] and orders by name.
+    index("inv_items_org_status_name_idx").on(
+      t.organizationId,
+      t.status,
+      t.name,
+    ),
   ],
 );
 
@@ -244,6 +250,12 @@ export const inventoryMovements = pgTable(
     index("inv_movements_to_idx").on(t.toLocationId),
     index("inv_movements_date_idx").on(t.createdAt),
     index("inv_movements_org_idx").on(t.organizationId),
+    // PERF: the movement ledger reads this org's movements newest-first
+    // (high-volume table).
+    index("inv_movements_org_created_idx").on(
+      t.organizationId,
+      t.createdAt,
+    ),
   ],
 );
 

@@ -63,6 +63,13 @@ export const ownerThreads = pgTable(
     index("owner_threads_owner_last_msg_idx").on(t.ownerId, t.lastMessageAt),
     index("owner_threads_status_last_msg_idx").on(t.status, t.lastMessageAt),
     index("owner_threads_organization_idx").on(t.organizationId),
+    // PERF: owner inbox + mgmt dispute queue list this org's threads by status,
+    // most-recent activity first.
+    index("owner_threads_org_status_lastmsg_idx").on(
+      t.organizationId,
+      t.status,
+      t.lastMessageAt,
+    ),
   ],
 );
 
