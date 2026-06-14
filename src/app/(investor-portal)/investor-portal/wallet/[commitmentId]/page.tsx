@@ -10,7 +10,6 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Button } from "@/components/ui/button";
 import { RequestStatusBadge } from "@/components/investor-portal/request-lifecycle";
 import {
   WALLET_TX_TYPE_LABEL,
@@ -90,26 +89,22 @@ export default async function PortalWalletPage({
             </div>
 
             {/* Carbon CTA + ghost reinvest — the live request flows. */}
-            <Button asChild variant="primary" disabled={!hasCash}>
-              <Link
-                href={hasCash ? "/investor-portal/wallet/withdraw" : "#"}
-                aria-disabled={!hasCash}
-                className="w-full"
-              >
-                <ArrowDownToLine className="h-4 w-4" strokeWidth={1.75} />
-                {strings.requestWithdrawal}
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" disabled={!hasCash}>
-              <Link
-                href={hasCash ? "/investor-portal/wallet/reinvest" : "#"}
-                aria-disabled={!hasCash}
-                className="w-full"
-              >
-                <Repeat className="h-4 w-4" strokeWidth={1.75} />
-                {strings.requestReinvest}
-              </Link>
-            </Button>
+            <Link
+              href={hasCash ? "/investor-portal/wallet/withdraw" : "#"}
+              aria-disabled={!hasCash}
+              className={`btn btn-amber w-full${!hasCash ? " pointer-events-none opacity-50" : ""}`}
+            >
+              <ArrowDownToLine className="h-4 w-4" strokeWidth={1.75} />
+              {strings.requestWithdrawal}
+            </Link>
+            <Link
+              href={hasCash ? "/investor-portal/wallet/reinvest" : "#"}
+              aria-disabled={!hasCash}
+              className={`btn btn-secondary w-full${!hasCash ? " pointer-events-none opacity-50" : ""}`}
+            >
+              <Repeat className="h-4 w-4" strokeWidth={1.75} />
+              {strings.requestReinvest}
+            </Link>
             <p className="text-xs leading-relaxed text-ink-tertiary">
               {hasCash
                 ? "Every request is reviewed and executed by the Arconique team — manually, no money moves on submit."

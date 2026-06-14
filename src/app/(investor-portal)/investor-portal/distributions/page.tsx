@@ -5,8 +5,8 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getMyDistributions } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Badge } from "@/components/ui/badge";
 import {
+  PortalBadge,
   PortalCard,
   PortalEmpty,
   PortalKpi,
@@ -123,9 +123,9 @@ export default async function PortalDistributionsPage() {
               <PortalSectionTitle
                 title="Distribution split"
                 action={
-                  <Badge tone="neutral">
+                  <PortalBadge tone="neutral">
                     {list.length} declared
-                  </Badge>
+                  </PortalBadge>
                 }
               />
               <DistributionWaterfall
@@ -186,13 +186,13 @@ export default async function PortalDistributionsPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Badge
+              <PortalBadge
                 tone={
                   list[0].status === "completed" ? "success" : "warning"
                 }
               >
                 {DISTRIBUTION_STATUS_LABEL[list[0].status]}
-              </Badge>
+              </PortalBadge>
               <span className="tnum font-display text-[24px] font-medium text-ink">
                 {formatUsdMinor(BigInt(list[0].totalAmountUsdMinor))}
               </span>

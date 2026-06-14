@@ -8,8 +8,8 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Badge } from "@/components/ui/badge";
 import {
+  PortalBadge,
   PortalBreakdownRow,
   PortalCard,
   PortalDetailHeader,
@@ -66,11 +66,11 @@ export default async function PortalDistributionDetailPage({
         title={`${DISTRIBUTION_TYPE_LABEL[distribution.distributionType]} #${distribution.distributionNumber}`}
         sub={`${distribution.projectName ?? "Company-wide"} · effective ${distribution.effectiveDate}`}
         badge={
-          <Badge
+          <PortalBadge
             tone={distribution.status === "completed" ? "success" : "warning"}
           >
             {DISTRIBUTION_STATUS_LABEL[distribution.status]}
-          </Badge>
+          </PortalBadge>
         }
       />
 

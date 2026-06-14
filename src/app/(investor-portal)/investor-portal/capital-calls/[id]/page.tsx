@@ -6,8 +6,8 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
 import { ConfirmWireForm } from "@/components/investor-portal/confirm-wire-form";
-import { Badge } from "@/components/ui/badge";
 import {
+  PortalBadge,
   PortalBreakdownRow,
   PortalCard,
   PortalDetailHeader,
@@ -63,13 +63,13 @@ export default async function CapitalCallDetailPage({
           </span>
         }
         badge={
-          <Badge tone={call.isPaid ? "success" : overdue ? "danger" : "warning"}>
+          <PortalBadge tone={call.isPaid ? "success" : overdue ? "danger" : "warning"}>
             {call.isPaid
               ? "Wire confirmed"
               : overdue
                 ? "Overdue"
                 : "Awaiting your wire"}
-          </Badge>
+          </PortalBadge>
         }
       />
 

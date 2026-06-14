@@ -5,8 +5,8 @@ import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getMyCommitments } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Badge } from "@/components/ui/badge";
 import {
+  PortalBadge,
   PortalEmpty,
   PortalPageHeader,
   PortalTableCard,
@@ -98,7 +98,7 @@ export default async function CommitmentsPage() {
                   {Number(c.profitSharePercent).toFixed(1)}%
                 </td>
                 <td className="px-4 py-3.5">
-                  <Badge
+                  <PortalBadge
                     tone={
                       c.status === "active"
                         ? "success"
@@ -110,7 +110,7 @@ export default async function CommitmentsPage() {
                     }
                   >
                     {COMMITMENT_STATUS_LABEL[c.status]}
-                  </Badge>
+                  </PortalBadge>
                 </td>
               </tr>
             ))}

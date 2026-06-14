@@ -5,9 +5,9 @@ import { Clock } from "lucide-react";
 import { getInvestorSession } from "@/lib/investor-portal/session";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Badge } from "@/components/ui/badge";
 import {
   PortalAlert,
+  PortalBadge,
   PortalEmpty,
   PortalKpi,
   PortalPageHeader,
@@ -198,7 +198,7 @@ function Section({
                   {new Date(c.dueAt).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-3.5">
-                  <Badge tone={badge.tone}>{badge.label}</Badge>
+                  <PortalBadge tone={badge.tone}>{badge.label}</PortalBadge>
                 </td>
               </tr>
             );

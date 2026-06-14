@@ -13,6 +13,42 @@ import Link from "next/link";
  * `.badge`, `.prog` blocks map 1:1 onto the components below.
  */
 
+/* ── Badge (mock `.badge .badge-*` pill) ──────────────────────────────────
+ * The portal toolkit's previously-missing piece: pages imported the generic
+ * Layer-A `@/components/ui/badge`, which isn't the mock's Layer-B pill. The
+ * `.badge-ok|amber|warn|steel|ink` classes already exist under
+ * `[data-product="development"]` (src/styles/components/primitives.css), so
+ * this renders the mock pill directly. Accepts the same tone vocabulary the
+ * old ui/badge sites passed, so the swap is a 1:1 component rename. */
+const PORTAL_BADGE_TONE: Record<string, string> = {
+  success: "badge-ok",
+  ok: "badge-ok",
+  warning: "badge-warn",
+  warn: "badge-warn",
+  danger: "badge-amber",
+  amber: "badge-amber",
+  gold: "badge-amber",
+  accent: "badge-amber",
+  info: "badge-steel",
+  steel: "badge-steel",
+  neutral: "badge-ink",
+  ink: "badge-ink",
+  outline: "badge-steel",
+};
+export function PortalBadge({
+  tone = "neutral",
+  children,
+}: {
+  tone?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <span className={"badge " + (PORTAL_BADGE_TONE[tone] ?? "badge-ink")}>
+      {children}
+    </span>
+  );
+}
+
 /* ── Page header (eyebrow + Space-Grotesk h2 + sub) ───────────────────── */
 export function PortalPageHeader({
   eyebrow,
