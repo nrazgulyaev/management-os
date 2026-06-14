@@ -123,6 +123,9 @@ export const guestServices = pgTable(
     index("guest_services_villa_idx").on(t.villaId),
     index("guest_services_status_idx").on(t.status),
     index("guest_services_organization_idx").on(t.organizationId),
+    // PERF: the services catalog reads org + status='active' on every admin
+    // and guest-portal services page.
+    index("guest_services_org_status_idx").on(t.organizationId, t.status),
   ],
 );
 

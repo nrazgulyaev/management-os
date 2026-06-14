@@ -153,6 +153,12 @@ export const directBookingRequests = pgTable(
       t.financeBridgeStatus,
     ),
     index("direct_booking_requests_org_idx").on(t.organizationId),
+    // PERF: the admin inbox lists this org's requests by status, newest first.
+    index("direct_booking_requests_org_status_created_idx").on(
+      t.organizationId,
+      t.status,
+      sql`${t.createdAt} DESC`,
+    ),
   ],
 );
 
