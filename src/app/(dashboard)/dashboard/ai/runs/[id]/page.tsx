@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getAssistantRunDetail } from "@/features/ai/operations-copilot/service";
 
 export const metadata = { title: "AI run detail" };
@@ -9,14 +8,14 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
-  succeeded: "success",
-  fallback: "neutral",
+  succeeded: "ok",
+  fallback: "soft",
   failed: "danger",
   running: "info",
   blocked: "danger",
-  success: "success",
+  success: "ok",
 };
 
 export default async function AIRunDetailPage({
@@ -30,22 +29,27 @@ export default async function AIRunDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "AI assistants", href: "/dashboard/ai" },
-          { label: "Runs", href: "/dashboard/ai/runs" },
-          { label: run.id.slice(0, 8) },
-        ]}
-        title={`Run ${run.id.slice(0, 8)}`}
-        description={`Assistant: ${run.assistantKey} · Trigger: ${run.runType}`}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/ai">AI assistants</Link> /{" "}
+            <Link href="/dashboard/ai/runs">Runs</Link> /{" "}
+            <span>{run.id.slice(0, 8)}</span>
+          </div>
+          <h1>{`Run ${run.id.slice(0, 8)}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`Assistant: ${run.assistantKey} · Trigger: ${run.runType}`}
+          </p>
+        </div>
+      </div>
 
-      <Section eyebrow="Run" title="Metadata">
+      <div>
+        <div className="label mb-2.5">Run</div>
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <Field label="Status">
-            <Badge tone={STATUS_TONES[run.status] ?? "neutral"}>
+            <HandoffBadge tone={STATUS_TONES[run.status] ?? "soft"}>
               {run.status}
-            </Badge>
+            </HandoffBadge>
           </Field>
           <Field label="Model" value={run.model ?? "—"} />
           <Field
@@ -77,20 +81,23 @@ export default async function AIRunDetailPage({
             </div>
           )}
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Prompt" title="Input / Output">
+      <div>
+        <div className="label mb-2.5">Prompt</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <CodeBlock label="Input summary" body={run.inputSummary ?? "—"} />
           <CodeBlock label="Output summary" body={run.outputSummary ?? "—"} />
         </div>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Tool calls"
-        title={`${toolCalls.length} dispatch${toolCalls.length === 1 ? "" : "es"}`}
-        description="Read-only allowlist. Calls outside the allowlist are recorded with status='blocked' and never reach the database."
-      >
+      <div>
+        <div className="label mb-2.5">Tool calls</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          {`${toolCalls.length} dispatch${toolCalls.length === 1 ? "" : "es"}`} —
+          read-only allowlist. Calls outside the allowlist are recorded with
+          status=&apos;blocked&apos; and never reach the database.
+        </p>
         {toolCalls.length === 0 ? (
           <p className="text-sm text-ink-tertiary">
             No tool calls. The model produced its answer without retrieval.
@@ -101,9 +108,9 @@ export default async function AIRunDetailPage({
               {toolCalls.map((c) => (
                 <li key={c.id} className="p-4">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge tone={STATUS_TONES[c.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONES[c.status] ?? "soft"}>
                       {c.status}
-                    </Badge>
+                    </HandoffBadge>
                     <span className="text-sm text-ink font-medium">
                       {c.toolName}
                     </span>
@@ -126,7 +133,7 @@ export default async function AIRunDetailPage({
             </ul>
           </div>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

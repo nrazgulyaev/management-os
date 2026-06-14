@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { CalendarConflictPill } from "@/components/integrations/feed-status-pill";
 import { EventActions } from "@/components/integrations/event-actions";
@@ -13,14 +13,18 @@ export default async function CalendarEventsPage() {
   const events = await listCalendarEvents({ limit: 200 });
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Integrations", href: "/dashboard/integrations" },
-          { label: "Calendar events" },
-        ]}
-        title="Calendar events"
-        description="Every VEVENT we've imported, across every feed."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/integrations">Integrations</Link> /{" "}
+            <span>Calendar events</span>
+          </div>
+          <h1>Calendar events</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every VEVENT we&apos;ve imported, across every feed.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       {events.length === 0 ? (
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
@@ -55,7 +59,7 @@ export default async function CalendarEventsPage() {
                   {e.checkIn} → {e.checkOut}
                 </TD>
                 <TD>
-                  <Badge tone={e.status === "active" ? "info" : "neutral"}>{e.status}</Badge>
+                  <HandoffBadge tone={e.status === "active" ? "info" : "soft"}>{e.status}</HandoffBadge>
                 </TD>
                 <TD>
                   <CalendarConflictPill status={e.conflictStatus} />

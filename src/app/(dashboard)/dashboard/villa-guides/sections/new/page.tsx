@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { GuideSectionForm } from "@/components/villa-guides/section-form";
@@ -10,14 +10,16 @@ export default async function NewSectionPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villa guides", href: "/dashboard/villa-guides" },
-          { label: "Sections", href: "/dashboard/villa-guides/sections" },
-          { label: "New" },
-        ]}
-        title="New guide section"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/villa-guides">Villa guides</Link> /{" "}
+            <Link href="/dashboard/villa-guides/sections">Sections</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New guide section</h1>
+        </div>
+      </div>
       <GuideSectionForm
         villas={villas.map((v) => ({
           id: v.id,

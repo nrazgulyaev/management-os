@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listChecklistTemplates } from "@/features/operations/services";
 import { ChecklistTemplateAddButton } from "@/components/operations/checklist-template-add-button";
@@ -12,18 +11,25 @@ export default async function ChecklistsPage() {
   const templates = await listChecklistTemplates();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Checklists" },
-        ]}
-        title="Checklist templates"
-        description="Library of reusable cleaning, inspection, and maintenance checklists."
-        actions={<ChecklistTemplateAddButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Checklists</span>
+          </div>
+          <h1>Checklist templates</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Library of reusable cleaning, inspection, and maintenance checklists.
+          </p>
+        </div>
+        <div className="actions">
+          <ChecklistTemplateAddButton />
+        </div>
+      </div>
       <DbStatusNotice />
-      <Section eyebrow="Library" title="Templates available">
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+      <div>
+        <div className="label mb-2.5">Library</div>
+        <Card padding="none" overflowHidden>
           {templates.length === 0 ? (
             <p className="p-6 text-sm text-ink-tertiary">
               No checklist templates yet. Add your first checklist
@@ -45,13 +51,13 @@ export default async function ChecklistsPage() {
                       </p>
                     )}
                   </div>
-                  <Badge tone="outline">{t.key}</Badge>
+                  <HandoffBadge tone="soft">{t.key}</HandoffBadge>
                 </li>
               ))}
             </ul>
           )}
-        </div>
-      </Section>
+        </Card>
+      </div>
     </div>
   );
 }

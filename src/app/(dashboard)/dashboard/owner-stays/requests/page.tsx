@@ -1,21 +1,19 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listOwnerStayRequests } from "@/features/owner-stays/services";
 
 export const metadata = { title: "Owner stay requests" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
   requested: "info",
   availability_check: "info",
-  requires_relocation: "warning",
-  pending_admin_approval: "warning",
-  approved: "success",
+  requires_relocation: "warn",
+  pending_admin_approval: "warn",
+  approved: "ok",
   rejected: "danger",
-  cancelled: "neutral",
-  completed: "neutral",
+  cancelled: "soft",
+  completed: "soft",
 };
 
 const FILTERS: { label: string; status?: string }[] = [
@@ -44,14 +42,19 @@ export default async function OwnerStayRequestsPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner stays", href: "/dashboard/owner-stays" },
-          { label: "Requests" },
-        ]}
-        title="Requests"
-        description="Owner-portal requests. Approve to materialise an owner_stay calendar block; reject to surface a reason in the owner inbox."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-stays">Owner stays</Link> /{" "}
+            <span>Requests</span>
+          </div>
+          <h1>Requests</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Owner-portal requests. Approve to materialise an owner_stay calendar
+            block; reject to surface a reason in the owner inbox.
+          </p>
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
         {FILTERS.map((f) => (
@@ -69,49 +72,48 @@ export default async function OwnerStayRequestsPage({
         ))}
       </div>
 
-      <Section eyebrow="Inbox" title={`${rows.length} requests`}>
+      <div>
+        <div className="label mb-2.5">Inbox · {rows.length} requests</div>
         {rows.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No requests.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">No requests.</p>
+          </Card>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Owner</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Dates</th>
-                  <th className="text-right px-3 py-2">Nights</th>
-                  <th className="text-right px-3 py-2">Allowance</th>
-                  <th className="text-right px-3 py-2">Owner charge</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2"></th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Dates</th>
+                  <th scope="col" className="num">Nights</th>
+                  <th scope="col" className="num">Allowance</th>
+                  <th scope="col" className="num">Owner charge</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.ownerName ?? r.ownerId}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{r.ownerName ?? r.ownerId}</td>
+                    <td>{r.villaCode ?? "—"}</td>
+                    <td className="tabular-nums">
                       {r.requestedStart} → {r.requestedEnd}
                     </td>
-                    <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">
+                    <td className="num">
                       {r.allowanceNightsApplied + r.billableNights}
                     </td>
-                    <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">
-                      {r.allowanceNightsApplied}
-                    </td>
-                    <td className="px-3 py-2 text-right text-ink-tertiary tabular-nums">
+                    <td className="num">{r.allowanceNightsApplied}</td>
+                    <td className="num">
                       {formatMoney(r.estimatedTotalOwnerChargeMinor, r.currency)}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>
                         {r.status.replace(/_/g, " ")}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/owner-stays/requests/${r.id}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -123,9 +125,9 @@ export default async function OwnerStayRequestsPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

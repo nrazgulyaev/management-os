@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -12,7 +11,7 @@ import { listSuppliers } from "@/features/inventory/services";
 import { listProjects } from "@/features/projects/services";
 import { listVillas } from "@/features/villas/services";
 import { formatMoneyMinor } from "@/lib/money";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Purchase orders" };
 export const dynamic = "force-dynamic";
@@ -58,63 +57,63 @@ export default async function PurchaseOrdersPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Procurement", href: "/dashboard/procurement" },
-          { label: "Orders" },
-        ]}
-        title="Purchase orders"
-        description="Sent → confirmed → partially received → received. Cancelled at any point. Detail page handles per-line receive + status transitions."
-        actions={
-          <div className="flex gap-2">
-            <PurchaseOrderAddButton
-              suppliers={supplierOpts}
-              projects={projectOpts}
-              villas={villaOpts}
-            />
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/procurement">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Procurement
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/procurement">Procurement</Link> /{" "}
+            <span>Orders</span>
           </div>
-        }
-      />
+          <h1>Purchase orders</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Sent → confirmed → partially received → received. Cancelled at any point. Detail page handles per-line receive + status transitions.
+          </p>
+        </div>
+        <div className="actions">
+          <PurchaseOrderAddButton
+            suppliers={supplierOpts}
+            projects={projectOpts}
+            villas={villaOpts}
+          />
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/procurement">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Procurement
+            </Link>
+          </Button>
+        </div>
+      </div>
 
       <DbStatusNotice />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DashboardKpi
+        <Kpi
           label="Open POs"
           value={String(kpiOpen)}
-          status={kpiOpen > 0 ? "warn" : "neutral"}
-          hint="Sent, confirmed, or partially received"
+          tone={kpiOpen > 0 ? "warn" : undefined}
+          sub="Sent, confirmed, or partially received"
         />
-        <DashboardKpi
+        <Kpi
           label="Awaiting delivery"
           value={String(kpiAwaitingDelivery)}
-          status={kpiAwaitingDelivery > 0 ? "warn" : "neutral"}
-          hint="Sent or confirmed, no receipt yet"
+          tone={kpiAwaitingDelivery > 0 ? "warn" : undefined}
+          sub="Sent or confirmed, no receipt yet"
         />
-        <DashboardKpi
+        <Kpi
           label="Partially received"
           value={String(kpiPartial)}
-          status={kpiPartial > 0 ? "warn" : "neutral"}
-          hint="At least one line short-shipped"
+          tone={kpiPartial > 0 ? "warn" : undefined}
+          sub="At least one line short-shipped"
         />
-        <DashboardKpi
+        <Kpi
           label="Received"
           value={String(kpiReceived)}
-          status="good"
-          hint="Closed POs (lifetime)"
+          tone="success"
+          sub="Closed POs (lifetime)"
         />
       </div>
 
-      <Section
-        eyebrow="Filter"
-        title={statusFilter ? `Showing ${statusFilter.replace(/_/g, " ")}` : "All purchase orders"}
-      >
+      <div>
+        <div className="label mb-2.5">Filter</div>
         <div className="flex flex-wrap gap-2 mb-4">
           {STATUS_FILTERS.map((f) => {
             const isActive = statusFilter === f.value;
@@ -205,7 +204,7 @@ export default async function PurchaseOrdersPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

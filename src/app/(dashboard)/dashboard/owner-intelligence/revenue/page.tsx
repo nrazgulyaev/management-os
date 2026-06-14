@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { DashboardKpi} from "@/components/ui/primitives";
+import Link from "next/link";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import { listOwnerRevenueSourceMonthly } from "@/features/owner-bookings/services";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
 import {
@@ -30,70 +29,75 @@ export default async function AdminOwnerRevenueMixPage() {
   const totalNet = totalNetOwnerEffectMinor(monthly, currency);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner intelligence", href: "/dashboard/owner-intelligence" },
-          { label: "Revenue source mix" },
-        ]}
-        title="Owner revenue source mix"
-        description="Direct vs OTA vs other across every owner. Use this view to verify the projection before owners see it."
-        actions={<RebuildMonthlyButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            / <span>Revenue source mix</span>
+          </div>
+          <h1>Owner revenue source mix</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Direct vs OTA vs other across every owner. Use this view to verify
+            the projection before owners see it.
+          </p>
+        </div>
+        <div className="actions">
+          <RebuildMonthlyButton />
+        </div>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DashboardKpi
+        <Kpi
           label="Net owner effect"
           value={formatMoneyMinor(totalNet, currency)}
-          status="neutral"
-          hint="Across every owner in scope"
+          sub="Across every owner in scope"
         />
-        <DashboardKpi
+        <Kpi
           label="Owners"
           value={String(ownerIds.length)}
-          status="neutral"
         />
-        <DashboardKpi
+        <Kpi
           label="Bucket rows"
           value={String(monthly.length)}
-          status={monthly.length === 0 ? "warn" : "neutral"}
-          hint={monthly.length === 0 ? "Run rebuild to seed" : undefined}
+          tone={monthly.length === 0 ? "warn" : undefined}
+          sub={monthly.length === 0 ? "Run rebuild to seed" : undefined}
         />
-        <DashboardKpi
+        <Kpi
           label="Source buckets"
           value={String(sourceMix.length)}
-          status="neutral"
-          hint="direct / OTA / owner-stay / etc."
+          sub="direct / OTA / owner-stay / etc."
         />
       </div>
-      <Section eyebrow="Source mix" title="Per source totals">
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Source</th>
-                <th className="px-4 py-3">Gross</th>
-                <th className="px-4 py-3">Deductions</th>
-                <th className="px-4 py-3">Net effect</th>
-                <th className="px-4 py-3">Bookings</th>
-                <th className="px-4 py-3">Nights</th>
-                <th className="px-4 py-3">ADR</th>
+      <div>
+        <div className="label mb-2.5">Source mix · per source totals</div>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Source</th>
+                <th scope="col" className="num">Gross</th>
+                <th scope="col" className="num">Deductions</th>
+                <th scope="col" className="num">Net effect</th>
+                <th scope="col" className="num">Bookings</th>
+                <th scope="col" className="num">Nights</th>
+                <th scope="col" className="num">ADR</th>
               </tr>
             </thead>
             <tbody>
               {sourceMix.map((s) => (
-                <tr key={s.bucket} className="border-t border-line-soft">
-                  <td className="px-4 py-3 text-xs">{s.label}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                <tr key={s.bucket}>
+                  <td className="text-xs">{s.label}</td>
+                  <td className="num mono text-xs">
                     {formatMoneyMinor(s.grossRevenueMinor, currency)}
                   </td>
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                  <td className="num mono text-xs">
                     {formatMoneyMinor(s.deductionsMinor, currency)}
                   </td>
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                  <td className="num mono text-xs">
                     {formatMoneyMinor(s.netOwnerEffectMinor, currency)}
                   </td>
-                  <td className="px-4 py-3 text-xs">{s.bookingCount}</td>
-                  <td className="px-4 py-3 text-xs">{s.occupiedNights}</td>
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                  <td className="num text-xs">{s.bookingCount}</td>
+                  <td className="num text-xs">{s.occupiedNights}</td>
+                  <td className="num mono text-xs">
                     {s.occupiedNights > 0
                       ? formatMoneyMinor(
                           s.averageRevenuePerNightMinor,
@@ -105,8 +109,8 @@ export default async function AdminOwnerRevenueMixPage() {
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
+        </Card>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listGuestServiceRatings } from "@/features/service-fulfilment/services";
 import { HideRatingButton } from "@/components/service-fulfilment/buttons";
 
@@ -11,15 +10,20 @@ export default async function RatingsPage() {
   const rows = await listGuestServiceRatings({ limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Ratings" },
-        ]}
-        title="Guest service ratings"
-        description="Post-fulfilment feedback. Vendor averages on the vendor profile auto-update from these rows."
-      />
-      <Section eyebrow="Feedback" title={`${rows.length} ratings`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <span>Ratings</span>
+          </div>
+          <h1>Guest service ratings</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Post-fulfilment feedback. Vendor averages on the vendor profile auto-update from these rows.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Feedback</div>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
@@ -52,17 +56,17 @@ export default async function RatingsPage() {
                     {r.sentiment ?? "—"}
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
+                    <HandoffBadge
                       tone={
                         r.status === "published"
-                          ? "success"
+                          ? "ok"
                           : r.status === "flagged"
-                            ? "warning"
-                            : "neutral"
+                            ? "warn"
+                            : "soft"
                       }
                     >
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
                   <td className="px-4 py-3">
                     {r.status === "published" && <HideRatingButton id={r.id} />}
@@ -72,7 +76,7 @@ export default async function RatingsPage() {
             </tbody>
           </table>
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

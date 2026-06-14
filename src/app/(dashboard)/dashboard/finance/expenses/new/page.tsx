@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -13,15 +13,19 @@ export default async function NewExpensePage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Expenses", href: "/dashboard/finance/expenses" },
-          { label: "New" },
-        ]}
-        title="New expense"
-        description="Choose the right allocation scope so the expense flows correctly into owner statements."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/expenses">Expenses</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New expense</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Choose the right allocation scope so the expense flows correctly into owner statements.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <LedgerLineForm
         title="Expense line"

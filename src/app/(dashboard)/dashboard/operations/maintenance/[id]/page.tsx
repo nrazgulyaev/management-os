@@ -1,6 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { MaintenanceStatusPill } from "@/components/operations/task-status-pill";
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { MaintenanceStatusActions } from "@/components/operations/maintenance-status-actions";
@@ -34,21 +34,27 @@ export default async function MaintenanceTicketDetail({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Maintenance", href: "/dashboard/operations/maintenance" },
-          { label: ticket.ticketCode },
-        ]}
-        title={ticket.title}
-        description={`${ticket.issueCategory} · ${ticket.ticketCode}`}
-        actions={<MaintenanceStatusActions id={ticket.id} status={ticket.status} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/maintenance">Maintenance</Link> /{" "}
+            <span>{ticket.ticketCode}</span>
+          </div>
+          <h1>{ticket.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {ticket.issueCategory} · {ticket.ticketCode}
+          </p>
+        </div>
+        <div className="actions">
+          <MaintenanceStatusActions id={ticket.id} status={ticket.status} />
+        </div>
+      </div>
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<MaintenanceStatusPill status={ticket.status} />} />
-        <Stat label="Severity" value={<PriorityPill priority={ticket.severity} />} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<MaintenanceStatusPill status={ticket.status} />} />
+        <Kpi label="Severity" value={<PriorityPill priority={ticket.severity} />} />
+        <Kpi
           label="Villa"
           value={
             ticket.villaCode ? (
@@ -58,11 +64,11 @@ export default async function MaintenanceTicketDetail({
             )
           }
         />
-        <Stat
+        <Kpi
           label="Owner chargeable"
           value={ticket.ownerChargeable ? "Yes" : "No"}
         />
-        <Stat
+        <Kpi
           label="Estimated cost"
           value={
             ticket.estimatedCostMinor !== null && ticket.currency
@@ -70,7 +76,7 @@ export default async function MaintenanceTicketDetail({
               : <span className="text-ink-tertiary">—</span>
           }
         />
-        <Stat
+        <Kpi
           label="Actual cost"
           value={
             ticket.actualCostMinor !== null && ticket.currency
@@ -78,65 +84,58 @@ export default async function MaintenanceTicketDetail({
               : <span className="text-ink-tertiary">—</span>
           }
         />
-        <Stat
+        <Kpi
           label="Reported"
           value={ticket.reportedAt.slice(0, 16).replace("T", " ")}
         />
-        <Stat
+        <Kpi
           label="Resolved"
           value={ticket.resolvedAt ? ticket.resolvedAt.slice(0, 16).replace("T", " ") : <span className="text-ink-tertiary">—</span>}
         />
       </div>
 
       {canAssign && (
-        <Section
-          eyebrow="Assignment"
-          title="Staff dispatch"
-          description="Bridges through the linked operation task; first assignment auto-creates the task."
-        >
-          <MaintenanceAssignDropdown
-            ticketId={ticket.id}
-            ticketStatus={ticket.status}
-            currentAssigneeId={ticket.assignedTo}
-            currentAssigneeName={ticket.assigneeName}
-            users={users.map((u) => ({
-              id: u.id,
-              fullName: u.fullName,
-              email: u.email,
-              roles: u.roles,
-            }))}
-          />
-        </Section>
+        <div>
+          <div className="label mb-2.5">Assignment</div>
+          <Card padding="default">
+            <MaintenanceAssignDropdown
+              ticketId={ticket.id}
+              ticketStatus={ticket.status}
+              currentAssigneeId={ticket.assignedTo}
+              currentAssigneeName={ticket.assigneeName}
+              users={users.map((u) => ({
+                id: u.id,
+                fullName: u.fullName,
+                email: u.email,
+                roles: u.roles,
+              }))}
+            />
+          </Card>
+        </div>
       )}
 
       {ticket.description && (
-        <Section eyebrow="Description" title="Detail">
-          <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
-            {ticket.description}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Description</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
+              {ticket.description}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section
-        eyebrow="Evidence"
-        title="Attachments"
-        action={
-          canUpload ? (
+      <div>
+        <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="label">Evidence</div>
+          {canUpload ? (
             <AttachmentUploader target="maintenance_ticket" targetId={ticket.id} />
-          ) : null
-        }
-      >
-        <AttachmentGallery attachments={attachments} />
-      </Section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
+          ) : null}
+        </div>
+        <Card padding="default">
+          <AttachmentGallery attachments={attachments} />
+        </Card>
+      </div>
     </div>
   );
 }

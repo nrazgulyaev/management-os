@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listInventoryCounts } from "@/features/inventory/counts-services";
@@ -12,13 +11,13 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "warning" | "info" | "success" | "danger"
+  "soft" | "warn" | "info" | "ok" | "danger"
 > = {
-  draft: "neutral",
-  submitted: "warning",
-  approved: "success",
-  adjusted: "success",
-  cancelled: "neutral",
+  draft: "soft",
+  submitted: "warn",
+  approved: "ok",
+  adjusted: "ok",
+  cancelled: "soft",
 };
 
 export default async function CountsPage() {
@@ -29,15 +28,21 @@ export default async function CountsPage() {
   const locationOpts = locations.map((l) => ({ id: l.id, label: l.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Counts" },
-        ]}
-        title="Stock counts"
-        description="draft → submitted → approved (auto-emits count_correction movements) → adjusted."
-        actions={<CountAddButton locations={locationOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <span>Counts</span>
+          </div>
+          <h1>Stock counts</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            draft → submitted → approved (auto-emits count_correction movements) → adjusted.
+          </p>
+        </div>
+        <div className="actions">
+          <CountAddButton locations={locationOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
@@ -66,7 +71,7 @@ export default async function CountsPage() {
                 </TD>
                 <TD>{c.locationName}</TD>
                 <TD>
-                  <Badge tone={STATUS_TONES[c.status] ?? "neutral"}>{c.status}</Badge>
+                  <HandoffBadge tone={STATUS_TONES[c.status] ?? "soft"}>{c.status}</HandoffBadge>
                 </TD>
                 <TDNum>{c.lineCount}</TDNum>
                 <TDNum>{c.varianceAbs.toLocaleString()}</TDNum>

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TaskForm } from "@/components/operations/task-form";
 import { listVillas } from "@/features/villas/services";
@@ -19,15 +19,19 @@ export default async function NewOperationsTaskPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Tasks", href: "/dashboard/operations/tasks" },
-          { label: "New" },
-        ]}
-        title="New task"
-        description="Create an operations task. Assign it to dispatch the field workflow."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/tasks">Tasks</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New task</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Create an operations task. Assign it to dispatch the field workflow.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <TaskForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

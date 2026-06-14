@@ -1,8 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, eq, or } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { villaWifiCredentials } from "@/lib/db/schema/villa-guides";
 import { villas as villasTable, projects as projectsTable } from "@/lib/db/schema/projects";
@@ -55,25 +54,33 @@ export default async function EditWifiPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villa guides", href: "/dashboard/villa-guides" },
-          { label: "Wi-Fi", href: "/dashboard/villa-guides/wifi" },
-          { label: row.networkName },
-        ]}
-        title={row.networkName}
-        description="Edit and rotate the password. The list never reveals plaintext; entering a value here re-encrypts under the active key version."
-        actions={
-          row.passwordCiphertext ? (
-            <Badge tone="success">encrypted · v{keyVersion ?? "?"}</Badge>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/villa-guides">Villa guides</Link> /{" "}
+            <Link href="/dashboard/villa-guides/wifi">Wi-Fi</Link> /{" "}
+            <span>{row.networkName}</span>
+          </div>
+          <h1>{row.networkName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Edit and rotate the password. The list never reveals plaintext;
+            entering a value here re-encrypts under the active key version.
+          </p>
+        </div>
+        <div className="actions">
+          {row.passwordCiphertext ? (
+            <HandoffBadge tone="ok">
+              encrypted · v{keyVersion ?? "?"}
+            </HandoffBadge>
           ) : row.displayPassword ? (
-            <Badge tone="warning">legacy plaintext</Badge>
+            <HandoffBadge tone="warn">legacy plaintext</HandoffBadge>
           ) : (
-            <Badge tone="neutral">no password</Badge>
-          )
-        }
-      />
-      <Section eyebrow="Edit" title="Network details">
+            <HandoffBadge tone="soft">no password</HandoffBadge>
+          )}
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Edit · Network details</div>
         <WifiForm
           villas={villas.map((v) => ({
             id: v.id,
@@ -89,7 +96,7 @@ export default async function EditWifiPage({
             hasCiphertext: Boolean(row.passwordCiphertext),
           }}
         />
-      </Section>
+      </div>
     </div>
   );
 }

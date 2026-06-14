@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { RequestCard } from "@/components/procurement/request-card";
@@ -10,7 +9,7 @@ import { listPurchaseRequests } from "@/features/procurement/services";
 import { listSuppliers } from "@/features/inventory/services";
 import { listProjects } from "@/features/projects/services";
 import { listVillas } from "@/features/villas/services";
-import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
+import { NoItemsYet } from "@/components/ui/primitives";
 
 export const metadata = { title: "Purchase requests" };
 export const dynamic = "force-dynamic";
@@ -54,67 +53,62 @@ export default async function PurchaseRequestsPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Procurement", href: "/dashboard/procurement" },
-          { label: "Requests" },
-        ]}
-        title="Purchase requests"
-        description="Draft → submitted → approved → ordered. Approved requests can be promoted into a purchase order from the detail page."
-        actions={
-          <div className="flex gap-2">
-            <PurchaseRequestAddButton
-              suppliers={supplierOpts}
-              projects={projectOpts}
-              villas={villaOpts}
-            />
-            <Button asChild variant="secondary">
-              <Link href="/dashboard/procurement">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Procurement
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/procurement">Procurement</Link> /{" "}
+            <span>Requests</span>
           </div>
-        }
-      />
+          <h1>Purchase requests</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Draft → submitted → approved → ordered. Approved requests can be promoted into a purchase order from the detail page.
+          </p>
+        </div>
+        <div className="actions">
+          <PurchaseRequestAddButton
+            suppliers={supplierOpts}
+            projects={projectOpts}
+            villas={villaOpts}
+          />
+          <Button asChild variant="secondary">
+            <Link href="/dashboard/procurement">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Procurement
+            </Link>
+          </Button>
+        </div>
+      </div>
 
       <DbStatusNotice />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <DashboardKpi
+        <Kpi
           label="Drafts"
           value={String(kpiDraft)}
-          status={kpiDraft > 0 ? "warn" : "neutral"}
-          hint="Not yet submitted for approval"
+          tone={kpiDraft > 0 ? "warn" : undefined}
+          sub="Not yet submitted for approval"
         />
-        <DashboardKpi
+        <Kpi
           label="Awaiting approval"
           value={String(kpiAwaiting)}
-          status={kpiAwaiting > 0 ? "bad" : "good"}
-          hint="Submitted, decision required"
+          tone={kpiAwaiting > 0 ? "danger" : "success"}
+          sub="Submitted, decision required"
         />
-        <DashboardKpi
+        <Kpi
           label="Approved"
           value={String(kpiApproved)}
-          status="good"
-          hint="Ready to convert to a PO"
+          tone="success"
+          sub="Ready to convert to a PO"
         />
-        <DashboardKpi
+        <Kpi
           label="Ordered"
           value={String(kpiOrdered)}
-          status="neutral"
-          hint="Closed PRs (lifetime)"
+          sub="Closed PRs (lifetime)"
         />
       </div>
 
-      <Section
-        eyebrow="Filter"
-        title={
-          statusFilter
-            ? `Showing ${statusFilter}`
-            : "All purchase requests"
-        }
-      >
+      <div>
+        <div className="label mb-2.5">Filter</div>
         <div className="flex flex-wrap gap-2 mb-4">
           {STATUS_FILTERS.map((f) => {
             const isActive = statusFilter === f.value;
@@ -175,7 +169,7 @@ export default async function PurchaseRequestsPage({
             ))
           )}
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

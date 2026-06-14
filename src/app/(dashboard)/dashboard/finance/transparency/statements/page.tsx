@@ -1,6 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { listTransparencyStatementRows } from "@/features/statement-transparency/services";
 import { TransparencyStatusBadge } from "@/components/finance/transparency-status-badge";
 import { RebuildStatementButton } from "@/components/finance/transparency-buttons";
@@ -12,78 +10,79 @@ export default async function TransparencyStatementsTable() {
   const rows = await listTransparencyStatementRows({ limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Transparency", href: "/dashboard/finance/transparency" },
-          { label: "Statements" },
-        ]}
-        title="All statements"
-        description="Per-statement transparency snapshot status + reconciliation."
-      />
-      <Section eyebrow="Statements" title={`${rows.length} rows`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Statement</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Currency</th>
-                <th className="px-4 py-3">Reconciliation</th>
-                <th className="px-4 py-3">Groups</th>
-                <th className="px-4 py-3">Open</th>
-                <th className="px-4 py-3">Critical</th>
-                <th className="px-4 py-3">Snapshot</th>
-                <th className="px-4 py-3">Last rebuild</th>
-                <th className="px-4 py-3"></th>
-                <th className="px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {r.statementCode}
-                  </td>
-                  <td className="px-4 py-3 text-xs capitalize">{r.status}</td>
-                  <td className="px-4 py-3 text-xs">{r.currency}</td>
-                  <td className="px-4 py-3">
-                    <TransparencyStatusBadge status={r.reconciliationStatus} />
-                  </td>
-                  <td className="px-4 py-3 text-xs">{r.groupCount}</td>
-                  <td className="px-4 py-3 text-xs">{r.openWarningCount}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {r.criticalCount > 0 ? (
-                      <span className="text-danger">{r.criticalCount}</span>
-                    ) : (
-                      "0"
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {r.hasExplanationSnapshot ? "✓" : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary">
-                    {r.lastGeneratedAt
-                      ? r.lastGeneratedAt.slice(0, 16).replace("T", " ")
-                      : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    <RebuildStatementButton statementId={r.id} />
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/finance/transparency/statements/${r.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4"
-                    >
-                      Open →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/transparency">Transparency</Link> /{" "}
+            <span>Statements</span>
+          </div>
+          <h1>All statements</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-statement transparency snapshot status + reconciliation.
+          </p>
         </div>
-      </Section>
+      </div>
+      <div>
+        <div className="label mb-2.5">{`Statements · ${rows.length} rows`}</div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Statement</th>
+              <th scope="col">Status</th>
+              <th scope="col">Currency</th>
+              <th scope="col">Reconciliation</th>
+              <th scope="col" className="num">Groups</th>
+              <th scope="col" className="num">Open</th>
+              <th scope="col" className="num">Critical</th>
+              <th scope="col">Snapshot</th>
+              <th scope="col">Last rebuild</th>
+              <th scope="col"></th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td className="mono text-[12px]">{r.statementCode}</td>
+                <td className="text-[12px] capitalize">{r.status}</td>
+                <td className="text-[12px]">{r.currency}</td>
+                <td>
+                  <TransparencyStatusBadge status={r.reconciliationStatus} />
+                </td>
+                <td className="num text-[12px]">{r.groupCount}</td>
+                <td className="num text-[12px]">{r.openWarningCount}</td>
+                <td className="num text-[12px]">
+                  {r.criticalCount > 0 ? (
+                    <span className="text-danger">{r.criticalCount}</span>
+                  ) : (
+                    "0"
+                  )}
+                </td>
+                <td className="text-[12px]">
+                  {r.hasExplanationSnapshot ? "✓" : "—"}
+                </td>
+                <td className="text-[11px] text-ink-3">
+                  {r.lastGeneratedAt
+                    ? r.lastGeneratedAt.slice(0, 16).replace("T", " ")
+                    : "—"}
+                </td>
+                <td>
+                  <RebuildStatementButton statementId={r.id} />
+                </td>
+                <td className="text-right">
+                  <Link
+                    href={`/dashboard/finance/transparency/statements/${r.id}`}
+                    className="text-[12px] text-ink hover:text-terra"
+                  >
+                    Open →
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

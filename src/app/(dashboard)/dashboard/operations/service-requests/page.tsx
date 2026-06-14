@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/dashboard/primitives";
 import { ServiceRequestStatusPill } from "@/components/operations/task-status-pill";
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -23,17 +23,23 @@ export default async function ServiceRequestsPage() {
   }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Service requests" },
-        ]}
-        title="Service requests"
-        description="Guest- and concierge-initiated requests routed through operations."
-        actions={<ServiceRequestAddButton villas={villaOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Service requests</span>
+          </div>
+          <h1>Service requests</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Guest- and concierge-initiated requests routed through operations.
+          </p>
+        </div>
+        <div className="actions">
+          <ServiceRequestAddButton villas={villaOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
-      <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+      <Card padding="none" overflowHidden>
         {requests.length === 0 ? (
           <NoItemsYet
             entityLabel="service requests"
@@ -91,7 +97,7 @@ export default async function ServiceRequestsPage() {
             ))}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

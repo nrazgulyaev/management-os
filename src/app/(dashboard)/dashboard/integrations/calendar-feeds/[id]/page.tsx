@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { FeedStatusPill, CalendarConflictPill } from "@/components/integrations/feed-status-pill";
@@ -27,56 +26,71 @@ export default async function CalendarFeedDetail({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Integrations", href: "/dashboard/integrations" },
-          { label: "Calendar feeds", href: "/dashboard/integrations/calendar-feeds" },
-          { label: feed.feedName },
-        ]}
-        title={feed.feedName}
-        description={feed.feedType.replace(/_/g, " ")}
-        actions={<FeedActions id={feed.id} status={feed.status} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/integrations">Integrations</Link> /{" "}
+            <Link href="/dashboard/integrations/calendar-feeds">
+              Calendar feeds
+            </Link>{" "}
+            / <span>{feed.feedName}</span>
+          </div>
+          <h1>{feed.feedName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {feed.feedType.replace(/_/g, " ")}
+          </p>
+        </div>
+        <div className="actions">
+          <FeedActions id={feed.id} status={feed.status} />
+        </div>
+      </div>
       <DbStatusNotice />
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<FeedStatusPill status={feed.status} />} />
-        <Stat label="Villa" value={feed.villaCode ?? "—"} />
-        <Stat label="Project" value={feed.projectName ?? "—"} />
-        <Stat label="Channel" value={feed.channelName ?? "—"} />
-        <Stat label="Events" value={String(feed.eventCount)} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<FeedStatusPill status={feed.status} />} />
+        <Kpi label="Villa" value={feed.villaCode ?? "—"} />
+        <Kpi label="Project" value={feed.projectName ?? "—"} />
+        <Kpi label="Channel" value={feed.channelName ?? "—"} />
+        <Kpi label="Events" value={String(feed.eventCount)} />
+        <Kpi
           label="Sync interval"
           value={`${feed.syncIntervalMinutes} min`}
         />
-        <Stat
+        <Kpi
           label="Last sync"
           value={feed.lastSyncedAt ? new Date(feed.lastSyncedAt).toLocaleString() : "—"}
         />
-        <Stat
+        <Kpi
           label="Last success"
           value={feed.lastSuccessAt ? new Date(feed.lastSuccessAt).toLocaleString() : "—"}
         />
       </div>
 
       {feed.lastError && (
-        <Section eyebrow="Error" title="Most recent sync error">
-          <div className="rounded-md border border-danger/30 bg-danger-weak/40 px-4 py-3 text-sm text-ink whitespace-pre-line">
-            {feed.lastError}
-          </div>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Error</div>
+          <Card padding="default">
+            <div className="text-sm text-ink whitespace-pre-line">
+              {feed.lastError}
+            </div>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Feed URL" title="Where data is fetched from">
-        <div className="rounded-md border border-line-soft bg-muted/30 p-3 font-mono text-[11px] text-ink-secondary break-all">
-          {feed.feedUrl}
-        </div>
-        <p className="text-[11px] text-ink-tertiary mt-2">
-          Feed URLs may carry vendor secrets — visible only to internal staff.
-        </p>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Feed URL</div>
+        <Card padding="default">
+          <div className="font-mono text-[11px] text-ink-secondary break-all">
+            {feed.feedUrl}
+          </div>
+          <p className="text-[11px] text-ink-tertiary mt-2">
+            Feed URLs may carry vendor secrets — visible only to internal staff.
+          </p>
+        </Card>
+      </div>
 
-      <Section eyebrow="Imported events" title={`${events.length} event${events.length === 1 ? "" : "s"}`}>
+      <div>
+        <div className="label mb-2.5">Imported events</div>
         {events.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No events yet. Click &quot;Sync now&quot; to fetch.
@@ -108,9 +122,9 @@ export default async function CalendarFeedDetail({
                     {e.checkIn} → {e.checkOut}
                   </TD>
                   <TD>
-                    <Badge tone={e.status === "active" ? "info" : "neutral"}>
+                    <HandoffBadge tone={e.status === "active" ? "info" : "soft"}>
                       {e.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
                     <CalendarConflictPill status={e.conflictStatus} />
@@ -130,16 +144,7 @@ export default async function CalendarFeedDetail({
             </TBody>
           </Table>
         )}
-      </Section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
+      </div>
     </div>
   );
 }

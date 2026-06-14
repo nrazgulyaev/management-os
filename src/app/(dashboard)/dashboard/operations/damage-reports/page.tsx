@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
 import { listDamageReports } from "@/features/operations/services";
 import { listVillas } from "@/features/villas/services";
 import { formatMoneyMinor } from "@/lib/money";
@@ -19,17 +19,23 @@ export default async function DamageReportsPage() {
   const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Damage reports" },
-        ]}
-        title="Damage reports"
-        description="Damage logged during cleaning or stays. Drives owner / guest cost allocation."
-        actions={<DamageAddButton villas={villaOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Damage reports</span>
+          </div>
+          <h1>Damage reports</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Damage logged during cleaning or stays. Drives owner / guest cost allocation.
+          </p>
+        </div>
+        <div className="actions">
+          <DamageAddButton villas={villaOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
-      <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+      <Card padding="none" overflowHidden>
         {reports.length === 0 ? (
           <NoItemsYet
             entityLabel="damage reports"
@@ -43,10 +49,10 @@ export default async function DamageReportsPage() {
               <li key={r.id} className="p-5 flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <Badge tone="outline">{r.severity}</Badge>
-                    <Badge tone="neutral">{r.status.replace(/_/g, " ")}</Badge>
-                    {r.ownerChargeable && <Badge tone="warning">Owner chargeable</Badge>}
-                    {r.guestChargeable && <Badge tone="danger">Guest chargeable</Badge>}
+                    <HandoffBadge tone="soft">{r.severity}</HandoffBadge>
+                    <HandoffBadge tone="ink">{r.status.replace(/_/g, " ")}</HandoffBadge>
+                    {r.ownerChargeable && <HandoffBadge tone="warn">Owner chargeable</HandoffBadge>}
+                    {r.guestChargeable && <HandoffBadge tone="danger">Guest chargeable</HandoffBadge>}
                   </div>
                   <div className="text-sm text-ink font-medium mt-1">{r.title}</div>
                   <div className="text-xs text-ink-tertiary mt-0.5">
@@ -87,7 +93,7 @@ export default async function DamageReportsPage() {
             ))}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

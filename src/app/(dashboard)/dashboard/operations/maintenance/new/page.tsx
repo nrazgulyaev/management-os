@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { MaintenanceTicketForm } from "@/components/operations/maintenance-form";
 import { listVillas } from "@/features/villas/services";
@@ -11,15 +11,19 @@ export default async function NewMaintenanceTicketPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Maintenance", href: "/dashboard/operations/maintenance" },
-          { label: "New" },
-        ]}
-        title="New maintenance ticket"
-        description="Open a maintenance ticket. The repair workflow can be promoted to a generated task."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/maintenance">Maintenance</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New maintenance ticket</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Open a maintenance ticket. The repair workflow can be promoted to a generated task.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <MaintenanceTicketForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

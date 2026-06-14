@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { CalendarFeedForm } from "@/components/integrations/feed-form";
 import { listVillas } from "@/features/villas/services";
@@ -23,14 +23,18 @@ export default async function NewCalendarFeedPage() {
   const [villas, channels] = await Promise.all([listVillas(), listChannels()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Integrations", href: "/dashboard/integrations" },
-          { label: "Calendar feeds", href: "/dashboard/integrations/calendar-feeds" },
-          { label: "New" },
-        ]}
-        title="Add calendar feed"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/integrations">Integrations</Link> /{" "}
+            <Link href="/dashboard/integrations/calendar-feeds">
+              Calendar feeds
+            </Link>{" "}
+            / <span>New</span>
+          </div>
+          <h1>Add calendar feed</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <CalendarFeedForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

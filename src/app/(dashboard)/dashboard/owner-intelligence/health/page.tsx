@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { NoItemsYet } from "@/components/ui/primitives";
 import { requireOrgId } from "@/features/auth/require-org";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
@@ -12,13 +10,13 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
-  excellent: "success",
+  excellent: "ok",
   good: "info",
-  watch: "warning",
+  watch: "warn",
   attention: "danger",
-  unknown: "neutral",
+  unknown: "soft",
 };
 
 export default async function HealthListPage() {
@@ -27,70 +25,77 @@ export default async function HealthListPage() {
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          {
-            label: "Owner intelligence",
-            href: "/dashboard/owner-intelligence",
-          },
-          { label: "Health snapshots" },
-        ]}
-        title="Villa health snapshots"
-        description="Cached health summaries per villa + period. Owners read these through the same projection at /owner/villas/[id]/health. Use the button below to recompute the current month for every villa with prior history."
-        actions={<GenerateAllSnapshotsButton />}
-      />
-      <Section eyebrow="History" title={`${snapshots.length} snapshots`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            / <span>Health snapshots</span>
+          </div>
+          <h1>Villa health snapshots</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Cached health summaries per villa + period. Owners read these
+            through the same projection at /owner/villas/[id]/health. Use the
+            button below to recompute the current month for every villa with
+            prior history.
+          </p>
+        </div>
+        <div className="actions">
+          <GenerateAllSnapshotsButton />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">History · {snapshots.length} snapshots</div>
         {snapshots.length === 0 ? (
           <NoItemsYet
             entityLabel="health snapshots"
             description="No villa health snapshots have been generated yet. Use the 'Generate snapshots' button in the page header to seed the current month for every villa with prior history."
           />
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-canvas/50 text-left">
-                <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  <th className="px-4 py-3">Villa</th>
-                  <th className="px-4 py-3">Period</th>
-                  <th className="px-4 py-3">Score</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Booked</th>
-                  <th className="px-4 py-3">Owner</th>
-                  <th className="px-4 py-3">Maint</th>
-                  <th />
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Period</th>
+                  <th scope="col" className="num">Score</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Booked</th>
+                  <th scope="col" className="num">Owner</th>
+                  <th scope="col" className="num">Maint</th>
+                  <th scope="col" />
                 </tr>
               </thead>
               <tbody>
                 {snapshots.map((s) => (
-                  <tr key={s.id} className="border-t border-line-soft">
-                    <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                  <tr key={s.id}>
+                    <td className="mono text-[11px] text-ink-tertiary">
                       {s.villaId.slice(0, 8)}…
                     </td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                    <td className="mono text-xs">
                       {s.periodStart} → {s.periodEnd}
                     </td>
-                    <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                    <td className="num mono text-xs">
                       {s.healthScore !== null
                         ? Number(s.healthScore).toFixed(0)
                         : "—"}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge
-                        tone={STATUS_TONES[s.healthStatus] ?? "neutral"}
+                    <td>
+                      <HandoffBadge
+                        tone={STATUS_TONES[s.healthStatus] ?? "soft"}
                       >
                         {s.healthStatus}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="num">
                       {s.bookedNights}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="num">
                       {s.ownerStayNights}
                     </td>
-                    <td className="px-4 py-3 tabular-nums">
+                    <td className="num">
                       {s.maintenanceBlockedNights}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/owner-intelligence/health/${s.villaId}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -102,9 +107,9 @@ export default async function HealthListPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

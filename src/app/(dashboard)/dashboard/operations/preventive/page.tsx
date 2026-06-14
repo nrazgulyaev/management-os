@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ScheduleCard } from "@/components/operations/schedule-card";
 import { GeneratePreventiveButton } from "@/components/operations/generate-preventive-button";
@@ -30,14 +30,19 @@ export default async function PreventiveSchedulesPage() {
   const templateOpts = templates.map((t) => ({ id: t.id, label: t.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Preventive" },
-        ]}
-        title="Preventive maintenance"
-        description="Recurring inspections and services. The runtime mints tasks when schedules come due."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Preventive</span>
+          </div>
+          <h1>Preventive maintenance</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Recurring inspections and services. The runtime mints tasks when
+            schedules come due.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <GeneratePreventiveButton />
             <PreventiveAddButton
@@ -47,8 +52,8 @@ export default async function PreventiveSchedulesPage() {
               appUsers={userOpts}
             />
           </div>
-        }
-      />
+        </div>
+      </div>
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
         {schedules.length === 0 ? (

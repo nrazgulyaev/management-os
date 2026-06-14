@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listAdminReviews } from "@/features/owner-intelligence/reviews-services";
 import {
   HideReviewButton,
@@ -13,21 +11,21 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
-  draft: "neutral",
-  published: "success",
-  hidden: "warning",
+  draft: "soft",
+  published: "ok",
+  hidden: "warn",
   flagged: "danger",
 };
 
 const SENTIMENT_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "danger"
+  "soft" | "info" | "warn" | "danger"
 > = {
   positive: "info",
-  neutral: "neutral",
-  mixed: "warning",
+  neutral: "soft",
+  mixed: "warn",
   negative: "danger",
 };
 
@@ -48,18 +46,25 @@ export default async function ReviewsAdminPage({
   const reviews = await listAdminReviews({ status, source, limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          {
-            label: "Owner intelligence",
-            href: "/dashboard/owner-intelligence",
-          },
-          { label: "Reviews" },
-        ]}
-        title="Guest reviews"
-        description="Manage which reviews are visible to owners. Hidden / flagged rows never reach the owner portal — even when the underlying booking is owned by them."
-      />
-      <Section eyebrow="Filter" title={`${reviews.length} reviews`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">
+              Owner intelligence
+            </Link>{" "}
+            / <span>Reviews</span>
+          </div>
+          <h1>Guest reviews</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Manage which reviews are visible to owners. Hidden / flagged rows
+            never reach the owner portal — even when the underlying booking is
+            owned by them.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Filter · {reviews.length} reviews</div>
         <div className="flex flex-wrap items-center gap-2 mb-4">
           <FilterPill
             href="/dashboard/owner-intelligence/reviews"
@@ -77,83 +82,80 @@ export default async function ReviewsAdminPage({
             </FilterPill>
           ))}
         </div>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3">Villa</th>
-                <th className="px-4 py-3">Reviewer</th>
-                <th className="px-4 py-3">Rating</th>
-                <th className="px-4 py-3">Sentiment</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Source</th>
-                <th />
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Villa</th>
+                <th scope="col">Reviewer</th>
+                <th scope="col" className="num">
+                  Rating
+                </th>
+                <th scope="col">Sentiment</th>
+                <th scope="col">Status</th>
+                <th scope="col">Source</th>
+                <th scope="col"></th>
               </tr>
             </thead>
             <tbody>
               {reviews.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
+                  <td colSpan={8} className="text-center text-ink-3">
                     No reviews match.
                   </td>
                 </tr>
               )}
               {reviews.map((r) => (
-                <tr key={r.id} className="border-t border-line-soft align-top">
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
-                    {r.reviewDate ?? "—"}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
+                <tr key={r.id} className="align-top">
+                  <td className="mono text-[12px]">{r.reviewDate ?? "—"}</td>
+                  <td className="text-xs">
                     {r.villaCode ?? "—"}
                     {r.projectName && (
-                      <div className="text-[10px] text-ink-tertiary">
+                      <div className="text-[10px] text-ink-3">
                         {r.projectName}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs">
+                  <td className="text-xs">
                     {r.reviewerDisplayName ?? "Guest"}
                     {r.reviewerCountry && (
-                      <span className="text-[10px] text-ink-tertiary ml-2">
+                      <span className="text-[10px] text-ink-3 ml-2">
                         · {r.reviewerCountry}
                       </span>
                     )}
                     {r.text && (
-                      <div className="text-[11px] text-ink-secondary mt-1 max-w-md">
+                      <div className="text-[11px] text-ink-2 mt-1 max-w-md">
                         {r.text.length > 140
                           ? r.text.slice(0, 140) + "…"
                           : r.text}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                  <td className="num mono text-[12px]">
                     {r.rating !== null ? r.rating.toFixed(1) : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td>
                     {r.sentiment ? (
-                      <Badge tone={SENTIMENT_TONES[r.sentiment] ?? "neutral"}>
+                      <HandoffBadge tone={SENTIMENT_TONES[r.sentiment] ?? "soft"}>
                         {r.sentiment}
-                      </Badge>
+                      </HandoffBadge>
                     ) : (
-                      <span className="text-xs text-ink-tertiary">—</span>
+                      <span className="text-xs text-ink-3">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+                  <td>
+                    <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                     {!r.ownerVisible && (
-                      <span className="text-[10px] text-ink-tertiary ml-2">
+                      <span className="text-[10px] text-ink-3 ml-2">
                         owner-hidden
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs">{r.source}</td>
-                  <td className="px-4 py-3 text-right space-y-1">
+                  <td className="text-xs">{r.source}</td>
+                  <td className="text-right space-y-1">
                     {r.ownerVisible ? (
                       <HideReviewButton id={r.id} />
                     ) : (
@@ -164,8 +166,8 @@ export default async function ReviewsAdminPage({
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
+        </Card>
+      </div>
     </div>
   );
 }

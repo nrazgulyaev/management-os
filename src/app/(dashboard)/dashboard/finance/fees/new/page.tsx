@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -12,15 +12,19 @@ export default async function NewFeePage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Fees", href: "/dashboard/finance/fees" },
-          { label: "New" },
-        ]}
-        title="New fee line"
-        description="OTA, payment, bank, FX, agent, manager — every commission is its own row, never bundled into expenses."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/fees">Fees</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New fee line</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            OTA, payment, bank, FX, agent, manager — every commission is its own row, never bundled into expenses.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <LedgerLineForm
         title="Fee line"

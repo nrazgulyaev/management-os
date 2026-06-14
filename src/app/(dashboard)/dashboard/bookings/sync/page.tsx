@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import { Card } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Section } from "@/components/ui/section";
 import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
 import { CalendarFeedAddButton } from "@/components/integrations/feed-add-button";
@@ -25,14 +24,19 @@ export default async function BookingsSyncPage() {
   const channelOpts = channels.map((c) => ({ id: c.id, label: c.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: "Sync" },
-        ]}
-        title="Booking-channel sync"
-        description="Trigger a manual sync across every active feed. Use feed detail pages for per-feed control."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <span>Sync</span>
+          </div>
+          <h1>Booking-channel sync</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Trigger a manual sync across every active feed. Use feed detail
+            pages for per-feed control.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <SyncAllButton />
             <CalendarFeedAddButton
@@ -41,16 +45,19 @@ export default async function BookingsSyncPage() {
               cancelHref="/dashboard/bookings/sync"
             />
           </div>
-        }
-      />
+        </div>
+      </div>
       <DbStatusNotice />
-      <Section eyebrow="Feed status" title="Active feeds">
+      <div>
+        <div className="label mb-2.5">Feed status</div>
         {feeds.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No feeds configured.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">
+              No feeds configured.
+            </p>
+          </Card>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <Card padding="none" overflowHidden>
             <ul className="divide-y divide-line-soft">
               {feeds.map((f) => (
                 <li key={f.id} className="p-4 flex items-center justify-between gap-3">
@@ -67,9 +74,9 @@ export default async function BookingsSyncPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

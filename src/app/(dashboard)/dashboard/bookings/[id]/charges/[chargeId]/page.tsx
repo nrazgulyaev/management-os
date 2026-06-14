@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { NumKpi } from "@/components/projects/num-kpi";
 
 /**
@@ -34,25 +32,30 @@ export default async function BookingChargePage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: id, href: `/dashboard/bookings/${id}` },
-          { label: "Charges" },
-          { label: chargeId },
-        ]}
-        eyebrow="Charge detail"
-        title={`Charge ${chargeId}`}
-        description="Single-line view of a booking charge — original amount, status, source PO, refund history. Real data lands once the charges table is wired in 2.2."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/dashboard/bookings/${id}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to booking
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <Link href={`/dashboard/bookings/${id}`}>{id}</Link> /{" "}
+            <span>Charges</span> / <span>{chargeId}</span>
+          </div>
+          <h1>{`Charge ${chargeId}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Single-line view of a booking charge — original amount, status,
+            source PO, refund history. Real data lands once the charges table is
+            wired in 2.2.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/dashboard/bookings/${id}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to booking
+          </Link>
+        </div>
+      </div>
 
       <div className="cfo-detail-kpis">
         <NumKpi label="Amount" value="USD 1,200" tone="accent" />

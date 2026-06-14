@@ -18,8 +18,7 @@ import {
   type PatrolEvent,
   type PhotoEvidenceItem,
 } from "@/components/award";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listOperationTasks } from "@/features/operations/services";
 import { loadOperationTaskPhotos } from "@/lib/development/server/operations/task-photo-queries";
@@ -276,11 +275,8 @@ export default async function HousekeepingCabinetPage() {
 
       <KpiRowMixed kpis={kpis} heroTone="emerald-solid" />
 
-      <Section
-        eyebrow="Today's pulse"
-        title="Turnover cadence + completion"
-        description="Scheduled cleanings per day over the last 7 days, alongside today's completion percentage."
-      >
+      <div>
+        <div className="label mb-2.5">Today's pulse</div>
         <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
           <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
@@ -320,21 +316,18 @@ export default async function HousekeepingCabinetPage() {
             ]}
           />
         </div>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Activity"
-        title="Recent housekeeping events"
-        description="Last 8 task starts + completions across all villas."
-        action={
+      <div>
+        <div className="label mb-2.5 flex items-center justify-between gap-3">
+          <span>Activity</span>
           <Link
             href="/dashboard/operations/housekeeping"
-            className="text-xs text-ink-tertiary hover:underline"
+            className="text-xs text-ink-tertiary hover:underline normal-case"
           >
             All tasks →
           </Link>
-        }
-      >
+        </div>
         {timelineEvents.length === 0 ? (
           <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
             Nothing logged yet. Use "New cleaning task" above to start
@@ -347,26 +340,20 @@ export default async function HousekeepingCabinetPage() {
             moreHref="/dashboard/operations/housekeeping"
           />
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Evidence"
-        title="Turnover photos"
-        description="Photo uploads from the task detail flow surface here. The cabinet apex shows the most-recent grid as it populates."
-      >
+      <div>
+        <div className="label mb-2.5">Evidence</div>
         <PhotoEvidenceGrid
           items={photoItems}
           emptyMessage="No turnover photos uploaded today yet. Cleaners can attach photos from the per-task detail page."
         />
-      </Section>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <Section
-            eyebrow="Inventory"
-            title="Supply snapshot"
-            description="Quick links into the cleaning-supply slice of inventory."
-          >
+          <div>
+            <div className="label mb-2.5">Inventory</div>
             <DashboardKpi
               label="Open housekeeping tasks"
               value={String(tasks.length)}
@@ -374,11 +361,12 @@ export default async function HousekeepingCabinetPage() {
               drillHref="/dashboard/operations/housekeeping"
               hint="All categories"
             />
-          </Section>
+          </div>
         </div>
 
         <aside className="flex flex-col gap-4">
-          <Section eyebrow="Quick links" title="Operations">
+          <div>
+            <div className="label mb-2.5">Quick links</div>
             <ul className="grid grid-cols-1 gap-2">
               {[
                 {
@@ -408,9 +396,10 @@ export default async function HousekeepingCabinetPage() {
                 </li>
               ))}
             </ul>
-          </Section>
+          </div>
 
-          <Section eyebrow="AI" title="Housekeeping scheduler">
+          <div>
+            <div className="label mb-2.5">AI</div>
             {!schedulerEnabled ? (
               <Link
                 href="/dashboard/settings/ai-agents/housekeeping_scheduler"
@@ -425,9 +414,9 @@ export default async function HousekeepingCabinetPage() {
                   tomorrow's turnover plan + assignment matrix surface
                   here once it runs.
                 </p>
-                <Badge tone="outline" className="self-start">
-                  Configure provider →
-                </Badge>
+                <span className="self-start">
+                  <HandoffBadge tone="soft">Configure provider →</HandoffBadge>
+                </span>
               </Link>
             ) : schedulerOutputs.length === 0 ? (
               <Link
@@ -442,9 +431,9 @@ export default async function HousekeepingCabinetPage() {
                   tomorrow's assignment matrix from today's roster +
                   expected turnovers.
                 </p>
-                <Badge tone="outline" className="self-start">
-                  Run scheduler →
-                </Badge>
+                <span className="self-start">
+                  <HandoffBadge tone="soft">Run scheduler →</HandoffBadge>
+                </span>
               </Link>
             ) : (
               <div className="flex flex-col gap-3">
@@ -472,7 +461,7 @@ export default async function HousekeepingCabinetPage() {
                 ))}
               </div>
             )}
-          </Section>
+          </div>
         </aside>
       </div>
     </div>

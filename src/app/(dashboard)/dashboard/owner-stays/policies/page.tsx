@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listOwnerStayPolicies } from "@/features/owner-stays/services";
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { AddOwnerStayPolicyButton } from "@/components/dashboard/owners/owners-add-buttons";
@@ -12,15 +12,22 @@ export default async function PoliciesPage() {
   const policies = await listOwnerStayPolicies();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner stays", href: "/dashboard/owner-stays" },
-          { label: "Policies" },
-        ]}
-        title="Owner stay policies"
-        description="Per-villa or per-project rules: free nights, blackout, approval, compensation model, operational cost."
-        actions={<AddOwnerStayPolicyButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-stays">Owner stays</Link> /{" "}
+            <span>Policies</span>
+          </div>
+          <h1>Owner stay policies</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa or per-project rules: free nights, blackout, approval,
+            compensation model, operational cost.
+          </p>
+        </div>
+        <div className="actions">
+          <AddOwnerStayPolicyButton />
+        </div>
+      </div>
 
       <ListTableCard
         eyebrow="Catalog"
@@ -36,44 +43,44 @@ export default async function PoliciesPage() {
         }
       >
         {policies.length === 0 ? null : (
-          <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Name</th>
-                  <th className="text-left px-3 py-2">Scope</th>
-                  <th className="text-right px-3 py-2">Free nights</th>
-                  <th className="text-left px-3 py-2">Compensation</th>
-                  <th className="text-left px-3 py-2">Op cost</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th />
+                  <th scope="col">Name</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col" className="num">Free nights</th>
+                  <th scope="col">Compensation</th>
+                  <th scope="col">Op cost</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {policies.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{p.policyName}</td>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="row-title">{p.policyName}</td>
+                    <td>
                       {p.villaCode ? `villa ${p.villaCode}` : p.projectName ? `project ${p.projectName}` : "global"}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="num">
                       {p.freeNightsPerYear}
                       {p.freeNightsApplyToPeak && (
-                        <span className="text-ink-tertiary"> +peak</span>
+                        <span className="text-ink-3"> +peak</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
+                    <td className="text-ink-3 text-xs">
                       {p.compensationModel.replace(/_/g, " ")}
                       {p.compensationPercent ? ` · ${p.compensationPercent}%` : ""}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
+                    <td className="text-ink-3 text-xs">
                       {p.operationalCostModel.replace(/_/g, " ")}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={p.status === "active" ? "success" : "neutral"}>
+                    <td>
+                      <HandoffBadge tone={p.status === "active" ? "ok" : "soft"}>
                         {p.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <OwnersRowActions
                         kind="policy"
                         row={{

@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listRatePlans } from "@/features/pricing/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -27,15 +25,23 @@ export default async function RatePlansPage() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: "Rate plans" },
-        ]}
-        title="Rate plans"
-        description="Per-villa or per-project nightly rate + seasons + overrides. Used by the owner-stay estimator and (in v9C+) the direct-booking quote endpoint."
-        actions={<RatePlanAddButton villas={villaOpts} projects={projectOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <span>Rate plans</span>
+          </div>
+          <h1>Rate plans</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa or per-project nightly rate + seasons + overrides. Used by
+            the owner-stay estimator and (in v9C+) the direct-booking quote
+            endpoint.
+          </p>
+        </div>
+        <div className="actions">
+          <RatePlanAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
 
       <div className="rounded-md border border-info-weak/40 bg-info-weak/20 px-5 py-3 text-xs text-info">
         Basic rate plans are still supported. Dynamic pricing rule sets now
@@ -45,42 +51,45 @@ export default async function RatePlansPage() {
         </Link>
       </div>
 
-      <Section eyebrow="Catalog" title={`${plans.length} plans`}>
+      <div>
+        <div className="label mb-2.5">Catalog</div>
         {plans.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No rate plans yet.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">
+              No rate plans yet.
+            </p>
+          </Card>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Name</th>
-                  <th className="text-left px-3 py-2">Scope</th>
-                  <th className="text-right px-3 py-2">Base nightly</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2"></th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col" className="num">Base nightly</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {plans.map((p) => (
                   <tr key={p.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{p.name}</td>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="row-title">{p.name}</td>
+                    <td>
                       {p.villaCode ? `villa ${p.villaCode}` : p.projectName ? `project ${p.projectName}` : "global"}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="num">
                       {formatMoney(p.baseNightlyRateMinor, p.baseCurrency)}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={p.status === "active" ? "success" : "neutral"}>
+                    <td>
+                      <HandoffBadge tone={p.status === "active" ? "ok" : "soft"}>
                         {p.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/bookings/rates/${p.id}`}
-                        className="text-xs text-ink hover:underline underline-offset-4"
+                        className="text-xs text-ink hover:text-terra"
                       >
                         Detail →
                       </Link>
@@ -89,9 +98,9 @@ export default async function RatePlansPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

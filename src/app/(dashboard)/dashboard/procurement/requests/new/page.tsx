@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { PurchaseRequestForm } from "@/components/procurement/request-form";
 import { listSuppliers } from "@/features/inventory/services";
@@ -16,14 +16,16 @@ export default async function NewPurchaseRequestPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Procurement", href: "/dashboard/procurement" },
-          { label: "Requests", href: "/dashboard/procurement/requests" },
-          { label: "New" },
-        ]}
-        title="New purchase request"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/procurement">Procurement</Link> /{" "}
+            <Link href="/dashboard/procurement/requests">Requests</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New purchase request</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <PurchaseRequestForm
         suppliers={suppliers.map((s) => ({ id: s.id, label: s.name }))}

@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listUtilityPaymentReminders } from "@/features/utilities/services";
 import { formatBalanceLabel } from "@/features/utilities/risk-pure";
 import { MarkPaidButton } from "@/components/utilities/mark-paid-button";
@@ -9,11 +7,11 @@ import { MarkPaidButton } from "@/components/utilities/mark-paid-button";
 export const metadata = { title: "Utility payments" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
   open: "info",
-  paid: "success",
-  overdue: "warning",
-  cancelled: "neutral",
+  paid: "ok",
+  overdue: "warn",
+  cancelled: "soft",
 };
 
 export default async function PaymentsPage({
@@ -28,14 +26,18 @@ export default async function PaymentsPage({
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Utilities", href: "/dashboard/utilities" },
-          { label: "Payments" },
-        ]}
-        title="Payment reminders"
-        description="Operator-side payment ledger. Marking a reminder paid optionally creates an expense_line if the period is open; locked periods are skipped with a clear note."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/utilities">Utilities</Link> /{" "}
+            <span>Payments</span>
+          </div>
+          <h1>Payment reminders</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator-side payment ledger. Marking a reminder paid optionally creates an expense_line if the period is open; locked periods are skipped with a clear note.
+          </p>
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
         {[
@@ -58,52 +60,51 @@ export default async function PaymentsPage({
         ))}
       </div>
 
-      <Section eyebrow="Reminders" title={`${rows.length} rows`}>
+      <div>
+        <div className="label mb-2.5">Reminders</div>
         {rows.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             None.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
-                <tr>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Type</th>
-                  <th className="text-left px-3 py-2">Due</th>
-                  <th className="text-right px-3 py-2">Amount</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-left px-3 py-2">Linked</th>
-                  <th className="text-right px-3 py-2"></th>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Villa</th>
+                <th scope="col">Type</th>
+                <th scope="col">Due</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col">Linked</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td className="row-title">{r.villaCode ?? "—"}</td>
+                  <td>{r.utilityType ?? "—"}</td>
+                  <td className="text-ink-3 num">{r.dueDate}</td>
+                  <td className="num">
+                    {formatBalanceLabel(r.amountMinor, r.currency)}
+                  </td>
+                  <td>
+                    <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>{r.status}</HandoffBadge>
+                  </td>
+                  <td className="text-ink-3 text-xs">
+                    {r.linkedExpenseLineId ? "expense line" : "—"}
+                  </td>
+                  <td className="text-right">
+                    {r.status === "open" || r.status === "overdue" ? (
+                      <MarkPaidButton id={r.id} />
+                    ) : null}
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line-soft">
-                {rows.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.utilityType ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">{r.dueDate}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {formatBalanceLabel(r.amountMinor, r.currency)}
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>{r.status}</Badge>
-                    </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
-                      {r.linkedExpenseLineId ? "expense line" : "—"}
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      {r.status === "open" || r.status === "overdue" ? (
-                        <MarkPaidButton id={r.id} />
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

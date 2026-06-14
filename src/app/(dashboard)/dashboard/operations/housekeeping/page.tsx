@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TaskCard } from "@/components/operations/task-card";
 import { TaskAddButton } from "@/components/operations/task-add-button";
@@ -29,14 +29,18 @@ export default async function HousekeepingPage() {
   const templateOpts = templates.map((t) => ({ id: t.id, label: t.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Housekeeping" },
-        ]}
-        title="Housekeeping"
-        description="Cleaning turnovers, deep cleans, common-area inspections."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Housekeeping</span>
+          </div>
+          <h1>Housekeeping</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Cleaning turnovers, deep cleans, common-area inspections.
+          </p>
+        </div>
+        <div className="actions">
           <TaskAddButton
             villas={villaOpts}
             projects={projectOpts}
@@ -45,8 +49,8 @@ export default async function HousekeepingPage() {
             defaultCategory="housekeeping"
             label="New cleaning"
           />
-        }
-      />
+        </div>
+      </div>
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
         {tasks.length === 0 ? (

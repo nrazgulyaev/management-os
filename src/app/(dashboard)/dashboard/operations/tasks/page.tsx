@@ -1,5 +1,4 @@
-import _Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TaskCard } from "@/components/operations/task-card";
 import { TaskAddButton } from "@/components/operations/task-add-button";
@@ -73,22 +72,27 @@ export default async function OperationsTasksList({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Tasks" },
-        ]}
-        title="Operations tasks"
-        description="The full task ledger across housekeeping, maintenance, inspections, and guest requests."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Tasks</span>
+          </div>
+          <h1>Operations tasks</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            The full task ledger across housekeeping, maintenance, inspections,
+            and guest requests.
+          </p>
+        </div>
+        <div className="actions">
           <TaskAddButton
             villas={villaOpts}
             projects={projectOpts}
             appUsers={userOpts}
             templates={templateOpts}
           />
-        }
-      />
+        </div>
+      </div>
 
       <DbStatusNotice />
 

@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listDemoScenarios,
   type DemoScenario,
@@ -43,22 +40,31 @@ export default function DemoWalkthroughPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[{ label: "Demo walkthrough" }]}
-        title="Demo walkthrough"
-        description="One launchpad for every Management OS demo flow. Each card lists what you should see, the live links, and the env / token caveats. Pair with docs/QA-DEMO-WALKTHROUGH.md for the screenshot-ready checklist."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <span>Demo walkthrough</span>
+          </div>
+          <h1>Demo walkthrough</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            One launchpad for every Management OS demo flow. Each card lists
+            what you should see, the live links, and the env / token caveats.
+            Pair with docs/QA-DEMO-WALKTHROUGH.md for the screenshot-ready
+            checklist.
+          </p>
+        </div>
+      </div>
 
       <div className="rounded-md border border-line-soft bg-canvas px-5 py-3 text-xs text-ink-secondary leading-relaxed flex flex-wrap items-center gap-3">
         <span className="font-medium text-ink">
           Management OS v1 — pre-launch
         </span>
-        <Badge tone={dbReady ? "success" : "warning"}>
+        <HandoffBadge tone={dbReady ? "ok" : "warn"}>
           {dbReady ? "DB configured" : "Demo mock data"}
-        </Badge>
-        <Badge tone={demoMode ? "warning" : "neutral"}>
+        </HandoffBadge>
+        <HandoffBadge tone={demoMode ? "warn" : "soft"}>
           {demoMode ? "DEMO_MODE on" : "DEMO_MODE off"}
-        </Badge>
+        </HandoffBadge>
         <span className="text-ink-tertiary">
           See{" "}
           <span className="font-mono">
@@ -69,20 +75,20 @@ export default function DemoWalkthroughPage() {
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <Kpi
           label="Completeness score"
           value={`${completeness.score}/100`}
-          accent={completeness.score < 80}
+          tone={completeness.score < 80 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Populated surfaces"
           value={`${completeness.populated}/${completeness.total}`}
         />
-        <MetricCard
+        <Kpi
           label="Demo scenarios"
           value={String(scenarios.length)}
         />
-        <MetricCard
+        <Kpi
           label="Accepted limitations"
           value={String(issuesSummary.byStatus.accepted)}
         />
@@ -97,11 +103,14 @@ export default function DemoWalkthroughPage() {
         row to open the surface.
       </div>
 
-      <Section
-        eyebrow="Completeness"
-        title="Module-by-module status"
-        description="Click any row to open the surface. Every populated row has live or static demo data; fallback rows render polished placeholder copy; empty-accepted rows are intentional (e.g. no security events on a fresh DB)."
-      >
+      <div>
+        <div className="label mb-2.5">Completeness</div>
+        <p className="text-[13px] text-ink-3 mb-4 max-w-[680px]">
+          Click any row to open the surface. Every populated row has live or
+          static demo data; fallback rows render polished placeholder copy;
+          empty-accepted rows are intentional (e.g. no security events on a
+          fresh DB).
+        </p>
         <div className="flex flex-col gap-6">
           {COMPLETENESS_SECTIONS.map((section) => (
             <div key={section.title}>
@@ -123,31 +132,31 @@ export default function DemoWalkthroughPage() {
                         {e.notes}
                       </span>
                     </div>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         e.status === "populated"
-                          ? "success"
+                          ? "ok"
                           : e.status === "fallback"
-                            ? "warning"
-                            : "neutral"
+                            ? "warn"
+                            : "soft"
                       }
                     >
                       {e.status}
-                    </Badge>
+                    </HandoffBadge>
                   </li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Recommended flows"
-        title="What to demo"
-        description="Pick the flow that matches your audience. Each scenario card below provides the live links and the supporting QA checklist."
-        variant="panel"
-      >
+      <div>
+        <div className="label mb-2.5">Recommended flows</div>
+        <p className="text-[13px] text-ink-3 mb-4 max-w-[680px]">
+          Pick the flow that matches your audience. Each scenario card below
+          provides the live links and the supporting QA checklist.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
           <div className="rounded-md border border-line-soft bg-canvas p-4">
             <div className="text-label mb-1">Investor / operator · 20 min</div>
@@ -182,7 +191,7 @@ export default function DemoWalkthroughPage() {
             </ul>
           </div>
         </div>
-      </Section>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {scenarios.map((s) => (
@@ -190,32 +199,34 @@ export default function DemoWalkthroughPage() {
         ))}
       </div>
 
-      <Section
-        eyebrow="Known limitations"
-        title="What is still stubbed"
-        description="These are the documented Management OS v1 trade-offs. Each item links back to its ADR. The full list lives in src/features/prelaunch/known-issues.ts."
-      >
+      <div>
+        <div className="label mb-2.5">Known limitations</div>
+        <p className="text-[13px] text-ink-3 mb-4 max-w-[680px]">
+          These are the documented Management OS v1 trade-offs. Each item links
+          back to its ADR. The full list lives in
+          src/features/prelaunch/known-issues.ts.
+        </p>
         <div className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
           {deferredIssues.slice(0, 8).map((i) => (
             <div key={i.id} className="px-5 py-3 flex flex-col gap-1">
               <div className="flex items-center gap-2">
-                <Badge tone="neutral">{i.id}</Badge>
+                <HandoffBadge tone="soft">{i.id}</HandoffBadge>
                 <span className="text-sm text-ink">{i.title}</span>
-                <Badge
-                  tone={i.severity === "important" ? "warning" : "outline"}
+                <HandoffBadge
+                  tone={i.severity === "important" ? "warn" : "soft"}
                 >
                   {i.severity}
-                </Badge>
+                </HandoffBadge>
               </div>
               <p className="text-[11px] text-ink-tertiary">{i.notes}</p>
             </div>
           ))}
         </div>
-      </Section>
+      </div>
 
       <p className="text-xs text-ink-tertiary leading-relaxed">
         Demo tokens (hold / stay / vendor) are never persisted in plain text.
-        Links marked <Badge tone="warning">requires live token</Badge> need a
+        Links marked <HandoffBadge tone="warn">requires live token</HandoffBadge> need a
         token minted via the corresponding admin or public form first — see
         the QA walkthrough doc for the exact steps. For the full v1 product
         map, see{" "}
@@ -246,7 +257,8 @@ function ScenarioCard({ scenario }: { scenario: DemoScenario }) {
       <p className="text-xs text-ink-secondary leading-relaxed">
         {scenario.expect}
       </p>
-      <Section eyebrow="Links" title="" description={undefined}>
+      <div>
+        <div className="label mb-2.5">Links</div>
         <ul className="flex flex-col gap-1 text-xs">
           {scenario.links.map((l) => (
             <li
@@ -264,12 +276,12 @@ function ScenarioCard({ scenario }: { scenario: DemoScenario }) {
                 </Link>
               )}
               {l.requiresLiveToken && (
-                <Badge tone="warning">requires live token</Badge>
+                <HandoffBadge tone="warn">requires live token</HandoffBadge>
               )}
             </li>
           ))}
         </ul>
-      </Section>
+      </div>
       {scenario.caveats && scenario.caveats.length > 0 && (
         <ul className="text-[11px] text-ink-tertiary list-disc pl-4 space-y-1">
           {scenario.caveats.map((c) => (

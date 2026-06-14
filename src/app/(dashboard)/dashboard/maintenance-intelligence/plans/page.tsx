@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listMaintenanceTemplates,
   listVillaMaintenancePlans,
@@ -13,10 +11,10 @@ import { PlanAddButton } from "@/components/maintenance-intelligence/plan-add-bu
 export const metadata = { title: "Maintenance plans" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  active: "success",
-  paused: "warning",
-  archived: "neutral",
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
+  active: "ok",
+  paused: "warn",
+  archived: "soft",
 };
 
 export default async function PlansPage({
@@ -45,20 +43,22 @@ export default async function PlansPage({
   const now = new Date();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Maintenance intelligence", href: "/dashboard/maintenance-intelligence" },
-          { label: "Plans" },
-        ]}
-        title="Maintenance plans"
-        description="Per-villa instances of templates with cadence + preferences. Generate operation_tasks one at a time, accept a window suggestion, or batch-generate every plan whose next_due_at has elapsed."
-        actions={
-          <div className="flex items-center gap-2">
-            <GenerateDuePlansButton />
-            <PlanAddButton villas={villaOpts} templates={templateOpts} />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/maintenance-intelligence">Maintenance intelligence</Link> /{" "}
+            <span>Plans</span>
           </div>
-        }
-      />
+          <h1>Maintenance plans</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa instances of templates with cadence + preferences. Generate operation_tasks one at a time, accept a window suggestion, or batch-generate every plan whose next_due_at has elapsed.
+          </p>
+        </div>
+        <div className="actions">
+          <GenerateDuePlansButton />
+          <PlanAddButton villas={villaOpts} templates={templateOpts} />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
         {[
@@ -80,58 +80,55 @@ export default async function PlansPage({
         ))}
       </div>
 
-      <Section eyebrow="Plans" title={`${plans.length} rows`}>
+      <div>
+        <div className="label mb-2.5">Plans · {plans.length} rows</div>
         {plans.length === 0 ? (
           <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No plans.
           </p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Plan</th>
-                  <th className="text-left px-3 py-2">Category</th>
-                  <th className="text-left px-3 py-2">Frequency</th>
-                  <th className="text-left px-3 py-2">Next due</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2"></th>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Plan</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col">Next due</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {plans.map((p) => {
                   const overdue =
                     p.nextDueAt && new Date(p.nextDueAt).getTime() <= now.getTime();
                   return (
                     <tr key={p.id}>
-                      <td className="px-3 py-2 text-ink font-medium">
-                        {p.villaCode ?? "—"}
-                      </td>
-                      <td className="px-3 py-2 text-ink-secondary">
-                        {p.planName}
-                      </td>
-                      <td className="px-3 py-2 text-ink-tertiary text-xs">
+                      <td className="row-title">{p.villaCode ?? "—"}</td>
+                      <td>{p.planName}</td>
+                      <td className="text-ink-3 text-[12px]">
                         {p.templateCategory ?? "—"}
                       </td>
-                      <td className="px-3 py-2 text-ink-secondary">
+                      <td>
                         {p.frequency}
                         {p.intervalDays ? ` · ${p.intervalDays}d` : ""}
                       </td>
-                      <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                      <td className="tabular-nums text-ink-3">
                         {p.nextDueAt
                           ? p.nextDueAt.slice(0, 16).replace("T", " ")
                           : "—"}
                         {overdue && (
-                          <Badge tone="warning">overdue</Badge>
+                          <HandoffBadge tone="warn">overdue</HandoffBadge>
                         )}
                       </td>
-                      <td className="px-3 py-2">
-                        <Badge tone={STATUS_TONES[p.status] ?? "neutral"}>
+                      <td>
+                        <HandoffBadge tone={STATUS_TONES[p.status] ?? "soft"}>
                           {p.status}
-                        </Badge>
+                        </HandoffBadge>
                       </td>
-                      <td className="px-3 py-2 text-right">
+                      <td className="text-right">
                         <Link
                           href={`/dashboard/maintenance-intelligence/plans/${p.id}`}
                           className="text-xs text-ink hover:underline underline-offset-4"
@@ -144,9 +141,9 @@ export default async function PlansPage({
                 })}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

@@ -1,13 +1,22 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingDeposits } from "@/features/direct-booking/deposits";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
 import { ExpireDepositNowButton } from "@/components/direct-booking/reconcile-buttons";
 
 export const metadata = { title: "Deposits" };
 export const dynamic = "force-dynamic";
+
+const LAB_TONE: Record<
+  "info" | "success" | "warning" | "neutral" | "danger",
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
+  info: "info",
+  success: "ok",
+  warning: "warn",
+  neutral: "soft",
+  danger: "danger",
+};
 
 export default async function DepositsPage({
   searchParams,
@@ -19,33 +28,40 @@ export default async function DepositsPage({
   const status = (sp.status as DepStatus | undefined) || undefined;
   const rows = await listDirectBookingDeposits({ status, limit: 200 });
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Deposits" },
-        ]}
-        title="Direct booking deposits"
-        description="Each deposit is the gate that lets a confirmed booking issue. Manual stub today; future Stripe / Xendit integrations are additive."
-      />
-      <Section eyebrow="Catalog" title={`${rows.length} deposits`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Request</th>
-                <th className="px-4 py-3">Amount</th>
-                <th className="px-4 py-3">Balance due</th>
-                <th className="px-4 py-3">Expires</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Actions</th>
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <span>Deposits</span>
+          </div>
+          <h1>Direct booking deposits</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Each deposit is the gate that lets a confirmed booking issue. Manual
+            stub today; future Stripe / Xendit integrations are additive.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Catalog · {rows.length} deposits</div>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Request</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col" className="num">Balance due</th>
+                <th scope="col">Expires</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-ink-tertiary">
+                  <td colSpan={7} className="text-center text-ink-tertiary">
                     No deposits yet.
                   </td>
                 </tr>
@@ -60,35 +76,37 @@ export default async function DepositsPage({
                   deposit.expiresAt &&
                   deposit.expiresAt.getTime() <= Date.now();
                 return (
-                  <tr key={deposit.id} className="border-t border-line-soft">
-                    <td className="px-4 py-3 font-mono text-xs">
+                  <tr key={deposit.id}>
+                    <td className="mono text-[12px]">
                       <Link
                         href={`/dashboard/direct-bookings/deposits/${deposit.id}`}
-                        className="text-ink hover:underline underline-offset-4"
+                        className="text-ink hover:text-terra"
                       >
                         {deposit.depositCode}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">{requestCode ?? "—"}</td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="mono text-[12px]">{requestCode ?? "—"}</td>
+                    <td className="num mono text-[12px]">
                       {(deposit.amountMinor / 100n).toString()}.
                       {String(deposit.amountMinor % 100n).padStart(2, "0")}{" "}
                       {deposit.currency}
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="num mono text-[12px]">
                       {(deposit.balanceDueMinor / 100n).toString()}.
                       {String(deposit.balanceDueMinor % 100n).padStart(2, "0")}
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                    <td className="mono text-[11px] text-ink-tertiary">
                       {deposit.expiresAt?.toISOString() ?? "—"}
                       {isPending && isExpired && (
-                        <Badge tone="warning" className="ml-1">expired</Badge>
+                        <HandoffBadge tone="warn">expired</HandoffBadge>
                       )}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={lab.tone}>{lab.label}</Badge>
+                    <td>
+                      <HandoffBadge tone={LAB_TONE[lab.tone]}>
+                        {lab.label}
+                      </HandoffBadge>
                     </td>
-                    <td className="px-4 py-3">
+                    <td>
                       {isPending && <ExpireDepositNowButton id={deposit.id} />}
                     </td>
                   </tr>
@@ -96,8 +114,8 @@ export default async function DepositsPage({
               })}
             </tbody>
           </table>
-        </div>
-      </Section>
-    </div>
+        </Card>
+      </div>
+    </>
   );
 }

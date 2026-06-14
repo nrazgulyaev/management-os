@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listGuestServiceFulfilments } from "@/features/service-fulfilment/services";
 import {
   guestFacingFulfilmentStatus,
@@ -26,15 +24,20 @@ export default async function FulfilmentsListPage({
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Fulfilments" },
-        ]}
-        title="Fulfilments"
-        description="Each row is one (order, fulfilment) pair. Triage / dispatch / track from here."
-      />
-      <Section eyebrow="Queue" title={`${rows.length} fulfilments`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <span>Fulfilments</span>
+          </div>
+          <h1>Fulfilments</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Each row is one (order, fulfilment) pair. Triage / dispatch / track from here.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Queue</div>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
@@ -82,7 +85,7 @@ export default async function FulfilmentsListPage({
                       {f.scheduledFor?.toISOString() ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <Badge tone="neutral">{f.status}</Badge>
+                      <HandoffBadge tone="soft">{f.status}</HandoffBadge>
                     </td>
                     <td className="px-4 py-3 text-xs text-ink-tertiary">
                       {guest.label}
@@ -93,7 +96,7 @@ export default async function FulfilmentsListPage({
             </tbody>
           </table>
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

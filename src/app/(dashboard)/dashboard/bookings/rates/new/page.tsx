@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { CreateRatePlanForm } from "@/components/pricing/create-rate-plan-form";
@@ -10,14 +10,16 @@ export default async function NewRatePlanPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: "Rate plans", href: "/dashboard/bookings/rates" },
-          { label: "New" },
-        ]}
-        title="New rate plan"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <Link href="/dashboard/bookings/rates">Rate plans</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New rate plan</h1>
+        </div>
+      </div>
       <CreateRatePlanForm
         villas={villas.map((v) => ({
           id: v.id,

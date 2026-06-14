@@ -1,7 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import Link from "next/link";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { FilterPills } from "@/components/ui/primitives";
 import { listMaintenanceRiskEvents } from "@/features/maintenance-intelligence/services";
 import { RiskRowActions } from "@/components/maintenance-intelligence/risk-row-actions";
@@ -10,18 +8,18 @@ import { ScanRisksButton } from "@/components/maintenance-intelligence/scan-risk
 export const metadata = { title: "Maintenance risk feed" };
 export const dynamic = "force-dynamic";
 
-const SEVERITY_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  low: "neutral",
+const SEVERITY_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  open: "warning",
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
+  open: "warn",
   acknowledged: "info",
-  resolved: "success",
-  dismissed: "neutral",
+  resolved: "ok",
+  dismissed: "soft",
 };
 
 const RISK_TYPES = [
@@ -86,19 +84,25 @@ export default async function RisksPage({
   const filters = { status: activeStatus, severity: activeSeverity, type: activeType };
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Maintenance intelligence", href: "/dashboard/maintenance-intelligence" },
-          { label: "Risks" },
-        ]}
-        title="Risk feed"
-        description="Unified feed: overdue maintenance, low utility balance, no recent reading, repeated tickets, upcoming guest-block conflicts, arrival-not-ready warnings. Idempotent — running the scanner won't duplicate open rows."
-        actions={<ScanRisksButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/maintenance-intelligence">Maintenance intelligence</Link> /{" "}
+            <span>Risks</span>
+          </div>
+          <h1>Risk feed</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Unified feed: overdue maintenance, low utility balance, no recent reading, repeated tickets, upcoming guest-block conflicts, arrival-not-ready warnings. Idempotent — running the scanner won't duplicate open rows.
+          </p>
+        </div>
+        <div className="actions">
+          <ScanRisksButton />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Open" value={String(open.length)} accent={open.length > 0} />
-        <MetricCard label="Critical" value={String(critical.length)} accent={critical.length > 0} />
+        <Kpi label="Open" value={String(open.length)} tone={open.length > 0 ? "accent" : undefined} />
+        <Kpi label="Critical" value={String(critical.length)} tone={critical.length > 0 ? "accent" : undefined} />
       </div>
 
       <div className="flex flex-col gap-4">
@@ -140,13 +144,14 @@ export default async function RisksPage({
         />
       </div>
 
-      <Section eyebrow="Risks" title={`${rows.length} rows`}>
+      <div>
+        <div className="label mb-2.5">Risks · {rows.length} rows</div>
         {rows.length === 0 ? (
           <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             None.
           </p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+          <Card padding="none" overflowHidden>
             <ul className="divide-y divide-line-soft">
               {rows.map((r) => (
                 <li
@@ -155,12 +160,12 @@ export default async function RisksPage({
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge tone={SEVERITY_TONES[r.severity] ?? "neutral"}>
+                      <HandoffBadge tone={SEVERITY_TONES[r.severity] ?? "soft"}>
                         {r.severity}
-                      </Badge>
-                      <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+                      </HandoffBadge>
+                      <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>
                         {r.status}
-                      </Badge>
+                      </HandoffBadge>
                       <span className="font-mono text-[11px] text-ink-tertiary">
                         {r.riskType.replace(/_/g, " ")}
                       </span>
@@ -186,9 +191,9 @@ export default async function RisksPage({
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

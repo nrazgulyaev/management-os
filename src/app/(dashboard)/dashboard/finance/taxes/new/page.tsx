@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -12,14 +12,15 @@ export default async function NewTaxPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Taxes", href: "/dashboard/finance/taxes" },
-          { label: "New" },
-        ]}
-        title="New tax line"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/taxes">Taxes</Link> / <span>New</span>
+          </div>
+          <h1>New tax line</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <LedgerLineForm
         title="Tax line"

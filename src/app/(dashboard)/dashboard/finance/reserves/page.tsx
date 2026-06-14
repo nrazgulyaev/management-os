@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listReserveMovements } from "@/features/finance/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -22,12 +22,22 @@ export default async function ReservesPage() {
   const ownerOpts = owners.map((o) => ({ id: o.id, label: o.displayName }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Reserves" }]}
-        title="Reserve movements"
-        description="Renovation, FF&E / depreciation, maintenance, tax, emergency. Contributions accrue against the villa or project; releases reduce the balance."
-        actions={<ReserveAddButton villas={villaOpts} projects={projectOpts} owners={ownerOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> / <span>Reserves</span>
+          </div>
+          <h1>Reserve movements</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Renovation, FF&E / depreciation, maintenance, tax, emergency.
+            Contributions accrue against the villa or project; releases reduce
+            the balance.
+          </p>
+        </div>
+        <div className="actions">
+          <ReserveAddButton villas={villaOpts} projects={projectOpts} owners={ownerOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
       <FinanceTable
         rows={rows.map((r) => ({

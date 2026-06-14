@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { OperationsCopilotRefreshButton } from "@/components/ai/operations-copilot-refresh-button";
 import {
   getLatestOperationsSummary,
@@ -12,9 +10,9 @@ import { isAiConfigured, isAiDryRun } from "@/lib/env";
 export const metadata = { title: "AI Operations Co-pilot" };
 export const dynamic = "force-dynamic";
 
-const RISK_TONES: Record<string, "neutral" | "info" | "warning" | "danger" | "success"> = {
-  normal: "success",
-  elevated: "warning",
+const RISK_TONES: Record<string, "soft" | "info" | "warn" | "danger" | "ok"> = {
+  normal: "ok",
+  elevated: "warn",
   high: "danger",
 };
 
@@ -27,19 +25,24 @@ export default async function AIOperationsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "AI assistants", href: "/dashboard/ai" },
-          { label: "Operations Co-pilot" },
-        ]}
-        title="Operations Co-pilot v0"
-        description="Read-only daily briefing built from a strict tool allowlist. The model never writes — every recommendation is for a human to action."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/ai">AI assistants</Link> /{" "}
+            <span>Operations Co-pilot</span>
+          </div>
+          <h1>Operations Co-pilot v0</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Read-only daily briefing built from a strict tool allowlist. The
+            model never writes — every recommendation is for a human to action.
+          </p>
+        </div>
+      </div>
 
       <div className="rounded-md border border-line-soft bg-surface p-4 flex flex-wrap items-center gap-3 text-sm">
-        <Badge tone={aiActive ? "success" : "warning"}>
+        <HandoffBadge tone={aiActive ? "ok" : "warn"}>
           {aiActive ? "Live" : "Fallback"}
-        </Badge>
+        </HandoffBadge>
         <span className="text-ink-secondary">
           {aiActive
             ? "ANTHROPIC_API_KEY is set and AI_DRY_RUN=0 — model calls are live."
@@ -51,16 +54,17 @@ export default async function AIOperationsPage() {
       </div>
 
       {latest ? (
-        <Section
-          eyebrow="Latest"
-          title={latest.title}
-          description={`Generated ${latest.createdAt.slice(0, 16).replace("T", " ")}`}
-        >
+        <div>
+          <div className="label mb-2.5">Latest</div>
           <div className="rounded-md border border-line-soft bg-surface p-5 md:p-6">
+            <div className="text-[14px] text-ink mb-1">{latest.title}</div>
+            <div className="text-[12px] text-ink-3 mb-3">
+              {`Generated ${latest.createdAt.slice(0, 16).replace("T", " ")}`}
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge tone={RISK_TONES[latest.riskLevel] ?? "neutral"}>
+              <HandoffBadge tone={RISK_TONES[latest.riskLevel] ?? "soft"}>
                 Risk: {latest.riskLevel}
-              </Badge>
+              </HandoffBadge>
               {latest.runId && (
                 <Link
                   href={`/dashboard/ai/runs/${latest.runId}`}
@@ -80,14 +84,15 @@ export default async function AIOperationsPage() {
               <Column title="Recommended actions" items={latest.recommendedActions} />
             </div>
           </div>
-        </Section>
+        </div>
       ) : (
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
           No briefing yet. Click refresh to generate one.
         </p>
       )}
 
-      <Section eyebrow="History" title="Past briefings">
+      <div>
+        <div className="label mb-2.5">History</div>
         {history.length <= 1 ? (
           <p className="text-sm text-ink-tertiary">
             History will populate as briefings are generated.
@@ -102,10 +107,10 @@ export default async function AIOperationsPage() {
                 >
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge tone={RISK_TONES[s.riskLevel] ?? "neutral"}>
+                      <HandoffBadge tone={RISK_TONES[s.riskLevel] ?? "soft"}>
                         {s.riskLevel}
-                      </Badge>
-                      <Badge tone="neutral">{s.status}</Badge>
+                      </HandoffBadge>
+                      <HandoffBadge tone="soft">{s.status}</HandoffBadge>
                       <span className="text-[11px] text-ink-tertiary tabular-nums">
                         {s.createdAt.slice(0, 16).replace("T", " ")}
                       </span>
@@ -125,7 +130,7 @@ export default async function AIOperationsPage() {
             </ul>
           </div>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

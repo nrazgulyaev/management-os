@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getOwnerStayRequestByIdForOrg } from "@/features/owner-stays/services";
 import { listRelocationCandidates } from "@/features/owner-stays/relocation";
 import { OwnerStayDecisionBar } from "@/components/owner-stays/decision-bar";
@@ -11,25 +10,25 @@ import { RelocationCandidateRow } from "@/components/owner-stays/relocation-cand
 export const metadata = { title: "Owner stay request" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
   requested: "info",
   availability_check: "info",
-  requires_relocation: "warning",
-  pending_admin_approval: "warning",
-  approved: "success",
+  requires_relocation: "warn",
+  pending_admin_approval: "warn",
+  approved: "ok",
   rejected: "danger",
-  cancelled: "neutral",
-  completed: "neutral",
+  cancelled: "soft",
+  completed: "soft",
 };
 
-const FINANCE_STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
+const FINANCE_STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
   pending: "info",
-  bridged: "success",
-  skipped_no_charge: "neutral",
-  skipped_locked_period: "warning",
+  bridged: "ok",
+  skipped_no_charge: "soft",
+  skipped_locked_period: "warn",
   failed: "danger",
-  reversed: "neutral",
-  not_applicable: "neutral",
+  reversed: "soft",
+  not_applicable: "soft",
 };
 
 function formatMoney(minor: number, currency: string) {
@@ -55,23 +54,31 @@ export default async function OwnerStayRequestDetail({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner stays", href: "/dashboard/owner-stays" },
-          { label: "Requests", href: "/dashboard/owner-stays/requests" },
-          { label: id.slice(0, 8) },
-        ]}
-        title={`Owner stay — ${request.villaCode ?? "villa"}`}
-        description={`${request.ownerName ?? "owner"} · ${request.requestedStart} → ${request.requestedEnd}`}
-        actions={<OwnerStayDecisionBar id={request.id} status={request.status} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-stays">Owner stays</Link> /{" "}
+            <Link href="/dashboard/owner-stays/requests">Requests</Link> /{" "}
+            <span>{id.slice(0, 8)}</span>
+          </div>
+          <h1>Owner stay — {request.villaCode ?? "villa"}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {request.ownerName ?? "owner"} · {request.requestedStart} →{" "}
+            {request.requestedEnd}
+          </p>
+        </div>
+        <div className="actions">
+          <OwnerStayDecisionBar id={request.id} status={request.status} />
+        </div>
+      </div>
 
-      <Section eyebrow="Status" title="Request">
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <div className="label mb-2.5">Status · Request</div>
+        <Card padding="default" className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <Field label="Status">
-            <Badge tone={STATUS_TONES[request.status] ?? "neutral"}>
+            <HandoffBadge tone={STATUS_TONES[request.status] ?? "soft"}>
               {request.status.replace(/_/g, " ")}
-            </Badge>
+            </HandoffBadge>
           </Field>
           <Field label="Total nights" value={String(request.allowanceNightsApplied + request.billableNights)} />
           <Field label="Allowance nights" value={String(request.allowanceNightsApplied)} />
@@ -117,15 +124,17 @@ export default async function OwnerStayRequestDetail({
               <p className="text-sm text-ink-secondary mt-1">{request.adminNotes}</p>
             </div>
           )}
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Lifecycle"
-        title="Complete + finance bridge"
-        description="Mark the stay completed once the owner has checked out, then bridge it into finance. The bridge is idempotent — re-running never duplicates rows."
-      >
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+      <div>
+        <div className="label mb-2.5">Lifecycle · Complete + finance bridge</div>
+        <p className="text-[13px] text-ink-3 mt-2 mb-2.5 max-w-[680px]">
+          Mark the stay completed once the owner has checked out, then bridge it
+          into finance. The bridge is idempotent — re-running never duplicates
+          rows.
+        </p>
+        <Card padding="default" className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
           <Field label="Completed at">
             {request.completedAt ? (
               <span className="text-ink-secondary tabular-nums">
@@ -136,9 +145,9 @@ export default async function OwnerStayRequestDetail({
             )}
           </Field>
           <Field label="Finance bridge">
-            <Badge tone={FINANCE_STATUS_TONES[request.financeBridgeStatus] ?? "neutral"}>
+            <HandoffBadge tone={FINANCE_STATUS_TONES[request.financeBridgeStatus] ?? "soft"}>
               {request.financeBridgeStatus.replace(/_/g, " ")}
-            </Badge>
+            </HandoffBadge>
           </Field>
           <div className="md:col-start-3 md:row-start-1 md:row-span-2 flex items-start justify-end">
             <OwnerStayLifecycleBar
@@ -147,54 +156,60 @@ export default async function OwnerStayRequestDetail({
               financeBridgeStatus={request.financeBridgeStatus}
             />
           </div>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Timeline" title={`${timeline.length} events`}>
+      <div>
+        <div className="label mb-2.5">Timeline · {timeline.length} events</div>
         {timeline.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">No transitions recorded yet.</p>
+          <p className="text-[13px] text-ink-3">No transitions recorded yet.</p>
         ) : (
-          <ol className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
-            {timeline.map((e, i) => (
-              <li key={i} className="p-4 flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-sm text-ink font-medium">{e.label}</div>
-                  {e.detail && (
-                    <div className="text-xs text-ink-tertiary mt-1">{e.detail}</div>
-                  )}
-                </div>
-                <div className="text-[11px] text-ink-tertiary tabular-nums shrink-0">
-                  {e.at.slice(0, 16).replace("T", " ")}
-                </div>
-              </li>
-            ))}
-          </ol>
+          <Card padding="none" overflowHidden>
+            <ol className="divide-y divide-line-soft">
+              {timeline.map((e, i) => (
+                <li key={i} className="p-4 flex items-start justify-between gap-4">
+                  <div>
+                    <div className="text-sm text-ink font-medium">{e.label}</div>
+                    {e.detail && (
+                      <div className="text-xs text-ink-tertiary mt-1">{e.detail}</div>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-ink-tertiary tabular-nums shrink-0">
+                    {e.at.slice(0, 16).replace("T", " ")}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </Card>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Relocation"
-        title={`${candidates.length} candidate${candidates.length === 1 ? "" : "s"}`}
-        description={
-          request.relocationRequired
+      <div>
+        <div className="label mb-2.5">
+          Relocation · {candidates.length} candidate
+          {candidates.length === 1 ? "" : "s"}
+        </div>
+        <p className="text-[13px] text-ink-3 mt-2 mb-2.5 max-w-[680px]">
+          {request.relocationRequired
             ? "Approving the owner stay requires relocating overlapping guest bookings. Approve and apply candidates, then approve the owner stay."
-            : "No relocation needed for this request."
-        }
-      >
+            : "No relocation needed for this request."}
+        </p>
         {candidates.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No candidates discovered yet.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">
+              No candidates discovered yet.
+            </p>
+          </Card>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+          <Card padding="none" overflowHidden>
             <ul className="divide-y divide-line-soft">
               {candidates.map((c) => (
                 <RelocationCandidateRow key={c.id} candidate={c} />
               ))}
             </ul>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

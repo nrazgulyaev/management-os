@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listGuestServiceFulfilments } from "@/features/service-fulfilment/services";
 import { formatFulfilmentAmountForAdmin } from "@/features/service-fulfilment/pricing-pure";
 import {
@@ -19,16 +17,23 @@ export default async function FinanceBridgePage() {
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Finance bridge" },
-        ]}
-        title="Finance bridge"
-        description="Bridge completed fulfilments into revenue + expense lines. Idempotent: re-running on a bridged row is a no-op."
-        actions={<BridgePendingButton />}
-      />
-      <Section eyebrow="Completed" title={`${completed.length} fulfilments`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <span>Finance bridge</span>
+          </div>
+          <h1>Finance bridge</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Bridge completed fulfilments into revenue + expense lines. Idempotent: re-running on a bridged row is a no-op.
+          </p>
+        </div>
+        <div className="actions">
+          <BridgePendingButton />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Completed</div>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
@@ -81,9 +86,9 @@ export default async function FinanceBridgePage() {
           Bridge writes a `revenue_lines` row for the guest price and an
           `expense_lines` row for the internal cost (when both are positive).
           Period locks block the bridge with status{" "}
-          <Badge tone="neutral">skipped_locked_period</Badge>.
+          <HandoffBadge tone="soft">skipped_locked_period</HandoffBadge>.
         </p>
-      </Section>
+      </div>
     </div>
   );
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listStatementPeriods } from "@/features/finance/services";
@@ -13,12 +12,21 @@ export default async function PeriodsPage() {
   const periods = await listStatementPeriods();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Periods" }]}
-        title="Statement periods"
-        description="Open → closing → closed → locked. Closed and locked periods refuse new financial mutations at the database layer."
-        actions={<PeriodAddButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> / <span>Periods</span>
+          </div>
+          <h1>Statement periods</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Open → closing → closed → locked. Closed and locked periods refuse
+            new financial mutations at the database layer.
+          </p>
+        </div>
+        <div className="actions">
+          <PeriodAddButton />
+        </div>
+      </div>
       <DbStatusNotice />
       <Table>
         <THead>

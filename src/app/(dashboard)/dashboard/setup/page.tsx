@@ -12,9 +12,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import {
   getCurrentUserContext,
@@ -31,7 +29,11 @@ export default async function SetupPage() {
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader title="Set up your workspace" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Set up your workspace</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to run first-run setup."
@@ -44,17 +46,21 @@ export default async function SetupPage() {
   if (!hasPermission(ctx, "users.write")) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader
-          breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Setup" }]}
-          title="Set up your workspace"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/dashboard">Dashboard</Link> / <span>Setup</span>
+            </div>
+            <h1>Set up your workspace</h1>
+          </div>
+        </div>
         <EmptyState
           title="Admin access required"
           description="Only an organisation admin can run first-run setup. Ask an admin to invite you or to complete onboarding."
           action={
-            <Button asChild variant="secondary">
-              <Link href="/dashboard">Back to dashboard</Link>
-            </Button>
+            <Link href="/dashboard" className="btn btn-secondary btn-sm">
+              Back to dashboard
+            </Link>
           }
         />
       </div>
@@ -74,12 +80,18 @@ export default async function SetupPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        eyebrow="Getting started"
-        breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Setup" }]}
-        title="Set up your workspace"
-        description="A guided start. Create your projects, add villas under them, invite your team, then set how each role works — resume any time."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>Setup</span>
+          </div>
+          <h1>Set up your workspace</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            A guided start. Create your projects, add villas under them, invite
+            your team, then set how each role works — resume any time.
+          </p>
+        </div>
+      </div>
 
       {progress.dismissed && (
         <div className="rounded-md border border-info/30 bg-info-weak/40 px-4 py-3 text-sm text-ink-secondary">

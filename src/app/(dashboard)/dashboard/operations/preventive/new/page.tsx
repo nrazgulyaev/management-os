@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { PreventiveScheduleForm } from "@/components/operations/preventive-form";
 import { listVillas } from "@/features/villas/services";
@@ -19,15 +19,19 @@ export default async function NewPreventivePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Preventive", href: "/dashboard/operations/preventive" },
-          { label: "New" },
-        ]}
-        title="New preventive schedule"
-        description="Define a recurring inspection or service. Tasks materialise when the schedule comes due."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/preventive">Preventive</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New preventive schedule</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Define a recurring inspection or service. Tasks materialise when the schedule comes due.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <PreventiveScheduleForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

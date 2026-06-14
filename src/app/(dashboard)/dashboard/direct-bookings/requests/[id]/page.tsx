@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getRequestDetailById } from "@/features/direct-booking/services";
 import { getDepositForRequest } from "@/features/direct-booking/deposits";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
@@ -35,14 +33,29 @@ import {
 export const metadata = { title: "Direct booking request" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "info" | "success" | "warning" | "neutral" | "danger"> = {
+const STATUS_TONES: Record<
+  string,
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
   submitted: "info",
   under_review: "info",
-  approved: "success",
-  rejected: "warning",
-  expired: "warning",
-  cancelled: "neutral",
-  converted: "success",
+  approved: "ok",
+  rejected: "warn",
+  expired: "warn",
+  cancelled: "soft",
+  converted: "ok",
+};
+
+/** Map the shared status-label tones onto handoff badge tones. */
+const BADGE_TONE: Record<
+  "info" | "success" | "warning" | "neutral" | "danger",
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
+  info: "info",
+  success: "ok",
+  warning: "warn",
+  neutral: "soft",
+  danger: "danger",
 };
 
 export default async function DirectBookingRequestDetailPage({
@@ -100,92 +113,114 @@ export default async function DirectBookingRequestDetailPage({
     (deposit.status === "paid" || deposit.status === "manually_marked_paid");
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Requests", href: "/dashboard/direct-bookings/requests" },
-          { label: r.requestCode },
-        ]}
-        title={r.requestCode}
-        description={`${villaCode ?? "—"} · ${hold?.checkIn ?? "—"} → ${hold?.checkOut ?? "—"}`}
-        actions={
-          <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <Link href="/dashboard/direct-bookings/requests">Requests</Link> /{" "}
+            <span>{r.requestCode}</span>
+          </div>
+          <h1>{r.requestCode}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${villaCode ?? "—"} · ${hold?.checkIn ?? "—"} → ${hold?.checkOut ?? "—"}`}
+          </p>
+        </div>
+        <div className="actions">
+          <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>
             {r.status.replace("_", " ")}
-          </Badge>
-        }
-      />
+          </HandoffBadge>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <Section eyebrow="Guest" title={`${r.guestFirstName} ${r.guestLastName ?? ""}`}>
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-              <Pair label="Email" value={r.guestEmail} mono />
-              <Pair label="Phone" value={r.guestPhone ?? "—"} mono />
-              <Pair label="Country" value={r.guestCountry ?? "—"} />
-              <Pair label="Guest count" value={String(r.guestCount)} />
-              <Pair label="Arrival time" value={r.arrivalTime ?? "—"} />
-              <Pair label="Purpose" value={r.purposeOfStay ?? "—"} />
-            </dl>
-            {r.specialRequests && (
-              <p className="mt-3 text-sm text-ink-secondary">
-                {r.specialRequests}
-              </p>
-            )}
-          </Section>
+          <div>
+            <div className="label mb-2.5">Guest</div>
+            <Card padding="default">
+              <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <Pair label="Email" value={r.guestEmail} mono />
+                <Pair label="Phone" value={r.guestPhone ?? "—"} mono />
+                <Pair label="Country" value={r.guestCountry ?? "—"} />
+                <Pair label="Guest count" value={String(r.guestCount)} />
+                <Pair label="Arrival time" value={r.arrivalTime ?? "—"} />
+                <Pair label="Purpose" value={r.purposeOfStay ?? "—"} />
+              </dl>
+              {r.specialRequests && (
+                <p className="mt-3 text-sm text-ink-secondary">
+                  {r.specialRequests}
+                </p>
+              )}
+            </Card>
+          </div>
 
-          <Section eyebrow="Quote snapshot" title="Captured at hold time">
-            {hold ? (
-              <pre className="rounded-md border border-line-soft bg-canvas p-4 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap">
-                {JSON.stringify(hold.quoteSnapshotJson, null, 2)}
-              </pre>
-            ) : (
-              <p className="text-xs text-ink-tertiary">Hold no longer exists.</p>
-            )}
-          </Section>
+          <div>
+            <div className="label mb-2.5">Quote snapshot</div>
+            <Card padding="default">
+              {hold ? (
+                <pre className="rounded-md border border-line-soft bg-canvas p-4 text-[11px] font-mono overflow-x-auto whitespace-pre-wrap m-0">
+                  {JSON.stringify(hold.quoteSnapshotJson, null, 2)}
+                </pre>
+              ) : (
+                <p className="text-xs text-ink-tertiary m-0">
+                  Hold no longer exists.
+                </p>
+              )}
+            </Card>
+          </div>
 
-          <Section eyebrow="Timeline" title={`${events.length} events`}>
-            {events.length === 0 ? (
-              <p className="text-xs text-ink-tertiary">No events yet.</p>
-            ) : (
-              <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-                {events.map((e) => (
-                  <li key={e.id} className="px-4 py-3 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-ink font-medium">
-                        {e.eventType.replace(/_/g, " ")}
+          <div>
+            <div className="label mb-2.5">Timeline</div>
+            <Card padding="none">
+              {events.length === 0 ? (
+                <p className="text-xs text-ink-tertiary p-4 m-0">
+                  No events yet.
+                </p>
+              ) : (
+                <ul className="divide-y divide-line-soft">
+                  {events.map((e) => (
+                    <li key={e.id} className="px-4 py-3 flex flex-col gap-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-ink font-medium">
+                          {e.eventType.replace(/_/g, " ")}
+                        </span>
+                        <span className="text-[11px] font-mono text-ink-tertiary">
+                          {e.createdAt.toISOString()}
+                        </span>
+                      </div>
+                      <span className="text-xs text-ink-tertiary capitalize">
+                        {e.actorType}
+                        {e.message ? ` — ${e.message}` : ""}
                       </span>
-                      <span className="text-[11px] font-mono text-ink-tertiary">
-                        {e.createdAt.toISOString()}
-                      </span>
-                    </div>
-                    <span className="text-xs text-ink-tertiary capitalize">
-                      {e.actorType}
-                      {e.message ? ` — ${e.message}` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          </div>
         </div>
 
         <aside className="flex flex-col gap-6">
-          <Section eyebrow="Decision" title="Concierge actions">
-            <div className="flex flex-col gap-3">
-              {r.status === "submitted" && <MarkUnderReviewButton id={r.id} />}
-              {(r.status === "submitted" || r.status === "under_review") && (
-                <>
-                  <ApproveRequestForm id={r.id} />
-                  <RejectRequestForm id={r.id} />
-                </>
-              )}
-              {(r.status === "approved" || r.status === "submitted" || r.status === "under_review") && (
-                <ConvertToBookingButton id={r.id} />
-              )}
-            </div>
-          </Section>
+          <div>
+            <div className="label mb-2.5">Decision</div>
+            <Card padding="default">
+              <div className="flex flex-col gap-3">
+                {r.status === "submitted" && <MarkUnderReviewButton id={r.id} />}
+                {(r.status === "submitted" || r.status === "under_review") && (
+                  <>
+                    <ApproveRequestForm id={r.id} />
+                    <RejectRequestForm id={r.id} />
+                  </>
+                )}
+                {(r.status === "approved" || r.status === "submitted" || r.status === "under_review") && (
+                  <ConvertToBookingButton id={r.id} />
+                )}
+              </div>
+            </Card>
+          </div>
 
-          <Section eyebrow="Deposit" title="Payment gate">
+          <div>
+            <div className="label mb-2.5">Deposit</div>
+            <Card padding="default">
             {deposit && depositLab ? (
               <div className="flex flex-col gap-3">
                 <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1">
@@ -196,7 +231,9 @@ export default async function DirectBookingRequestDetailPage({
                     >
                       {deposit.depositCode}
                     </Link>
-                    <Badge tone={depositLab.tone}>{depositLab.label}</Badge>
+                    <HandoffBadge tone={BADGE_TONE[depositLab.tone]}>
+                      {depositLab.label}
+                    </HandoffBadge>
                   </div>
                   <span className="text-xs text-ink-tertiary">
                     {(deposit.amountMinor / 100n).toString()}.
@@ -232,132 +269,147 @@ export default async function DirectBookingRequestDetailPage({
                 currency={hold?.currency ?? "USD"}
               />
             )}
-          </Section>
+            </Card>
+          </div>
 
-          <Section eyebrow="Finance" title="Reconciliation">
-            <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-ink-tertiary">Bridge status</span>
-                <Badge
-                  tone={
-                    directBookingFinanceStatusLabel(
-                      r.financeBridgeStatus as Parameters<
-                        typeof directBookingFinanceStatusLabel
-                      >[0],
-                    ).tone
-                  }
-                >
-                  {
-                    directBookingFinanceStatusLabel(
-                      r.financeBridgeStatus as Parameters<
-                        typeof directBookingFinanceStatusLabel
-                      >[0],
-                    ).label
-                  }
-                </Badge>
-              </div>
-              {hold && deposit && (
-                <div className="flex items-center justify-between">
-                  <span className="text-ink-tertiary">Balance due</span>
-                  <span className="font-mono">
-                    {(
-                      calculateBalanceDue(hold.totalMinor, deposit.amountMinor) /
-                      100n
-                    ).toString()}
-                    .
-                    {String(
-                      calculateBalanceDue(hold.totalMinor, deposit.amountMinor) %
-                        100n,
-                    ).padStart(2, "0")}{" "}
-                    {hold.currency}
-                  </span>
-                </div>
-              )}
-              {r.financeLinkId && (
-                <Link
-                  href={`/dashboard/direct-bookings/reconciliation/${r.financeLinkId}`}
-                  className="text-ink hover:underline underline-offset-4"
-                >
-                  Open finance link →
-                </Link>
-              )}
-            </div>
-            {r.status === "converted" && depositIsPaid && (
-              <div className="mt-3">
-                <PostRevenueButton requestId={r.id} />
-              </div>
-            )}
-          </Section>
-
-          {(guestSnapshot || lastGuestNotification || guestThread) && (
-            <Section eyebrow="Guest status" title="What the guest sees">
+          <div>
+            <div className="label mb-2.5">Finance</div>
+            <Card padding="default">
               <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
-                {guestSnapshot && (
-                  <>
-                    <div className="flex items-center justify-between">
-                      <span className="text-ink-tertiary">Public stage</span>
-                      <Badge tone="info">
-                        {guestSnapshot.publicStage.replace(/_/g, " ")}
-                      </Badge>
-                    </div>
-                    <div className="text-ink">{guestSnapshot.headline}</div>
-                  </>
-                )}
-                {lastGuestNotification && (
-                  <div className="text-ink-tertiary">
-                    Last guest update:{" "}
-                    <span className="text-ink">
-                      {lastGuestNotification.publicTitle}
+                <div className="flex items-center justify-between">
+                  <span className="text-ink-tertiary">Bridge status</span>
+                  <HandoffBadge
+                    tone={
+                      BADGE_TONE[
+                        directBookingFinanceStatusLabel(
+                          r.financeBridgeStatus as Parameters<
+                            typeof directBookingFinanceStatusLabel
+                          >[0],
+                        ).tone
+                      ]
+                    }
+                  >
+                    {
+                      directBookingFinanceStatusLabel(
+                        r.financeBridgeStatus as Parameters<
+                          typeof directBookingFinanceStatusLabel
+                        >[0],
+                      ).label
+                    }
+                  </HandoffBadge>
+                </div>
+                {hold && deposit && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink-tertiary">Balance due</span>
+                    <span className="font-mono">
+                      {(
+                        calculateBalanceDue(hold.totalMinor, deposit.amountMinor) /
+                        100n
+                      ).toString()}
+                      .
+                      {String(
+                        calculateBalanceDue(hold.totalMinor, deposit.amountMinor) %
+                          100n,
+                      ).padStart(2, "0")}{" "}
+                      {hold.currency}
                     </span>
                   </div>
                 )}
-                {guestThread && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-ink-tertiary">Unread (staff)</span>
-                    {guestThread.staffUnreadCount > 0 ? (
-                      <Badge tone="warning">
-                        {guestThread.staffUnreadCount}
-                      </Badge>
-                    ) : (
-                      <span className="text-ink-tertiary">0</span>
-                    )}
-                  </div>
-                )}
-                {guestThread && (
+                {r.financeLinkId && (
                   <Link
-                    href={`/dashboard/direct-bookings/messages/${guestThread.id}`}
+                    href={`/dashboard/direct-bookings/reconciliation/${r.financeLinkId}`}
                     className="text-ink hover:underline underline-offset-4"
                   >
-                    Open thread →
-                  </Link>
-                )}
-                {guestSnapshot && (
-                  <Link
-                    href={`/dashboard/direct-bookings/guest-status/${guestSnapshot.id}`}
-                    className="text-ink hover:underline underline-offset-4"
-                  >
-                    Open snapshot →
+                    Open finance link →
                   </Link>
                 )}
               </div>
-            </Section>
+              {r.status === "converted" && depositIsPaid && (
+                <div className="mt-3">
+                  <PostRevenueButton requestId={r.id} />
+                </div>
+              )}
+            </Card>
+          </div>
+
+          {(guestSnapshot || lastGuestNotification || guestThread) && (
+            <div>
+              <div className="label mb-2.5">Guest status</div>
+              <Card padding="default">
+                <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
+                  {guestSnapshot && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-ink-tertiary">Public stage</span>
+                        <HandoffBadge tone="info">
+                          {guestSnapshot.publicStage.replace(/_/g, " ")}
+                        </HandoffBadge>
+                      </div>
+                      <div className="text-ink">{guestSnapshot.headline}</div>
+                    </>
+                  )}
+                  {lastGuestNotification && (
+                    <div className="text-ink-tertiary">
+                      Last guest update:{" "}
+                      <span className="text-ink">
+                        {lastGuestNotification.publicTitle}
+                      </span>
+                    </div>
+                  )}
+                  {guestThread && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-ink-tertiary">Unread (staff)</span>
+                      {guestThread.staffUnreadCount > 0 ? (
+                        <HandoffBadge tone="warn">
+                          {guestThread.staffUnreadCount}
+                        </HandoffBadge>
+                      ) : (
+                        <span className="text-ink-tertiary">0</span>
+                      )}
+                    </div>
+                  )}
+                  {guestThread && (
+                    <Link
+                      href={`/dashboard/direct-bookings/messages/${guestThread.id}`}
+                      className="text-ink hover:underline underline-offset-4"
+                    >
+                      Open thread →
+                    </Link>
+                  )}
+                  {guestSnapshot && (
+                    <Link
+                      href={`/dashboard/direct-bookings/guest-status/${guestSnapshot.id}`}
+                      className="text-ink hover:underline underline-offset-4"
+                    >
+                      Open snapshot →
+                    </Link>
+                  )}
+                </div>
+              </Card>
+            </div>
           )}
 
           {booking && (
-            <Section eyebrow="Booking" title="Linked booking">
-              <Link
-                href={`/dashboard/bookings/${booking.id}`}
-                className="text-sm text-ink hover:underline underline-offset-4"
-              >
-                {booking.bookingCode} ({booking.status})
-              </Link>
-            </Section>
+            <div>
+              <div className="label mb-2.5">Booking</div>
+              <Card padding="default">
+                <Link
+                  href={`/dashboard/bookings/${booking.id}`}
+                  className="text-sm text-ink hover:underline underline-offset-4"
+                >
+                  {booking.bookingCode} ({booking.status})
+                </Link>
+              </Card>
+            </div>
           )}
 
           {r.decisionNote && (
-            <Section eyebrow="Notes" title="Decision note">
-              <p className="text-xs text-ink-tertiary">{r.decisionNote}</p>
-            </Section>
+            <div>
+              <div className="label mb-2.5">Notes</div>
+              <Card padding="default">
+                <p className="text-xs text-ink-tertiary m-0">{r.decisionNote}</p>
+              </Card>
+            </div>
           )}
         </aside>
       </div>

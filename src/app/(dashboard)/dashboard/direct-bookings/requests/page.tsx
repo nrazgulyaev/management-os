@@ -1,20 +1,21 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingRequests } from "@/features/direct-booking/services";
 
 export const metadata = { title: "Direct booking requests" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "info" | "success" | "warning" | "neutral" | "danger"> = {
+const STATUS_TONES: Record<
+  string,
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
   submitted: "info",
   under_review: "info",
-  approved: "success",
-  rejected: "warning",
-  expired: "warning",
-  cancelled: "neutral",
-  converted: "success",
+  approved: "ok",
+  rejected: "warn",
+  expired: "warn",
+  cancelled: "soft",
+  converted: "ok",
 };
 
 export default async function DirectBookingRequestsPage({
@@ -35,63 +36,67 @@ export default async function DirectBookingRequestsPage({
   const rows = await listDirectBookingRequests({ status, limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Requests" },
-        ]}
-        title="Direct booking requests"
-        description="Guest-submitted booking requests, attached to a hold. Concierge approves manually."
-      />
-      <Section eyebrow="Catalog" title={`${rows.length} requests`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Villa</th>
-                <th className="px-4 py-3">Guest</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-ink-tertiary">
-                    No requests match the filter.
-                  </td>
-                </tr>
-              )}
-              {rows.map(({ request, villaCode }) => (
-                <tr key={request.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">
-                    <Link
-                      href={`/dashboard/direct-bookings/requests/${request.id}`}
-                      className="text-ink hover:underline underline-offset-4"
-                    >
-                      {request.requestCode}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3 text-xs">{villaCode ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {request.guestFirstName}
-                    {request.guestLastName ? ` ${request.guestLastName.slice(0, 1)}.` : ""}
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={STATUS_TONES[request.status] ?? "neutral"}>
-                      {request.status.replace("_", " ")}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
-                    {request.createdAt.toISOString()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <span>Requests</span>
+          </div>
+          <h1>Direct booking requests</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Guest-submitted booking requests, attached to a hold. Concierge
+            approves manually.
+          </p>
         </div>
-      </Section>
+      </div>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} requests`}</div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Code</th>
+              <th scope="col">Villa</th>
+              <th scope="col">Guest</th>
+              <th scope="col">Status</th>
+              <th scope="col">When</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={5} className="text-center text-ink-3">
+                  No requests match the filter.
+                </td>
+              </tr>
+            )}
+            {rows.map(({ request, villaCode }) => (
+              <tr key={request.id}>
+                <td className="mono text-[12px]">
+                  <Link
+                    href={`/dashboard/direct-bookings/requests/${request.id}`}
+                    className="text-ink hover:text-terra"
+                  >
+                    {request.requestCode}
+                  </Link>
+                </td>
+                <td className="text-[12px]">{villaCode ?? "—"}</td>
+                <td className="row-title">
+                  {request.guestFirstName}
+                  {request.guestLastName ? ` ${request.guestLastName.slice(0, 1)}.` : ""}
+                </td>
+                <td>
+                  <HandoffBadge tone={STATUS_TONES[request.status] ?? "soft"}>
+                    {request.status.replace("_", " ")}
+                  </HandoffBadge>
+                </td>
+                <td className="mono text-[11px] text-ink-3">
+                  {request.createdAt.toISOString()}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

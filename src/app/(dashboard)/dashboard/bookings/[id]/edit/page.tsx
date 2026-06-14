@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { BookingForm } from "@/features/bookings/form";
 import { getBookingById, listBookings } from "@/features/bookings/services";
@@ -30,14 +30,16 @@ export default async function EditBookingPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: b.bookingCode, href: `/dashboard/bookings/${b.id}` },
-          { label: "Edit" },
-        ]}
-        title={`Edit · ${b.bookingCode}`}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <Link href={`/dashboard/bookings/${b.id}`}>{b.bookingCode}</Link> /{" "}
+            <span>Edit</span>
+          </div>
+          <h1>{`Edit · ${b.bookingCode}`}</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <BookingForm
         mode="edit"

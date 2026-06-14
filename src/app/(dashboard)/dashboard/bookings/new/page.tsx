@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listBookingChannels } from "@/features/channels/services";
@@ -17,14 +17,20 @@ export default async function NewBookingPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: "New manual booking" },
-        ]}
-        title="New manual booking"
-        description="Record a booking that arrived outside an OTA — direct, agent referral, or in-person request. Fees follow the channel default; override per booking when needed."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <span>New manual booking</span>
+          </div>
+          <h1>New manual booking</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Record a booking that arrived outside an OTA — direct, agent
+            referral, or in-person request. Fees follow the channel default;
+            override per booking when needed.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <BookingForm
         mode="create"

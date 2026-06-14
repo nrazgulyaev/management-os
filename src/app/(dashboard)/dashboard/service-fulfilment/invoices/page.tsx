@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listVendorInvoices } from "@/features/service-fulfilment/services";
 import { formatFulfilmentAmountForAdmin } from "@/features/service-fulfilment/pricing-pure";
 import { InvoiceStatusButton } from "@/components/service-fulfilment/buttons";
@@ -12,15 +11,20 @@ export default async function VendorInvoicesPage() {
   const rows = await listVendorInvoices({ limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Invoices" },
-        ]}
-        title="Vendor invoices"
-        description="Invoices submitted by vendors via their portal or entered manually. Approval here gates the finance bridge from seeing them as committed expenses."
-      />
-      <Section eyebrow="Tracking" title={`${rows.length} invoices`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <span>Invoices</span>
+          </div>
+          <h1>Vendor invoices</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Invoices submitted by vendors via their portal or entered manually. Approval here gates the finance bridge from seeing them as committed expenses.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Tracking</div>
         <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-canvas/50 text-left">
@@ -56,19 +60,19 @@ export default async function VendorInvoicesPage() {
                   </td>
                   <td className="px-4 py-3 text-xs">{inv.dueDate ?? "—"}</td>
                   <td className="px-4 py-3">
-                    <Badge
+                    <HandoffBadge
                       tone={
                         inv.invoiceStatus === "approved"
-                          ? "success"
+                          ? "ok"
                           : inv.invoiceStatus === "paid"
-                            ? "success"
+                            ? "ok"
                             : inv.invoiceStatus === "rejected"
                               ? "danger"
-                              : "neutral"
+                              : "soft"
                       }
                     >
                       {inv.invoiceStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
@@ -88,7 +92,7 @@ export default async function VendorInvoicesPage() {
             </tbody>
           </table>
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

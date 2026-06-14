@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listTaxLines } from "@/features/finance/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -19,12 +19,21 @@ export default async function TaxesPage() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Taxes" }]}
-        title="Taxes"
-        description="Local hospitality tax, VAT, withholding. Owner-visible by default unless explicitly hidden."
-        actions={<TaxAddButton villas={villaOpts} projects={projectOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> / <span>Taxes</span>
+          </div>
+          <h1>Taxes</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Local hospitality tax, VAT, withholding. Owner-visible by default
+            unless explicitly hidden.
+          </p>
+        </div>
+        <div className="actions">
+          <TaxAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
       <FinanceTable
         rows={rows.map((r) => ({

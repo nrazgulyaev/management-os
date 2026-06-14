@@ -1,8 +1,6 @@
+import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb, rowsOf } from "@/lib/db/client";
 import {
   getApproximateRowCounts,
@@ -148,29 +146,35 @@ export default async function SystemHealthPage() {
   ];
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "System", href: "/dashboard" },
-          { label: "Health" },
-        ]}
-        title="System health"
-        description="Quick view of migration status, environment readiness, and recent table counts. Failed counts here usually mean a migration has not been applied yet."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">System</Link> /{" "}
+            <span>Health</span>
+          </div>
+          <h1>System health</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Quick view of migration status, environment readiness, and recent
+            table counts. Failed counts here usually mean a migration has not
+            been applied yet.
+          </p>
+        </div>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Tables present" value={String(okCount)} />
-        <MetricCard
+        <Kpi label="Tables present" value={String(okCount)} />
+        <Kpi
           label="Tables missing"
           value={String(missing)}
-          accent={missing > 0}
+          tone={missing > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Env keys ready"
           value={String(checklist.filter((c) => c.ok).length)}
         />
-        <MetricCard
+        <Kpi
           label="Env keys missing"
           value={String(checklist.filter((c) => !c.ok).length)}
-          accent={checklist.some((c) => !c.ok)}
+          tone={checklist.some((c) => !c.ok) ? "accent" : undefined}
         />
       </div>
       <div
@@ -199,46 +203,44 @@ export default async function SystemHealthPage() {
         const groupTotal = groupCounts.length;
         const allGroupOk = groupOk === groupTotal;
         return (
-          <Section
-            key={group.group}
-            eyebrow={`${idx + 1}`}
-            title={group.group}
-            description={`${groupOk}/${groupTotal} tables present.`}
-            action={
-              <Badge tone={allGroupOk ? "success" : "warning"}>
+          <div key={group.group}>
+            <div className="flex items-center gap-3 mb-2.5">
+              <div className="label flex-1 min-w-0">
+                {idx + 1}. {group.group} — {groupOk}/{groupTotal} tables present.
+              </div>
+              <HandoffBadge tone={allGroupOk ? "ok" : "warn"}>
                 {allGroupOk ? "ready" : "incomplete"}
-              </Badge>
-            }
-          >
-            <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-canvas/50 text-left">
-                  <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                    <th className="px-4 py-3">Table</th>
-                    <th className="px-4 py-3">Rows</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Notes</th>
+              </HandoffBadge>
+            </div>
+            <Card padding="none" overflowHidden>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th scope="col">Table</th>
+                    <th scope="col" className="num">Rows</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Notes</th>
                   </tr>
                 </thead>
                 <tbody>
                   {groupCounts.map(({ table, result }) => (
-                    <tr key={table} className="border-t border-line-soft">
-                      <td className="px-4 py-3 font-mono text-xs">{table}</td>
-                      <td className="px-4 py-3 text-xs">
+                    <tr key={table}>
+                      <td className="mono text-xs">{table}</td>
+                      <td className="num text-xs">
                         {result.ok ? result.value : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         {result.ok ? (
-                          <Badge tone="success">present</Badge>
+                          <HandoffBadge tone="ok">present</HandoffBadge>
                         ) : result.error?.kind === "missing_relation" ? (
-                          <Badge tone="warning">migration pending</Badge>
+                          <HandoffBadge tone="warn">migration pending</HandoffBadge>
                         ) : result.error?.kind === "no_db" ? (
-                          <Badge tone="neutral">no db</Badge>
+                          <HandoffBadge tone="soft">no db</HandoffBadge>
                         ) : (
-                          <Badge tone="danger">error</Badge>
+                          <HandoffBadge tone="danger">error</HandoffBadge>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-[11px] text-ink-tertiary">
+                      <td className="text-[11px] text-ink-tertiary">
                         {result.ok
                           ? ""
                           : result.error?.kind === "missing_relation"
@@ -249,11 +251,12 @@ export default async function SystemHealthPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
-          </Section>
+            </Card>
+          </div>
         );
       })}
-      <Section eyebrow="Environment" title="Readiness checklist">
+      <div>
+        <div className="label mb-2.5">Environment</div>
         <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
           {checklist.map((c) => (
             <li
@@ -268,13 +271,13 @@ export default async function SystemHealthPage() {
                   </div>
                 )}
               </div>
-              <Badge tone={c.ok ? "success" : "warning"}>
+              <HandoffBadge tone={c.ok ? "ok" : "warn"}>
                 {c.ok ? "ready" : "missing"}
-              </Badge>
+              </HandoffBadge>
             </li>
           ))}
         </ul>
-      </Section>
+      </div>
       {backupRunbookUrl() && (
         <p className="text-xs text-ink-tertiary">
           Backup / restore runbook:{" "}

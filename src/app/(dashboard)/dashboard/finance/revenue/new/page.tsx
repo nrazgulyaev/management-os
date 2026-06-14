@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -11,15 +11,19 @@ export default async function NewRevenuePage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Revenue", href: "/dashboard/finance/revenue" },
-          { label: "New" },
-        ]}
-        title="New revenue line"
-        description="Persisted to revenue_lines. Period-lock guard runs before insert."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/revenue">Revenue</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New revenue line</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Persisted to revenue_lines. Period-lock guard runs before insert.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <RevenueLineForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

@@ -1,7 +1,5 @@
-import _Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { HandoffBadge, Card } from "@/components/dashboard/primitives";
 import { listGuideSectionsAdmin } from "@/features/villa-guides/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -22,16 +20,24 @@ export default async function SectionsList() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villa guides", href: "/dashboard/villa-guides" },
-          { label: "Sections" },
-        ]}
-        title="Guide sections"
-        description="Sections shown on /stay/[token]. The villa-scoped row wins when both villa- and project-scoped rows exist for the same key."
-        actions={<SectionAddButton villas={villaOpts} projects={projectOpts} />}
-      />
-      <Section eyebrow="Catalog" title={`${rows.length} sections`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/villa-guides">Villa guides</Link> /{" "}
+            <span>Sections</span>
+          </div>
+          <h1>Guide sections</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Sections shown on /stay/[token]. The villa-scoped row wins when both
+            villa- and project-scoped rows exist for the same key.
+          </p>
+        </div>
+        <div className="actions">
+          <SectionAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Catalog · {rows.length} sections</div>
         {rows.length === 0 ? (
           <NoItemsYet
             entityLabel="sections"
@@ -40,43 +46,43 @@ export default async function SectionsList() {
             addLabel="+ New section"
           />
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Scope</th>
-                  <th className="text-left px-3 py-2">Section</th>
-                  <th className="text-left px-3 py-2">Title</th>
-                  <th className="text-right px-3 py-2">Sort</th>
-                  <th className="text-left px-3 py-2">Visible</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th />
+                  <th scope="col">Scope</th>
+                  <th scope="col">Section</th>
+                  <th scope="col">Title</th>
+                  <th scope="col" className="num">Sort</th>
+                  <th scope="col">Visible</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink-secondary text-xs">
+                    <td className="text-ink-3 text-xs">
                       {r.villaId
                         ? `villa ${r.villaId.slice(0, 8)}`
                         : r.projectId
                           ? `project ${r.projectId.slice(0, 8)}`
                           : "global"}
                     </td>
-                    <td className="px-3 py-2 font-mono text-[11px]">{r.sectionKey}</td>
-                    <td className="px-3 py-2 text-ink font-medium">{r.title}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{r.sortOrder}</td>
-                    <td className="px-3 py-2">
-                      <Badge tone={r.guestVisible ? "success" : "neutral"}>
+                    <td className="mono text-[11px]">{r.sectionKey}</td>
+                    <td className="row-title">{r.title}</td>
+                    <td className="num">{r.sortOrder}</td>
+                    <td>
+                      <HandoffBadge tone={r.guestVisible ? "ok" : "soft"}>
                         {r.guestVisible ? "guest" : "internal"}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={r.status === "active" ? "success" : "neutral"}>
+                    <td>
+                      <HandoffBadge tone={r.status === "active" ? "ok" : "soft"}>
                         {r.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <VillaGuidesRowActions
                         kind="section"
                         row={{
@@ -98,9 +104,9 @@ export default async function SectionsList() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

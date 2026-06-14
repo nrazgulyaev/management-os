@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -17,15 +17,20 @@ export default async function NewStaffPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Payroll", href: "/dashboard/payroll" },
-          { label: "Add staff" },
-        ]}
-        title="Add staff member"
-        description="Record who costs what + how their cost should be allocated. Payroll runs turn this into expense lines."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/payroll">Payroll</Link> /{" "}
+            <span>Add staff</span>
+          </div>
+          <h1>Add staff member</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Record who costs what + how their cost should be allocated. Payroll
+            runs turn this into expense lines.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <StaffForm
         mode="create"

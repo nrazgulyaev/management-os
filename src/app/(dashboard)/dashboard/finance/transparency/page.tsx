@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi } from "@/components/dashboard/primitives";
 import {
   getTransparencyHubMetrics,
   listTransparencyStatementRows,
@@ -19,30 +17,38 @@ export default async function TransparencyHub() {
   ]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Transparency" },
-        ]}
-        title="Statement transparency"
-        description="Owner-safe statement breakdowns, source traceability, and reconciliation warnings. Mutations live in the rebuild action — accounting rows are never touched."
-        actions={<RebuildAllTransparencyButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <span>Transparency</span>
+          </div>
+          <h1>Statement transparency</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Owner-safe statement breakdowns, source traceability, and
+            reconciliation warnings. Mutations live in the rebuild action —
+            accounting rows are never touched.
+          </p>
+        </div>
+        <div className="actions">
+          <RebuildAllTransparencyButton />
+        </div>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Total statements" value={String(metrics.totalStatements)} />
-        <MetricCard
+        <Kpi label="Total statements" value={String(metrics.totalStatements)} />
+        <Kpi
           label="Transparency-snapshotted"
           value={String(metrics.statementsWithSnapshot)}
         />
-        <MetricCard
+        <Kpi
           label="Open warnings"
           value={String(metrics.openWarningTotal)}
-          accent={metrics.openWarningTotal > 0}
+          tone={metrics.openWarningTotal > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Critical warnings"
           value={String(metrics.criticalWarningTotal)}
-          accent={metrics.criticalWarningTotal > 0}
+          tone={metrics.criticalWarningTotal > 0 ? "accent" : undefined}
         />
       </div>
       <p className="text-xs text-ink-tertiary">
@@ -52,10 +58,8 @@ export default async function TransparencyHub() {
           : "never"}
         .
       </p>
-      <Section
-        eyebrow="Manage"
-        title="Jump to"
-      >
+      <div>
+        <div className="label mb-2.5">Manage</div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <Card
             href="/dashboard/finance/transparency/statements"
@@ -73,60 +77,54 @@ export default async function TransparencyHub() {
             detail="Rebuild a statement / owner / window"
           />
         </div>
-      </Section>
-      <Section
-        eyebrow="Recent"
-        title={`Latest ${rows.length} statement${rows.length === 1 ? "" : "s"}`}
-      >
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Statement</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Reconciliation</th>
-                <th className="px-4 py-3">Groups</th>
-                <th className="px-4 py-3">Warnings</th>
-                <th className="px-4 py-3">Snapshot</th>
-                <th className="px-4 py-3"></th>
+      </div>
+      <div>
+        <div className="label mb-2.5">Recent</div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Statement</th>
+              <th scope="col">Status</th>
+              <th scope="col">Reconciliation</th>
+              <th scope="col" className="num">Groups</th>
+              <th scope="col">Warnings</th>
+              <th scope="col">Snapshot</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td className="mono text-[12px]">{r.statementCode}</td>
+                <td className="text-[12px] capitalize">{r.status}</td>
+                <td>
+                  <TransparencyStatusBadge status={r.reconciliationStatus} />
+                </td>
+                <td className="num text-[12px]">{r.groupCount}</td>
+                <td className="text-[12px]">
+                  {r.openWarningCount}
+                  {r.criticalCount > 0 && (
+                    <span className="text-danger ml-1">
+                      ({r.criticalCount} critical)
+                    </span>
+                  )}
+                </td>
+                <td className="text-[12px]">
+                  {r.hasExplanationSnapshot ? "✓" : "—"}
+                </td>
+                <td className="text-right">
+                  <Link
+                    href={`/dashboard/finance/transparency/statements/${r.id}`}
+                    className="text-[12px] text-ink hover:text-terra"
+                  >
+                    Open →
+                  </Link>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">
-                    {r.statementCode}
-                  </td>
-                  <td className="px-4 py-3 text-xs capitalize">{r.status}</td>
-                  <td className="px-4 py-3">
-                    <TransparencyStatusBadge status={r.reconciliationStatus} />
-                  </td>
-                  <td className="px-4 py-3 text-xs">{r.groupCount}</td>
-                  <td className="px-4 py-3 text-xs">
-                    {r.openWarningCount}
-                    {r.criticalCount > 0 && (
-                      <span className="text-danger ml-1">
-                        ({r.criticalCount} critical)
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-xs">
-                    {r.hasExplanationSnapshot ? "✓" : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/finance/transparency/statements/${r.id}`}
-                      className="text-xs text-ink hover:underline underline-offset-4"
-                    >
-                      Open →
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -18,14 +18,16 @@ export default async function NewReservePage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Reserves", href: "/dashboard/finance/reserves" },
-          { label: "New" },
-        ]}
-        title="New reserve movement"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/reserves">Reserves</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New reserve movement</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <LedgerLineForm
         title="Reserve movement"

@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import {
   BridgePendingButton,
@@ -16,14 +16,14 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "warning" | "info" | "success" | "danger"
+  "soft" | "warn" | "info" | "ok" | "danger"
 > = {
-  pending: "warning",
-  created: "success",
-  skipped_locked_period: "neutral",
-  skipped_not_chargeable: "neutral",
+  pending: "warn",
+  created: "ok",
+  skipped_locked_period: "soft",
+  skipped_not_chargeable: "soft",
   failed: "danger",
-  reversed: "neutral",
+  reversed: "soft",
 };
 
 export default async function MaterialUsageBridgePage() {
@@ -37,23 +37,29 @@ export default async function MaterialUsageBridgePage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Material usage" },
-        ]}
-        title="Material usage → finance bridge"
-        description="Owner-chargeable items consumed on tasks materialise into expense_lines. Locked periods refuse new lines and are flagged here for finance to handle."
-        actions={<BridgePendingButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <span>Material usage</span>
+          </div>
+          <h1>Material usage → finance bridge</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Owner-chargeable items consumed on tasks materialise into expense_lines. Locked periods refuse new lines and are flagged here for finance to handle.
+          </p>
+        </div>
+        <div className="actions">
+          <BridgePendingButton />
+        </div>
+      </div>
       <DbStatusNotice />
 
       <LastRunBadge label="Last automatic bridge run" run={lastBridgeRun} />
 
       <div className="grid grid-cols-3 gap-3">
-        <Stat label="Created" value={String(created)} tone="success" />
-        <Stat label="Pending" value={String(pending)} tone="warning" />
-        <Stat label="Failed" value={String(failed)} tone="danger" />
+        <Kpi label="Created" value={String(created)} tone="success" />
+        <Kpi label="Pending" value={String(pending)} tone="warn" />
+        <Kpi label="Failed" value={String(failed)} tone="danger" />
       </div>
 
       {rows.length === 0 ? (
@@ -78,9 +84,9 @@ export default async function MaterialUsageBridgePage() {
             {rows.map((r) => (
               <TR key={r.id}>
                 <TD>
-                  <Badge tone={STATUS_TONES[r.status] ?? "neutral"}>
+                  <HandoffBadge tone={STATUS_TONES[r.status] ?? "soft"}>
                     {r.status.replace(/_/g, " ")}
-                  </Badge>
+                  </HandoffBadge>
                 </TD>
                 <TD className="font-mono text-xs">{r.taskCode ?? "—"}</TD>
                 <TD className="text-sm">{r.itemName}</TD>
@@ -108,29 +114,6 @@ export default async function MaterialUsageBridgePage() {
           </TBody>
         </Table>
       )}
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone: "success" | "warning" | "danger";
-}) {
-  const cls =
-    tone === "success"
-      ? "border-success/30 bg-success-weak/30"
-      : tone === "warning"
-        ? "border-warning/30 bg-warning-weak/30"
-        : "border-danger/30 bg-danger-weak/30";
-  return (
-    <div className={`rounded-md border ${cls} p-4`}>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-xl font-mono tabular-nums text-ink mt-1">{value}</div>
     </div>
   );
 }

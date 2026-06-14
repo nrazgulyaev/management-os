@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { listInventoryLocations } from "@/features/inventory/services";
@@ -14,15 +14,21 @@ export default async function LocationsPage() {
   const rows = await listInventoryLocations();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Locations" },
-        ]}
-        title="Storage locations"
-        description="Warehouses, villa storage rooms, housekeeping carts, maintenance rooms."
-        actions={<AddInventoryLocationButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <span>Locations</span>
+          </div>
+          <h1>Storage locations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Warehouses, villa storage rooms, housekeeping carts, maintenance rooms.
+          </p>
+        </div>
+        <div className="actions">
+          <AddInventoryLocationButton />
+        </div>
+      </div>
       <DbStatusNotice />
       {rows.length === 0 ? (
         <NoItemsYet
@@ -39,11 +45,11 @@ export default async function LocationsPage() {
             {rows.map((l) => (
               <TR key={l.id}>
                 <TD className="font-medium">{l.name}</TD>
-                <TD><Badge tone="outline">{l.locationType.replace(/_/g, " ")}</Badge></TD>
+                <TD><HandoffBadge tone="soft">{l.locationType.replace(/_/g, " ")}</HandoffBadge></TD>
                 <TD className="text-xs text-ink-secondary">
                   {l.villaCode ? `Villa ${l.villaCode}` : l.projectName ? `Project ${l.projectName}` : "—"}
                 </TD>
-                <TD><Badge tone={l.status === "active" ? "success" : "neutral"}>{l.status}</Badge></TD>
+                <TD><HandoffBadge tone={l.status === "active" ? "ok" : "soft"}>{l.status}</HandoffBadge></TD>
                 <TD className="text-right">
                   <InventoryRowActions
                     kind="location"
