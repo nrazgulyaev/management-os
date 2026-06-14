@@ -78,7 +78,7 @@ export default async function SetupPage() {
         eyebrow="Getting started"
         breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Setup" }]}
         title="Set up your workspace"
-        description="A guided, three-step start. Add villas, group them into projects, and invite your team — resume any time."
+        description="A guided start. Create your projects, add villas under them, invite your team, then set how each role works — resume any time."
       />
 
       {progress.dismissed && (

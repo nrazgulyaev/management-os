@@ -71,8 +71,8 @@ export async function getVisibleCabinetKeysAction(): Promise<VisibleCabinetAcces
 // ---------------------------------------------------------------------------
 
 const progressSchema = z.object({
-  // 0 = welcome, 1..3 = wizard steps.
-  step: z.number().int().min(0).max(3),
+  // 0 = welcome, 1..4 = wizard steps (project → villa → team → roles).
+  step: z.number().int().min(0).max(4),
 });
 
 export async function saveOnboardingProgressAction(
@@ -135,7 +135,7 @@ export async function finishOnboardingAction(
     .insert(onboardingProgress)
     .values({
       organizationId: me.organizationId,
-      currentStep: 3,
+      currentStep: 4,
       dismissed: true,
       completedAt,
       updatedBy: me.id,
