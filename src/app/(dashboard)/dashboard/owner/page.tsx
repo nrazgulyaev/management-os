@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { DashboardKpi, NoItemsYet } from "@/components/ui/primitives";
 import { HeroGreetingAI } from "@/components/award";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadOwnerCabinet } from "@/lib/development/server/cabinets/owner-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -155,20 +154,18 @@ export default async function OwnerDashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <Section
-            eyebrow="Portfolio"
-            title="Villas at a glance"
-            action={
-              data.villasCount > data.villas.length ? (
+          <div>
+            <div className="flex items-center justify-between mb-2.5">
+              <div className="label">Portfolio</div>
+              {data.villasCount > data.villas.length ? (
                 <Link
                   href="/dashboard/villas"
                   className="text-sm text-info hover:underline"
                 >
                   View all →
                 </Link>
-              ) : null
-            }
-          >
+              ) : null}
+            </div>
             {data.villas.length === 0 ? (
               <NoItemsYet
                 entityLabel="villas"
@@ -193,20 +190,20 @@ export default async function OwnerDashboardPage() {
                         )}
                       </div>
                       {v.healthStatus && (
-                        <Badge
+                        <HandoffBadge
                           tone={
                             v.healthStatus === "excellent" ||
                             v.healthStatus === "good"
-                              ? "success"
+                              ? "ok"
                               : v.healthStatus === "watch"
-                                ? "warning"
+                                ? "warn"
                                 : v.healthStatus === "attention"
                                   ? "danger"
-                                  : "neutral"
+                                  : "soft"
                           }
                         >
                           {v.healthStatus}
-                        </Badge>
+                        </HandoffBadge>
                       )}
                     </div>
                     <div className="flex items-baseline gap-3 text-sm text-ink-secondary">
@@ -238,11 +235,12 @@ export default async function OwnerDashboardPage() {
                 ))}
               </ul>
             )}
-          </Section>
+          </div>
         </div>
 
         <aside className="flex flex-col gap-4">
-          <Section eyebrow="Inbox" title="Needs attention">
+          <div>
+            <div className="label mb-2.5">Inbox</div>
             {data.alerts.length === 0 ? (
               <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
                 Nothing pending. We&rsquo;ll surface watch-status villas and
@@ -264,11 +262,11 @@ export default async function OwnerDashboardPage() {
                           {a.detail}
                         </div>
                       </div>
-                      <Badge
-                        tone={a.kind === "attention" ? "danger" : "warning"}
+                      <HandoffBadge
+                        tone={a.kind === "attention" ? "danger" : "warn"}
                       >
                         {a.kind === "attention" ? "Attention" : "Review"}
-                      </Badge>
+                      </HandoffBadge>
                     </Link>
                   </li>
                 ))}
@@ -282,9 +280,10 @@ export default async function OwnerDashboardPage() {
                 Owner intelligence hub →
               </Link>
             </div>
-          </Section>
+          </div>
 
-          <Section eyebrow="Quick links" title="Jump to">
+          <div>
+            <div className="label mb-2.5">Quick links</div>
             <ul className="grid grid-cols-1 gap-2">
               <QuickLink
                 href="/dashboard/owner-intelligence/calendar"
@@ -303,7 +302,7 @@ export default async function OwnerDashboardPage() {
                 label="Statements & payouts"
               />
             </ul>
-          </Section>
+          </div>
         </aside>
       </div>
     </div>

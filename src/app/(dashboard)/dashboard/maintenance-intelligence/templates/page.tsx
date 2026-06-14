@@ -1,7 +1,5 @@
-import _Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
 import { TemplateAddButton } from "@/components/maintenance-intelligence/template-add-button";
 
@@ -12,71 +10,72 @@ export default async function TemplatesPage() {
   const templates = await listMaintenanceTemplates();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Maintenance intelligence", href: "/dashboard/maintenance-intelligence" },
-          { label: "Templates" },
-        ]}
-        title="Maintenance templates"
-        description="Catalog of preventive checks (AC, pool, pest, garden, pump, electrical, smart-lock battery…). Plans are villa-specific instances of these templates."
-        actions={<TemplateAddButton />}
-      />
-      <Section eyebrow="Catalog" title={`${templates.length} templates`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/maintenance-intelligence">Maintenance intelligence</Link> /{" "}
+            <span>Templates</span>
+          </div>
+          <h1>Maintenance templates</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Catalog of preventive checks (AC, pool, pest, garden, pump, electrical, smart-lock battery…). Plans are villa-specific instances of these templates.
+          </p>
+        </div>
+        <div className="actions">
+          <TemplateAddButton />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Catalog · {templates.length} templates</div>
         {templates.length === 0 ? (
           <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
             No templates yet.
           </p>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Key</th>
-                  <th className="text-left px-3 py-2">Name</th>
-                  <th className="text-left px-3 py-2">Category</th>
-                  <th className="text-left px-3 py-2">Frequency</th>
-                  <th className="text-right px-3 py-2">Duration</th>
-                  <th className="text-left px-3 py-2">Disruption</th>
-                  <th className="text-left px-3 py-2">Status</th>
+                  <th scope="col">Key</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Frequency</th>
+                  <th scope="col" className="num">Duration</th>
+                  <th scope="col">Disruption</th>
+                  <th scope="col">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {templates.map((t) => (
                   <tr key={t.id}>
-                    <td className="px-3 py-2 font-mono text-xs text-ink-tertiary">
-                      {t.key}
-                    </td>
-                    <td className="px-3 py-2 text-ink font-medium">{t.name}</td>
-                    <td className="px-3 py-2 text-ink-secondary">
-                      {t.category.replace(/_/g, " ")}
-                    </td>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="mono text-[12px] text-ink-3">{t.key}</td>
+                    <td className="row-title">{t.name}</td>
+                    <td>{t.category.replace(/_/g, " ")}</td>
+                    <td>
                       {t.defaultFrequency}
                       {t.defaultIntervalDays
                         ? ` · ${t.defaultIntervalDays}d`
                         : ""}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      {t.defaultDurationMinutes}m
-                    </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={t.guestDisruptionLevel === "high" ? "danger" : t.guestDisruptionLevel === "medium" ? "warning" : "neutral"}>
+                    <td className="num">{t.defaultDurationMinutes}m</td>
+                    <td>
+                      <HandoffBadge tone={t.guestDisruptionLevel === "high" ? "danger" : t.guestDisruptionLevel === "medium" ? "warn" : "soft"}>
                         {t.guestDisruptionLevel}
                         {t.requiresVillaEmpty ? " · empty" : ""}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={t.status === "active" ? "success" : "neutral"}>
+                    <td>
+                      <HandoffBadge tone={t.status === "active" ? "ok" : "soft"}>
                         {t.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

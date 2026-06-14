@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { CountActions } from "@/components/inventory-counts/count-actions";
@@ -14,13 +13,13 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "warning" | "info" | "success" | "danger"
+  "soft" | "warn" | "info" | "ok" | "danger"
 > = {
-  draft: "neutral",
-  submitted: "warning",
-  approved: "success",
-  adjusted: "success",
-  cancelled: "neutral",
+  draft: "soft",
+  submitted: "warn",
+  approved: "ok",
+  adjusted: "ok",
+  cancelled: "soft",
 };
 
 export default async function CountDetailPage({
@@ -42,35 +41,40 @@ export default async function CountDetailPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Counts", href: "/dashboard/inventory/counts" },
-          { label: count.countCode },
-        ]}
-        title={count.countCode}
-        description={count.locationName}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <Link href="/dashboard/inventory/counts">Counts</Link> /{" "}
+            <span>{count.countCode}</span>
+          </div>
+          <h1>{count.countCode}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {count.locationName}
+          </p>
+        </div>
+        <div className="actions">
           <CountActions id={count.id} status={count.status} canApprove={canApprove} />
-        }
-      />
+        </div>
+      </div>
       <DbStatusNotice />
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<Badge tone={STATUS_TONES[count.status]}>{count.status}</Badge>} />
-        <Stat label="Lines" value={String(count.lines.length)} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<HandoffBadge tone={STATUS_TONES[count.status]}>{count.status}</HandoffBadge>} />
+        <Kpi label="Lines" value={String(count.lines.length)} />
+        <Kpi
           label="Counted at"
           value={count.countedAt ? count.countedAt.slice(0, 16).replace("T", " ") : "—"}
         />
-        <Stat
+        <Kpi
           label="Approved at"
           value={count.approvedAt ? count.approvedAt.slice(0, 16).replace("T", " ") : "—"}
         />
-        <Stat label="|Variance|" value={totalAbsVariance.toLocaleString()} />
+        <Kpi label="|Variance|" value={totalAbsVariance.toLocaleString()} />
       </div>
 
-      <Section eyebrow="Lines" title="Item × counted quantity">
+      <div>
+        <div className="label mb-2.5">Lines</div>
         {count.lines.length === 0 ? (
           <p className="text-sm text-ink-tertiary">
             No items at this location yet — add stock first.
@@ -123,24 +127,18 @@ export default async function CountDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {count.notes && (
-        <Section eyebrow="Notes" title="Operator notes">
-          <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
-            {count.notes}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Notes</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
+              {count.notes}
+            </p>
+          </Card>
+        </div>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
     </div>
   );
 }

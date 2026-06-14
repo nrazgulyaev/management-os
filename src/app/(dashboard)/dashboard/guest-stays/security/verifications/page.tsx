@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { and, desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import { guestStayTokenVerifications } from "@/lib/db/schema/guest-stay-security";
@@ -13,13 +12,13 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
   pending: "info",
-  verified: "success",
-  expired: "neutral",
+  verified: "ok",
+  expired: "soft",
   failed: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function VerificationsPage({
@@ -57,68 +56,71 @@ export default async function VerificationsPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Security", href: "/dashboard/guest-stays/security" },
-          { label: "Verifications" },
-        ]}
-        title="Verifications"
-        description="One-time codes issued to gate first access to /stay/[token]. Codes expire in 10 minutes; max 5 attempts each."
-      />
-      <Section eyebrow="Recent" title={`${rows.length} verifications`}>
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Token</th>
-                <th className="px-4 py-3">Booking</th>
-                <th className="px-4 py-3">Channel</th>
-                <th className="px-4 py-3">Recipient</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Attempts</th>
-                <th className="px-4 py-3">Expires</th>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-stays/security">Security</Link> /{" "}
+            <span>Verifications</span>
+          </div>
+          <h1>Verifications</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            One-time codes issued to gate first access to /stay/[token]. Codes
+            expire in 10 minutes; max 5 attempts each.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Recent</div>
+        <div className="card p-0 overflow-x-auto">
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">Token</th>
+                <th scope="col">Booking</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Recipient</th>
+                <th scope="col">Status</th>
+                <th scope="col">Attempts</th>
+                <th scope="col">Expires</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
+                  <td colSpan={8} className="text-center text-ink-3">
                     No verifications yet. Issued automatically when a guest first scans their stay link; expires after 10 minutes.
                   </td>
                 </tr>
               )}
               {rows.map(({ v, tokenPrefix, bookingCode }) => (
-                <tr key={v.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums whitespace-nowrap">
+                <tr key={v.id}>
+                  <td className="mono text-[12px] text-ink-3">
                     {new Date(v.createdAt)
                       .toISOString()
                       .slice(0, 16)
                       .replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="mono text-[12px]">
                     {tokenPrefix ? `${tokenPrefix}…` : "—"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="mono text-[12px]">
                     {bookingCode ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs">{v.channel}</td>
-                  <td className="px-4 py-3 text-xs text-ink-secondary">
+                  <td className="text-[12px]">{v.channel}</td>
+                  <td className="text-[12px] text-ink-3">
                     {v.recipientMasked ?? "—"}
                   </td>
-                  <td className="px-4 py-3">
-                    <Badge tone={STATUS_TONES[v.status] ?? "neutral"}>
+                  <td>
+                    <HandoffBadge tone={STATUS_TONES[v.status] ?? "soft"}>
                       {v.status}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
-                  <td className="px-4 py-3 text-xs tabular-nums">
+                  <td className="num text-[12px]">
                     {v.attempts}/{v.maxAttempts}
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums">
+                  <td className="mono text-[12px] text-ink-3">
                     {new Date(v.expiresAt)
                       .toISOString()
                       .slice(0, 16)
@@ -129,7 +131,7 @@ export default async function VerificationsPage({
             </tbody>
           </table>
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

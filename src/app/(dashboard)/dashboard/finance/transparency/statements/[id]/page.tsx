@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { getOwnerStatementById, listStatementLines } from "@/features/finance/services";
 import { mapPoolAll } from "@/lib/db/map-pool";
 import {
@@ -42,55 +40,59 @@ export default async function TransparencyStatementDetail({
   const fallbackExplanation = generateStatementExplanation(statement, lines);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Transparency", href: "/dashboard/finance/transparency" },
-          {
-            label: "Statements",
-            href: "/dashboard/finance/transparency/statements",
-          },
-          { label: statement.statementCode },
-        ]}
-        title={`${statement.periodLabel} · ${statement.statementCode}`}
-        description={`${statement.ownerName} · ${statement.managementModel}`}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/transparency">Transparency</Link> /{" "}
+            <Link href="/dashboard/finance/transparency/statements">
+              Statements
+            </Link>{" "}
+            / <span>{statement.statementCode}</span>
+          </div>
+          <h1>{`${statement.periodLabel} · ${statement.statementCode}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${statement.ownerName} · ${statement.managementModel}`}
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <TransparencyStatusBadge status={recon.status} />
             <RebuildStatementButton statementId={id} />
             <Link
               href={`/owner/statements/${id}`}
-              className="h-9 px-4 inline-flex items-center rounded-full border border-line-soft text-xs text-ink-secondary hover:border-line-strong"
+              className="btn btn-secondary btn-sm"
             >
               Open owner view
             </Link>
           </div>
-        }
-      />
+        </div>
+      </div>
       <StatementExplanationCard
         snapshot={snapshot}
         fallbackHeadline={fallbackExplanation.headline}
         fallbackBullets={fallbackExplanation.bullets}
       />
-      <Section
-        eyebrow="Source groups"
-        title="Owner-facing breakdown"
-        description="The same breakdown the owner sees on /owner/statements/[id]."
-      >
+      <div>
+        <div className="label mb-2.5">Source groups</div>
+        <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+          The same breakdown the owner sees on /owner/statements/[id].
+        </p>
         <StatementSourceBreakdown
           groups={groups}
           groupLines={groupLines}
           audience="internal"
         />
-      </Section>
+      </div>
       <AdminSourceTraceCard groupLines={groupLines} />
-      <Section
-        eyebrow="Warnings"
-        title={`${allWarnings.length} total · ${recon.open} open`}
-        description="All warnings (open / acknowledged / resolved / dismissed)."
-      >
+      <div>
+        <div className="label mb-2.5">Warnings</div>
+        <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+          {`${allWarnings.length} total · ${recon.open} open`} · All warnings
+          (open / acknowledged / resolved / dismissed).
+        </p>
         <StatementWarningList warnings={allWarnings} audience="internal" />
-      </Section>
+      </div>
     </div>
   );
 }

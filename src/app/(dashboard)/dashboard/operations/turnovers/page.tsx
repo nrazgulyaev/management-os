@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { TurnoverBoardClient } from "@/components/operations/turnover-board-client";
 import { getTodaysTurnovers, toTurnoverCards } from "@/features/operations/turnover-queries";
 
@@ -28,24 +26,31 @@ export default async function TurnoversPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Turnovers" },
-        ]}
-        eyebrow={`${cards.length} turnover${cards.length === 1 ? "" : "s"} · today`}
-        title="Turnovers"
-        description="Drag cards between columns as cleaners progress. The turnover-allocator agent fills empty assignees every 90 seconds during the 10:00–14:00 window."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/dashboard/operations">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Operations
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> /{" "}
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Turnovers</span>
+          </div>
+          <h1>Turnovers</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {cards.length} turnover{cards.length === 1 ? "" : "s"} · today. Drag
+            cards between columns as cleaners progress. The turnover-allocator
+            agent fills empty assignees every 90 seconds during the 10:00–14:00
+            window.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/dashboard/operations"
+            className="btn btn-secondary btn-sm inline-flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Operations
+          </Link>
+        </div>
+      </div>
       <TurnoverBoardClient turnovers={cards} />
     </div>
   );

@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { getTokenUsageView } from "@/features/ai-agents/agent-detail-queries";
 
 /**
@@ -47,84 +44,90 @@ export default async function AiTokenUsagePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "AI assistants", href: "/dashboard/ai" },
-          { label: "Token usage" },
-        ]}
-        title="AI token usage"
-        description="Per-workspace AI spend, token volume, and run counts — derived from the same audit log every agent writes to. Money is shown in USD."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/ai">AI assistants</Link> /{" "}
+            <span>Token usage</span>
+          </div>
+          <h1>AI token usage</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-workspace AI spend, token volume, and run counts — derived from
+            the same audit log every agent writes to. Money is shown in USD.
+          </p>
+        </div>
+      </div>
 
-      <Section eyebrow="This month" title="Budget & volume">
+      <div>
+        <div className="label mb-2.5">This month</div>
         {!current ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No usage recorded yet for your workspace. The first agent run lands a
             row here automatically.
           </p>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <MetricCard
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Kpi
               label="Spend · MTD"
               value={fmtUsd(current.totalCostUsdMinor)}
-              hint={`${current.totalRuns} runs`}
+              sub={`${current.totalRuns} runs`}
             />
-            <MetricCard
+            <Kpi
               label="Spend · today"
               value={fmtUsd(current.todayCostUsdMinor)}
-              hint={`${current.todayRuns} runs today`}
+              sub={`${current.todayRuns} runs today`}
             />
-            <MetricCard
+            <Kpi
               label="Tokens · MTD"
               value={fmtTokens(totalTokensThisMonth)}
-              hint={`${fmtTokens(current.totalPromptTokens)} in / ${fmtTokens(current.totalCompletionTokens)} out`}
+              sub={`${fmtTokens(current.totalPromptTokens)} in / ${fmtTokens(current.totalCompletionTokens)} out`}
             />
-            <MetricCard
+            <Kpi
               label="Runs · MTD"
               value={String(current.totalRuns)}
-              hint="all agents"
+              sub="all agents"
             />
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="By agent"
-        title="This month's breakdown"
-        description="Live per-agent roll-up from the run audit log."
-      >
+      <div>
+        <div className="label mb-2.5">By agent</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Live per-agent roll-up from the run audit log.
+        </p>
         {breakdown.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No agent runs this month.
           </p>
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Agent</th>
-                  <th className="text-right px-3 py-2">Runs</th>
-                  <th className="text-right px-3 py-2">Tokens</th>
-                  <th className="text-right px-3 py-2">Cost</th>
-                  <th className="px-3 py-2"></th>
+                  <th scope="col">Agent</th>
+                  <th scope="col" className="num">Runs</th>
+                  <th scope="col" className="num">Tokens</th>
+                  <th scope="col" className="num">Cost</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {breakdown.map((b) => (
                   <tr key={b.assistantKey}>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="row-title">
                       {b.assistantKey.replace(/_/g, " ")}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-secondary">
+                    <td className="num tabular-nums">
                       {b.runs}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-tertiary">
+                    <td className="num tabular-nums text-ink-tertiary">
                       {fmtTokens(b.totalTokens)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-tertiary">
+                    <td className="num tabular-nums text-ink-tertiary">
                       {fmtUsd(b.costUsdMinor)}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/ai/runs?agent=${b.assistantKey}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -138,42 +141,43 @@ export default async function AiTokenUsagePage() {
             </table>
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="History" title="Last 12 months">
+      <div>
+        <div className="label mb-2.5">History</div>
         {history.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No history yet.
           </p>
         ) : (
           <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Month</th>
-                  <th className="text-right px-3 py-2">Runs</th>
-                  <th className="text-right px-3 py-2">Prompt tok</th>
-                  <th className="text-right px-3 py-2">Completion tok</th>
-                  <th className="text-right px-3 py-2">Cost</th>
+                  <th scope="col">Month</th>
+                  <th scope="col" className="num">Runs</th>
+                  <th scope="col" className="num">Prompt tok</th>
+                  <th scope="col" className="num">Completion tok</th>
+                  <th scope="col" className="num">Cost</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {history.map((m) => (
                   <tr key={`${m.year}-${m.month}`}>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="row-title">
                       {MONTHS[m.month - 1] ?? m.month} {m.year}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-secondary">
+                    <td className="num tabular-nums">
                       {m.totalRuns}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-tertiary">
+                    <td className="num tabular-nums text-ink-tertiary">
                       {fmtTokens(m.totalPromptTokens)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-tertiary">
+                    <td className="num tabular-nums text-ink-tertiary">
                       {fmtTokens(m.totalCompletionTokens)}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
-                      <Badge tone="neutral">{fmtUsd(m.totalCostUsdMinor)}</Badge>
+                    <td className="num tabular-nums">
+                      <HandoffBadge tone="soft">{fmtUsd(m.totalCostUsdMinor)}</HandoffBadge>
                     </td>
                   </tr>
                 ))}
@@ -181,7 +185,7 @@ export default async function AiTokenUsagePage() {
             </table>
           </div>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

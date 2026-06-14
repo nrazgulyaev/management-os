@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listVillaCalendarBlocks } from "@/features/availability/services";
 import { listVillas } from "@/features/villas/services";
 import { CancelBlockButton } from "@/components/availability/cancel-block-button";
@@ -28,15 +26,22 @@ export default async function BlocksListPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Availability", href: "/dashboard/availability" },
-          { label: "Calendar blocks" },
-        ]}
-        title="Calendar blocks"
-        description="All blocks across the portfolio. Booking-sourced blocks are managed via their booking; cancel manual blocks here when no longer needed."
-        actions={<CalendarBlockAddButton villas={villaOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/availability">Availability</Link> /{" "}
+            <span>Calendar blocks</span>
+          </div>
+          <h1>Calendar blocks</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            All blocks across the portfolio. Booking-sourced blocks are managed
+            via their booking; cancel manual blocks here when no longer needed.
+          </p>
+        </div>
+        <div className="actions">
+          <CalendarBlockAddButton villas={villaOpts} />
+        </div>
+      </div>
 
       <div className="flex flex-wrap gap-2 text-[11px] uppercase tracking-widest">
         {[
@@ -54,43 +59,44 @@ export default async function BlocksListPage({
         ))}
       </div>
 
-      <Section eyebrow="Blocks" title={`${blocks.length} rows`}>
+      <div>
+        <div className="label mb-2.5">Blocks · {blocks.length} rows</div>
         {blocks.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No blocks.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Type</th>
-                  <th className="text-left px-3 py-2">Title</th>
-                  <th className="text-left px-3 py-2">From</th>
-                  <th className="text-left px-3 py-2">To</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2"></th>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">From</th>
+                  <th scope="col">To</th>
+                  <th scope="col">Status</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {blocks.map((b) => (
                   <tr key={b.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{b.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{b.blockType.replace(/_/g, " ")}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{b.title}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{b.villaCode ?? "—"}</td>
+                    <td>{b.blockType.replace(/_/g, " ")}</td>
+                    <td>{b.title}</td>
+                    <td className="num">
                       {b.startsAt.slice(0, 16).replace("T", " ")}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="num">
                       {b.endsAt.slice(0, 16).replace("T", " ")}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={b.status === "active" ? "info" : "neutral"}>
+                    <td>
+                      <HandoffBadge tone={b.status === "active" ? "info" : "soft"}>
                         {b.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       {b.status === "active" && b.sourceType !== "booking" && (
                         <CancelBlockButton id={b.id} />
                       )}
@@ -99,9 +105,9 @@ export default async function BlocksListPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

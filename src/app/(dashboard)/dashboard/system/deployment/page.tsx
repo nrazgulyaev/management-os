@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { existsSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getEnvReadinessReport } from "@/lib/env/validation";
 import { getProductionGateReport } from "@/lib/deployment/production-gates";
 import { backupRunbookUrl } from "@/lib/env";
@@ -42,14 +39,18 @@ export default async function DeploymentReadinessPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "System", href: "/dashboard" },
-          { label: "Deployment readiness" },
-        ]}
-        title="Deployment readiness"
-        description={`Mode: ${env.mode}. Run \`npm run preflight:deploy\` before promoting a build to staging or production.`}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">System</Link> /{" "}
+            <span>Deployment readiness</span>
+          </div>
+          <h1>Deployment readiness</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`Mode: ${env.mode}. Run \`npm run preflight:deploy\` before promoting a build to staging or production.`}
+          </p>
+        </div>
+      </div>
 
       <div
         className={`rounded-md border px-5 py-4 leading-relaxed text-sm ${
@@ -79,78 +80,85 @@ export default async function DeploymentReadinessPage() {
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Env mode" value={env.mode} />
-        <MetricCard
+        <Kpi label="Env mode" value={env.mode} />
+        <Kpi
           label="Env fatal"
           value={String(env.fatalCount)}
-          accent={env.fatalCount > 0}
+          tone={env.fatalCount > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Env warnings"
           value={String(env.warningCount)}
-          accent={env.warningCount > 0}
+          tone={env.warningCount > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Production gates"
           value={gates.ok ? "OK" : "Failed"}
-          accent={!gates.ok}
+          tone={!gates.ok ? "accent" : undefined}
         />
       </div>
 
-      <Section
-        eyebrow="Environment"
-        title={`Env readiness — ${env.fatalCount} fatal · ${env.warningCount} warning`}
-        description="Values are redacted.  Public NEXT_PUBLIC_* keys are shown in full when set."
-      >
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Key</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Value</th>
-                <th className="px-4 py-3">Note</th>
+      <div>
+        <div className="label mb-2.5">
+          Env readiness — {env.fatalCount} fatal · {env.warningCount} warning
+        </div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Values are redacted. Public NEXT_PUBLIC_* keys are shown in full when
+          set.
+        </p>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Key</th>
+                <th scope="col">Category</th>
+                <th scope="col">Status</th>
+                <th scope="col">Value</th>
+                <th scope="col">Note</th>
               </tr>
             </thead>
             <tbody>
               {env.items.map((i) => (
-                <tr key={i.key} className="border-t border-line-soft">
-                  <td className="px-4 py-3 font-mono text-xs">{i.key}</td>
-                  <td className="px-4 py-3 text-xs">{i.category}</td>
-                  <td className="px-4 py-3">
-                    <Badge
+                <tr key={i.key}>
+                  <td className="mono text-xs">{i.key}</td>
+                  <td className="text-xs">{i.category}</td>
+                  <td>
+                    <HandoffBadge
                       tone={
                         i.status === "fatal"
                           ? "danger"
                           : i.status === "warning"
-                            ? "warning"
+                            ? "warn"
                             : i.status === "not_required"
-                              ? "neutral"
-                              : "success"
+                              ? "soft"
+                              : "ok"
                       }
                     >
                       {i.status}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                  <td className="mono text-[11px] text-ink-tertiary">
                     {i.redactedValue ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-secondary">
+                  <td className="text-[11px] text-ink-secondary">
                     {i.message}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Production gates"
-        title={`${gates.results.length} gate(s) — ${gates.ok ? "OK" : "FAILED"}`}
-        description="Gates only fire in staging / production.  In development they always pass."
-      >
+      <div>
+        <div className="label mb-2.5">
+          Production gates — {gates.results.length} gate(s) —{" "}
+          {gates.ok ? "OK" : "FAILED"}
+        </div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Gates only fire in staging / production. In development they always
+          pass.
+        </p>
         <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
           {gates.results.map((g) => (
             <li
@@ -161,27 +169,28 @@ export default async function DeploymentReadinessPage() {
                 <div className="text-sm text-ink">{g.key.replace(/_/g, " ")}</div>
                 <div className="text-ink-tertiary mt-0.5">{g.message}</div>
               </div>
-              <Badge
+              <HandoffBadge
                 tone={
                   g.ok
-                    ? "success"
+                    ? "ok"
                     : g.severity === "critical"
                       ? "danger"
-                      : "warning"
+                      : "warn"
                 }
               >
                 {g.ok ? "ok" : g.severity}
-              </Badge>
+              </HandoffBadge>
             </li>
           ))}
         </ul>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Supabase"
-        title="Migrations"
-        description="Pending migrations are applied automatically on each deploy. Contact support if a migration is missing in production."
-      >
+      <div>
+        <div className="label mb-2.5">Supabase</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Pending migrations are applied automatically on each deploy. Contact
+          support if a migration is missing in production.
+        </p>
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <Stat label="Migration count" value={String(migrationCount)} />
           <Stat label="Last migration" value={lastMigration ?? "—"} />
@@ -197,66 +206,67 @@ export default async function DeploymentReadinessPage() {
         >
           See <code>docs/SUPABASE-PROVISIONING-CHECKLIST.md</code>
         </Link>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Storage"
-        title="Buckets"
-        description="See `docs/STORAGE-BUCKETS-CHECKLIST.md` for privacy rules + cleanup jobs."
-      >
+      <div>
+        <div className="label mb-2.5">Storage</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          See `docs/STORAGE-BUCKETS-CHECKLIST.md` for privacy rules + cleanup
+          jobs.
+        </p>
         <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft text-xs">
           <li className="px-4 py-3 flex justify-between">
             <span>task-attachments</span>
-            <Badge tone="warning">private · signed URL only</Badge>
+            <HandoffBadge tone="warn">private · signed URL only</HandoffBadge>
           </li>
           <li className="px-4 py-3 flex justify-between">
             <span>guest-request-attachments</span>
-            <Badge tone="warning">private · signed URL · cleanup cron</Badge>
+            <HandoffBadge tone="warn">private · signed URL · cleanup cron</HandoffBadge>
           </li>
         </ul>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Cron"
-        title={`${cronRouteCount} cron route(s)`}
-        description="See `docs/VERCEL-CRON-CHECKLIST.md` for schedules + Vercel setup."
-      >
-        <p className="text-xs text-ink-tertiary">
-          {process.env.CRON_SECRET
-            ? "CRON_SECRET is set — all routes accept Vercel Cron requests."
-            : "CRON_SECRET missing — cron routes will deny every request in production."}
+      <div>
+        <div className="label mb-2.5">Cron — {cronRouteCount} cron route(s)</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          See `docs/VERCEL-CRON-CHECKLIST.md` for schedules + Vercel setup.
         </p>
-      </Section>
+        <Card padding="default">
+          <p className="text-xs text-ink-tertiary m-0">
+            {process.env.CRON_SECRET
+              ? "CRON_SECRET is set — all routes accept Vercel Cron requests."
+              : "CRON_SECRET missing — cron routes will deny every request in production."}
+          </p>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Demo vs production"
-        title="Demo configuration"
-      >
+      <div>
+        <div className="label mb-2.5">Demo vs production</div>
         <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft text-xs">
           <li className="px-4 py-3 flex justify-between">
             <span>ARCONIQUE_FORCE_MOCK</span>
-            <Badge tone={process.env.ARCONIQUE_FORCE_MOCK === "1" ? "warning" : "neutral"}>
+            <HandoffBadge tone={process.env.ARCONIQUE_FORCE_MOCK === "1" ? "warn" : "soft"}>
               {process.env.ARCONIQUE_FORCE_MOCK === "1" ? "ON" : "off"}
-            </Badge>
+            </HandoffBadge>
           </li>
           <li className="px-4 py-3 flex justify-between">
             <span>NEXT_PUBLIC_ENABLE_DEMO_MODE</span>
-            <Badge
+            <HandoffBadge
               tone={
                 process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "1"
-                  ? "warning"
-                  : "neutral"
+                  ? "warn"
+                  : "soft"
               }
             >
               {process.env.NEXT_PUBLIC_ENABLE_DEMO_MODE === "1" ? "ON" : "off"}
-            </Badge>
+            </HandoffBadge>
           </li>
         </ul>
         <p className="text-xs text-ink-tertiary">
           Production deployments must keep both flags off.  See{" "}
           <code>docs/PRODUCTION-SEED-STRATEGY.md</code>.
         </p>
-      </Section>
+      </div>
 
       {fatals.length > 0 && (
         <p className="rounded-md border border-danger/40 bg-danger-weak text-danger p-3 text-xs">

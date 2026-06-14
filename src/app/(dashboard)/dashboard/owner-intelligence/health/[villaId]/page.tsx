@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   computeVillaHealth,
   listOwnerVillaHealthSnapshots,
@@ -16,13 +13,13 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
-  excellent: "success",
+  excellent: "ok",
   good: "info",
-  watch: "warning",
+  watch: "warn",
   attention: "danger",
-  unknown: "neutral",
+  unknown: "soft",
 };
 
 export default async function HealthDetailPage({
@@ -44,51 +41,52 @@ export default async function HealthDetailPage({
   if (!computed) notFound();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          {
-            label: "Owner intelligence",
-            href: "/dashboard/owner-intelligence",
-          },
-          {
-            label: "Health snapshots",
-            href: "/dashboard/owner-intelligence/health",
-          },
-          {
-            label: computed.villaName ?? villaId.slice(0, 8),
-          },
-        ]}
-        title={`Villa ${computed.villaName ?? villaId.slice(0, 8)}`}
-        description={`Live computation for ${periodStart} → ${periodEnd}. Snapshots store the same numbers and are what the owner sees.`}
-        actions={
-          <Badge tone={STATUS_TONES[computed.outcome.status] ?? "neutral"}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            /{" "}
+            <Link href="/dashboard/owner-intelligence/health">
+              Health snapshots
+            </Link>{" "}
+            / <span>{computed.villaName ?? villaId.slice(0, 8)}</span>
+          </div>
+          <h1>Villa {computed.villaName ?? villaId.slice(0, 8)}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Live computation for {periodStart} → {periodEnd}. Snapshots store
+            the same numbers and are what the owner sees.
+          </p>
+        </div>
+        <div className="actions">
+          <HandoffBadge tone={STATUS_TONES[computed.outcome.status] ?? "soft"}>
             {computed.outcome.status} · {Math.round(computed.outcome.score)}
             /100
-          </Badge>
-        }
-      />
+          </HandoffBadge>
+        </div>
+      </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <Kpi
           label="Booked nights"
           value={String(computed.inputs.bookedNights)}
-          hint={`of ${computed.inputs.availableNights} available`}
+          sub={`of ${computed.inputs.availableNights} available`}
         />
-        <MetricCard
+        <Kpi
           label="Owner stay nights"
           value={String(computed.inputs.ownerStayNights)}
         />
-        <MetricCard
+        <Kpi
           label="Maintenance blocked"
           value={String(computed.inputs.maintenanceBlockedNights)}
         />
-        <MetricCard
+        <Kpi
           label="Open tickets"
           value={String(computed.inputs.maintenanceTicketsOpen)}
-          accent={computed.inputs.maintenanceTicketsOpen > 0}
+          tone={computed.inputs.maintenanceTicketsOpen > 0 ? "accent" : undefined}
         />
       </div>
-      <Section eyebrow="Run" title="Recompute snapshot">
-        <div className="rounded-md border border-line-soft bg-surface p-5">
+      <div>
+        <div className="label mb-2.5">Run</div>
+        <Card padding="default">
           <GenerateVillaSnapshotForm
             villaId={villaId}
             periodStart={periodStart}
@@ -98,9 +96,12 @@ export default async function HealthDetailPage({
             Idempotent — re-running for the same period overwrites the
             existing row.
           </p>
+        </Card>
+      </div>
+      <div>
+        <div className="label mb-2.5">
+          History · {snapshots.length} snapshots stored
         </div>
-      </Section>
-      <Section eyebrow="History" title={`${snapshots.length} snapshots stored`}>
         {snapshots.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No snapshots yet. Use the recompute button above.
@@ -116,9 +117,9 @@ export default async function HealthDetailPage({
                   {s.periodStart} → {s.periodEnd}
                 </span>
                 <span className="flex items-center gap-2">
-                  <Badge tone={STATUS_TONES[s.healthStatus] ?? "neutral"}>
+                  <HandoffBadge tone={STATUS_TONES[s.healthStatus] ?? "soft"}>
                     {s.healthStatus}
-                  </Badge>
+                  </HandoffBadge>
                   <span className="font-mono tabular-nums">
                     {s.healthScore !== null
                       ? Number(s.healthScore).toFixed(0)
@@ -130,14 +131,17 @@ export default async function HealthDetailPage({
             ))}
           </ol>
         )}
-      </Section>
-      <Section eyebrow="What changed this month" title="Deterministic explanation">
-        <ul className="rounded-md border border-line-soft bg-surface p-5 list-disc list-inside text-sm space-y-1">
-          {computed.explanation.map((line, i) => (
-            <li key={i}>{line}</li>
-          ))}
-        </ul>
-      </Section>
+      </div>
+      <div>
+        <div className="label mb-2.5">What changed this month</div>
+        <Card padding="default">
+          <ul className="list-disc list-inside text-sm space-y-1">
+            {computed.explanation.map((line, i) => (
+              <li key={i}>{line}</li>
+            ))}
+          </ul>
+        </Card>
+      </div>
       <Link
         href="/dashboard/owner-intelligence/health"
         className="text-xs text-ink hover:underline underline-offset-4"

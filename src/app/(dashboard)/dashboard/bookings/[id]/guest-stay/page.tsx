@@ -1,7 +1,5 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getBookingById } from "@/features/bookings/services";
 import { listTokensForBooking } from "@/features/guest-stays/services";
 import { getActiveStubLockForBooking } from "@/features/guest-stays/smart-lock-stub";
@@ -20,10 +18,22 @@ import { listVerificationsForToken } from "@/features/guest-stays/verification";
 export const metadata = { title: "Guest stay · Booking" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  active: "success",
-  revoked: "warning",
-  expired: "neutral",
+const STATUS_TONES: Record<string, "ok" | "warn" | "danger" | "gold" | "info" | "soft" | "ink" | "amber"> = {
+  active: "ok",
+  revoked: "warn",
+  expired: "soft",
+};
+
+/** Map the shared legacy tone vocabulary (toneForStatus) onto handoff badge tones. */
+const LEGACY_TONE_TO_HANDOFF: Record<
+  "neutral" | "info" | "warning" | "success" | "danger",
+  "soft" | "info" | "warn" | "ok" | "danger"
+> = {
+  neutral: "soft",
+  info: "info",
+  warning: "warn",
+  success: "ok",
+  danger: "danger",
 };
 
 export default async function BookingGuestStayPage({
@@ -47,210 +57,226 @@ export default async function BookingGuestStayPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: booking.bookingCode, href: `/dashboard/bookings/${id}` },
-          { label: "Guest stay" },
-        ]}
-        title="Guest stay"
-        description={`${booking.villaCode ?? "villa"} · ${booking.checkIn} → ${booking.checkOut}`}
-      />
-
-      <Section
-        eyebrow="Token"
-        title={active ? "Active token" : "No active token"}
-        description={
-          active
-            ? "The raw token was shown once, at issue time. To replace it, revoke and re-issue."
-            : "Issue a fresh signed token to share the /stay/[token] URL with the guest."
-        }
-      >
-        {active ? (
-          <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Status
-              </div>
-              <div className="mt-1">
-                <Badge tone={STATUS_TONES[active.status] ?? "neutral"}>
-                  {active.status}
-                </Badge>
-              </div>
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Prefix
-              </div>
-              <div className="mt-1 font-mono text-[12px]">{active.tokenPrefix}…</div>
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Expires
-              </div>
-              <div className="mt-1 tabular-nums">
-                {active.expiresAt.slice(0, 16).replace("T", " ")}
-              </div>
-            </div>
-            <div className="md:col-span-1 flex items-end">
-              <RevokeTokenButton id={active.id} />
-            </div>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> /{" "}
+            <Link href={`/dashboard/bookings/${id}`}>{booking.bookingCode}</Link> /{" "}
+            <span>Guest stay</span>
           </div>
-        ) : (
-          <IssueTokenForm bookingId={id} />
-        )}
-      </Section>
+          <h1>Guest stay</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${booking.villaCode ?? "villa"} · ${booking.checkIn} → ${booking.checkOut}`}
+          </p>
+        </div>
+      </div>
 
-      {active && (
-        <Section
-          eyebrow="Verification"
-          title={
-            latestVerification
-              ? `Latest: ${latestVerification.status}`
-              : "No verifications yet"
-          }
-          description="Guests must enter a one-time code on their first visit. Codes expire in 10 minutes; max 5 attempts each. The raw code is never persisted — only its hash."
-        >
-          {latestVerification ? (
-            <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <div className="label mb-2.5">Token — {active ? "Active token" : "No active token"}</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          {active
+            ? "The raw token was shown once, at issue time. To replace it, revoke and re-issue."
+            : "Issue a fresh signed token to share the /stay/[token] URL with the guest."}
+        </p>
+        {active ? (
+          <Card padding="default">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
               <div>
                 <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
                   Status
                 </div>
                 <div className="mt-1">
-                  <Badge
-                    tone={
-                      latestVerification.status === "verified"
-                        ? "success"
-                        : latestVerification.status === "pending"
-                          ? "info"
-                          : latestVerification.status === "failed"
-                            ? "danger"
-                            : "neutral"
-                    }
-                  >
-                    {latestVerification.status}
-                  </Badge>
+                  <HandoffBadge tone={STATUS_TONES[active.status] ?? "soft"}>
+                    {active.status}
+                  </HandoffBadge>
                 </div>
               </div>
               <div>
                 <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  Channel
+                  Prefix
                 </div>
-                <div className="mt-1 capitalize">
-                  {latestVerification.channel}
-                </div>
+                <div className="mt-1 font-mono text-[12px]">{active.tokenPrefix}…</div>
               </div>
               <div>
                 <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  Recipient
+                  Expires
                 </div>
-                <div className="mt-1 text-ink-secondary text-xs">
-                  {latestVerification.recipientMasked ?? "—"}
+                <div className="mt-1 tabular-nums">
+                  {active.expiresAt.slice(0, 16).replace("T", " ")}
                 </div>
               </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  Attempts
-                </div>
-                <div className="mt-1 font-mono tabular-nums">
-                  {latestVerification.attempts}/{latestVerification.maxAttempts}
-                </div>
+              <div className="md:col-span-1 flex items-end">
+                <RevokeTokenButton id={active.id} />
               </div>
             </div>
+          </Card>
+        ) : (
+          <Card padding="default">
+            <IssueTokenForm bookingId={id} />
+          </Card>
+        )}
+      </div>
+
+      {active && (
+        <div>
+          <div className="label mb-2.5">
+            Verification —{" "}
+            {latestVerification
+              ? `Latest: ${latestVerification.status}`
+              : "No verifications yet"}
+          </div>
+          <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+            Guests must enter a one-time code on their first visit. Codes expire
+            in 10 minutes; max 5 attempts each. The raw code is never persisted —
+            only its hash.
+          </p>
+          {latestVerification ? (
+            <Card padding="default">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                    Status
+                  </div>
+                  <div className="mt-1">
+                    <HandoffBadge
+                      tone={
+                        latestVerification.status === "verified"
+                          ? "ok"
+                          : latestVerification.status === "pending"
+                            ? "info"
+                            : latestVerification.status === "failed"
+                              ? "danger"
+                              : "soft"
+                      }
+                    >
+                      {latestVerification.status}
+                    </HandoffBadge>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                    Channel
+                  </div>
+                  <div className="mt-1 capitalize">
+                    {latestVerification.channel}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                    Recipient
+                  </div>
+                  <div className="mt-1 text-ink-secondary text-xs">
+                    {latestVerification.recipientMasked ?? "—"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                    Attempts
+                  </div>
+                  <div className="mt-1 font-mono tabular-nums">
+                    {latestVerification.attempts}/{latestVerification.maxAttempts}
+                  </div>
+                </div>
+              </div>
+            </Card>
           ) : (
-            <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-              No code issued yet. The guest will receive one when they first
-              visit the stay link.
-            </p>
+            <Card padding="default">
+              <p className="text-sm text-ink-tertiary m-0">
+                No code issued yet. The guest will receive one when they first
+                visit the stay link.
+              </p>
+            </Card>
           )}
-        </Section>
+        </div>
       )}
 
       {tokens.length > 0 && (
-        <Section eyebrow="History" title={`${tokens.length} token(s) ever issued`}>
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+        <div>
+          <div className="label mb-2.5">History — {tokens.length} token(s) ever issued</div>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Prefix</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2">Access</th>
-                  <th className="text-left px-3 py-2">Expires</th>
-                  <th className="text-left px-3 py-2">Issued to</th>
+                  <th scope="col">Prefix</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Access</th>
+                  <th scope="col">Expires</th>
+                  <th scope="col">Issued to</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {tokens.map((t) => (
                   <tr key={t.id}>
-                    <td className="px-3 py-2 font-mono text-[11px] text-ink-tertiary">
+                    <td className="font-mono text-[11px] text-ink-tertiary">
                       {t.tokenPrefix}…
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={STATUS_TONES[t.status] ?? "neutral"}>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONES[t.status] ?? "soft"}>
                         {t.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-tertiary">
+                    <td className="num tabular-nums text-ink-tertiary">
                       {t.accessCount}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="text-ink-tertiary tabular-nums">
                       {t.expiresAt.slice(0, 16).replace("T", " ")}
                     </td>
-                    <td className="px-3 py-2 text-ink-secondary text-xs">
+                    <td className="text-ink-secondary text-xs">
                       {t.issuedToEmail ?? t.issuedToPhone ?? "—"}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-        </Section>
+          </Card>
+        </div>
       )}
 
-      <Section
-        eyebrow="Concierge"
-        title={`${orders.length} guest service order${orders.length === 1 ? "" : "s"}`}
-        description="Orders placed from /stay/[token]/services for this booking."
-      >
+      <div>
+        <div className="label mb-2.5">
+          Concierge — {orders.length} guest service order{orders.length === 1 ? "" : "s"}
+        </div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Orders placed from /stay/[token]/services for this booking.
+        </p>
         {orders.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            No orders yet.
-          </p>
+          <Card padding="default">
+            <p className="text-sm text-ink-tertiary m-0">No orders yet.</p>
+          </Card>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Code</th>
-                  <th className="text-left px-3 py-2">Service</th>
-                  <th className="text-left px-3 py-2">Status</th>
-                  <th className="text-right px-3 py-2">Price</th>
-                  <th className="text-left px-3 py-2">Bridge</th>
-                  <th />
+                  <th scope="col">Code</th>
+                  <th scope="col">Service</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Price</th>
+                  <th scope="col">Bridge</th>
+                  <th scope="col" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {orders.map((o) => (
                   <tr key={o.id}>
-                    <td className="px-3 py-2 font-mono text-[11px]">
+                    <td className="font-mono text-[11px]">
                       {o.orderCode}
                     </td>
-                    <td className="px-3 py-2 text-ink-secondary">
+                    <td className="text-ink-secondary">
                       {o.serviceName ?? "—"}
                     </td>
-                    <td className="px-3 py-2">
-                      <Badge tone={toneForStatus(o.status as OrderStatus)}>
+                    <td>
+                      <HandoffBadge tone={LEGACY_TONE_TO_HANDOFF[toneForStatus(o.status as OrderStatus)]}>
                         {ORDER_STATUS_LABELS[o.status as OrderStatus]}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="px-3 py-2 text-right font-mono tabular-nums">
+                    <td className="num font-mono tabular-nums">
                       {formatMinorMoney(o.guestPriceMinor, o.currency)}
                     </td>
-                    <td className="px-3 py-2 text-[11px] text-ink-tertiary">
+                    <td className="text-[11px] text-ink-tertiary">
                       {o.financeBridgeStatus}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/guest-services/orders/${o.id}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -262,56 +288,61 @@ export default async function BookingGuestStayPage({
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Smart lock"
-        title="Stub access code"
-        description="Demo only — no real lock APIs are called. The code is visible to the guest from check-in − 24 h to check-out + 3 h."
-      >
+      <div>
+        <div className="label mb-2.5">Smart lock — Stub access code</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Demo only — no real lock APIs are called. The code is visible to the
+          guest from check-in − 24 h to check-out + 3 h.
+        </p>
         {lock ? (
-          <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Code (admin view)
+          <Card padding="default">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                  Code (admin view)
+                </div>
+                <div className="mt-1 font-mono text-lg tracking-widest">
+                  {lock.codeDisplay ?? "—"}
+                </div>
               </div>
-              <div className="mt-1 font-mono text-lg tracking-widest">
-                {lock.codeDisplay ?? "—"}
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                  Source
+                </div>
+                <div className="mt-1">
+                  <HandoffBadge tone="soft">{lock.source}</HandoffBadge>
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                  Valid from
+                </div>
+                <div className="mt-1 tabular-nums">
+                  {lock.validFrom.slice(0, 16).replace("T", " ")}
+                </div>
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+                  Valid until
+                </div>
+                <div className="mt-1 tabular-nums">
+                  {lock.validUntil.slice(0, 16).replace("T", " ")}
+                </div>
               </div>
             </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Source
-              </div>
-              <div className="mt-1">
-                <Badge tone="neutral">{lock.source}</Badge>
-              </div>
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Valid from
-              </div>
-              <div className="mt-1 tabular-nums">
-                {lock.validFrom.slice(0, 16).replace("T", " ")}
-              </div>
-            </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                Valid until
-              </div>
-              <div className="mt-1 tabular-nums">
-                {lock.validUntil.slice(0, 16).replace("T", " ")}
-              </div>
-            </div>
-          </div>
+          </Card>
         ) : (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            Stub created automatically when a token is issued. No active stub yet.
-          </p>
+          <Card padding="default">
+            <p className="text-sm text-ink-tertiary m-0">
+              Stub created automatically when a token is issued. No active stub yet.
+            </p>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

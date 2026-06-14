@@ -9,8 +9,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { and, asc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -21,6 +20,19 @@ import { ReplyForm } from "./reply-form";
 
 export const metadata: Metadata = { title: "Support thread · Settings" };
 export const dynamic = "force-dynamic";
+
+/** Map the shared support-ui legacy Badge tones onto HandoffBadge tones. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft" | "amber"
+> = {
+  success: "ok",
+  info: "info",
+  warning: "warn",
+  danger: "danger",
+  accent: "info",
+  neutral: "soft",
+};
 
 export default async function SupportThreadPage({
   params,
@@ -34,7 +46,11 @@ export default async function SupportThreadPage({
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader title="Support thread" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Support thread</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the support inbox."
@@ -72,28 +88,33 @@ export default async function SupportThreadPage({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Support", href: "/dashboard/settings/support" },
-          { label: "Thread" },
-        ]}
-        eyebrow="Settings · platform support"
-        title={thread.subject}
-        description={`Opened ${fmtDateTime(thread.createdAt)}${
-          thread.closedAt ? ` · closed ${fmtDateTime(thread.closedAt)}` : ""
-        }`}
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge tone={STATUS_TONE[thread.status] ?? "neutral"}>
-              {thread.status}
-            </Badge>
-            <Badge tone={PRIORITY_TONE[thread.priority] ?? "neutral"}>
-              {thread.priority}
-            </Badge>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <Link href="/dashboard/settings/support">Support</Link> /{" "}
+            <span>Thread</span>
           </div>
-        }
-      />
+          <h1>{thread.subject}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`Opened ${fmtDateTime(thread.createdAt)}${
+              thread.closedAt
+                ? ` · closed ${fmtDateTime(thread.closedAt)}`
+                : ""
+            }`}
+          </p>
+        </div>
+        <div className="actions">
+          <HandoffBadge tone={HANDOFF_TONE[STATUS_TONE[thread.status] ?? "neutral"]}>
+            {thread.status}
+          </HandoffBadge>
+          <HandoffBadge
+            tone={HANDOFF_TONE[PRIORITY_TONE[thread.priority] ?? "neutral"]}
+          >
+            {thread.priority}
+          </HandoffBadge>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-3 max-w-3xl">
         {messages.map((m) => {

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { requirePermission, AuthorizationError } from "@/features/auth/permissions";
 import { AccessForbidden } from "@/components/auth/access-forbidden";
@@ -32,15 +32,21 @@ export default async function NewDirectBookingPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Holds", href: "/dashboard/direct-bookings/holds" },
-          { label: "New" },
-        ]}
-        title="New direct booking"
-        description="Place a commission-free hold for a guest who reached you off-platform (phone, WhatsApp, walk-in). The dates are priced live and blocked across every channel — no card is charged."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <Link href="/dashboard/direct-bookings/holds">Holds</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New direct booking</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Place a commission-free hold for a guest who reached you off-platform
+            (phone, WhatsApp, walk-in). The dates are priced live and blocked
+            across every channel — no card is charged.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <CreateDirectBookingForm villas={options} />
     </div>

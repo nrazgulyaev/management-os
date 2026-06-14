@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { listBuckets } from "@/features/system/storage-overview";
 
@@ -13,20 +11,27 @@ export default async function StorageOverviewPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "System", href: "/dashboard" },
-          { label: "Storage" },
-        ]}
-        title="Storage health overview"
-        description="Every Supabase Storage bucket the platform expects, its privacy classification, and the deep-link to its dedicated health page where applicable."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">System</Link> /{" "}
+            <span>Storage</span>
+          </div>
+          <h1>Storage health overview</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every Supabase Storage bucket the platform expects, its privacy
+            classification, and the deep-link to its dedicated health page where
+            applicable.
+          </p>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="1"
-        title="Bucket inventory"
-        description="Cross-reference with docs/STORAGE-BUCKETS-CHECKLIST.md. The static check `npm run check:storage` keeps this list in sync with the docs."
-      >
+      <div>
+        <div className="label mb-2.5">Bucket inventory</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Cross-reference with docs/STORAGE-BUCKETS-CHECKLIST.md. The static
+          check `npm run check:storage` keeps this list in sync with the docs.
+        </p>
         <Table>
           <THead>
             <TR>
@@ -44,9 +49,9 @@ export default async function StorageOverviewPage() {
               <TR key={b.name}>
                 <TD className="font-mono text-xs">{b.name}</TD>
                 <TD>
-                  <Badge tone={b.privacy === "private" ? "success" : "danger"}>
+                  <HandoffBadge tone={b.privacy === "private" ? "ok" : "danger"}>
                     {b.privacy}
-                  </Badge>
+                  </HandoffBadge>
                 </TD>
                 <TD className="text-xs text-ink-secondary">{b.usedBy}</TD>
                 <TD className="text-xs tabular-nums">
@@ -54,16 +59,16 @@ export default async function StorageOverviewPage() {
                 </TD>
                 <TD>
                   {b.hasCleanupCron ? (
-                    <Badge tone="success">cron</Badge>
+                    <HandoffBadge tone="ok">cron</HandoffBadge>
                   ) : (
-                    <Badge tone="neutral">manual</Badge>
+                    <HandoffBadge tone="soft">manual</HandoffBadge>
                   )}
                 </TD>
                 <TD>
                   {b.hasMetadataStrip ? (
-                    <Badge tone="success">yes</Badge>
+                    <HandoffBadge tone="ok">yes</HandoffBadge>
                   ) : (
-                    <Badge tone="warning">no</Badge>
+                    <HandoffBadge tone="warn">no</HandoffBadge>
                   )}
                 </TD>
                 <TD>
@@ -84,13 +89,13 @@ export default async function StorageOverviewPage() {
             ))}
           </TBody>
         </Table>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="2"
-        title="Operator runbook"
-        description="When a bucket is misconfigured, follow these steps."
-      >
+      <div>
+        <div className="label mb-2.5">Operator runbook</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          When a bucket is misconfigured, follow these steps.
+        </p>
         <ol className="list-decimal pl-5 text-sm text-ink-secondary space-y-2">
           <li>
             Run{" "}
@@ -128,7 +133,7 @@ export default async function StorageOverviewPage() {
             for the broader env + production-gate readiness signal.
           </li>
         </ol>
-      </Section>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listMaintenanceRiskEvents } from "@/features/maintenance-intelligence/services";
 import { RiskRowActions } from "@/components/maintenance-intelligence/risk-row-actions";
 import { ScanRisksButton } from "@/components/maintenance-intelligence/scan-risks-button";
@@ -8,10 +7,10 @@ import { ScanRisksButton } from "@/components/maintenance-intelligence/scan-risk
 export const metadata = { title: "Utility risks" };
 export const dynamic = "force-dynamic";
 
-const SEVERITY_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  low: "neutral",
+const SEVERITY_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -25,22 +24,29 @@ export default async function UtilityRisksPage() {
   );
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Utilities", href: "/dashboard/utilities" },
-          { label: "Risks" },
-        ]}
-        title="Utility risks"
-        description="Open risks scoped to utility accounts: low/critical balance + no recent reading. Run the unified scanner to refresh."
-        actions={<ScanRisksButton />}
-      />
-      <Section eyebrow="Open" title={`${rows.length} risks`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/utilities">Utilities</Link> /{" "}
+            <span>Risks</span>
+          </div>
+          <h1>Utility risks</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Open risks scoped to utility accounts: low/critical balance + no recent reading. Run the unified scanner to refresh.
+          </p>
+        </div>
+        <div className="actions">
+          <ScanRisksButton />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Open</div>
         {rows.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No open utility risks.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+          <Card padding="none" overflowHidden>
             <ul className="divide-y divide-line-soft">
               {rows.map((r) => (
                 <li
@@ -49,9 +55,9 @@ export default async function UtilityRisksPage() {
                 >
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge tone={SEVERITY_TONES[r.severity] ?? "neutral"}>
+                      <HandoffBadge tone={SEVERITY_TONES[r.severity] ?? "soft"}>
                         {r.severity}
-                      </Badge>
+                      </HandoffBadge>
                       <span className="font-mono text-[11px] text-ink-tertiary">
                         {r.riskType.replace(/_/g, " ")}
                       </span>
@@ -69,9 +75,9 @@ export default async function UtilityRisksPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

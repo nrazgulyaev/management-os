@@ -9,9 +9,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { count, desc, eq, inArray } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getDb } from "@/lib/db/client";
@@ -28,15 +26,32 @@ import {
 export const metadata: Metadata = { title: "Support · Settings" };
 export const dynamic = "force-dynamic";
 
+/** Map the shared support-ui legacy Badge tones onto HandoffBadge tones. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft" | "amber"
+> = {
+  success: "ok",
+  info: "info",
+  warning: "warn",
+  danger: "danger",
+  accent: "info",
+  neutral: "soft",
+};
+
 export default async function SupportSettingsPage() {
   const db = getDb();
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader
-          title="Support"
-          description="Reach the Arconique platform team."
-        />
+        <div className="page-header">
+          <div className="left">
+            <h1>Support</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Reach the Arconique platform team.
+            </p>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the support inbox."
@@ -72,34 +87,38 @@ export default async function SupportSettingsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Support" },
-        ]}
-        eyebrow="Settings · platform support"
-        title="Support"
-        description="Reach the Arconique platform team. Replies land right here — no email required."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <span>Support</span>
+          </div>
+          <h1>Support</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Reach the Arconique platform team. Replies land right here — no email
+            required.
+          </p>
+        </div>
+      </div>
 
-      <Section
-        variant="panel"
-        eyebrow="New thread"
-        title="Ask the platform team"
-        description="Describe the problem in one thread per topic. Urgent = production blocked."
-      >
-        <NewThreadForm />
-      </Section>
+      <div>
+        <div className="label mb-2.5">New thread</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Describe the problem in one thread per topic. Urgent = production
+          blocked.
+        </p>
+        <Card padding="default">
+          <NewThreadForm />
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Your threads"
-        title={`Threads (${threads.length})`}
-        description={
-          openCount > 0
+      <div>
+        <div className="label mb-2.5">Your threads</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          {openCount > 0
             ? `${openCount} awaiting resolution. "Pending" means the platform team replied and is waiting on you.`
-            : "Everything resolved."
-        }
-      >
+            : "Everything resolved."}
+        </p>
         {threads.length === 0 ? (
           <EmptyState
             title="No support threads yet"
@@ -129,14 +148,18 @@ export default async function SupportSettingsPage() {
                     </Link>
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[t.status] ?? "neutral"}>
+                    <HandoffBadge
+                      tone={HANDOFF_TONE[STATUS_TONE[t.status] ?? "neutral"]}
+                    >
                       {t.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={PRIORITY_TONE[t.priority] ?? "neutral"}>
+                    <HandoffBadge
+                      tone={HANDOFF_TONE[PRIORITY_TONE[t.priority] ?? "neutral"]}
+                    >
                       {t.priority}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="tabular-nums">
                     {messageCounts.get(t.id) ?? 0}
@@ -152,7 +175,7 @@ export default async function SupportSettingsPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

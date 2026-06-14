@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listWifiAdmin } from "@/features/villa-guides/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -24,66 +22,71 @@ export default async function WifiList() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villa guides", href: "/dashboard/villa-guides" },
-          { label: "Wi-Fi" },
-        ]}
-        title="Wi-Fi credentials"
-        description="Networks and the encrypted password served at /stay/[token]/wifi. v9G+: passwords are encrypted at rest with AES-256-GCM. The list never reveals plaintext — open a row to rotate."
-        actions={
-          <div className="flex gap-2">
-            {legacyCount > 0 && (
-              <Link
-                href="/dashboard/villa-guides/wifi/migrate"
-                className="text-sm px-3 py-1.5 rounded-sm border border-warning/50 bg-warning-weak/30 hover:border-warning"
-              >
-                Migrate {legacyCount} legacy plaintext row{legacyCount === 1 ? "" : "s"}
-              </Link>
-            )}
-            <WifiAddButton villas={villaOpts} projects={projectOpts} />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/villa-guides">Villa guides</Link> /{" "}
+            <span>Wi-Fi</span>
           </div>
-        }
-      />
-      <Section eyebrow="Networks" title={`${rows.length} entries`}>
-        {rows.length === 0 ? (
-          <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
-            None.
+          <h1>Wi-Fi credentials</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Networks and the encrypted password served at /stay/[token]/wifi.
+            v9G+: passwords are encrypted at rest with AES-256-GCM. The list
+            never reveals plaintext — open a row to rotate.
           </p>
+        </div>
+        <div className="actions">
+          {legacyCount > 0 && (
+            <Link
+              href="/dashboard/villa-guides/wifi/migrate"
+              className="btn btn-secondary btn-sm"
+            >
+              Migrate {legacyCount} legacy plaintext row{legacyCount === 1 ? "" : "s"}
+            </Link>
+          )}
+          <WifiAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Networks</div>
+        {rows.length === 0 ? (
+          <Card padding="default">
+            <p className="text-sm text-ink-tertiary m-0">None.</p>
+          </Card>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Scope</th>
-                  <th className="text-left px-3 py-2">Network</th>
-                  <th className="text-left px-3 py-2">Password</th>
-                  <th className="text-left px-3 py-2">Migrated</th>
-                  <th />
+                  <th scope="col">Scope</th>
+                  <th scope="col">Network</th>
+                  <th scope="col">Password</th>
+                  <th scope="col">Migrated</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {rows.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink-secondary text-xs">
+                    <td className="text-ink-3 text-[12px]">
                       {r.villaCode ?? r.projectName ?? "global"}
                     </td>
-                    <td className="px-3 py-2 text-ink font-medium">{r.networkName}</td>
-                    <td className="px-3 py-2 text-xs">
+                    <td className="row-title">{r.networkName}</td>
+                    <td>
                       {r.hasCiphertext ? (
-                        <Badge tone="success">
+                        <HandoffBadge tone="ok">
                           encrypted{r.keyVersion !== null ? ` · v${r.keyVersion}` : ""}
-                        </Badge>
+                        </HandoffBadge>
                       ) : r.hasLegacyPlaintext ? (
-                        <Badge tone="warning">legacy plaintext</Badge>
+                        <HandoffBadge tone="warn">legacy plaintext</HandoffBadge>
                       ) : (
-                        <Badge tone="neutral">none</Badge>
+                        <HandoffBadge tone="soft">none</HandoffBadge>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-[11px] tabular-nums">
+                    <td className="text-ink-3 text-[11px] tabular-nums">
                       {r.migratedAt ? r.migratedAt.slice(0, 10) : "—"}
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/villa-guides/wifi/${r.id}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -95,9 +98,9 @@ export default async function WifiList() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

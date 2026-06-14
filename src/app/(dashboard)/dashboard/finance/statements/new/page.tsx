@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listOwners } from "@/features/owners/services";
 import { listVillas } from "@/features/villas/services";
@@ -18,15 +18,21 @@ export default async function GenerateStatementPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Statements", href: "/dashboard/finance/statements" },
-          { label: "Generate" },
-        ]}
-        title="Generate owner statement"
-        description="Pulls revenue, fees, expenses, taxes, reserves, and management fees for the period and allocates by ownership share. Idempotent for drafts."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/statements">Statements</Link> /{" "}
+            <span>Generate</span>
+          </div>
+          <h1>Generate owner statement</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Pulls revenue, fees, expenses, taxes, reserves, and management fees
+            for the period and allocates by ownership share. Idempotent for
+            drafts.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <GenerateStatementForm
         owners={owners.map((o) => ({ id: o.id, label: o.displayName }))}

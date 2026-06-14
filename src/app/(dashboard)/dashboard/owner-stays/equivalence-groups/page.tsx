@@ -1,6 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listEquivalenceGroups,
   listEquivalenceMembers,
@@ -10,6 +8,7 @@ import { AddEquivalenceMemberForm } from "@/components/owner-stays/add-member-fo
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { AddEquivalenceGroupButton } from "@/components/dashboard/owners/owners-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
+import Link from "next/link";
 
 export const metadata = { title: "Equivalence groups" };
 export const dynamic = "force-dynamic";
@@ -26,15 +25,23 @@ export default async function EquivalenceGroupsPage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner stays", href: "/dashboard/owner-stays" },
-          { label: "Equivalence groups" },
-        ]}
-        title="Villa equivalence groups"
-        description="Groups of swap-comparable villas. Used by the relocation engine: a booking can only be relocated to a villa in the same group with same-or-better quality_rank."
-        actions={<AddEquivalenceGroupButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-stays">Owner stays</Link> /{" "}
+            <span>Equivalence groups</span>
+          </div>
+          <h1>Villa equivalence groups</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Groups of swap-comparable villas. Used by the relocation engine: a
+            booking can only be relocated to a villa in the same group with
+            same-or-better quality_rank.
+          </p>
+        </div>
+        <div className="actions">
+          <AddEquivalenceGroupButton />
+        </div>
+      </div>
 
       {groupsWithMembers.length === 0 ? (
         <NoItemsYet
@@ -44,11 +51,12 @@ export default async function EquivalenceGroupsPage() {
         />
       ) : (
         groupsWithMembers.map((g) => (
-          <Section
-            key={g.id}
-            eyebrow={g.projectName ?? "global"}
-            title={g.name}
-            action={
+          <div key={g.id} className="flex flex-col gap-4">
+            <div className="flex items-end gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="label mb-2.5">{g.projectName ?? "global"}</div>
+                <h2 className="serif text-[22px] m-0">{g.name}</h2>
+              </div>
               <OwnersRowActions
                 kind="equivalence_group"
                 row={{
@@ -61,41 +69,40 @@ export default async function EquivalenceGroupsPage() {
                   },
                 }}
               />
-            }
-          >
-            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+            </div>
+            <Card padding="none" overflowHidden>
+              <table className="data">
+                <thead>
                   <tr>
-                    <th className="text-left px-3 py-2">Villa</th>
-                    <th className="text-right px-3 py-2">Quality rank</th>
-                    <th className="text-left px-3 py-2">Status</th>
-                    <th className="text-left px-3 py-2">Notes</th>
+                    <th scope="col">Villa</th>
+                    <th scope="col" className="num">Quality rank</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Notes</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-line-soft">
+                <tbody>
                   {g.members.map((m) => (
                     <tr key={m.id}>
-                      <td className="px-3 py-2 text-ink font-medium">{m.villaCode ?? "—"}</td>
-                      <td className="px-3 py-2 text-right tabular-nums">{m.qualityRank}</td>
-                      <td className="px-3 py-2">
-                        <Badge tone={m.villaStatus === "active" ? "success" : "neutral"}>
+                      <td className="row-title">{m.villaCode ?? "—"}</td>
+                      <td className="num">{m.qualityRank}</td>
+                      <td>
+                        <HandoffBadge tone={m.villaStatus === "active" ? "ok" : "soft"}>
                           {m.villaStatus ?? "—"}
-                        </Badge>
+                        </HandoffBadge>
                       </td>
-                      <td className="px-3 py-2 text-ink-tertiary text-xs">{m.notes ?? "—"}</td>
+                      <td className="text-ink-3 text-xs">{m.notes ?? "—"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
             <AddEquivalenceMemberForm
               groupId={g.id}
               villas={allVillas
                 .filter((v) => !g.members.some((m) => m.villaId === v.id))
                 .map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}
             />
-          </Section>
+          </div>
         ))
       )}
     </div>

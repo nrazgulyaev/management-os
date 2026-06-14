@@ -1,5 +1,5 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -27,15 +27,20 @@ export default async function EditStaffPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Payroll", href: "/dashboard/payroll" },
-          { label: member.fullName },
-        ]}
-        title="Edit staff member"
-        description="Update the rate or allocation. Changes apply to the next payroll run; already-posted runs are unchanged."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/payroll">Payroll</Link> /{" "}
+            <span>{member.fullName}</span>
+          </div>
+          <h1>Edit staff member</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Update the rate or allocation. Changes apply to the next payroll run;
+            already-posted runs are unchanged.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <StaffForm
         mode="edit"

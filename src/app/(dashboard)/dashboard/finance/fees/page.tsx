@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listFeeLines } from "@/features/finance/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
@@ -19,12 +19,21 @@ export default async function FeesPage() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[{ label: "Finance", href: "/dashboard/finance" }, { label: "Fees" }]}
-        title="Fees"
-        description="OTA commission, payment processing, bank, FX, agent and manager commissions."
-        actions={<FeeAddButton villas={villaOpts} projects={projectOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <span>Fees</span>
+          </div>
+          <h1>Fees</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            OTA commission, payment processing, bank, FX, agent and manager commissions.
+          </p>
+        </div>
+        <div className="actions">
+          <FeeAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
       <FinanceTable
         rows={rows.map((r) => ({

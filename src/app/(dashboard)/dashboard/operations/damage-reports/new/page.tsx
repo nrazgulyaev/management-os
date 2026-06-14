@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { DamageReportForm } from "@/components/operations/damage-form";
 import { listVillas } from "@/features/villas/services";
@@ -15,15 +15,19 @@ export default async function NewDamageReportPage({
   const villas = await listVillas();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Damage reports", href: "/dashboard/operations/damage-reports" },
-          { label: "New" },
-        ]}
-        title="Log damage"
-        description="Capture damage details, severity, and chargeability."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/damage-reports">Damage reports</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>Log damage</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Capture damage details, severity, and chargeability.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <DamageReportForm
         villas={villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` }))}

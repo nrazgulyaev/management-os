@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listSecurityEvents,
   type SecurityEventSeverity,
@@ -12,11 +10,11 @@ export const dynamic = "force-dynamic";
 
 const SEVERITY_TONES: Record<
   SecurityEventSeverity,
-  "neutral" | "info" | "warning" | "danger"
+  "soft" | "info" | "warn" | "danger"
 > = {
-  low: "neutral",
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -36,16 +34,22 @@ export default async function SecurityEventsPage({
   const rows = await listSecurityEvents({ severity, limit: 200 });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Security", href: "/dashboard/guest-stays/security" },
-          { label: "Events" },
-        ]}
-        title="Security events"
-        description="Append-only log. Filter by severity. Verification, rate limits, lock + Wi-Fi reveals all flow through here."
-      />
-      <Section eyebrow="Filter" title={`${rows.length} events`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-stays/security">Security</Link> /{" "}
+            <span>Events</span>
+          </div>
+          <h1>Security events</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Append-only log. Filter by severity. Verification, rate limits, lock
+            + Wi-Fi reveals all flow through here.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Filter</div>
         <div className="flex gap-2 mb-4">
           <FilterPill
             href="/dashboard/guest-stays/security/events"
@@ -63,52 +67,49 @@ export default async function SecurityEventsPage({
             </FilterPill>
           ))}
         </div>
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">When</th>
-                <th className="px-4 py-3">Type</th>
-                <th className="px-4 py-3">Severity</th>
-                <th className="px-4 py-3">Token</th>
-                <th className="px-4 py-3">IP hash</th>
-                <th className="px-4 py-3">Detail</th>
+        <div className="card p-0 overflow-x-auto">
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">When</th>
+                <th scope="col">Type</th>
+                <th scope="col">Severity</th>
+                <th scope="col">Token</th>
+                <th scope="col">IP hash</th>
+                <th scope="col">Detail</th>
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
+                  <td colSpan={6} className="text-center text-ink-3">
                     No events match.
                   </td>
                 </tr>
               )}
               {rows.map((e) => (
-                <tr key={e.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 text-[11px] text-ink-tertiary tabular-nums whitespace-nowrap">
+                <tr key={e.id}>
+                  <td className="mono text-[12px] text-ink-3">
                     {new Date(e.createdAt)
                       .toISOString()
                       .slice(0, 16)
                       .replace("T", " ")}
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">{e.eventType}</td>
-                  <td className="px-4 py-3">
-                    <Badge
+                  <td className="mono text-[12px]">{e.eventType}</td>
+                  <td>
+                    <HandoffBadge
                       tone={SEVERITY_TONES[e.severity as SecurityEventSeverity]}
                     >
                       {e.severity}
-                    </Badge>
+                    </HandoffBadge>
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                  <td className="mono text-[12px] text-ink-3">
                     {e.tokenPrefix ? `${e.tokenPrefix}…` : "—"}
                   </td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                  <td className="mono text-[12px] text-ink-3">
                     {e.ipHash ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-[11px] text-ink-secondary">
+                  <td className="text-[12px] text-ink-3">
                     {e.metadata
                       ? truncateJson(JSON.stringify(e.metadata))
                       : "—"}
@@ -118,7 +119,7 @@ export default async function SecurityEventsPage({
             </tbody>
           </table>
         </div>
-      </Section>
+      </div>
     </div>
   );
 }
@@ -140,11 +141,9 @@ function FilterPill({
   return (
     <Link
       href={href}
-      className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${
-        active
-          ? "bg-ink text-ink-inverse"
-          : "border border-line-soft text-ink-secondary hover:border-line-strong"
-      }`}
+      className={
+        active ? "btn btn-accent btn-sm" : "btn btn-secondary btn-sm"
+      }
     >
       {children}
     </Link>

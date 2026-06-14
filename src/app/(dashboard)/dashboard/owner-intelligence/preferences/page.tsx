@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { ownerCalendarPreferences } from "@/lib/db/schema/owner-intelligence";
@@ -26,29 +25,33 @@ export default async function OwnerPreferencesAdminPage() {
     : [];
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          {
-            label: "Owner intelligence",
-            href: "/dashboard/owner-intelligence",
-          },
-          { label: "Preferences" },
-        ]}
-        title="Owner calendar preferences"
-        description="Each owner can decide how the owner portal displays their calendar — guest names, country, channel labels, maintenance details, density. Defaults are applied when no row exists."
-      />
-      <Section eyebrow="Preferences" title={`${ownersAndPrefs.length} owners`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Owner</th>
-                <th className="px-4 py-3">Currency</th>
-                <th className="px-4 py-3">Guest names</th>
-                <th className="px-4 py-3">Country</th>
-                <th className="px-4 py-3">Channel</th>
-                <th className="px-4 py-3">Maintenance</th>
-                <th className="px-4 py-3">Density</th>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            / <span>Preferences</span>
+          </div>
+          <h1>Owner calendar preferences</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Each owner can decide how the owner portal displays their calendar —
+            guest names, country, channel labels, maintenance details, density.
+            Defaults are applied when no row exists.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Preferences · {ownersAndPrefs.length} owners</div>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Owner</th>
+                <th scope="col">Currency</th>
+                <th scope="col">Guest names</th>
+                <th scope="col">Country</th>
+                <th scope="col">Channel</th>
+                <th scope="col">Maintenance</th>
+                <th scope="col">Density</th>
               </tr>
             </thead>
             <tbody>
@@ -56,38 +59,38 @@ export default async function OwnerPreferencesAdminPage() {
                 <tr>
                   <td
                     colSpan={7}
-                    className="px-4 py-6 text-center text-ink-tertiary"
+                    className="text-center text-ink-tertiary"
                   >
                     No owners on file.
                   </td>
                 </tr>
               )}
               {ownersAndPrefs.map(({ owner, pref }) => (
-                <tr key={owner.id} className="border-t border-line-soft">
-                  <td className="px-4 py-3 text-xs">
-                    <span className="text-ink font-medium">
+                <tr key={owner.id}>
+                  <td className="text-xs">
+                    <span className="row-title">
                       {owner.displayName}
                     </span>
                     <div className="text-[10px] text-ink-tertiary font-mono">
                       {owner.id.slice(0, 8)}…
                     </div>
                   </td>
-                  <td className="px-4 py-3 font-mono text-xs">
+                  <td className="mono text-xs">
                     {pref?.defaultCurrency ?? "USD"}
                   </td>
                   <Cell on={pref?.showGuestNames ?? true} />
                   <Cell on={pref?.showGuestCountry ?? true} />
                   <Cell on={pref?.showChannelLabels ?? true} />
                   <Cell on={pref?.showMaintenanceDetails ?? true} />
-                  <td className="px-4 py-3 text-xs capitalize">
+                  <td className="text-xs capitalize">
                     {pref?.calendarDensity ?? "comfortable"}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
-      </Section>
+        </Card>
+      </div>
       <p className="text-xs text-ink-tertiary">
         Owners update their own preferences inside /owner; this admin
         view is read-only. The schema enforces one row per owner via
@@ -99,10 +102,10 @@ export default async function OwnerPreferencesAdminPage() {
 
 function Cell({ on }: { on: boolean }) {
   return (
-    <td className="px-4 py-3">
-      <Badge tone={on ? "success" : "neutral"}>
+    <td>
+      <HandoffBadge tone={on ? "ok" : "soft"}>
         {on ? "shown" : "hidden"}
-      </Badge>
+      </HandoffBadge>
     </td>
   );
 }

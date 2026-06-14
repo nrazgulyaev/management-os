@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import Link from "next/link";
+import { Card } from "@/components/dashboard/primitives";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Star } from "lucide-react";
@@ -19,63 +19,66 @@ export default async function GuestsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Bookings", href: "/dashboard/bookings" },
-          { label: "Guests" },
-        ]}
-        title="Guests"
-        description="Stored guest contact records. Linked to bookings; PII is access-controlled."
-        actions={<SourceBadge source={source} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/bookings">Bookings</Link> / <span>Guests</span>
+          </div>
+          <h1>Guests</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Stored guest contact records. Linked to bookings; PII is access-controlled.
+          </p>
+        </div>
+        <div className="actions">
+          <SourceBadge source={source} />
+        </div>
+      </div>
 
       <DbStatusNotice />
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Name</TH>
-            <TH>Email</TH>
-            <TH>Phone</TH>
-            <TH>Nationality</TH>
-            <TH>Language</TH>
-            <TH>VIP</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {guests.length === 0 ? (
-            <TR>
-              <TD colSpan={6} className="text-ink-tertiary text-center py-8">
-                No guests yet.
-              </TD>
-            </TR>
-          ) : (
-            guests.map((g) => (
-              <TR key={g.id}>
-                <TD className="text-ink font-medium">{g.fullName}</TD>
-                <TD className="text-ink-secondary text-sm">{g.email ?? "—"}</TD>
-                <TD className="text-ink-secondary text-sm font-mono tabular-nums">
-                  {g.phone ?? "—"}
-                </TD>
-                <TD className="text-ink-secondary">{g.nationality ?? "—"}</TD>
-                <TD className="text-ink-secondary">{g.preferredLanguage ?? "—"}</TD>
-                <TD>
-                  {canManage && g.source === "db" ? (
-                    <VipToggle guestId={g.id} initial={g.isVip} />
-                  ) : g.isVip ? (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-700">
-                      <Star className="size-3.5" fill="currentColor" strokeWidth={1.75} />
-                      VIP
-                    </span>
-                  ) : (
-                    <span className="text-ink-tertiary">—</span>
-                  )}
-                </TD>
-              </TR>
-            ))
-          )}
-        </TBody>
-      </Table>
+      <Card padding="none" overflowHidden>
+        {guests.length === 0 ? (
+          <p className="p-5 text-[13px] text-ink-3 italic m-0">No guests yet.</p>
+        ) : (
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Email</th>
+                <th scope="col">Phone</th>
+                <th scope="col">Nationality</th>
+                <th scope="col">Language</th>
+                <th scope="col">VIP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {guests.map((g) => (
+                <tr key={g.id}>
+                  <td className="row-title">{g.fullName}</td>
+                  <td className="text-ink-secondary text-sm">{g.email ?? "—"}</td>
+                  <td className="mono text-[12px] tabular-nums">
+                    {g.phone ?? "—"}
+                  </td>
+                  <td className="text-ink-secondary">{g.nationality ?? "—"}</td>
+                  <td className="text-ink-secondary">{g.preferredLanguage ?? "—"}</td>
+                  <td>
+                    {canManage && g.source === "db" ? (
+                      <VipToggle guestId={g.id} initial={g.isVip} />
+                    ) : g.isVip ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-amber-700">
+                        <Star className="size-3.5" fill="currentColor" strokeWidth={1.75} />
+                        VIP
+                      </span>
+                    ) : (
+                      <span className="text-ink-3">—</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </Card>
     </div>
   );
 }

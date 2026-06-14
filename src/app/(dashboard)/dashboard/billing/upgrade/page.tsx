@@ -24,9 +24,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { eq, asc, and } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import {
@@ -104,7 +102,11 @@ export default async function UpgradePage({
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader title="Upgrade plan" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Upgrade plan</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -177,18 +179,20 @@ export default async function UpgradePage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Billing", href: "/dashboard/settings" },
-          { label: "Upgrade" },
-        ]}
-        title="Pick a plan"
-        description={
-          currentPackagingKey
-            ? `Your workspace is on the ${currentPackagingKey} packaging. Switching takes effect at the next billing cycle.`
-            : "Pick a packaging to activate your workspace."
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Billing</Link> /{" "}
+            <span>Upgrade</span>
+          </div>
+          <h1>Pick a plan</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {currentPackagingKey
+              ? `Your workspace is on the ${currentPackagingKey} packaging. Switching takes effect at the next billing cycle.`
+              : "Pick a packaging to activate your workspace."}
+          </p>
+        </div>
+      </div>
 
       {sp.locked && (
         <div className="rounded border border-warning/40 bg-warning-weak/30 px-4 py-3 text-sm text-ink-secondary">
@@ -211,11 +215,13 @@ export default async function UpgradePage({
         </div>
       )}
 
-      <Section
-        eyebrow="Plans"
-        title={`${packagings.length} packaging${packagings.length === 1 ? "" : "s"} available`}
-        description={`Billing cycle: ${cycle}. Switch via ?cycle=annual or the public /pricing toggle.`}
-      >
+      <div>
+        <div className="label mb-2.5">Plans</div>
+        <p className="text-[13px] text-ink-3 mt-0 mb-3 max-w-[680px]">
+          {`${packagings.length} packaging${packagings.length === 1 ? "" : "s"} available`}{" "}
+          · Billing cycle: {cycle}. Switch via ?cycle=annual or the public
+          /pricing toggle.
+        </p>
         {packagings.length === 0 ? (
           <EmptyState
             title="No packagings configured"
@@ -231,13 +237,14 @@ export default async function UpgradePage({
                 cycle === "annual" ? p.hasAnnualPriceId : p.hasMonthlyPriceId;
               const isFree = priceMinor === 0n;
               return (
-                <div
+                <Card
                   key={p.id}
-                  className="rounded-md border border-line-soft bg-surface p-5 flex flex-col gap-3"
+                  padding="default"
+                  className="flex flex-col gap-3"
                 >
                   <div className="flex items-start justify-between">
                     <h3 className="text-lg font-medium">{p.displayName}</h3>
-                    {isCurrent && <Badge tone="success">Current</Badge>}
+                    {isCurrent && <HandoffBadge tone="ok">Current</HandoffBadge>}
                   </div>
                   <div>
                     <span className="text-2xl font-semibold tabular-nums">
@@ -262,21 +269,21 @@ export default async function UpgradePage({
                     {p.isEnterprise ? (
                       <Link
                         href="/contact?subject=enterprise"
-                        className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
+                        className="btn btn-secondary btn-sm"
                       >
                         Talk to sales →
                       </Link>
                     ) : !hasPriceId ? (
-                      <Badge tone="warning">
+                      <HandoffBadge tone="warn">
                         Stripe price not yet provisioned
-                      </Badge>
+                      </HandoffBadge>
                     ) : isCurrent ? (
                       /* API redirect endpoint — plain anchor so the router
                          never prefetches it (a <Link> logs a 503 in console
                          while Stripe is unconfigured). */
                       <a
                         href="/api/billing/portal"
-                        className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium hover:bg-muted/40"
+                        className="btn btn-secondary btn-sm"
                       >
                         Manage subscription →
                       </a>
@@ -288,32 +295,35 @@ export default async function UpgradePage({
                       />
                     )}
                   </div>
-                </div>
+                </Card>
               );
             })}
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Help" title="Questions?">
-        <p className="text-sm text-ink-secondary leading-relaxed max-w-prose">
-          Plan features + per-plan AI eligibility are documented at{" "}
-          <Link
-            href="/dashboard/settings/ai-agents"
-            className="underline"
-          >
-            /dashboard/settings/ai-agents
-          </Link>
-          . Contact{" "}
-          <a
-            href="mailto:support@arconique.com"
-            className="underline"
-          >
-            support@arconique.com
-          </a>{" "}
-          for custom (Enterprise) terms.
-        </p>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Help</div>
+        <Card padding="default">
+          <p className="text-sm text-ink-secondary leading-relaxed max-w-prose m-0">
+            Plan features + per-plan AI eligibility are documented at{" "}
+            <Link
+              href="/dashboard/settings/ai-agents"
+              className="underline"
+            >
+              /dashboard/settings/ai-agents
+            </Link>
+            . Contact{" "}
+            <a
+              href="mailto:support@arconique.com"
+              className="underline"
+            >
+              support@arconique.com
+            </a>{" "}
+            for custom (Enterprise) terms.
+          </p>
+        </Card>
+      </div>
     </div>
   );
 }

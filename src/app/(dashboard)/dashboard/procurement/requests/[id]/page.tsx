@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { PurchaseRequestStatusPill } from "@/components/procurement/purchase-status-pill";
 import { RequestActions } from "@/components/procurement/request-actions";
@@ -25,23 +24,29 @@ export default async function PurchaseRequestDetail({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Procurement", href: "/dashboard/procurement" },
-          { label: "Requests", href: "/dashboard/procurement/requests" },
-          { label: pr.requestCode },
-        ]}
-        title={pr.title}
-        description={pr.requestCode}
-        actions={<RequestActions id={pr.id} status={pr.status} canApprove={canApprove} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/procurement">Procurement</Link> /{" "}
+            <Link href="/dashboard/procurement/requests">Requests</Link> /{" "}
+            <span>{pr.requestCode}</span>
+          </div>
+          <h1>{pr.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {pr.requestCode}
+          </p>
+        </div>
+        <div className="actions">
+          <RequestActions id={pr.id} status={pr.status} canApprove={canApprove} />
+        </div>
+      </div>
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<PurchaseRequestStatusPill status={pr.status} />} />
-        <Stat label="Priority" value={<Badge tone="outline">{pr.priority}</Badge>} />
-        <Stat label="Supplier" value={pr.supplierName ?? "—"} />
-        <Stat label="Project" value={pr.projectName ?? "—"} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<PurchaseRequestStatusPill status={pr.status} />} />
+        <Kpi label="Priority" value={<HandoffBadge tone="soft">{pr.priority}</HandoffBadge>} />
+        <Kpi label="Supplier" value={pr.supplierName ?? "—"} />
+        <Kpi label="Project" value={pr.projectName ?? "—"} />
+        <Kpi
           label="Estimated"
           value={
             pr.totalEstimatedMinor !== null && pr.currency
@@ -49,20 +54,24 @@ export default async function PurchaseRequestDetail({
               : "—"
           }
         />
-        <Stat label="Required by" value={pr.requiredBy ?? "—"} />
-        <Stat label="Requested by" value={pr.requestedByName ?? "—"} />
-        <Stat label="Created" value={pr.createdAt.slice(0, 10)} />
+        <Kpi label="Required by" value={pr.requiredBy ?? "—"} />
+        <Kpi label="Requested by" value={pr.requestedByName ?? "—"} />
+        <Kpi label="Created" value={pr.createdAt.slice(0, 10)} />
       </div>
 
       {pr.description && (
-        <Section eyebrow="Description" title="Brief">
-          <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
-            {pr.description}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Description</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
+              {pr.description}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Lines" title={`${pr.lines.length} requested item${pr.lines.length === 1 ? "" : "s"}`}>
+      <div>
+        <div className="label mb-2.5">Lines</div>
         {pr.lines.length === 0 ? (
           <p className="text-sm text-ink-tertiary">No lines on this request yet.</p>
         ) : (
@@ -86,16 +95,7 @@ export default async function PurchaseRequestDetail({
             </TBody>
           </Table>
         )}
-      </Section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
+      </div>
     </div>
   );
 }

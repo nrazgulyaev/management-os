@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listInventoryCategories } from "@/features/inventory/services";
@@ -14,15 +14,21 @@ export default async function CategoriesPage() {
   const rows = await listInventoryCategories();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Categories" },
-        ]}
-        title="Inventory categories"
-        description="Tree of item categories — linens, towels, chemicals, spare parts, FF&E."
-        actions={<AddInventoryCategoryButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <span>Categories</span>
+          </div>
+          <h1>Inventory categories</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Tree of item categories — linens, towels, chemicals, spare parts, FF&amp;E.
+          </p>
+        </div>
+        <div className="actions">
+          <AddInventoryCategoryButton />
+        </div>
+      </div>
       <DbStatusNotice />
       {rows.length === 0 ? (
         <NoItemsYet
@@ -41,7 +47,7 @@ export default async function CategoriesPage() {
                 <TD className="font-mono text-xs">{c.key}</TD>
                 <TD>{c.defaultUnit}</TD>
                 <TD>{c.isConsumable ? "Yes" : "No"}</TD>
-                <TD><Badge tone={c.status === "active" ? "success" : "neutral"}>{c.status}</Badge></TD>
+                <TD><HandoffBadge tone={c.status === "active" ? "ok" : "soft"}>{c.status}</HandoffBadge></TD>
                 <TD className="text-right">
                   <InventoryRowActions
                     kind="category"

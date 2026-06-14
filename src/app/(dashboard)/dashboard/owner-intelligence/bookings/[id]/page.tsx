@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getOwnerBookingSummaryById,
   listOwnerBookingBreakdowns,
@@ -24,19 +22,19 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONES: Record<
   OwnerBookingPublicStatus,
-  "neutral" | "info" | "warning" | "success" | "danger" | "gold" | "accent"
+  "soft" | "info" | "warn" | "ok" | "danger" | "gold"
 > = {
-  inquiry: "neutral",
+  inquiry: "soft",
   under_review: "info",
-  deposit_pending: "warning",
+  deposit_pending: "warn",
   confirmed: "info",
-  in_house: "success",
-  completed: "success",
-  cancelled: "neutral",
-  expired: "neutral",
-  blocked: "neutral",
-  maintenance: "warning",
-  owner_stay: "accent",
+  in_house: "ok",
+  completed: "ok",
+  cancelled: "soft",
+  expired: "soft",
+  blocked: "soft",
+  maintenance: "warn",
+  owner_stay: "gold",
 };
 
 export default async function AdminOwnerBookingDetail({
@@ -69,18 +67,22 @@ export default async function AdminOwnerBookingDetail({
       Date.now() - 24 * 60 * 60 * 1000;
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner intelligence", href: "/dashboard/owner-intelligence" },
-          {
-            label: "Booking projection",
-            href: "/dashboard/owner-intelligence/bookings",
-          },
-          { label: s.ownerLabel },
-        ]}
-        title={s.villaName ?? s.villaCode ?? "Booking projection"}
-        description={`Owner ${s.ownerId.slice(0, 8)}… · ${s.checkIn} → ${s.checkOut}`}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            /{" "}
+            <Link href="/dashboard/owner-intelligence/bookings">
+              Booking projection
+            </Link>{" "}
+            / <span>{s.ownerLabel}</span>
+          </div>
+          <h1>{s.villaName ?? s.villaCode ?? "Booking projection"}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Owner {s.ownerId.slice(0, 8)}… · {s.checkIn} → {s.checkOut}
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             {s.bookingId && (
               <RebuildBookingProjectionButton bookingId={s.bookingId} />
@@ -90,21 +92,24 @@ export default async function AdminOwnerBookingDetail({
                 requestId={s.directBookingRequestId}
               />
             )}
-            <Badge tone={STATUS_TONES[s.publicStatus]}>
+            <HandoffBadge tone={STATUS_TONES[s.publicStatus]}>
               {publicStatusLabel(s.publicStatus)}
-            </Badge>
+            </HandoffBadge>
           </div>
-        }
-      />
+        </div>
+      </div>
       {stale && (
         <p className="rounded-md border border-warning/40 bg-warning-weak text-warning p-3 text-xs">
           The source row has been updated since the last projection rebuild.
           Click Rebuild above to refresh.
         </p>
       )}
-      <Section eyebrow="Owner-safe projection" title={timeline.headline}>
-        <p className="text-sm text-ink-secondary">{timeline.body}</p>
-        <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+      <div>
+        <div className="label mb-2.5">Owner-safe projection</div>
+        <Card padding="default">
+          <h2 className="serif text-[18px] m-0">{timeline.headline}</h2>
+          <p className="text-sm text-ink-secondary mt-1">{timeline.body}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs mt-4">
           <KV label="Source" value={s.ownerLabel} />
           <KV label="Channel" value={s.channelLabel ?? "—"} />
           <KV label="Guest" value={s.guestLabel ?? "—"} />
@@ -137,10 +142,13 @@ export default async function AdminOwnerBookingDetail({
                 : "—"
             }
           />
-        </div>
-      </Section>
-      <Section eyebrow="Internal source trace" title="Linked records">
-        <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+          </div>
+        </Card>
+      </div>
+      <div>
+        <div className="label mb-2.5">Internal source trace</div>
+        <Card padding="default">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <Trace
             label="Booking"
             value={s.bookingId}
@@ -169,11 +177,14 @@ export default async function AdminOwnerBookingDetail({
             value={s.statementId}
             href={s.statementHref}
           />
-        </div>
-      </Section>
-      <Section eyebrow="Revenue breakdown" title="Owner-visible line items">
-        <p className="text-sm text-ink-secondary">{explanation}</p>
-        <div className="rounded-md border border-line-soft bg-surface p-5">
+          </div>
+        </Card>
+      </div>
+      <div>
+        <div className="label mb-2.5">Revenue breakdown</div>
+        <Card padding="default">
+          <p className="text-sm text-ink-secondary">{explanation}</p>
+          <div className="mt-4">
           {breakdowns.length === 0 ? (
             <p className="text-xs text-ink-tertiary">No breakdown rows.</p>
           ) : (
@@ -199,8 +210,9 @@ export default async function AdminOwnerBookingDetail({
               ))}
             </div>
           )}
-        </div>
-      </Section>
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

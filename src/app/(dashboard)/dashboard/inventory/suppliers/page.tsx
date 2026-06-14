@@ -1,5 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listSuppliers } from "@/features/inventory/services";
@@ -14,15 +14,22 @@ export default async function SuppliersPage() {
   const rows = await listSuppliers();
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Suppliers" },
-        ]}
-        title="Suppliers"
-        description="Vendors that supply linens, chemicals, electrical, and maintenance services."
-        actions={<AddSupplierButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <span>Suppliers</span>
+          </div>
+          <h1>Suppliers</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Vendors that supply linens, chemicals, electrical, and maintenance
+            services.
+          </p>
+        </div>
+        <div className="actions">
+          <AddSupplierButton />
+        </div>
+      </div>
       <DbStatusNotice />
       {rows.length === 0 ? (
         <NoItemsYet
@@ -39,11 +46,11 @@ export default async function SuppliersPage() {
             {rows.map((s) => (
               <TR key={s.id}>
                 <TD className="font-medium">{s.name}</TD>
-                <TD><Badge tone="outline">{s.supplierType.replace(/_/g, " ")}</Badge></TD>
+                <TD><HandoffBadge tone="soft">{s.supplierType.replace(/_/g, " ")}</HandoffBadge></TD>
                 <TD className="text-xs text-ink-secondary">{s.email ?? "—"}</TD>
                 <TD className="text-xs text-ink-secondary">{s.phone ?? "—"}</TD>
                 <TD className="text-xs">{s.country ?? "—"}</TD>
-                <TD><Badge tone={s.status === "active" ? "success" : "neutral"}>{s.status}</Badge></TD>
+                <TD><HandoffBadge tone={s.status === "active" ? "ok" : "soft"}>{s.status}</HandoffBadge></TD>
                 <TD className="text-right">
                   <InventoryRowActions kind="supplier" row={s} />
                 </TD>

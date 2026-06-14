@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import { TaskStatusPill } from "@/components/operations/task-status-pill";
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { ChecklistRunner } from "@/components/operations/checklist-runner";
@@ -60,30 +59,34 @@ export default async function OperationTaskDetail({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Tasks", href: "/dashboard/operations/tasks" },
-          { label: task.taskCode },
-        ]}
-        title={task.title}
-        description={`${task.category.replace(/_/g, " ")} · ${task.taskCode}`}
-        actions={
-          canManage ? (
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/tasks">Tasks</Link> /{" "}
+            <span>{task.taskCode}</span>
+          </div>
+          <h1>{task.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {task.category.replace(/_/g, " ")} · {task.taskCode}
+          </p>
+        </div>
+        {canManage && (
+          <div className="actions">
             <TaskActionBar
               taskId={task.id}
               status={task.status}
               canApprove={canApprove}
               canCancel={canCancel}
             />
-          ) : null
-        }
-      />
+          </div>
+        )}
+      </div>
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<TaskStatusPill status={task.status} />} />
-        <Stat label="Priority" value={<PriorityPill priority={task.priority} />} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<TaskStatusPill status={task.status} />} />
+        <Kpi label="Priority" value={<PriorityPill priority={task.priority} />} />
+        <Kpi
           label="Villa"
           value={
             task.villaCode ? (
@@ -93,7 +96,7 @@ export default async function OperationTaskDetail({
             )
           }
         />
-        <Stat
+        <Kpi
           label="Assignee"
           value={
             canManage ? (
@@ -110,32 +113,36 @@ export default async function OperationTaskDetail({
             )
           }
         />
-        <Stat
+        <Kpi
           label="Scheduled"
           value={task.scheduledFor ?? <span className="text-ink-tertiary">—</span>}
         />
-        <Stat
+        <Kpi
           label="Estimated"
           value={
             task.estimatedMinutes ? `${task.estimatedMinutes} min` : <span className="text-ink-tertiary">—</span>
           }
         />
-        <Stat label="Source" value={task.taskSource} />
-        <Stat
+        <Kpi label="Source" value={task.taskSource} />
+        <Kpi
           label="Started"
           value={task.startedAt ? task.startedAt.slice(0, 16).replace("T", " ") : <span className="text-ink-tertiary">—</span>}
         />
       </div>
 
       {task.description && (
-        <Section eyebrow="Description" title="Brief">
-          <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
-            {task.description}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Description</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
+              {task.description}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Checklist" title="Field workflow">
+      <div>
+        <div className="label mb-2.5">Checklist</div>
         {checklist ? (
           <ChecklistRunner checklist={checklist} canApprove={canApprove} variant="internal" />
         ) : canManage ? (
@@ -146,23 +153,20 @@ export default async function OperationTaskDetail({
         ) : (
           <p className="text-sm text-ink-tertiary">No checklist attached.</p>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Evidence"
-        title="Attachments"
-        action={
-          canUpload ? <AttachmentUploader target="task" targetId={task.id} /> : null
-        }
-      >
+      <div>
+        <div className="flex items-center justify-between gap-2 mb-2.5">
+          <div className="label">Evidence</div>
+          {canUpload && <AttachmentUploader target="task" targetId={task.id} />}
+        </div>
         <AttachmentGallery attachments={attachments} />
-      </Section>
+      </div>
 
       {canLogMaterial && (
-        <Section
-          eyebrow="Materials"
-          title="Material usage"
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">Materials</div>
             <div className="flex items-center gap-2 flex-wrap">
               {canBridge && materialUsage.length > 0 && (
                 <BridgeForTaskButton taskId={task.id} />
@@ -176,14 +180,13 @@ export default async function OperationTaskDetail({
                 locations={locations.map((l) => ({ id: l.id, label: l.name }))}
               />
             </div>
-          }
-        >
+          </div>
           {materialUsage.length === 0 ? (
             <p className="text-sm text-ink-tertiary">
               No material usage logged for this task yet.
             </p>
           ) : (
-            <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
+            <Card padding="none" overflowHidden>
               <ul className="divide-y divide-line-soft">
                 {materialUsage.map((u) => (
                   <li key={u.id} className="p-4 flex items-center justify-between gap-3">
@@ -201,17 +204,20 @@ export default async function OperationTaskDetail({
                   </li>
                 ))}
               </ul>
-            </div>
+            </Card>
           )}
-        </Section>
+        </div>
       )}
 
       {task.internalNotes && (
-        <Section eyebrow="Notes" title="Internal notes">
-          <pre className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap font-sans">
-            {task.internalNotes}
-          </pre>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Notes</div>
+          <Card padding="default">
+            <pre className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap font-sans">
+              {task.internalNotes}
+            </pre>
+          </Card>
+        </div>
       )}
 
       <p className="text-xs text-ink-tertiary">
@@ -224,15 +230,6 @@ export default async function OperationTaskDetail({
         </Link>
         .
       </p>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
     </div>
   );
 }

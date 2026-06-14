@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getServiceVendorById,
   listGuestServiceFulfilments,
@@ -34,27 +32,31 @@ export default async function VendorDetailPage({
   ]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Vendors", href: "/dashboard/service-fulfilment/vendors" },
-          { label: vendor.displayName },
-        ]}
-        title={vendor.displayName}
-        description={`${vendor.vendorType} · ${vendor.serviceArea ?? "—"}`}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <Link href="/dashboard/service-fulfilment/vendors">Vendors</Link> /{" "}
+            <span>{vendor.displayName}</span>
+          </div>
+          <h1>{vendor.displayName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {vendor.vendorType} · {vendor.serviceArea ?? "—"}
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-3">
-            <Badge
+            <HandoffBadge
               tone={
                 vendor.status === "active"
-                  ? "success"
+                  ? "ok"
                   : vendor.status === "paused"
-                    ? "warning"
-                    : "neutral"
+                    ? "warn"
+                    : "soft"
               }
             >
               {vendor.status}
-            </Badge>
+            </HandoffBadge>
             {vendor.status !== "paused" && (
               <VendorStatusButton id={vendor.id} action="pause" />
             )}
@@ -62,12 +64,13 @@ export default async function VendorDetailPage({
               <VendorStatusButton id={vendor.id} action="archive" />
             )}
           </div>
-        }
-      />
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <Section eyebrow="Catalogue" title={`${services.length} services offered`}>
+          <div>
+            <div className="label mb-2.5">Catalogue</div>
             {services.length === 0 ? (
               <p className="text-xs text-ink-tertiary">
                 No services mapped yet.
@@ -87,19 +90,17 @@ export default async function VendorDetailPage({
                         {formatFulfilmentAmountForAdmin(link.baseCostMinor, link.currency)}
                       </span>
                     </div>
-                    <Badge tone={link.status === "active" ? "success" : "neutral"}>
+                    <HandoffBadge tone={link.status === "active" ? "ok" : "soft"}>
                       {link.status}
-                    </Badge>
+                    </HandoffBadge>
                   </li>
                 ))}
               </ul>
             )}
-          </Section>
+          </div>
 
-          <Section
-            eyebrow="Recent fulfilments"
-            title={`${fulfilments.length} on file`}
-          >
+          <div>
+            <div className="label mb-2.5">Recent fulfilments</div>
             <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
               {fulfilments.map(({ fulfilment: f, service }) => (
                 <li key={f.id} className="px-4 py-3 flex items-center justify-between">
@@ -109,13 +110,14 @@ export default async function VendorDetailPage({
                   >
                     {f.fulfilmentCode} · {service?.name ?? "—"}
                   </Link>
-                  <Badge tone="neutral">{f.status}</Badge>
+                  <HandoffBadge tone="soft">{f.status}</HandoffBadge>
                 </li>
               ))}
             </ul>
-          </Section>
+          </div>
 
-          <Section eyebrow="Recent invoices" title={`${invoices.length} on file`}>
+          <div>
+            <div className="label mb-2.5">Recent invoices</div>
             {invoices.length === 0 ? (
               <p className="text-xs text-ink-tertiary">No invoices yet.</p>
             ) : (
@@ -127,54 +129,60 @@ export default async function VendorDetailPage({
                       {" "}
                       {formatFulfilmentAmountForAdmin(invoice.amountMinor, invoice.currency)}
                     </span>
-                    <Badge tone="neutral">{invoice.invoiceStatus}</Badge>
+                    <HandoffBadge tone="soft">{invoice.invoiceStatus}</HandoffBadge>
                   </li>
                 ))}
               </ul>
             )}
-          </Section>
+          </div>
         </div>
 
         <aside className="flex flex-col gap-6">
-          <Section eyebrow="Ratings" title="Guest feedback">
-            <div className="text-2xl text-ink font-medium">
-              {vendor.ratingAverage ?? "—"}
-            </div>
-            <div className="text-xs text-ink-tertiary">
-              {vendor.ratingCount} rating{vendor.ratingCount === 1 ? "" : "s"}
-            </div>
-            <ul className="mt-3 flex flex-col gap-2">
-              {ratings.slice(0, 5).map((r) => (
-                <li
-                  key={r.id}
-                  className="rounded-md border border-line-soft bg-canvas px-3 py-2 text-xs"
-                >
-                  {"★".repeat(r.rating)}
-                  {"☆".repeat(5 - r.rating)}
-                  {r.comment && (
-                    <p className="mt-1 text-ink-tertiary">{r.comment}</p>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </Section>
+          <div>
+            <div className="label mb-2.5">Ratings</div>
+            <Card padding="default">
+              <div className="text-2xl text-ink font-medium">
+                {vendor.ratingAverage ?? "—"}
+              </div>
+              <div className="text-xs text-ink-tertiary">
+                {vendor.ratingCount} rating{vendor.ratingCount === 1 ? "" : "s"}
+              </div>
+              <ul className="mt-3 flex flex-col gap-2">
+                {ratings.slice(0, 5).map((r) => (
+                  <li
+                    key={r.id}
+                    className="rounded-md border border-line-soft bg-canvas px-3 py-2 text-xs"
+                  >
+                    {"★".repeat(r.rating)}
+                    {"☆".repeat(5 - r.rating)}
+                    {r.comment && (
+                      <p className="mt-1 text-ink-tertiary">{r.comment}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
 
-          <Section eyebrow="Contact" title="Internal only">
-            <dl className="text-xs text-ink-tertiary flex flex-col gap-1">
-              <div>
-                <dt className="inline text-ink">Contact:</dt> {vendor.contactName ?? "—"}
-              </div>
-              <div>
-                <dt className="inline text-ink">Phone:</dt> {vendor.contactPhone ?? "—"}
-              </div>
-              <div>
-                <dt className="inline text-ink">Email:</dt> {vendor.contactEmail ?? "—"}
-              </div>
-              <div>
-                <dt className="inline text-ink">Channel:</dt> {vendor.preferredChannel ?? "—"}
-              </div>
-            </dl>
-          </Section>
+          <div>
+            <div className="label mb-2.5">Contact</div>
+            <Card padding="default">
+              <dl className="text-xs text-ink-tertiary flex flex-col gap-1">
+                <div>
+                  <dt className="inline text-ink">Contact:</dt> {vendor.contactName ?? "—"}
+                </div>
+                <div>
+                  <dt className="inline text-ink">Phone:</dt> {vendor.contactPhone ?? "—"}
+                </div>
+                <div>
+                  <dt className="inline text-ink">Email:</dt> {vendor.contactEmail ?? "—"}
+                </div>
+                <div>
+                  <dt className="inline text-ink">Channel:</dt> {vendor.preferredChannel ?? "—"}
+                </div>
+              </dl>
+            </Card>
+          </div>
         </aside>
       </div>
     </div>

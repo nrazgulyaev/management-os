@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
+import { Kpi } from "@/components/dashboard/primitives";
 import {
   countOpenHighSeverityEvents,
   listSecurityEvents,
@@ -27,34 +25,40 @@ export default async function SecurityHub() {
   const kmsReady = isStayLinkKmsConfigured();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Security" },
-        ]}
-        title="Security"
-        description="Verification flow, rate-limit hits, suspicious access, lock-code reveals, Wi-Fi reveals — everything that needs eyes on it."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <span>Security</span>
+          </div>
+          <h1>Security</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Verification flow, rate-limit hits, suspicious access, lock-code
+            reveals, Wi-Fi reveals — everything that needs eyes on it.
+          </p>
+        </div>
+      </div>
       <QueryWarningCard result={highCountResult} tableName="guest_stay_security_events" />
       <QueryWarningCard result={recentResult} tableName="guest_stay_security_events" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <Kpi
           label="High-sev (24h)"
           value={String(highCount)}
-          accent={highCount > 0}
+          tone={highCount > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Encryption"
           value={kmsReady ? "Active" : "Dev fallback"}
-          hint={
+          sub={
             kmsReady
               ? "STAY_LINK_KMS_SECRET set"
               : "Set STAY_LINK_KMS_SECRET before production"
           }
         />
-        <MetricCard label="Last 25 events" value={String(recent.length)} />
+        <Kpi label="Last 25 events" value={String(recent.length)} />
       </div>
-      <Section eyebrow="Surfaces" title="Jump to">
+      <div>
+        <div className="label mb-2.5">Surfaces</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card
             href="/dashboard/guest-stays/security/events"
@@ -77,7 +81,7 @@ export default async function SecurityHub() {
             detail="Run the AES sweep against legacy rows"
           />
         </div>
-      </Section>
+      </div>
     </div>
   );
 }

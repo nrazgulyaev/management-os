@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listStatementReconciliationWarnings } from "@/features/statement-transparency/services";
 import {
   AcknowledgeWarningButton,
@@ -14,10 +12,10 @@ export const dynamic = "force-dynamic";
 
 const SEVERITY_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "danger"
+  "info" | "warn" | "danger" | "soft"
 > = {
   info: "info",
-  warning: "warning",
+  warning: "warn",
   critical: "danger",
 };
 
@@ -38,120 +36,111 @@ export default async function TransparencyWarningsPage({
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Transparency", href: "/dashboard/finance/transparency" },
-          { label: "Warnings" },
-        ]}
-        title="Reconciliation warnings"
-        description="Filter, acknowledge, resolve, or dismiss warnings raised by the transparency rebuild."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/transparency">Transparency</Link> /{" "}
+            <span>Warnings</span>
+          </div>
+          <h1>Reconciliation warnings</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Filter, acknowledge, resolve, or dismiss warnings raised by the
+            transparency rebuild.
+          </p>
+        </div>
+      </div>
       <div className="flex flex-wrap gap-2">
         {(["open", "acknowledged", "resolved", "dismissed"] as const).map((s) => (
           <Link
             key={s}
             href={`/dashboard/finance/transparency/warnings?status=${s}${severity ? `&severity=${severity}` : ""}`}
-            className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${
-              status === s
-                ? "bg-ink text-ink-inverse"
-                : "border border-line-soft text-ink-secondary hover:border-line-strong"
-            }`}
+            className={`btn btn-sm ${status === s ? "btn-accent" : "btn-secondary"}`}
           >
             {s}
           </Link>
         ))}
-        <span className="mx-2 text-ink-tertiary">·</span>
+        <span className="mx-2 text-ink-3">·</span>
         {(["info", "warning", "critical"] as const).map((s) => (
           <Link
             key={s}
             href={`/dashboard/finance/transparency/warnings?status=${status}&severity=${s}`}
-            className={`h-8 px-3 inline-flex items-center rounded-full text-xs ${
-              severity === s
-                ? "bg-ink text-ink-inverse"
-                : "border border-line-soft text-ink-secondary hover:border-line-strong"
-            }`}
+            className={`btn btn-sm ${severity === s ? "btn-accent" : "btn-secondary"}`}
           >
             {s}
           </Link>
         ))}
       </div>
-      <Section
-        eyebrow="Warnings"
-        title={`${warnings.length} ${status} warning${warnings.length === 1 ? "" : "s"}`}
-      >
+      <div>
+        <div className="label mb-2.5">{`Warnings · ${warnings.length} ${status} warning${warnings.length === 1 ? "" : "s"}`}</div>
         {warnings.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-8 text-sm text-ink-tertiary">
             No warnings match these filters.
           </p>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-canvas/50 text-left">
-                <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Severity</th>
-                  <th className="px-4 py-3">Title</th>
-                  <th className="px-4 py-3">Source</th>
-                  <th className="px-4 py-3">Statement</th>
-                  <th className="px-4 py-3">Detected</th>
-                  <th className="px-4 py-3">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {warnings.map((w) => (
-                  <tr key={w.id} className="border-t border-line-soft">
-                    <td className="px-4 py-3 text-xs">
-                      {w.warningType.replace(/_/g, " ")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={SEVERITY_TONES[w.severity] ?? "neutral"}>
-                        {w.severity}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs">{w.internalTitle}</td>
-                    <td className="px-4 py-3 text-[11px] font-mono text-ink-tertiary">
-                      {w.sourceTable ?? "—"}
-                      {w.sourceId
-                        ? ` · ${w.sourceId.slice(0, 8)}…`
-                        : ""}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {w.ownerStatementId ? (
-                        <Link
-                          href={`/dashboard/finance/transparency/statements/${w.ownerStatementId}`}
-                          className="text-ink hover:underline underline-offset-4"
-                        >
-                          Open →
-                        </Link>
-                      ) : (
-                        "—"
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-[11px] text-ink-tertiary">
-                      {w.detectedAt instanceof Date
-                        ? w.detectedAt.toISOString().slice(0, 16).replace("T", " ")
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3 flex items-center gap-1">
-                      {w.status === "open" && (
-                        <>
-                          <AcknowledgeWarningButton warningId={w.id} />
-                          <ResolveWarningButton warningId={w.id} />
-                          <DismissWarningButton warningId={w.id} />
-                        </>
-                      )}
-                      {w.status === "acknowledged" && (
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Severity</th>
+                <th scope="col">Title</th>
+                <th scope="col">Source</th>
+                <th scope="col">Statement</th>
+                <th scope="col">Detected</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {warnings.map((w) => (
+                <tr key={w.id}>
+                  <td className="text-[12px]">
+                    {w.warningType.replace(/_/g, " ")}
+                  </td>
+                  <td>
+                    <HandoffBadge tone={SEVERITY_TONES[w.severity] ?? "soft"}>
+                      {w.severity}
+                    </HandoffBadge>
+                  </td>
+                  <td className="text-[12px]">{w.internalTitle}</td>
+                  <td className="text-[11px] mono text-ink-3">
+                    {w.sourceTable ?? "—"}
+                    {w.sourceId ? ` · ${w.sourceId.slice(0, 8)}…` : ""}
+                  </td>
+                  <td className="text-[12px]">
+                    {w.ownerStatementId ? (
+                      <Link
+                        href={`/dashboard/finance/transparency/statements/${w.ownerStatementId}`}
+                        className="text-ink hover:text-terra"
+                      >
+                        Open →
+                      </Link>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="text-[11px] text-ink-3">
+                    {w.detectedAt instanceof Date
+                      ? w.detectedAt.toISOString().slice(0, 16).replace("T", " ")
+                      : "—"}
+                  </td>
+                  <td className="flex items-center gap-1">
+                    {w.status === "open" && (
+                      <>
+                        <AcknowledgeWarningButton warningId={w.id} />
                         <ResolveWarningButton warningId={w.id} />
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        <DismissWarningButton warningId={w.id} />
+                      </>
+                    )}
+                    {w.status === "acknowledged" && (
+                      <ResolveWarningButton warningId={w.id} />
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

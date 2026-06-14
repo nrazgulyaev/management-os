@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { InventoryItemForm } from "@/components/inventory/item-form";
 import { listInventoryCategories, listSuppliers } from "@/features/inventory/services";
@@ -13,14 +13,16 @@ export default async function NewItemPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Items", href: "/dashboard/inventory/items" },
-          { label: "New" },
-        ]}
-        title="New item"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <Link href="/dashboard/inventory/items">Items</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New item</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <InventoryItemForm
         categories={categories.map((c) => ({ id: c.id, label: c.name }))}

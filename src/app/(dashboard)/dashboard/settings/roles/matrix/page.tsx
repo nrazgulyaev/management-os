@@ -17,8 +17,7 @@
  */
 
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
 import {
@@ -43,7 +42,11 @@ export default async function RoleMatrixPage() {
   if (!db) {
     return (
       <div className="flex flex-col gap-8">
-        <PageHeader title="Role access matrix" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Role access matrix</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </div>
     );
@@ -81,38 +84,43 @@ export default async function RoleMatrixPage() {
     }
   }
 
+  const matrixDescription = canEdit
+    ? "Toggle cells, then Save. Cells outlined in amber differ from the built-in default."
+    : allAccess
+      ? "You always have full access to every cabinet, so no column is highlighted. Read-only — only a super-admin can change the matrix."
+      : viewerRoles.length > 0
+        ? "Your role's column is highlighted. Read-only — only a super-admin can change the matrix."
+        : "Read-only — only a super-admin can change the matrix.";
+
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        eyebrow="Access control"
-        breadcrumbs={[
-          { label: "Settings", href: "/dashboard/settings" },
-          { label: "Users & roles", href: "/dashboard/settings/team" },
-          { label: "Access matrix" },
-        ]}
-        title="Who sees what"
-        description="A grid of cabinets against roles — the same mapping that filters the sidebar and gates every cabinet route. Defaults come from the built-in permission table; admin changes are saved as overrides."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/settings">Settings</Link> /{" "}
+            <Link href="/dashboard/settings/team">Users &amp; roles</Link> /{" "}
+            <span>Access matrix</span>
+          </div>
+          <h1>Who sees what</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            A grid of cabinets against roles — the same mapping that filters the
+            sidebar and gates every cabinet route. Defaults come from the
+            built-in permission table; admin changes are saved as overrides.
+          </p>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Matrix"
-        title="Cabinet access by role"
-        description={
-          canEdit
-            ? "Toggle cells, then Save. Cells outlined in amber differ from the built-in default."
-            : allAccess
-              ? "You always have full access to every cabinet, so no column is highlighted. Read-only — only a super-admin can change the matrix."
-              : viewerRoles.length > 0
-                ? "Your role's column is highlighted. Read-only — only a super-admin can change the matrix."
-                : "Read-only — only a super-admin can change the matrix."
-        }
-      >
+      <div>
+        <div className="label mb-2.5">Matrix</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          {matrixDescription}
+        </p>
         <MatrixEditor
           initialOverrides={initialOverrides}
           readOnly={!canEdit}
           viewerRoles={viewerRoles}
         />
-      </Section>
+      </div>
     </div>
   );
 }

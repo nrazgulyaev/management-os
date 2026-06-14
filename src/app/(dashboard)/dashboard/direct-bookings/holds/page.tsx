@@ -1,12 +1,21 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingHolds } from "@/features/direct-booking/services";
 import { adminHoldStatusLabel } from "@/features/direct-booking/hold-pure";
 
 export const metadata = { title: "Direct booking holds" };
 export const dynamic = "force-dynamic";
+
+const LAB_TONE: Record<
+  "info" | "success" | "warning" | "neutral" | "danger",
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
+  info: "info",
+  success: "ok",
+  warning: "warn",
+  neutral: "soft",
+  danger: "danger",
+};
 
 export default async function DirectBookingHoldsPage({
   searchParams,
@@ -23,41 +32,48 @@ export default async function DirectBookingHoldsPage({
     | undefined) || undefined;
   const rows = await listDirectBookingHolds({ status, limit: 200 });
   return (
-    <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Holds" },
-        ]}
-        title="Direct booking holds"
-        description="Each hold is a 15-minute inventory reservation — taken from a public quote, or placed by an operator on behalf of a guest."
-        actions={
+    <>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <span>Holds</span>
+          </div>
+          <h1>Direct booking holds</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Each hold is a 15-minute inventory reservation — taken from a public
+            quote, or placed by an operator on behalf of a guest.
+          </p>
+        </div>
+        <div className="actions">
           <Link
             href="/dashboard/direct-bookings/new"
             className="btn btn-accent btn-sm"
           >
             + New direct booking
           </Link>
-        }
-      />
-      <Section eyebrow="Catalog" title={`${rows.length} holds`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Villa</th>
-                <th className="px-4 py-3">Dates</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Expires</th>
-                <th className="px-4 py-3" />
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Catalog · {rows.length} holds</div>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Villa</th>
+                <th scope="col">Dates</th>
+                <th scope="col" className="num">Total</th>
+                <th scope="col">Status</th>
+                <th scope="col">Expires</th>
+                <th scope="col" />
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-ink-tertiary">
+                  <td colSpan={7} className="text-center text-ink-tertiary">
                     No holds match the filter.
                   </td>
                 </tr>
@@ -67,30 +83,32 @@ export default async function DirectBookingHoldsPage({
                   hold.status as Parameters<typeof adminHoldStatusLabel>[0],
                 );
                 return (
-                  <tr key={hold.id} className="border-t border-line-soft">
-                    <td className="px-4 py-3 font-mono text-xs">
+                  <tr key={hold.id}>
+                    <td className="mono text-[12px]">
                       <Link
                         href={`/dashboard/direct-bookings/holds/${hold.id}`}
-                        className="text-ink hover:underline underline-offset-4"
+                        className="text-ink hover:text-terra"
                       >
                         {hold.holdCode}
                       </Link>
                     </td>
-                    <td className="px-4 py-3 text-xs">{villaCode ?? "—"}</td>
-                    <td className="px-4 py-3 text-xs">
+                    <td className="text-xs">{villaCode ?? "—"}</td>
+                    <td className="text-xs">
                       {hold.checkIn} → {hold.checkOut} · {hold.nights}n
                     </td>
-                    <td className="px-4 py-3 font-mono text-xs">
+                    <td className="num mono text-[12px]">
                       {(hold.totalMinor / 100n).toString()}.
                       {String(hold.totalMinor % 100n).padStart(2, "0")} {hold.currency}
                     </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={lab.tone}>{lab.label}</Badge>
+                    <td>
+                      <HandoffBadge tone={LAB_TONE[lab.tone]}>
+                        {lab.label}
+                      </HandoffBadge>
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                    <td className="mono text-[11px] text-ink-tertiary">
                       {hold.expiresAt.toISOString()}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/direct-bookings/${hold.id}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -103,8 +121,8 @@ export default async function DirectBookingHoldsPage({
               })}
             </tbody>
           </table>
-        </div>
-      </Section>
-    </div>
+        </Card>
+      </div>
+    </>
   );
 }

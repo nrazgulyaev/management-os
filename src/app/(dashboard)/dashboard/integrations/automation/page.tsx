@@ -1,7 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import {
   RunAutomationForRecentButton,
@@ -22,23 +21,29 @@ export default async function AutomationPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Integrations", href: "/dashboard/integrations" },
-          { label: "Automation" },
-        ]}
-        title="Booking automation"
-        description="Rules that mint operations tasks (turnover cleaning, arrival inspection) when a booking lands."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/integrations">Integrations</Link> /{" "}
+            <span>Automation</span>
+          </div>
+          <h1>Booking automation</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Rules that mint operations tasks (turnover cleaning, arrival
+            inspection) when a booking lands.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <SeedDefaultRulesButton />
             <RunAutomationForRecentButton />
           </div>
-        }
-      />
+        </div>
+      </div>
       <DbStatusNotice />
 
-      <Section eyebrow="Rules" title={`${rules.length} configured`}>
+      <div>
+        <div className="label mb-2.5">Rules</div>
         {rules.length === 0 ? (
           <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
             No rules yet — click &quot;Seed default rules&quot; to install Arconique's standard
@@ -62,7 +67,7 @@ export default async function AutomationPage() {
                 <TR key={r.id}>
                   <TD className="text-sm font-medium">{r.ruleName}</TD>
                   <TD>
-                    <Badge tone="outline">{r.triggerEvent.replace(/_/g, " ")}</Badge>
+                    <HandoffBadge tone="soft">{r.triggerEvent.replace(/_/g, " ")}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">{r.taskCategory.replace(/_/g, " ")}</TD>
                   <TD className="text-xs text-ink-secondary max-w-[360px] truncate">
@@ -72,21 +77,22 @@ export default async function AutomationPage() {
                     {r.dueOffsetMinutes >= 0 ? `+${r.dueOffsetMinutes}` : r.dueOffsetMinutes} min
                   </TD>
                   <TD>
-                    <Badge tone="outline">{r.priority}</Badge>
+                    <HandoffBadge tone="soft">{r.priority}</HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={r.status === "active" ? "success" : "neutral"}>
+                    <HandoffBadge tone={r.status === "active" ? "ok" : "soft"}>
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Recent runs" title={`${runs.length} run${runs.length === 1 ? "" : "s"}`}>
+      <div>
+        <div className="label mb-2.5">Recent runs</div>
         {runs.length === 0 ? (
           <p className="text-sm text-ink-tertiary">No automation runs yet.</p>
         ) : (
@@ -110,17 +116,17 @@ export default async function AutomationPage() {
                   <TD className="font-mono text-xs">{r.bookingCode ?? "—"}</TD>
                   <TD className="text-xs">{r.ruleName ?? "—"}</TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         r.runStatus === "created"
-                          ? "success"
+                          ? "ok"
                           : r.runStatus === "skipped"
-                            ? "neutral"
+                            ? "soft"
                             : "danger"
                       }
                     >
                       {r.runStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="font-mono text-xs">{r.taskCode ?? "—"}</TD>
                   <TD className="text-xs text-ink-tertiary truncate max-w-[280px]">
@@ -131,7 +137,7 @@ export default async function AutomationPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

@@ -1,23 +1,19 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Section } from "@/components/ui/section";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listFinanceLinks } from "@/features/owner-stays/finance-bridge";
 import { listOwnerStayRequests } from "@/features/owner-stays/services";
 import { BridgePendingButton } from "@/components/owner-stays/bridge-pending-button";
-import {} from "@/components/ui/primitives";
 
 export const metadata = { title: "Owner stay finance bridge" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
   pending: "info",
-  bridged: "success",
-  skipped_no_charge: "neutral",
-  skipped_locked_period: "warning",
+  bridged: "ok",
+  skipped_no_charge: "soft",
+  skipped_locked_period: "warn",
   failed: "danger",
-  reversed: "neutral",
+  reversed: "soft",
 };
 
 function formatMoney(minor: number, currency: string) {
@@ -43,67 +39,81 @@ export default async function FinanceBridgePage() {
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Owner stays", href: "/dashboard/owner-stays" },
-          { label: "Finance bridge" },
-        ]}
-        title="Owner stay finance bridge"
-        description="Bridge approved/completed owner stays into management_fee_lines (compensation) + expense_lines (operational cost). Idempotent — re-running never duplicates rows. Locked statement periods are skipped automatically."
-        actions={<BridgePendingButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-stays">Owner stays</Link> /{" "}
+            <span>Finance bridge</span>
+          </div>
+          <h1>Owner stay finance bridge</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Bridge approved/completed owner stays into management_fee_lines
+            (compensation) + expense_lines (operational cost). Idempotent —
+            re-running never duplicates rows. Locked statement periods are
+            skipped automatically.
+          </p>
+        </div>
+        <div className="actions">
+          <BridgePendingButton />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard label="Approved / completed" value={String(pendingBridge.length)} />
-        <MetricCard label="Bridged" value={String(bridged.length)} />
-        <MetricCard
+        <Kpi label="Approved / completed" value={String(pendingBridge.length)} />
+        <Kpi label="Bridged" value={String(bridged.length)} />
+        <Kpi
           label="Skipped — locked"
           value={String(skippedLocked.length)}
-          accent={skippedLocked.length > 0}
+          tone={skippedLocked.length > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Failed"
           value={String(failed.length)}
-          accent={failed.length > 0}
+          tone={failed.length > 0 ? "accent" : undefined}
         />
       </div>
 
-      <Section eyebrow="Pending" title={`${pendingBridge.length} approved/completed stays`}>
+      <div>
+        <div className="label mb-2.5">
+          Pending · {pendingBridge.length} approved/completed stays
+        </div>
         {pendingBridge.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No approved or completed owner stays awaiting the bridge.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">
+              No approved or completed owner stays awaiting the bridge.
+            </p>
+          </Card>
         ) : (
-          <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
                 <tr>
-                  <th className="text-left px-3 py-2">Owner</th>
-                  <th className="text-left px-3 py-2">Villa</th>
-                  <th className="text-left px-3 py-2">Dates</th>
-                  <th className="text-right px-3 py-2">Owner charge</th>
-                  <th className="text-left px-3 py-2">Bridge state</th>
-                  <th className="text-right px-3 py-2"></th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Villa</th>
+                  <th scope="col">Dates</th>
+                  <th scope="col" className="num">Owner charge</th>
+                  <th scope="col">Bridge state</th>
+                  <th scope="col"></th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line-soft">
+              <tbody>
                 {pendingBridge.map((r) => (
                   <tr key={r.id}>
-                    <td className="px-3 py-2 text-ink font-medium">{r.ownerName ?? r.ownerId}</td>
-                    <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-                    <td className="px-3 py-2 text-ink-tertiary tabular-nums">
+                    <td className="row-title">{r.ownerName ?? r.ownerId}</td>
+                    <td>{r.villaCode ?? "—"}</td>
+                    <td className="tabular-nums">
                       {r.requestedStart} → {r.requestedEnd}
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">
+                    <td className="num">
                       {formatMoney(r.estimatedTotalOwnerChargeMinor, r.currency)}
                     </td>
-                    <td className="px-3 py-2 text-ink-tertiary text-xs">
+                    <td className="text-ink-3 text-xs">
                       {/* `financeBridgeStatus` lives on the request row */}
                       {/* but our row mapper doesn't surface it; admin can */}
                       {/* drill into the request detail to see the link state. */}
                       see request detail →
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="text-right">
                       <Link
                         href={`/dashboard/owner-stays/requests/${r.id}`}
                         className="text-xs text-ink hover:underline underline-offset-4"
@@ -115,44 +125,55 @@ export default async function FinanceBridgePage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </Card>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Bridged" title={`${bridged.length} rows`}>
+      <div>
+        <div className="label mb-2.5">Bridged · {bridged.length} rows</div>
         {bridged.length === 0 ? (
-          <p className="rounded-3xl border border-dashed border-line-soft bg-muted/20 px-7 py-8 text-sm text-ink-tertiary">
-            No bridged rows yet.
-          </p>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 italic m-0">
+              No bridged rows yet.
+            </p>
+          </Card>
         ) : (
           <BridgeTable rows={bridged} statusTones={STATUS_TONES} />
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Skipped — locked period"
-        title={`${skippedLocked.length} rows`}
-        description="Waiting for the statement period to reopen, or for an admin to record a finance_adjustment manually. Re-running the bridge will retry once the period is open again."
-      >
+      <div>
+        <div className="label mb-2.5">
+          Skipped — locked period · {skippedLocked.length} rows
+        </div>
+        <p className="text-[13px] text-ink-3 mt-2 mb-2.5 max-w-[680px]">
+          Waiting for the statement period to reopen, or for an admin to record
+          a finance_adjustment manually. Re-running the bridge will retry once
+          the period is open again.
+        </p>
         {skippedLocked.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">None.</p>
+          <p className="text-[13px] text-ink-3">None.</p>
         ) : (
           <BridgeTable rows={skippedLocked} statusTones={STATUS_TONES} />
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Skipped — no charge" title={`${skippedNoCharge.length} rows`}>
+      <div>
+        <div className="label mb-2.5">
+          Skipped — no charge · {skippedNoCharge.length} rows
+        </div>
         {skippedNoCharge.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">None.</p>
+          <p className="text-[13px] text-ink-3">None.</p>
         ) : (
           <BridgeTable rows={skippedNoCharge} statusTones={STATUS_TONES} />
         )}
-      </Section>
+      </div>
 
       {failed.length > 0 && (
-        <Section eyebrow="Failed" title={`${failed.length} rows`}>
+        <div>
+          <div className="label mb-2.5">Failed · {failed.length} rows</div>
           <BridgeTable rows={failed} statusTones={STATUS_TONES} />
-        </Section>
+        </div>
       )}
     </div>
   );
@@ -163,38 +184,36 @@ function BridgeTable({
   statusTones,
 }: {
   rows: Awaited<ReturnType<typeof listFinanceLinks>>;
-  statusTones: Record<string, "neutral" | "info" | "warning" | "success" | "danger">;
+  statusTones: Record<string, "soft" | "info" | "warn" | "ok" | "danger">;
 }) {
   return (
-    <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card overflow-hidden">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/30 text-ink-tertiary text-[11px] uppercase tracking-widest">
+    <Card padding="none" overflowHidden>
+      <table className="data">
+        <thead>
           <tr>
-            <th className="text-left px-3 py-2">Owner</th>
-            <th className="text-left px-3 py-2">Villa</th>
-            <th className="text-right px-3 py-2">Amount</th>
-            <th className="text-left px-3 py-2">Status</th>
-            <th className="text-left px-3 py-2">Reason</th>
-            <th className="text-right px-3 py-2"></th>
+            <th scope="col">Owner</th>
+            <th scope="col">Villa</th>
+            <th scope="col" className="num">Amount</th>
+            <th scope="col">Status</th>
+            <th scope="col">Reason</th>
+            <th scope="col"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-line-soft">
+        <tbody>
           {rows.map((r) => (
             <tr key={r.id}>
-              <td className="px-3 py-2 text-ink font-medium">{r.ownerName ?? r.ownerId}</td>
-              <td className="px-3 py-2 text-ink-secondary">{r.villaCode ?? "—"}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
+              <td className="row-title">{r.ownerName ?? r.ownerId}</td>
+              <td>{r.villaCode ?? "—"}</td>
+              <td className="num">
                 {(r.amountMinor / 100).toFixed(2)} {r.currency}
               </td>
-              <td className="px-3 py-2">
-                <Badge tone={statusTones[r.bridgeStatus] ?? "neutral"}>
+              <td>
+                <HandoffBadge tone={statusTones[r.bridgeStatus] ?? "soft"}>
                   {r.bridgeStatus.replace(/_/g, " ")}
-                </Badge>
+                </HandoffBadge>
               </td>
-              <td className="px-3 py-2 text-ink-tertiary text-xs">
-                {r.reason ?? "—"}
-              </td>
-              <td className="px-3 py-2 text-right">
+              <td className="text-ink-3 text-xs">{r.reason ?? "—"}</td>
+              <td className="text-right">
                 <Link
                   href={`/dashboard/owner-stays/requests/${r.ownerStayRequestId}`}
                   className="text-xs text-ink hover:underline underline-offset-4"
@@ -206,6 +225,6 @@ function BridgeTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </Card>
   );
 }

@@ -1,6 +1,6 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { listReserveBalances } from "@/features/finance/reserve-balances";
@@ -15,16 +15,23 @@ export default async function ReserveBalancesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Reserves", href: "/dashboard/finance/reserves" },
-          { label: "Balances" },
-        ]}
-        title="Reserve balances"
-        description="Running totals across every (villa / project / owner / reserve type) bucket. Computed from posted reserve movements."
-        actions={<SourceBadge source={source} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/reserves">Reserves</Link> /{" "}
+            <span>Balances</span>
+          </div>
+          <h1>Reserve balances</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Running totals across every (villa / project / owner / reserve type)
+            bucket. Computed from posted reserve movements.
+          </p>
+        </div>
+        <div className="actions">
+          <SourceBadge source={source} />
+        </div>
+      </div>
       <DbStatusNotice />
       <Table>
         <THead>
@@ -58,7 +65,7 @@ export default async function ReserveBalancesPage() {
                   {!r.villaId && !r.projectId && !r.ownerId ? "Unscoped" : null}
                 </TD>
                 <TD>
-                  <Badge tone="outline">{r.reserveType}</Badge>
+                  <HandoffBadge tone="soft">{r.reserveType}</HandoffBadge>
                 </TD>
                 <TD className="text-xs text-ink-tertiary font-mono tabular-nums">
                   {r.currency}

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { ItemCard } from "@/components/inventory/item-card";
 import { listInventoryItems } from "@/features/inventory/services";
@@ -13,15 +13,21 @@ export default async function InventoryItemsPage() {
   const items = await listInventoryItems({ limit: 500 });
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Items" },
-        ]}
-        title="All items"
-        description="Catalog of consumables, linens, towels, amenities, chemicals, spare parts, and equipment."
-        actions={<AddInventoryItemButton />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <span>Items</span>
+          </div>
+          <h1>All items</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Catalog of consumables, linens, towels, amenities, chemicals, spare parts, and equipment.
+          </p>
+        </div>
+        <div className="actions">
+          <AddInventoryItemButton />
+        </div>
+      </div>
       <DbStatusNotice />
       {items.length === 0 ? (
         <NoItemsYet

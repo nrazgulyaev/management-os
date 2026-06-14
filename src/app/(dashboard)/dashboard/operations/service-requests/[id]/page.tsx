@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import { ServiceRequestStatusPill } from "@/components/operations/task-status-pill";
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { ServiceRequestActions } from "@/components/operations/service-request-actions";
@@ -23,42 +23,44 @@ export default async function ServiceRequestDetail({
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Service requests", href: "/dashboard/operations/service-requests" },
-          { label: sr.requestCode },
-        ]}
-        title={sr.title}
-        description={`${sr.requestType.replace(/_/g, " ")} · ${sr.requestCode}`}
-        actions={<ServiceRequestActions id={sr.id} status={sr.status} />}
-      />
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="Status" value={<ServiceRequestStatusPill status={sr.status} />} />
-        <Stat label="Priority" value={<PriorityPill priority={sr.priority} />} />
-        <Stat label="Villa" value={sr.villaCode ?? "—"} />
-        <Stat
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <Link href="/dashboard/operations/service-requests">
+              Service requests
+            </Link>{" "}
+            / <span>{sr.requestCode}</span>
+          </div>
+          <h1>{sr.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {sr.requestType.replace(/_/g, " ")} · {sr.requestCode}
+          </p>
+        </div>
+        <div className="actions">
+          <ServiceRequestActions id={sr.id} status={sr.status} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="Status" value={<ServiceRequestStatusPill status={sr.status} />} />
+        <Kpi label="Priority" value={<PriorityPill priority={sr.priority} />} />
+        <Kpi label="Villa" value={sr.villaCode ?? "—"} />
+        <Kpi
           label="Preferred"
           value={sr.preferredTime ? sr.preferredTime.slice(0, 16).replace("T", " ") : "—"}
         />
-        <Stat label="Created" value={sr.createdAt.slice(0, 16).replace("T", " ")} />
+        <Kpi label="Created" value={sr.createdAt.slice(0, 16).replace("T", " ")} />
       </div>
       {sr.message && (
-        <Section eyebrow="Message" title="Guest brief">
-          <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
-            {sr.message}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Message</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-line">
+              {sr.message}
+            </p>
+          </Card>
+        </div>
       )}
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
     </div>
   );
 }

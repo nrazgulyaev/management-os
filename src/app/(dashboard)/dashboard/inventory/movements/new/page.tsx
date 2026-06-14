@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { MovementForm } from "@/components/inventory/movement-form";
 import {
@@ -16,14 +16,16 @@ export default async function NewMovementPage() {
   ]);
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Movements", href: "/dashboard/inventory/movements" },
-          { label: "New" },
-        ]}
-        title="New movement"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <Link href="/dashboard/inventory/movements">Movements</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New movement</h1>
+        </div>
+      </div>
       <DbStatusNotice />
       <MovementForm
         items={items.map((i) => ({ id: i.id, label: `${i.name}${i.sku ? ` · ${i.sku}` : ""}` }))}

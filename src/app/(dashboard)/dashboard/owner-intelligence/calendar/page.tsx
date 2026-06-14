@@ -1,6 +1,5 @@
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listOwnerCalendarRows,
 } from "@/features/owner-intelligence/calendar-services";
@@ -14,14 +13,14 @@ export const dynamic = "force-dynamic";
 
 const BUCKET_TONES: Record<
   string,
-  "neutral" | "info" | "warning" | "success" | "danger"
+  "soft" | "info" | "warn" | "ok" | "danger"
 > = {
   guest_stay: "info",
-  owner_stay: "success",
-  maintenance: "warning",
-  internal_hold: "neutral",
+  owner_stay: "ok",
+  maintenance: "warn",
+  internal_hold: "soft",
   out_of_order: "danger",
-  operations: "neutral",
+  operations: "soft",
   review: "info",
 };
 
@@ -37,81 +36,84 @@ export default async function OwnerCalendarAdminPage() {
   });
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          {
-            label: "Owner intelligence",
-            href: "/dashboard/owner-intelligence",
-          },
-          { label: "Calendar" },
-        ]}
-        title="Owner calendar (admin)"
-        description="Same projection the owner sees, with admin links into bookings / tasks. We never display raw guest contact info even on this page; ops can drill into the source row from here."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/owner-intelligence">Owner intelligence</Link>{" "}
+            / <span>Calendar</span>
+          </div>
+          <h1>Owner calendar (admin)</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Same projection the owner sees, with admin links into bookings /
+            tasks. We never display raw guest contact info even on this page;
+            ops can drill into the source row from here.
+          </p>
+        </div>
+      </div>
       {rows.length === 0 ? (
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
           No owner-linked villas found.
         </p>
       ) : (
         rows.map((row) => (
-          <Section
-            key={row.villa.villaId}
-            eyebrow={row.villa.projectName ?? "Villa"}
-            title={row.villa.villaName ?? row.villa.villaCode ?? "Villa"}
-            description={`Owner ${row.villa.ownerId.slice(0, 8)}… · ${row.events.length} events`}
-          >
+          <div key={row.villa.villaId}>
+            <div className="label mb-2.5">
+              {row.villa.projectName ?? "Villa"} ·{" "}
+              {row.villa.villaName ?? row.villa.villaCode ?? "Villa"} · Owner{" "}
+              {row.villa.ownerId.slice(0, 8)}… · {row.events.length} events
+            </div>
             {row.events.length === 0 ? (
               <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-xs text-ink-tertiary">
                 Nothing scheduled.
               </p>
             ) : (
-              <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-canvas/50 text-left">
-                    <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                      <th className="px-4 py-3">Dates</th>
-                      <th className="px-4 py-3">Type</th>
-                      <th className="px-4 py-3">Source ID</th>
-                      <th className="px-4 py-3">Guest</th>
-                      <th className="px-4 py-3">Channel</th>
+              <Card padding="none" overflowHidden>
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th scope="col">Dates</th>
+                      <th scope="col">Type</th>
+                      <th scope="col">Source ID</th>
+                      <th scope="col">Guest</th>
+                      <th scope="col">Channel</th>
                     </tr>
                   </thead>
                   <tbody>
                     {row.events.map((e) => (
-                      <tr key={e.id} className="border-t border-line-soft">
-                        <td className="px-4 py-3 font-mono tabular-nums text-xs">
+                      <tr key={e.id}>
+                        <td className="mono text-xs">
                           {e.startDate}
                           {e.endDate !== e.startDate
                             ? ` → ${e.endDate}`
                             : ""}
                         </td>
-                        <td className="px-4 py-3">
-                          <Badge
+                        <td>
+                          <HandoffBadge
                             tone={
                               BUCKET_TONES[
                                 classifyOwnerCalendarEvent(e.source)
-                              ] ?? "neutral"
+                              ] ?? "soft"
                             }
                           >
                             {publicCalendarStatusLabel(e)}
-                          </Badge>
+                          </HandoffBadge>
                         </td>
-                        <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
+                        <td className="mono text-[11px] text-ink-tertiary">
                           {e.id.replace(/^[^:]+:/, "")}
                         </td>
-                        <td className="px-4 py-3 text-xs">
+                        <td className="text-xs">
                           {e.guestDisplayName ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-xs text-ink-tertiary">
+                        <td className="text-xs text-ink-tertiary">
                           {e.channelLabel ?? "—"}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </Card>
             )}
-          </Section>
+          </div>
         ))
       )}
     </div>

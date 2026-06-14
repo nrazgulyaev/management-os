@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listServiceVendors } from "@/features/service-fulfilment/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 import { VendorAddButton } from "@/components/service-fulfilment/vendor-add-button";
@@ -14,16 +12,23 @@ export default async function VendorsListPage() {
   const vendors = await listServiceVendors();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Service fulfilment", href: "/dashboard/service-fulfilment" },
-          { label: "Vendors" },
-        ]}
-        title="Service vendors"
-        description="Vendor registry. Each vendor is mapped to one or more guest services they can fulfil."
-        actions={<VendorAddButton />}
-      />
-      <Section eyebrow="Registry" title={`${vendors.length} vendors`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/service-fulfilment">Service fulfilment</Link> /{" "}
+            <span>Vendors</span>
+          </div>
+          <h1>Service vendors</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Vendor registry. Each vendor is mapped to one or more guest services they can fulfil.
+          </p>
+        </div>
+        <div className="actions">
+          <VendorAddButton />
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Registry</div>
         {vendors.length === 0 ? (
           <NoItemsYet
             entityLabel="vendors"
@@ -64,17 +69,17 @@ export default async function VendorsListPage() {
                       {v.ratingAverage ?? "—"} ({v.ratingCount})
                     </td>
                     <td className="px-4 py-3">
-                      <Badge
+                      <HandoffBadge
                         tone={
                           v.status === "active"
-                            ? "success"
+                            ? "ok"
                             : v.status === "paused"
-                              ? "warning"
-                              : "neutral"
+                              ? "warn"
+                              : "soft"
                         }
                       >
                         {v.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <SettingsRowActions
@@ -105,7 +110,7 @@ export default async function VendorsListPage() {
             </table>
           </div>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

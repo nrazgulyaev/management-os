@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { MaintenanceTicketCard } from "@/components/operations/maintenance-ticket-card";
 import { MaintenanceAddButton } from "@/components/operations/maintenance-add-button";
@@ -21,15 +21,21 @@ export default async function MaintenancePage() {
   const projectOpts = projects.map((p) => ({ id: p.id, label: p.name }));
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Operations", href: "/dashboard/operations" },
-          { label: "Maintenance" },
-        ]}
-        title="Maintenance tickets"
-        description="Reported issues, repair triage, and parts coordination."
-        actions={<MaintenanceAddButton villas={villaOpts} projects={projectOpts} />}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/operations">Operations</Link> /{" "}
+            <span>Maintenance</span>
+          </div>
+          <h1>Maintenance tickets</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Reported issues, repair triage, and parts coordination.
+          </p>
+        </div>
+        <div className="actions">
+          <MaintenanceAddButton villas={villaOpts} projects={projectOpts} />
+        </div>
+      </div>
       <DbStatusNotice />
       <div className="flex flex-col gap-2">
         {tickets.length === 0 ? (

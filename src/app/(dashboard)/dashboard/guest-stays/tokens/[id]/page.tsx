@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getGuestStayTokenById,
 } from "@/features/guest-stays/services";
@@ -10,10 +9,10 @@ import { RevokeTokenButton } from "@/components/guest-stays/revoke-token-button"
 export const metadata = { title: "Guest stay token" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONES: Record<string, "neutral" | "info" | "warning" | "success" | "danger"> = {
-  active: "success",
-  revoked: "warning",
-  expired: "neutral",
+const STATUS_TONES: Record<string, "soft" | "info" | "warn" | "ok" | "danger"> = {
+  active: "ok",
+  revoked: "warn",
+  expired: "soft",
 };
 
 export default async function TokenDetail({
@@ -26,23 +25,31 @@ export default async function TokenDetail({
   if (!t) notFound();
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Guest stays", href: "/dashboard/guest-stays" },
-          { label: "Tokens", href: "/dashboard/guest-stays/tokens" },
-          { label: t.tokenPrefix + "…" },
-        ]}
-        title={`Token · ${t.tokenPrefix}…`}
-        description={`Booking ${t.bookingCode ?? t.bookingId.slice(0, 8)} · ${t.villaCode ?? "villa"}`}
-        actions={
-          t.status === "active" ? <RevokeTokenButton id={t.id} /> : undefined
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/guest-stays">Guest stays</Link> /{" "}
+            <Link href="/dashboard/guest-stays/tokens">Tokens</Link> /{" "}
+            <span>{t.tokenPrefix}…</span>
+          </div>
+          <h1>{`Token · ${t.tokenPrefix}…`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`Booking ${t.bookingCode ?? t.bookingId.slice(0, 8)} · ${t.villaCode ?? "villa"}`}
+          </p>
+        </div>
+        {t.status === "active" && (
+          <div className="actions">
+            <RevokeTokenButton id={t.id} />
+          </div>
+        )}
+      </div>
 
-      <Section eyebrow="Status" title="Token">
-        <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-6 grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
           <Field label="Status">
-            <Badge tone={STATUS_TONES[t.status] ?? "neutral"}>{t.status}</Badge>
+            <HandoffBadge tone={STATUS_TONES[t.status] ?? "soft"}>{t.status}</HandoffBadge>
           </Field>
           <Field label="Issued to">
             {t.issuedToEmail ?? t.issuedToPhone ?? "—"}
@@ -69,23 +76,25 @@ export default async function TokenDetail({
           {t.revokeReason && (
             <Field label="Revoke reason" value={t.revokeReason} />
           )}
-        </div>
-      </Section>
+          </div>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Public URL"
-        title="Where the guest goes"
-        description="The raw token is shown only at issue time. After that, the prefix is the only identifier — share the URL via the issued email/phone path."
-      >
-        <div className="rounded-2xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm">
-          <p className="text-ink-secondary">
-            <span className="font-mono text-[12px]">/stay/&lt;token&gt;</span> — full token never logged.
+      <div>
+        <div className="label mb-2.5">Public URL</div>
+        <Card padding="default">
+          <p className="text-[13px] text-ink-3 mb-2 max-w-[680px]">
+            The raw token is shown only at issue time. After that, the prefix is
+            the only identifier — share the URL via the issued email/phone path.
           </p>
-          <p className="text-xs text-ink-tertiary mt-2">
+          <p className="text-ink-2 text-sm">
+            <span className="mono text-[12px]">/stay/&lt;token&gt;</span> — full token never logged.
+          </p>
+          <p className="text-[12px] text-ink-3 mt-2">
             To re-issue: visit the booking detail page and use "Issue new token".
           </p>
-        </div>
-      </Section>
+        </Card>
+      </div>
     </div>
   );
 }

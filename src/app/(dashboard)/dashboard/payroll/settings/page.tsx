@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { getOrgPayrollSettings } from "@/features/payroll/services";
 import { DEFAULT_STATUTORY_SETTINGS } from "@/features/payroll/statutory";
@@ -47,15 +47,21 @@ export default async function PayrollSettingsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Payroll", href: "/dashboard/payroll" },
-          { label: "Statutory settings" },
-        ]}
-        title="Payroll statutory settings"
-        description="Indonesian BPJS (Ketenagakerjaan + Kesehatan) and PPh21 (TER monthly) rates and caps. Editable defaults — off by default so existing payroll is unchanged until you turn it on."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/payroll">Payroll</Link> /{" "}
+            <span>Statutory settings</span>
+          </div>
+          <h1>Payroll statutory settings</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Indonesian BPJS (Ketenagakerjaan + Kesehatan) and PPh21 (TER monthly)
+            rates and caps. Editable defaults — off by default so existing payroll
+            is unchanged until you turn it on.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       <OrgPayrollSettingsForm action={updateOrgPayrollSettingsAction} defaults={defaults} />
     </div>

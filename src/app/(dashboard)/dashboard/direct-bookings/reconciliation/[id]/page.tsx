@@ -1,14 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDirectBookingFinanceLinkById } from "@/features/direct-booking/finance-reconciliation";
 import { directBookingFinanceStatusLabel } from "@/features/direct-booking/finance-pure";
 import { ReverseLinkForm } from "@/components/direct-booking/reconcile-buttons";
 
 export const metadata = { title: "Finance link" };
 export const dynamic = "force-dynamic";
+
+/** Map the finance status-label tones onto handoff badge tones. */
+const BADGE_TONE: Record<
+  "info" | "success" | "warning" | "neutral" | "danger",
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
+  info: "info",
+  success: "ok",
+  warning: "warn",
+  neutral: "soft",
+  danger: "danger",
+};
 
 export default async function FinanceLinkDetailPage({
   params,
@@ -22,90 +32,107 @@ export default async function FinanceLinkDetailPage({
   const lab = directBookingFinanceStatusLabel(link.status as LinkStatus);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          {
-            label: "Reconciliation",
-            href: "/dashboard/direct-bookings/reconciliation",
-          },
-          { label: link.linkCode },
-        ]}
-        title={link.linkCode}
-        description={`${link.currency} · ${(link.grossAmountMinor / 100n).toString()}.${String(link.grossAmountMinor % 100n).padStart(2, "0")} gross`}
-        actions={<Badge tone={lab.tone}>{lab.label}</Badge>}
-      />
-      <Section eyebrow="Summary" title="Money">
-        <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Pair
-            label="Gross"
-            value={`${formatMinor(link.grossAmountMinor)} ${link.currency}`}
-            mono
-          />
-          <Pair
-            label="Deposit"
-            value={`${formatMinor(link.depositAmountMinor)} ${link.currency}`}
-            mono
-          />
-          <Pair
-            label="Balance due"
-            value={`${formatMinor(link.balanceDueMinor)} ${link.currency}`}
-            mono
-          />
-          <Pair
-            label="Posted"
-            value={link.postedAt?.toISOString() ?? "—"}
-            mono
-          />
-          <Pair
-            label="Reversed"
-            value={link.reversedAt?.toISOString() ?? "—"}
-            mono
-          />
-          <Pair label="Currency" value={link.currency} mono />
-        </dl>
-      </Section>
-      <Section eyebrow="Joins" title="Linked records">
-        <ul className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-          <Row label="Request" value={link.requestId ?? "—"} />
-          {link.bookingId && (
-            <Row
-              label="Booking"
-              link={`/dashboard/bookings/${link.bookingId}`}
-              value={link.bookingId}
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <Link href="/dashboard/direct-bookings/reconciliation">
+              Reconciliation
+            </Link>{" "}
+            / <span>{link.linkCode}</span>
+          </div>
+          <h1>{link.linkCode}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${link.currency} · ${(link.grossAmountMinor / 100n).toString()}.${String(link.grossAmountMinor % 100n).padStart(2, "0")} gross`}
+          </p>
+        </div>
+        <div className="actions">
+          <HandoffBadge tone={BADGE_TONE[lab.tone]}>{lab.label}</HandoffBadge>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Summary</div>
+        <Card padding="default">
+          <dl className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Pair
+              label="Gross"
+              value={`${formatMinor(link.grossAmountMinor)} ${link.currency}`}
+              mono
             />
-          )}
-          {link.depositId && (
-            <Row
+            <Pair
               label="Deposit"
-              link={`/dashboard/direct-bookings/deposits/${link.depositId}`}
-              value={link.depositId}
+              value={`${formatMinor(link.depositAmountMinor)} ${link.currency}`}
+              mono
             />
-          )}
-          {link.holdId && (
-            <Row
-              label="Hold"
-              link={`/dashboard/direct-bookings/holds/${link.holdId}`}
-              value={link.holdId}
+            <Pair
+              label="Balance due"
+              value={`${formatMinor(link.balanceDueMinor)} ${link.currency}`}
+              mono
             />
-          )}
-          {link.revenueLineId && (
-            <Row label="Revenue line" value={link.revenueLineId} />
-          )}
-          {link.statementPeriodId && (
-            <Row label="Statement period" value={link.statementPeriodId} />
-          )}
-        </ul>
-      </Section>
+            <Pair
+              label="Posted"
+              value={link.postedAt?.toISOString() ?? "—"}
+              mono
+            />
+            <Pair
+              label="Reversed"
+              value={link.reversedAt?.toISOString() ?? "—"}
+              mono
+            />
+            <Pair label="Currency" value={link.currency} mono />
+          </dl>
+        </Card>
+      </div>
+      <div>
+        <div className="label mb-2.5">Joins</div>
+        <Card padding="none">
+          <ul className="divide-y divide-line-soft">
+            <Row label="Request" value={link.requestId ?? "—"} />
+            {link.bookingId && (
+              <Row
+                label="Booking"
+                link={`/dashboard/bookings/${link.bookingId}`}
+                value={link.bookingId}
+              />
+            )}
+            {link.depositId && (
+              <Row
+                label="Deposit"
+                link={`/dashboard/direct-bookings/deposits/${link.depositId}`}
+                value={link.depositId}
+              />
+            )}
+            {link.holdId && (
+              <Row
+                label="Hold"
+                link={`/dashboard/direct-bookings/holds/${link.holdId}`}
+                value={link.holdId}
+              />
+            )}
+            {link.revenueLineId && (
+              <Row label="Revenue line" value={link.revenueLineId} />
+            )}
+            {link.statementPeriodId && (
+              <Row label="Statement period" value={link.statementPeriodId} />
+            )}
+          </ul>
+        </Card>
+      </div>
       {link.error && (
-        <Section eyebrow="Error" title="Why it didn't post">
-          <p className="text-sm text-danger">{link.error}</p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Error</div>
+          <Card padding="default">
+            <p className="text-sm text-danger m-0">{link.error}</p>
+          </Card>
+        </div>
       )}
       {link.status === "posted" && (
-        <Section eyebrow="Reverse" title="Compensating action">
-          <ReverseLinkForm id={link.id} />
-        </Section>
+        <div>
+          <div className="label mb-2.5">Reverse</div>
+          <Card padding="default">
+            <ReverseLinkForm id={link.id} />
+          </Card>
+        </div>
       )}
     </div>
   );

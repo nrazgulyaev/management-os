@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listVillas } from "@/features/villas/services";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
 import { PlanForm } from "@/components/maintenance-intelligence/plan-form";
@@ -13,15 +13,19 @@ export default async function NewPlanPage() {
   ]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Maintenance intelligence", href: "/dashboard/maintenance-intelligence" },
-          { label: "Plans", href: "/dashboard/maintenance-intelligence/plans" },
-          { label: "New" },
-        ]}
-        title="New maintenance plan"
-        description="Per-villa instance of a template. The first next_due_at is set to (now + interval); generate the task or accept a window suggestion to advance."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/maintenance-intelligence">Maintenance intelligence</Link> /{" "}
+            <Link href="/dashboard/maintenance-intelligence/plans">Plans</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New maintenance plan</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa instance of a template. The first next_due_at is set to (now + interval); generate the task or accept a window suggestion to advance.
+          </p>
+        </div>
+      </div>
       <PlanForm
         villas={villas.map((v) => ({
           id: v.id,

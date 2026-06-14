@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getReconciliationMetrics,
   listDirectBookingFinanceLinks,
@@ -12,6 +9,18 @@ import { ReconcilePendingButton } from "@/components/direct-booking/reconcile-bu
 
 export const metadata = { title: "Direct booking reconciliation" };
 export const dynamic = "force-dynamic";
+
+/** Map the finance status-label tones onto handoff badge tones. */
+const BADGE_TONE: Record<
+  "info" | "success" | "warning" | "neutral" | "danger",
+  "info" | "ok" | "warn" | "soft" | "danger"
+> = {
+  info: "info",
+  success: "ok",
+  warning: "warn",
+  neutral: "soft",
+  danger: "danger",
+};
 
 export default async function ReconciliationHub({
   searchParams,
@@ -27,105 +36,106 @@ export default async function ReconciliationHub({
   ]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Reconciliation" },
-        ]}
-        title="Direct booking reconciliation"
-        description="Idempotent finance bridge per request: deposit + booking + revenue line + statement period."
-        actions={<ReconcilePendingButton />}
-      />
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <MetricCard
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <span>Reconciliation</span>
+          </div>
+          <h1>Direct booking reconciliation</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Idempotent finance bridge per request: deposit + booking + revenue
+            line + statement period.
+          </p>
+        </div>
+        <div className="actions">
+          <ReconcilePendingButton />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi
           label="Converted but unposted"
           value={String(metrics.unposted)}
-          accent={metrics.unposted > 0}
+          tone={metrics.unposted > 0 ? "accent" : undefined}
         />
-        <MetricCard label="Posted revenue" value={String(metrics.posted)} />
-        <MetricCard
+        <Kpi label="Posted revenue" value={String(metrics.posted)} />
+        <Kpi
           label="Skipped (locked period)"
           value={String(metrics.skippedLocked)}
-          accent={metrics.skippedLocked > 0}
+          tone={metrics.skippedLocked > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Failed"
           value={String(metrics.failed)}
-          accent={metrics.failed > 0}
+          tone={metrics.failed > 0 ? "accent" : undefined}
         />
-        <MetricCard
+        <Kpi
           label="Balance due (posted)"
           value={`${(metrics.totalBalanceDueMinor / 100n).toString()}.${String(metrics.totalBalanceDueMinor % 100n).padStart(2, "0")} ${metrics.currency ?? ""}`}
         />
       </div>
-      <Section eyebrow="Catalog" title={`${rows.length} finance links`}>
-        <div className="rounded-md border border-line-soft bg-surface overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-canvas/50 text-left">
-              <tr className="text-[11px] uppercase tracking-widest text-ink-tertiary">
-                <th className="px-4 py-3">Code</th>
-                <th className="px-4 py-3">Request</th>
-                <th className="px-4 py-3">Booking</th>
-                <th className="px-4 py-3">Gross</th>
-                <th className="px-4 py-3">Balance due</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Posted</th>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} finance links`}</div>
+        <table className="data">
+          <thead>
+            <tr>
+              <th scope="col">Code</th>
+              <th scope="col">Request</th>
+              <th scope="col">Booking</th>
+              <th scope="col" className="num">Gross</th>
+              <th scope="col" className="num">Balance due</th>
+              <th scope="col">Status</th>
+              <th scope="col">Posted</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={7} className="text-center text-ink-3">
+                  No finance links yet. Click "Reconcile pending" to sweep
+                  converted requests.
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {rows.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-6 text-center text-ink-tertiary"
-                  >
-                    No finance links yet. Click "Reconcile pending" to sweep
-                    converted requests.
+            )}
+            {rows.map(({ link, requestCode, bookingCode }) => {
+              const lab = directBookingFinanceStatusLabel(
+                link.status as LinkStatus,
+              );
+              return (
+                <tr key={link.id}>
+                  <td className="mono text-[12px]">
+                    <Link
+                      href={`/dashboard/direct-bookings/reconciliation/${link.id}`}
+                      className="text-ink hover:text-terra"
+                    >
+                      {link.linkCode}
+                    </Link>
+                  </td>
+                  <td className="mono text-[12px]">{requestCode ?? "—"}</td>
+                  <td className="mono text-[12px]">{bookingCode ?? "—"}</td>
+                  <td className="num mono text-[12px]">
+                    {(link.grossAmountMinor / 100n).toString()}.
+                    {String(link.grossAmountMinor % 100n).padStart(2, "0")}{" "}
+                    {link.currency}
+                  </td>
+                  <td className="num mono text-[12px]">
+                    {(link.balanceDueMinor / 100n).toString()}.
+                    {String(link.balanceDueMinor % 100n).padStart(2, "0")}
+                  </td>
+                  <td>
+                    <HandoffBadge tone={BADGE_TONE[lab.tone]}>
+                      {lab.label}
+                    </HandoffBadge>
+                  </td>
+                  <td className="mono text-[11px] text-ink-3">
+                    {link.postedAt?.toISOString() ?? "—"}
                   </td>
                 </tr>
-              )}
-              {rows.map(({ link, requestCode, bookingCode }) => {
-                const lab = directBookingFinanceStatusLabel(
-                  link.status as LinkStatus,
-                );
-                return (
-                  <tr key={link.id} className="border-t border-line-soft">
-                    <td className="px-4 py-3 font-mono text-xs">
-                      <Link
-                        href={`/dashboard/direct-bookings/reconciliation/${link.id}`}
-                        className="text-ink hover:underline underline-offset-4"
-                      >
-                        {link.linkCode}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {requestCode ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {bookingCode ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {(link.grossAmountMinor / 100n).toString()}.
-                      {String(link.grossAmountMinor % 100n).padStart(2, "0")}{" "}
-                      {link.currency}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">
-                      {(link.balanceDueMinor / 100n).toString()}.
-                      {String(link.balanceDueMinor % 100n).padStart(2, "0")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Badge tone={lab.tone}>{lab.label}</Badge>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-ink-tertiary">
-                      {link.postedAt?.toISOString() ?? "—"}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </Section>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <p className="text-xs text-ink-tertiary">
         Owner-side projection of these bookings lives at{" "}
         <Link

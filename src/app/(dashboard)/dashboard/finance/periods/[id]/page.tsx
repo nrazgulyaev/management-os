@@ -1,8 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { PeriodPill } from "@/components/finance/period-pill";
 import { getStatementPeriodById, listOwnerStatements } from "@/features/finance/services";
 import { setPeriodStatusAction } from "@/features/finance/actions";
@@ -36,16 +34,19 @@ export default async function PeriodDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Periods", href: "/dashboard/finance/periods" },
-          { label: period.label },
-        ]}
-        eyebrow="Period"
-        title={period.label}
-        description={`${period.periodStart} → ${period.periodEnd}`}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/periods">Periods</Link> /{" "}
+            <span>{period.label}</span>
+          </div>
+          <h1>{period.label}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {period.periodStart} → {period.periodEnd}
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <PeriodPill status={period.status} />
             {nextActions.map((a) => (
@@ -55,42 +56,51 @@ export default async function PeriodDetailPage({
                 formData.set("next", a.next);
                 await setPeriodStatusAction(null, formData);
               }}>
-                <Button size="sm" variant="secondary" type="submit">
+                <button className="btn btn-secondary btn-sm" type="submit">
                   {a.label}
-                </Button>
+                </button>
               </form>
             ))}
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Statements"
-        title={`Owner statements · ${statementsForPeriod.length}`}
-        description="Statements created against this period."
-      >
+      <div>
+        <div className="label mb-2.5">Statements</div>
+        <div className="mb-2.5">
+          <div className="text-[14px] text-ink font-medium">
+            Owner statements · {statementsForPeriod.length}
+          </div>
+          <div className="text-[12px] text-ink-3 mt-0.5">
+            Statements created against this period.
+          </div>
+        </div>
         {statementsForPeriod.length === 0 ? (
-          <div className="rounded-md border border-dashed border-line-soft p-6 text-sm text-ink-tertiary">
-            No statements for this period yet.
-          </div>
+          <Card padding="default">
+            <div className="text-sm text-ink-tertiary">
+              No statements for this period yet.
+            </div>
+          </Card>
         ) : (
-          <div className="rounded-md border border-line-soft bg-surface divide-y divide-line-soft">
-            {statementsForPeriod.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-4">
-                <div>
-                  <div className="text-sm text-ink font-medium">
-                    {s.ownerName} · {s.villaCode ?? s.projectName ?? "—"}
+          <Card padding="none" overflowHidden>
+            <div className="divide-y divide-line-soft">
+              {statementsForPeriod.map((s) => (
+                <div key={s.id} className="flex items-center justify-between p-4">
+                  <div>
+                    <div className="text-sm text-ink font-medium">
+                      {s.ownerName} · {s.villaCode ?? s.projectName ?? "—"}
+                    </div>
+                    <div className="text-[11px] text-ink-tertiary mt-0.5">{s.statementCode}</div>
                   </div>
-                  <div className="text-[11px] text-ink-tertiary mt-0.5">{s.statementCode}</div>
+                  <HandoffBadge tone={s.status === "paid" ? "ok" : s.status === "draft" ? "soft" : "info"}>
+                    {s.status}
+                  </HandoffBadge>
                 </div>
-                <Badge tone={s.status === "paid" ? "success" : s.status === "draft" ? "neutral" : "info"}>
-                  {s.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </div>
   );
 }

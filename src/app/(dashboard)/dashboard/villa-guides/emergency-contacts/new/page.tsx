@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { ContactForm } from "@/components/villa-guides/contact-form";
@@ -10,14 +10,18 @@ export default async function NewContactPage() {
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Villa guides", href: "/dashboard/villa-guides" },
-          { label: "Emergency contacts", href: "/dashboard/villa-guides/emergency-contacts" },
-          { label: "New" },
-        ]}
-        title="New emergency contact"
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/villa-guides">Villa guides</Link> /{" "}
+            <Link href="/dashboard/villa-guides/emergency-contacts">
+              Emergency contacts
+            </Link>{" "}
+            / <span>New</span>
+          </div>
+          <h1>New emergency contact</h1>
+        </div>
+      </div>
       <ContactForm
         villas={villas.map((v) => ({
           id: v.id,
