@@ -1,7 +1,6 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { StockTable } from "@/components/inventory/stock-table";
 import { MovementTable } from "@/components/inventory/movement-table";
 import { DbStatusNotice } from "@/components/admin/db-status";
@@ -29,38 +28,44 @@ export default async function ItemDetailPage({
   ]);
 
   return (
-    <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Inventory", href: "/dashboard/inventory" },
-          { label: "Items", href: "/dashboard/inventory/items" },
-          { label: item.sku ?? item.name },
-        ]}
-        title={item.name}
-        description={`${item.itemType.replace(/_/g, " ")}${item.brand ? ` · ${item.brand}` : ""}`}
-      />
+    <div className="flex flex-col gap-[18px]">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/inventory">Inventory</Link> /{" "}
+            <Link href="/dashboard/inventory/items">Items</Link> /{" "}
+            <span>{item.sku ?? item.name}</span>
+          </div>
+          <h1>{item.name}</h1>
+          <p className="text-[13px] text-ink-3 mt-2">
+            {item.itemType.replace(/_/g, " ")}
+            {item.brand ? ` · ${item.brand}` : ""}
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
 
-      <div className="rounded-lg border border-line-soft bg-surface p-6 grid grid-cols-2 md:grid-cols-4 gap-6">
-        <Stat label="SKU" value={<span className="font-mono">{item.sku ?? "—"}</span>} />
-        <Stat label="Unit" value={item.unit} />
-        <Stat
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Kpi label="SKU" value={<span className="mono">{item.sku ?? "—"}</span>} />
+        <Kpi label="Unit" value={item.unit} />
+        <Kpi
           label="Reorder"
-          value={item.reorderPoint !== null ? `${item.reorderPoint} ${item.unit}` : "—"}
+          value={
+            item.reorderPoint !== null
+              ? `${item.reorderPoint} ${item.unit}`
+              : "—"
+          }
         />
-        <Stat
-          label="Default supplier"
-          value={item.defaultSupplierName ?? <span className="text-ink-tertiary">—</span>}
-        />
-        <Stat
+        <Kpi label="Default supplier" value={item.defaultSupplierName ?? "—"} />
+        <Kpi
           label="Total stock"
           value={
-            <span className="font-mono tabular-nums">
+            <span className="mono tabular-nums">
               {item.totalStock} {item.unit}
             </span>
           }
         />
-        <Stat
+        <Kpi
           label="Unit cost"
           value={
             item.unitCostMinor !== null && item.currency
@@ -68,32 +73,25 @@ export default async function ItemDetailPage({
               : "—"
           }
         />
-        <Stat
+        <Kpi
           label="Owner chargeable"
           value={item.ownerChargeable ? "Yes" : "No"}
         />
-        <Stat
+        <Kpi
           label="Status"
-          value={<Badge tone="outline">{item.status}</Badge>}
+          value={<HandoffBadge tone="soft">{item.status}</HandoffBadge>}
         />
       </div>
 
-      <Section eyebrow="Stock" title="Per-location stock">
+      <div>
+        <div className="label mb-2.5">Stock · Per-location</div>
         <StockTable rows={stock} />
-      </Section>
+      </div>
 
-      <Section eyebrow="History" title="Recent movements">
+      <div>
+        <div className="label mb-2.5">History · Recent movements</div>
         <MovementTable rows={movements} />
-      </Section>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div>
-      <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">{label}</div>
-      <div className="text-sm text-ink mt-1">{value}</div>
+      </div>
     </div>
   );
 }
