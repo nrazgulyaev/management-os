@@ -160,12 +160,17 @@ const nextConfig = {
       "react-markdown",
       "remark-gfm",
     ],
-    // HF-16 — Cap webpack worker concurrency. Default uses all CPUs
-    // and each worker holds its own module graph; on Vercel's 8GB
-    // container that's the proximate cause of SIGKILL. Slightly
-    // slower wall-clock build, dramatically lower peak memory.
+    // HF-16 / OOM-FIX — Cap webpack worker concurrency. Default uses all
+    // CPUs and each worker holds its own module graph; on Vercel's 8GB
+    // container that's the proximate cause of the SIGKILL OOM. Dropped from
+    // 2 → 1: with the main process + a single worker (instead of two), peak
+    // RAM stays under the 8GB ceiling. Slightly slower wall-clock build.
+    // NOTE: do NOT also raise NODE_OPTIONS=--max-old-space-size in the build
+    // script — it applies to EVERY process here, so a high cap lets main +
+    // workers each grow past the container limit and forces the OOM-killer
+    // (this is exactly what regressed deploys when it was set to 7168).
     workerThreads: false,
-    cpus: 2,
+    cpus: 1,
   },
 
   // P4 follow-up — keep heavy server-only deps OUT of the route
