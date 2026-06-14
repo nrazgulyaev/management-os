@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { SpecificationAddButton } from "@/components/development/specifications/specification-add-button";
 import { getDb } from "@/lib/db/client";
@@ -23,7 +19,11 @@ export default async function SpecificationsListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Specifications" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Specifications</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -37,27 +37,27 @@ export default async function SpecificationsListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Knowledge Base" },
-          { label: "Specifications" },
-        ]}
-        eyebrow={`${rows.length} active spec${rows.length === 1 ? "" : "s"}`}
-        title="Specifications library"
-        description="Material/finish specifications. Linked to BOQ items for material selections, and to quality standards for acceptance-criteria templates."
-        actions={
-          <div className="flex gap-2">
-            <SpecificationAddButton />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Knowledge Base</span> / <span>Specifications</span>
           </div>
-        }
-      />
+          <h1>Specifications library</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Material/finish specifications. Linked to BOQ items for material
+            selections, and to quality standards for acceptance-criteria
+            templates.
+          </p>
+        </div>
+        <div className="actions">
+          <SpecificationAddButton />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -65,41 +65,44 @@ export default async function SpecificationsListPage() {
           description="Add the first material/finish specification."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All specifications">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Name</TH>
-                <TH>Category</TH>
-                <TH>Brand</TH>
-                <TH>Model</TH>
-                <TH>Color</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map((s) => (
-                <TR key={s.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/specifications/${encodeURIComponent(s.specCode)}`}
-                      className="hover:underline"
-                    >
-                      {s.specCode}
-                    </Link>
-                  </TD>
-                  <TD className="text-sm">{s.specName}</TD>
-                  <TD>
-                    <Badge tone="neutral">{s.specCategory}</Badge>
-                  </TD>
-                  <TD className="text-xs">{s.brand ?? "—"}</TD>
-                  <TD className="font-mono text-xs">{s.modelNumber ?? "—"}</TD>
-                  <TD className="text-xs">{s.colorCode ?? "—"}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Catalog · All specifications</div>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Brand</th>
+                  <th scope="col">Model</th>
+                  <th scope="col">Color</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((s) => (
+                  <tr key={s.id}>
+                    <td className="font-mono text-xs">
+                      <Link
+                        href={`/development-os/specifications/${encodeURIComponent(s.specCode)}`}
+                        className="hover:underline"
+                      >
+                        {s.specCode}
+                      </Link>
+                    </td>
+                    <td className="row-title">{s.specName}</td>
+                    <td>
+                      <HandoffBadge tone="soft">{s.specCategory}</HandoffBadge>
+                    </td>
+                    <td className="text-xs">{s.brand ?? "—"}</td>
+                    <td className="font-mono text-xs">{s.modelNumber ?? "—"}</td>
+                    <td className="text-xs">{s.colorCode ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

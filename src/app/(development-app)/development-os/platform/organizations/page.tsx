@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listOrganizations } from "@/lib/development/server/organizations/organization-queries";
@@ -20,32 +18,37 @@ export default async function OrganizationsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Organizations"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Platform" },
-          { label: "Organizations" },
-        ]}
-        description="Tenant registry for the Arconique platform. ARCONIQUE_DEFAULT is the bootstrap tenant — every existing record is currently scoped to it."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Platform</span> / <span>Organizations</span>
+          </div>
+          <h1>Organizations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Tenant registry for the Arconique platform. ARCONIQUE_DEFAULT is the
+            bootstrap tenant — every existing record is currently scoped to it.
+          </p>
+        </div>
+      </div>
 
-      <Section title={`${orgs.length} organization(s)`}>
+      <div>
+        <div className="label mb-2.5">{orgs.length} organization(s)</div>
         {orgs.length === 0 ? (
           <EmptyState
             title="No organizations yet"
             description="Apply migration 0071 to seed ARCONIQUE_DEFAULT."
           />
         ) : (
-          <table className="w-full text-sm border-collapse">
+          <table className="data">
             <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Code</th>
-                <th>Name</th>
-                <th>Type</th>
-                <th>Tier</th>
-                <th>Modules</th>
-                <th>Status</th>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Name</th>
+                <th scope="col">Type</th>
+                <th scope="col">Tier</th>
+                <th scope="col">Modules</th>
+                <th scope="col">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -54,8 +57,8 @@ export default async function OrganizationsPage() {
                   ? (o.enabledModules as string[])
                   : [];
                 return (
-                  <tr key={o.id} className="border-b border-line-soft">
-                    <td className="py-2 font-mono text-xs">
+                  <tr key={o.id}>
+                    <td className="mono text-xs">
                       <Link
                         href={`/development-os/platform/organizations/${o.organizationCode}`}
                         className="hover:underline"
@@ -63,16 +66,16 @@ export default async function OrganizationsPage() {
                         {o.organizationCode}
                       </Link>
                     </td>
-                    <td>{o.name}</td>
+                    <td className="row-title">{o.name}</td>
                     <td className="text-xs">{o.organizationType}</td>
                     <td className="text-xs">{o.subscriptionTier}</td>
-                    <td className="text-xs text-ink-tertiary">
+                    <td className="text-xs text-ink-3">
                       {modules.length === 0 ? "—" : modules.join(", ")}
                     </td>
                     <td>
-                      <Badge tone={o.isActive ? "success" : "neutral"}>
+                      <HandoffBadge tone={o.isActive ? "ok" : "soft"}>
                         {o.isActive ? "active" : "archived"}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                   </tr>
                 );
@@ -80,7 +83,7 @@ export default async function OrganizationsPage() {
             </tbody>
           </table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

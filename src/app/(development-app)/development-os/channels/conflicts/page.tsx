@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -20,7 +17,11 @@ export default async function ChannelConflictsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Channel conflicts" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Channel conflicts</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -33,28 +34,30 @@ export default async function ChannelConflictsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels", href: "/development-os/channels" },
-          { label: "Conflicts" },
-        ]}
-        eyebrow={
-          conflicts.length === 0
-            ? "All clear"
-            : `${conflicts.length} conflict${conflicts.length === 1 ? "" : "s"} awaiting resolution`
-        }
-        title="Channel conflicts"
-        description="Reservations that overlap an existing booking on the same villa. The first-received reservation stays primary; the second is held here until the operator confirms or rejects it."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Channels
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/channels">Channels</Link> /{" "}
+            <span>Conflicts</span>
+          </div>
+          <h1>Channel conflicts</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Reservations that overlap an existing booking on the same villa. The
+            first-received reservation stays primary; the second is held here
+            until the operator confirms or rejects it.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/channels"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Channels
+          </Link>
+        </div>
+      </div>
 
       {conflicts.length === 0 ? (
         <EmptyState
@@ -62,7 +65,8 @@ export default async function ChannelConflictsPage() {
           description="When two channels confirm overlapping dates on the same villa, the second arrival lands here for operator review."
         />
       ) : (
-        <Section eyebrow="Pending" title={`${conflicts.length} to resolve`}>
+        <div>
+          <div className="label mb-2.5">Pending</div>
           <div className="space-y-3">
             {conflicts.map((c) => (
               <article
@@ -77,7 +81,7 @@ export default async function ChannelConflictsPage() {
                       <span className="text-sm font-medium">
                         {c.guestFirstName} {c.guestLastName}
                       </span>
-                      <Badge tone="neutral">{CHANNEL_LABELS[c.channel]}</Badge>
+                      <HandoffBadge tone="soft">{CHANNEL_LABELS[c.channel]}</HandoffBadge>
                     </div>
                     <div className="text-xs text-ink-secondary mt-1">
                       {c.checkIn} → {c.checkOut}
@@ -103,7 +107,7 @@ export default async function ChannelConflictsPage() {
               </article>
             ))}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

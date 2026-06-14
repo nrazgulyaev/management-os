@@ -3,10 +3,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -18,16 +15,16 @@ import type { RfiStatus } from "@/features/development/rfi/rfi-routing";
 export const metadata: Metadata = { title: "RFI · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<RfiStatus, "warning" | "info" | "success"> = {
-  open: "warning",
+const STATUS_TONE: Record<RfiStatus, "warn" | "info" | "ok"> = {
+  open: "warn",
   answered: "info",
-  closed: "success",
+  closed: "ok",
 };
 
-const PRIORITY_TONE: Record<string, "neutral" | "info" | "warning" | "danger"> = {
-  low: "neutral",
+const PRIORITY_TONE: Record<string, "soft" | "info" | "warn" | "danger"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -46,7 +43,11 @@ export default async function RfiDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="RFI" />
+        <div className="page-header">
+          <div className="left">
+            <h1>RFI</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -60,70 +61,79 @@ export default async function RfiDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: detail.project.name, href: `/development-os/projects/${slug}` },
-          { label: "RFIs", href: `/development-os/projects/${slug}/rfis` },
-          { label: rfi.ref },
-        ]}
-        eyebrow={`${rfi.discipline} · ${rfi.status}`}
-        title={rfi.ref}
-        description={rfi.question}
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge tone={STATUS_TONE[rfi.status]}>{rfi.status}</Badge>
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}/rfis`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Inbox
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{detail.project.name}</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/rfis`}>RFIs</Link> /{" "}
+            <span>{rfi.ref}</span>
           </div>
-        }
-      />
-
-      <Section eyebrow="Routing" title="Discipline + ownership">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <Field label="Discipline" value={rfi.discipline} />
-          <Field
-            label="Priority"
-            value={
-              (
-                <Badge tone={PRIORITY_TONE[rfi.priority] ?? "neutral"}>
-                  {rfi.priority}
-                </Badge>
-              )
-            }
-          />
-          <Field
-            label="Routed to"
-            value={rfi.routedToName ?? "Unrouted — PM to assign"}
-          />
-          <Field
-            label="Routed by"
-            value={rfi.routedByAgent ? "rfi-router agent" : "—"}
-          />
+          <h1>{rfi.ref}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">{rfi.question}</p>
         </div>
-      </Section>
-
-      <Section eyebrow="Lifecycle" title="Timeline">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Opened" value={fmt(rfi.openedAt)} />
-          <Field label="Answered" value={fmt(rfi.respondedAt)} />
-          <Field label="Resolved" value={fmt(rfi.resolvedAt)} />
+        <div className="actions">
+          <HandoffBadge tone={STATUS_TONE[rfi.status]}>{rfi.status}</HandoffBadge>
+          <Link
+            href={`/development-os/projects/${slug}/rfis`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Response" title="Answer + resolve">
-        <RfiRespondPanel
-          rfiId={rfi.id}
-          projectSlug={slug}
-          status={rfi.status}
-          existingResponse={rfi.responseText}
-        />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Routing</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <Field label="Discipline" value={rfi.discipline} />
+            <Field
+              label="Priority"
+              value={
+                (
+                  <HandoffBadge tone={PRIORITY_TONE[rfi.priority] ?? "soft"}>
+                    {rfi.priority}
+                  </HandoffBadge>
+                )
+              }
+            />
+            <Field
+              label="Routed to"
+              value={rfi.routedToName ?? "Unrouted — PM to assign"}
+            />
+            <Field
+              label="Routed by"
+              value={rfi.routedByAgent ? "rfi-router agent" : "—"}
+            />
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Lifecycle</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Opened" value={fmt(rfi.openedAt)} />
+            <Field label="Answered" value={fmt(rfi.respondedAt)} />
+            <Field label="Resolved" value={fmt(rfi.resolvedAt)} />
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Response</div>
+        <Card padding="default">
+          <RfiRespondPanel
+            rfiId={rfi.id}
+            projectSlug={slug}
+            status={rfi.status}
+            existingResponse={rfi.responseText}
+          />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { AgentOutputDetail } from "@/components/development/agent-output-detail";
 import { getDb } from "@/lib/db/client";
@@ -27,18 +27,19 @@ export default async function QsCostOutputDetail({
   if (!output) notFound();
   return (
     <DevelopmentShell>
-      <PageHeader
-        title={output.title}
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          {
-            label: "QS Cost Analyst",
-            href: "/development-os/ai-agents/qs-cost-analyst",
-          },
-          { label: output.outputCode },
-        ]}
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <Link href="/development-os/ai-agents/qs-cost-analyst">
+              QS Cost Analyst
+            </Link>{" "}
+            / <span>{output.outputCode}</span>
+          </div>
+          <h1>{output.title}</h1>
+        </div>
+      </div>
       <AgentOutputDetail
         output={{
           ...output,

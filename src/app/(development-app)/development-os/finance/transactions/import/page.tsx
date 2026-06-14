@@ -8,10 +8,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { getBankAccounts } from "@/lib/development/server/bank-accounts";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -30,7 +28,11 @@ export default async function ImportPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Import transactions" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Import transactions</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the import wizard."
@@ -51,25 +53,28 @@ export default async function ImportPage() {
   return (
     <DevelopmentShell>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            {
-              label: "Transactions",
-              href: "/development-os/finance/transactions",
-            },
-            { label: "Import" },
-          ]}
-          title="Import transactions"
-          description="Paste from a spreadsheet, upload a CSV/XLSX file, or — in Sprint 4.5 — connect Google Sheets directly."
-          actions={
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/development-os/finance/transactions">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Back to list
-              </Link>
-            </Button>
-          }
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os/finance/transactions">Transactions</Link> /{" "}
+              <span>Import</span>
+            </div>
+            <h1>Import transactions</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Paste from a spreadsheet, upload a CSV/XLSX file, or — in Sprint 4.5 —
+              connect Google Sheets directly.
+            </p>
+          </div>
+          <div className="actions">
+            <Link
+              href="/development-os/finance/transactions"
+              className="btn btn-secondary btn-sm"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Back to list
+            </Link>
+          </div>
+        </div>
 
         {bankAccounts.length === 0 ? (
           <EmptyState

@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -45,7 +42,16 @@ export default async function SiteReportDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Site report" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/site-reports">Site reports</Link> /{" "}
+              <span>Site report</span>
+            </div>
+            <h1>Site report</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -88,62 +94,71 @@ export default async function SiteReportDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Site reports", href: "/development-os/site-reports" },
-          { label: report.reportDate },
-        ]}
-        eyebrow={`${report.reportDate} · ${report.projectName ?? "—"}`}
-        title="Daily site report"
-        description={report.summary ?? undefined}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/site-reports">Site reports</Link> /{" "}
+            <span>{report.reportDate}</span>
+          </div>
+          <h1>Daily site report</h1>
+          <div className="label mt-2">
+            {report.reportDate} · {report.projectName ?? "—"}
+          </div>
+          {report.summary && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {report.summary}
+            </p>
+          )}
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/site-reports">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               All reports
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Snapshot" title="At a glance">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+      <div>
+        <div className="label mb-2.5">Snapshot</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Kpi
             label="Workers"
             value={`${report.totalWorkersPresent}${report.totalWorkersPlanned ? ` / ${report.totalWorkersPlanned}` : ""}`}
-            hint="present / planned"
+            sub="present / planned"
           />
-          <MetricCard
+          <Kpi
             label="Weather"
             value={
               report.weatherConditions
                 ? WEATHER_LABEL[report.weatherConditions]
                 : "—"
             }
-            hint={
+            sub={
               report.temperatureCelsiusMin && report.temperatureCelsiusMax
                 ? `${report.temperatureCelsiusMin}–${report.temperatureCelsiusMax}°C`
                 : undefined
             }
           />
-          <MetricCard label="Zones reported" value={String(report.zoneCount)} />
-          <MetricCard label="Photos" value={String(report.photoCount)} />
+          <Kpi label="Zones reported" value={String(report.zoneCount)} />
+          <Kpi label="Photos" value={String(report.photoCount)} />
         </div>
         <div className="mt-3 flex items-center gap-3 text-xs text-ink-secondary">
-          <Badge
+          <HandoffBadge
             tone={
               report.status === "reviewed"
-                ? "success"
+                ? "ok"
                 : report.status === "submitted"
                   ? "info"
                   : report.status === "flagged"
                     ? "danger"
-                    : "neutral"
+                    : "soft"
             }
           >
             {REPORT_STATUS_LABEL[report.status]}
-          </Badge>
+          </HandoffBadge>
           {report.submittedAt && (
             <span>
               Submitted {new Date(report.submittedAt).toLocaleString()}
@@ -153,9 +168,10 @@ export default async function SiteReportDetailPage({
             <span>Reviewed {new Date(report.reviewedAt).toLocaleString()}</span>
           )}
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Zones" title="Per-zone activity">
+      <div>
+        <div className="label mb-2.5">Zones · Per-zone activity</div>
         {report.zones.length === 0 ? (
           <EmptyState
             title="No zone activity reported"
@@ -180,7 +196,7 @@ export default async function SiteReportDetailPage({
                     {z.cumulativeProgressPercent && (
                       <span>· {Number(z.cumulativeProgressPercent).toFixed(1)}% cum.</span>
                     )}
-                    {z.hasBlocker && <Badge tone="warning">Blocker</Badge>}
+                    {z.hasBlocker && <HandoffBadge tone="warn">Blocker</HandoffBadge>}
                   </div>
                 </div>
                 {z.activitiesCompleted.length > 0 && (
@@ -203,13 +219,14 @@ export default async function SiteReportDetailPage({
             ))}
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="AI"
-        title="Construction supervisor analysis"
-        description="Drafts a structured supervisor-style analysis from this report. HITL: every analysis lands as a draft for your review."
-      >
+      <div>
+        <div className="label mb-2.5">AI · Construction supervisor analysis</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Drafts a structured supervisor-style analysis from this report. HITL:
+          every analysis lands as a draft for your review.
+        </p>
         <ConstructionAnalysisCard
           reportId={report.id}
           reportStatus={report.status}
@@ -243,23 +260,30 @@ export default async function SiteReportDetailPage({
               : null
           }
         />
-      </Section>
+      </div>
 
       {report.status === "draft" && (
-        <Section eyebrow="Lifecycle" title="Submit for review">
+        <div>
+          <div className="label mb-2.5">Lifecycle · Submit for review</div>
+          <Card padding="default">
           <p className="text-sm text-ink-secondary mb-3">
             Once submitted, the reviewer (PM or director) can mark this
             report reviewed or flagged. Photos can still be added until
             the report is reviewed.
           </p>
           <form action={handleSubmit}>
-            <Button type="submit">Submit report</Button>
+            <button type="submit" className="btn btn-accent">
+              Submit report
+            </button>
           </form>
-        </Section>
+          </Card>
+        </div>
       )}
 
       {report.status === "submitted" && (
-        <Section eyebrow="Lifecycle" title="Review">
+        <div>
+          <div className="label mb-2.5">Lifecycle · Review</div>
+          <Card padding="default">
           {!currentUser ? (
             <p className="text-sm text-ink-tertiary">
               Sign in to mark this report reviewed or flagged. The report has
@@ -297,22 +321,25 @@ export default async function SiteReportDetailPage({
               </div>
             </form>
           )}
-        </Section>
+          </Card>
+        </div>
       )}
 
-      <Section
-        eyebrow="Evidence"
-        title="Photo evidence"
-        description="Quick-scan grid with per-photo sync status. Click a thumbnail to open the full image."
-      >
+      <div>
+        <div className="label mb-2.5">Evidence · Photo evidence</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Quick-scan grid with per-photo sync status. Click a thumbnail to open
+          the full image.
+        </p>
         <PhotoEvidenceGrid
           items={evidencePhotos}
           columns={3}
           emptyMessage="No photos attached to this report yet. Upload below."
         />
-      </Section>
+      </div>
 
-      <Section eyebrow="Photos" title="Site photos">
+      <div>
+        <div className="label mb-2.5">Photos · Site photos</div>
         <PhotoGallery
           photos={report.photos}
           zones={zones.map((z) => ({
@@ -346,9 +373,10 @@ export default async function SiteReportDetailPage({
             />
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Workforce" title="Labor breakdown">
+      <div>
+        <div className="label mb-2.5">Workforce · Labor breakdown</div>
         {report.workforce.length === 0 ? (
           <EmptyState
             title="No workforce log"
@@ -382,7 +410,7 @@ export default async function SiteReportDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

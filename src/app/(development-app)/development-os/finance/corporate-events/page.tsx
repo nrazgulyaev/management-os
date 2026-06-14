@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -24,7 +21,11 @@ export default async function CorporateEventsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Corporate events" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Corporate events</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -42,47 +43,56 @@ export default async function CorporateEventsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Corporate events" },
-        ]}
-        eyebrow={`${events.length} events · ${formatUsdMinor(BigInt(summary.totalUsdMinor))} total`}
-        title="Corporate events"
-        description="Director loans, dividends, share transfers — the owner-side flows. Excluded from the Self-Sustaining Threshold cash-flow calculation."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Corporate events</span>
+          </div>
+          <h1>Corporate events</h1>
+          <div className="label mt-2">
+            {`${events.length} events · ${formatUsdMinor(BigInt(summary.totalUsdMinor))} total`}
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Director loans, dividends, share transfers — the owner-side flows.
+            Excluded from the Self-Sustaining Threshold cash-flow calculation.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+        </div>
+      </div>
 
       {Object.keys(summary.byType).length > 0 && (
-        <Section eyebrow="Summary" title="By type">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {Object.entries(summary.byType).map(([type, data]) => (
-              <div
-                key={type}
-                className="rounded-lg border border-line-soft bg-surface p-4"
-              >
-                <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-                  {type.replace(/_/g, " ")}
+        <div>
+          <div className="label mb-2.5">Summary</div>
+          <Card padding="default">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {Object.entries(summary.byType).map(([type, data]) => (
+                <div
+                  key={type}
+                  className="rounded-lg border border-line-soft bg-surface p-4"
+                >
+                  <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                    {type.replace(/_/g, " ")}
+                  </div>
+                  <div className="text-xl font-medium tabular-nums">
+                    {formatUsdMinor(BigInt(data.totalUsdMinor))}
+                  </div>
+                  <div className="text-xs text-ink-tertiary">{data.count} events</div>
                 </div>
-                <div className="text-xl font-medium tabular-nums">
-                  {formatUsdMinor(BigInt(data.totalUsdMinor))}
-                </div>
-                <div className="text-xs text-ink-tertiary">{data.count} events</div>
-              </div>
-            ))}
-          </div>
-        </Section>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Events" title="Chronological">
+      <div>
+        <div className="label mb-2.5">Events</div>
         {events.length === 0 ? (
           <EmptyState
             title="No corporate events"
@@ -104,7 +114,7 @@ export default async function CorporateEventsPage() {
                 <TR key={e.id}>
                   <TD className="font-mono text-xs">{e.eventCode}</TD>
                   <TD>
-                    <Badge tone="neutral">{e.eventType.replace(/_/g, " ")}</Badge>
+                    <HandoffBadge tone="soft">{e.eventType.replace(/_/g, " ")}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">{String(e.eventDate)}</TD>
                   <TDNum>{formatUsdMinor(BigInt(e.amountUsdMinor))}</TDNum>
@@ -114,7 +124,7 @@ export default async function CorporateEventsPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { renderHeatmapSvg } from "@/lib/development/server/visual-reports/heatmap-helpers";
 
@@ -29,21 +29,25 @@ export default async function CostHeatmapPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Cost heatmap"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Reports", href: "/development-os/reports" },
-          { label: "Cost heatmap" },
-        ]}
-        description="Per-asset overage by cost category. Red = over budget, blue = under."
-      />
-      <Section title="Heatmap">
-        <div
-          className="rounded-md border border-line-soft bg-surface p-4 overflow-x-auto"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
-      </Section>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/reports">Reports</Link> /{" "}
+            <span>Cost heatmap</span>
+          </div>
+          <h1>Cost heatmap</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-asset overage by cost category. Red = over budget, blue = under.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Heatmap</div>
+        <Card padding="default" className="overflow-x-auto">
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

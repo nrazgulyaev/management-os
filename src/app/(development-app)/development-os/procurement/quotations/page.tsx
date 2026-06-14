@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -22,12 +18,12 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
   received: "info",
-  under_review: "warning",
-  selected: "success",
+  under_review: "warn",
+  selected: "ok",
   rejected: "danger",
-  expired: "neutral",
+  expired: "soft",
 };
 
 async function listAllQuotations() {
@@ -63,7 +59,11 @@ export default async function GlobalQuotationsListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Quotations" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Quotations</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -72,31 +72,34 @@ export default async function GlobalQuotationsListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Procurement" },
-          { label: "Quotations" },
-        ]}
-        eyebrow={`${rows.length} quotation${rows.length === 1 ? "" : "s"} across all PRs`}
-        title="Quotations"
-        description="Procurement manager's global view across all purchase requests. Side-by-side comparison happens at /procurement/quotation-comparison/[requestCode]."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/procurement/purchase-requests">
-                Purchase requests
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Procurement</span> / <span>Quotations</span>
           </div>
-        }
-      />
+          <h1>Quotations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Procurement manager&apos;s global view across all purchase requests.
+            Side-by-side comparison happens at
+            /procurement/quotation-comparison/[requestCode].
+          </p>
+        </div>
+        <div className="actions">
+          <div className="flex gap-2">
+            <Link
+              href="/development-os/procurement/purchase-requests"
+              className="btn btn-secondary"
+            >
+              Purchase requests
+            </Link>
+            <Link href="/development-os" className="btn btn-secondary">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -104,52 +107,53 @@ export default async function GlobalQuotationsListPage() {
           description="Vendor quotations are created against purchase requests via the procurement workflow."
         
           action={
-            <Link href="/development-os/procurement/purchase-requests" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View purchase requests</Link>
+            <Link href="/development-os/procurement/purchase-requests" className="btn btn-secondary btn-sm">View purchase requests</Link>
           }
         />
       ) : (
-        <Section eyebrow="Catalog" title="All quotations (most recent first)">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Quotation #</TH>
-                <TH>Vendor</TH>
-                <TH>Linked PR</TH>
-                <TH>Total</TH>
-                <TH>Validity</TH>
-                <TH>Est. delivery</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <TBody>
+        <div>
+          <div className="label mb-2.5">Catalog</div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Quotation #</th>
+                <th scope="col">Vendor</th>
+                <th scope="col">Linked PR</th>
+                <th scope="col" className="num">Total</th>
+                <th scope="col">Validity</th>
+                <th scope="col">Est. delivery</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((q) => (
-                <TR key={q.id}>
-                  <TD className="font-mono text-xs">{q.quotationNumber ?? q.id.slice(0, 8)}</TD>
-                  <TD className="text-sm">{q.vendorLegalName}</TD>
-                  <TD className="font-mono text-xs">
+                <tr key={q.id}>
+                  <td className="mono text-xs">{q.quotationNumber ?? q.id.slice(0, 8)}</td>
+                  <td className="row-title">{q.vendorLegalName}</td>
+                  <td className="mono text-xs">
                     <Link
                       href={`/development-os/procurement/quotation-comparison/${encodeURIComponent(q.requestCode)}`}
                       className="hover:underline"
                     >
                       {q.requestCode}
                     </Link>
-                  </TD>
-                  <TDNum>
+                  </td>
+                  <td className="num">
                     {(Number(q.totalAmountMinor) / 100).toLocaleString()}{" "}
                     {q.currency}
-                  </TDNum>
-                  <TD className="text-xs">{q.validityUntil ?? "—"}</TD>
-                  <TD className="text-xs">{q.deliveryEstimatedDate ?? "—"}</TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[q.status] ?? "neutral"}>
+                  </td>
+                  <td className="text-xs">{q.validityUntil ?? "—"}</td>
+                  <td className="text-xs">{q.deliveryEstimatedDate ?? "—"}</td>
+                  <td>
+                    <HandoffBadge tone={STATUS_TONE[q.status] ?? "soft"}>
                       {q.status}
-                    </Badge>
-                  </TD>
-                </TR>
+                    </HandoffBadge>
+                  </td>
+                </tr>
               ))}
-            </TBody>
-          </Table>
-        </Section>
+            </tbody>
+          </table>
+        </div>
       )}
     </DevelopmentShell>
   );

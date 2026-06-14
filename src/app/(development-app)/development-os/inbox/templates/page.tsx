@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  THead,
-  TBody,
-  TR,
-  TH,
-  TD,
-} from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listTemplates } from "@/lib/messaging/queries";
@@ -30,7 +19,11 @@ export default async function TemplatesPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Templates" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Templates</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -42,29 +35,40 @@ export default async function TemplatesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inbox", href: "/development-os/inbox" },
-          { label: "Templates" },
-        ]}
-        eyebrow={`${templates.length} template${templates.length === 1 ? "" : "s"}`}
-        title="Message templates"
-        description="Reusable per-channel content blocks. Render via {{variable}} substitution. WhatsApp templates require Meta approval before they can be sent — pending status is reflected here once the template registers with Meta."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inbox">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Inbox
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inbox">Inbox</Link> /{" "}
+            <span>Templates</span>
+          </div>
+          <h1>Message templates</h1>
+          <div className="page-header-meta">
+            <span>
+              {templates.length} template{templates.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Reusable per-channel content blocks. Render via {"{{variable}}"}{" "}
+            substitution. WhatsApp templates require Meta approval before they
+            can be sent — pending status is reflected here once the template
+            registers with Meta.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/inbox" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
+        </div>
+      </div>
 
-      <Section
-        title="Create template"
-        description="Channels: comma-separated (whatsapp, email, sms…). Content per channel: JSON object keyed by channel."
-      >
+      <div>
+        <div className="label mb-2.5">Create template</div>
+        <p className="text-[13px] text-ink-3 mt-0 mb-2.5 max-w-[680px]">
+          Channels: comma-separated (whatsapp, email, sms…). Content per
+          channel: JSON object keyed by channel.
+        </p>
         <form
           action={createTemplateAction}
           className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md border border-line-soft bg-surface p-3 text-sm"
@@ -129,70 +133,74 @@ export default async function TemplatesPage() {
             />
           </Field>
           <div className="md:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary">
+            <button type="submit" className="btn btn-accent">
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Create template
-            </Button>
+            </button>
           </div>
         </form>
-      </Section>
+      </div>
 
-      <Section title="Existing templates">
+      <div>
+        <div className="label mb-2.5">Existing templates</div>
         {templates.length === 0 ? (
           <EmptyState
             title="No templates yet"
             description="Create your first template above. They show up here once active."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Name</TH>
-                <TH>Channels</TH>
-                <TH>Variables</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {templates.map((t) => {
-                const archiveBound = archiveTemplateAction.bind(null, t.id);
-                return (
-                  <TR key={t.id}>
-                    <TD className="font-mono text-xs">{t.code}</TD>
-                    <TD>{t.name}</TD>
-                    <TD className="text-xs">
-                      {(t.supportedChannels as string[]).join(", ")}
-                    </TD>
-                    <TD className="text-xs">
-                      {((t.variables as string[]) ?? []).join(", ") || "—"}
-                    </TD>
-                    <TD>
-                      <Badge tone={t.status === "active" ? "success" : "neutral"}>
-                        {t.status}
-                      </Badge>
-                    </TD>
-                    <TD className="text-right">
-                      {t.status !== "archived" && (
-                        <form action={archiveBound}>
-                          <Button
-                            type="submit"
-                            variant="secondary"
-                            size="sm"
-                          >
-                            Archive
-                          </Button>
-                        </form>
-                      )}
-                    </TD>
-                  </TR>
-                );
-              })}
-            </TBody>
-          </Table>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Channels</th>
+                  <th scope="col">Variables</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {templates.map((t) => {
+                  const archiveBound = archiveTemplateAction.bind(null, t.id);
+                  return (
+                    <tr key={t.id}>
+                      <td className="font-mono text-xs">{t.code}</td>
+                      <td className="row-title">{t.name}</td>
+                      <td className="text-xs">
+                        {(t.supportedChannels as string[]).join(", ")}
+                      </td>
+                      <td className="text-xs">
+                        {((t.variables as string[]) ?? []).join(", ") || "—"}
+                      </td>
+                      <td>
+                        <HandoffBadge
+                          tone={t.status === "active" ? "ok" : "soft"}
+                        >
+                          {t.status}
+                        </HandoffBadge>
+                      </td>
+                      <td className="text-right">
+                        {t.status !== "archived" && (
+                          <form action={archiveBound}>
+                            <button
+                              type="submit"
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Archive
+                            </button>
+                          </form>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

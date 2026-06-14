@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { Card } from "@/components/dashboard/primitives";
 import { getVendors } from "@/lib/development/server/vendors";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ResourcePoolForm } from "./_resource-pool-form";
@@ -21,26 +19,32 @@ export default async function NewResourcePoolPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="New resource pool"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Schedule" },
-          { label: "Resources", href: "/development-os/schedule/resources" },
-          { label: "New" },
-        ]}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/schedule/resources">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back
-            </Link>
-          </Button>
-        }
-      />
-      <Section title="Create resource pool">
-        <ResourcePoolForm vendors={vendors} />
-      </Section>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Schedule</span> /{" "}
+            <Link href="/development-os/schedule/resources">Resources</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New resource pool</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/schedule/resources"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Create resource pool</div>
+        <Card padding="default">
+          <ResourcePoolForm vendors={vendors} />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

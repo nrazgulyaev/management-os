@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDocumentExtractions } from "@/lib/development/server/document-extraction-actions";
@@ -39,6 +36,19 @@ const QUALITY_TONE: Record<
   unreadable: "danger",
 };
 
+/** Map the legacy Badge tone vocabulary onto the handoff badge palette. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "soft"
+> = {
+  success: "ok",
+  warning: "warn",
+  danger: "danger",
+  gold: "gold",
+  info: "info",
+  neutral: "soft",
+};
+
 export default async function DocumentExtractionsPage({
   searchParams,
 }: {
@@ -49,15 +59,20 @@ export default async function DocumentExtractionsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Finance", href: "/development-os/finance" },
-            { label: "Document extractions" },
-          ]}
-          title="Document extractions"
-          description="AI-extracted structured data from receipts, invoices, and delivery notes."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/finance">Finance</Link> /{" "}
+              <span>Document extractions</span>
+            </div>
+            <h1>Document extractions</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              AI-extracted structured data from receipts, invoices, and delivery
+              notes.
+            </p>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -94,24 +109,29 @@ export default async function DocumentExtractionsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Document extractions" },
-        ]}
-        eyebrow={`${rows.length} extractions · ${pending} awaiting review`}
-        title="Document extractions"
-        description="The AI agent extracts structured data from uploaded receipts, invoices, and delivery notes. Every extraction lands here for HITL review — nothing creates a transaction or delivery without your explicit approval."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Document extractions</span>
+          </div>
+          <h1>Document extractions</h1>
+          <div className="label mt-2">{`${rows.length} extractions · ${pending} awaiting review`}</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            The AI agent extracts structured data from uploaded receipts,
+            invoices, and delivery notes. Every extraction lands here for HITL
+            review — nothing creates a transaction or delivery without your
+            explicit approval.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+        </div>
+      </div>
 
       <div className="flex items-center gap-2 text-xs">
         <FilterPill href="/development-os/finance/document-extractions" active={!sp.status}>
@@ -143,14 +163,15 @@ export default async function DocumentExtractionsPage({
         </FilterPill>
       </div>
 
-      <Section eyebrow="Inbox" title="All extractions">
+      <div>
+        <div className="label mb-2.5">Inbox</div>
         {rows.length === 0 ? (
           <EmptyState
             title="No extractions yet"
             description="Upload a receipt or invoice and the AI will queue an extraction. You can also trigger one manually from a document detail page."
-          
+
           action={
-            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+            <Link href="/dashboard/jobs" className="btn btn-secondary btn-sm">View jobs</Link>
           }
         />
         ) : (
@@ -187,9 +208,9 @@ export default async function DocumentExtractionsPage({
                   <TD className="text-xs">{r.detectedLanguage ?? "—"}</TD>
                   <TD>
                     {r.detectedQuality ? (
-                      <Badge tone={QUALITY_TONE[r.detectedQuality] ?? "neutral"}>
+                      <HandoffBadge tone={HANDOFF_TONE[QUALITY_TONE[r.detectedQuality] ?? "neutral"]}>
                         {r.detectedQuality}
-                      </Badge>
+                      </HandoffBadge>
                     ) : (
                       "—"
                     )}
@@ -200,16 +221,16 @@ export default async function DocumentExtractionsPage({
                       : "—"}
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                    <HandoffBadge tone={HANDOFF_TONE[STATUS_TONE[r.status] ?? "neutral"]}>
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

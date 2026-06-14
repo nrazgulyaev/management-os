@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { NewProjectClient } from "./_new-project-client";
 
@@ -22,26 +21,36 @@ export const dynamic = "force-dynamic";
 export default function NewProjectPage() {
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: "New" },
-        ]}
-        title="New project"
-        description="Stage 2.1 minimal create — seeds the projects row, development meta, and a land-sourcing phase scoped to your organization. The full setup wizard ships in 2.2."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New project</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Stage 2.1 minimal create — seeds the projects row, development
+            meta, and a land-sourcing phase scoped to your organization. The
+            full setup wizard ships in 2.2.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/projects">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Projects
             </Link>
           </Button>
-        }
-      />
-      <Section eyebrow="Form" title="Project details">
-        <NewProjectClient />
-      </Section>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Form</div>
+        <Card padding="default">
+          <NewProjectClient />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

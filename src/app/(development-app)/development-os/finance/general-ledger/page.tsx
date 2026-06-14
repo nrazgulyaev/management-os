@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, BookOpen } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -31,6 +28,19 @@ const TYPE_TONE: Record<string, "info" | "success" | "warning" | "neutral" | "da
   expense: "danger",
 };
 
+/** Map the legacy Badge tone vocabulary onto the handoff badge palette. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "soft"
+> = {
+  success: "ok",
+  warning: "warn",
+  danger: "danger",
+  gold: "gold",
+  info: "info",
+  neutral: "soft",
+};
+
 function fmt(minor: bigint): string {
   const neg = minor < 0n;
   const n = Number(neg ? -minor : minor) / 100;
@@ -42,7 +52,11 @@ export default async function GeneralLedgerPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="General ledger" />
+        <div className="page-header">
+          <div className="left">
+            <h1>General ledger</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -60,33 +74,34 @@ export default async function GeneralLedgerPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "General ledger" },
-        ]}
-        eyebrow={`${accounts.length} accounts · ${tb.rows.length} with activity`}
-        title="General ledger — trial balance"
-        description="Double-entry proving spine over the existing finance sub-ledgers. Every posted entry's debits equal its credits; the whole-ledger tie-out below must be balanced. Auto-posting from the operational tables lands incrementally."
-        actions={
-          <div className="flex items-start gap-2">
-            <PostFinanceButton />
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance/general-ledger/journal">
-                <BookOpen className="w-4 h-4" strokeWidth={1.75} />
-                Journal
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Finance
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>General ledger</span>
           </div>
-        }
-      />
+          <h1>General ledger — trial balance</h1>
+          <div className="label mt-2">{`${accounts.length} accounts · ${tb.rows.length} with activity`}</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Double-entry proving spine over the existing finance sub-ledgers.
+            Every posted entry&apos;s debits equal its credits; the whole-ledger
+            tie-out below must be balanced. Auto-posting from the operational
+            tables lands incrementally.
+          </p>
+        </div>
+        <div className="actions">
+          <PostFinanceButton />
+          <Link href="/development-os/finance/general-ledger/journal" className="btn btn-secondary btn-sm">
+            <BookOpen className="w-4 h-4" strokeWidth={1.75} />
+            Journal
+          </Link>
+          <Link href="/development-os/finance" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+        </div>
+      </div>
 
       {accounts.length === 0 ? (
         <EmptyState
@@ -95,7 +110,8 @@ export default async function GeneralLedgerPage() {
         />
       ) : (
         <>
-          <Section eyebrow="Post" title="New journal entry">
+          <div>
+            <div className="label mb-2.5">Post</div>
             <JournalComposer
               accounts={accounts.map((a) => ({
                 code: a.code,
@@ -103,36 +119,37 @@ export default async function GeneralLedgerPage() {
                 type: a.type,
               }))}
             />
-          </Section>
+          </div>
 
-          <Section eyebrow="Tie-out" title="Whole-ledger balance check">
-            <div className="flex flex-wrap items-center gap-4">
-              <Badge tone={tb.balanced ? "success" : "danger"}>
-                {tb.balanced ? "Balanced ✓" : "OUT OF BALANCE"}
-              </Badge>
-              <span className="text-sm text-ink-secondary font-mono">
-                Σ debits {fmt(tb.totalDebitMinor)} · Σ credits {fmt(tb.totalCreditMinor)}
-                {!tb.balanced && (
-                  <span className="text-danger">
-                    {" "}· Δ {fmt(tb.totalDebitMinor - tb.totalCreditMinor)}
-                  </span>
-                )}
-              </span>
+          <div>
+            <div className="label mb-2.5">Tie-out</div>
+            <Card padding="default">
+              <div className="flex flex-wrap items-center gap-4">
+                <HandoffBadge tone={tb.balanced ? "ok" : "danger"}>
+                  {tb.balanced ? "Balanced ✓" : "OUT OF BALANCE"}
+                </HandoffBadge>
+                <span className="text-sm text-ink-secondary font-mono">
+                  Σ debits {fmt(tb.totalDebitMinor)} · Σ credits {fmt(tb.totalCreditMinor)}
+                  {!tb.balanced && (
+                    <span className="text-danger">
+                      {" "}· Δ {fmt(tb.totalDebitMinor - tb.totalCreditMinor)}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </Card>
+          </div>
+
+          <div>
+            <div className="label mb-2.5">Trial balance</div>
+            <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+              Click an account to see the journal lines that compose its balance.
+            </p>
+            <div className="mb-2.5">
+              <Link href="/development-os/finance/general-ledger/journal" className="btn btn-secondary btn-sm">
+                Full journal →
+              </Link>
             </div>
-          </Section>
-
-          <Section
-            eyebrow="Trial balance"
-            title="Account balances"
-            description="Click an account to see the journal lines that compose its balance."
-            action={
-              <Button asChild variant="secondary">
-                <Link href="/development-os/finance/general-ledger/journal">
-                  Full journal →
-                </Link>
-              </Button>
-            }
-          >
             {tb.rows.length === 0 ? (
               <p className="text-sm text-ink-tertiary">
                 Chart of accounts seeded, but no journal entries posted yet.
@@ -170,7 +187,7 @@ export default async function GeneralLedgerPage() {
                         </Link>
                       </TD>
                       <TD>
-                        <Badge tone={TYPE_TONE[r.type] ?? "neutral"}>{r.type}</Badge>
+                        <HandoffBadge tone={HANDOFF_TONE[TYPE_TONE[r.type] ?? "neutral"]}>{r.type}</HandoffBadge>
                       </TD>
                       <TDNum>{fmt(r.debitMinor)}</TDNum>
                       <TDNum>{fmt(r.creditMinor)}</TDNum>
@@ -180,9 +197,10 @@ export default async function GeneralLedgerPage() {
                 </TBody>
               </Table>
             )}
-          </Section>
+          </div>
 
-          <Section eyebrow="Dimension" title={`Chart of accounts · ${accounts.length}`}>
+          <div>
+            <div className="label mb-2.5">Dimension</div>
             <Table>
               <THead>
                 <TR>
@@ -213,7 +231,7 @@ export default async function GeneralLedgerPage() {
                       </Link>
                     </TD>
                     <TD>
-                      <Badge tone={TYPE_TONE[a.type] ?? "neutral"}>{a.type}</Badge>
+                      <HandoffBadge tone={HANDOFF_TONE[TYPE_TONE[a.type] ?? "neutral"]}>{a.type}</HandoffBadge>
                     </TD>
                     <TD className="text-xs text-ink-tertiary">{a.normalBalance}</TD>
                     <TD className="text-xs text-ink-secondary">{a.note ?? "—"}</TD>
@@ -221,7 +239,7 @@ export default async function GeneralLedgerPage() {
                 ))}
               </TBody>
             </Table>
-          </Section>
+          </div>
         </>
       )}
     </DevelopmentShell>

@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
@@ -17,12 +14,15 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Company structure · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  planned: "neutral",
+const STATUS_TONE: Record<
+  string,
+  "info" | "ok" | "warn" | "danger" | "soft"
+> = {
+  planned: "soft",
   in_progress: "info",
-  registered: "success",
-  dissolved: "warning",
-  on_hold: "warning",
+  registered: "ok",
+  dissolved: "warn",
+  on_hold: "warn",
 };
 
 export default async function ProjectCompanyStructuresPage({
@@ -35,7 +35,11 @@ export default async function ProjectCompanyStructuresPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Company structure" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Company structure</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -52,25 +56,31 @@ export default async function ProjectCompanyStructuresPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Company structure" },
-        ]}
-        eyebrow={`${structures.length} structure${structures.length === 1 ? "" : "s"}`}
-        title="SPV / company structure"
-        description="Per-project company structures (SPV / JV / partnership). Only one is active at a time. Shareholder ownership %s sum to exactly 100% per structure (DB trigger)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/projects/${slug}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Project
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link>{" "}
+            / <span>Company structure</span>
+          </div>
+          <h1>SPV / company structure</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-project company structures (SPV / JV / partnership). Only one is
+            active at a time. Shareholder ownership %s sum to exactly 100% per
+            structure (DB trigger).
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </div>
 
       {structures.length === 0 ? (
         <EmptyState
@@ -78,7 +88,8 @@ export default async function ProjectCompanyStructuresPage({
           description="Use createCompanyStructure to register the SPV / JV / partnership for this project."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All structures (active + historical)">
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -106,23 +117,23 @@ export default async function ProjectCompanyStructuresPage({
                   <TD className="text-xs">{s.companyName ?? "—"}</TD>
                   <TD className="text-xs">{s.country ?? "—"}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[s.registrationStatus] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[s.registrationStatus] ?? "soft"}>
                       {s.registrationStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{s.effectiveFrom}</TD>
                   <TD>
                     {s.isActive ? (
-                      <Badge tone="success">active</Badge>
+                      <HandoffBadge tone="ok">active</HandoffBadge>
                     ) : (
-                      <Badge tone="neutral">historical</Badge>
+                      <HandoffBadge tone="soft">historical</HandoffBadge>
                     )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

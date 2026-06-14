@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, KeyRound } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { formatDate, formatUSD } from "@/lib/utils";
 import { getReservations } from "@/lib/development/server/reservations";
@@ -28,13 +25,13 @@ import {
 export const metadata: Metadata = { title: "Reservations · Development OS" };
 export const dynamic = "force-dynamic";
 
-const statusTone: Record<ReservationStatus, "accent" | "gold" | "warning" | "danger" | "neutral" | "success"> = {
-  pending_payment: "warning",
-  active: "accent",
-  expired: "neutral",
-  converted_to_contract: "success",
-  cancelled: "neutral",
-  refunded: "neutral",
+const statusTone: Record<ReservationStatus, "info" | "gold" | "warn" | "danger" | "soft" | "ok"> = {
+  pending_payment: "warn",
+  active: "info",
+  expired: "soft",
+  converted_to_contract: "ok",
+  cancelled: "soft",
+  refunded: "soft",
 };
 
 function fmtUsd(minor: bigint): string {
@@ -101,27 +98,34 @@ export default async function ReservationsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Reservations" },
-        ]}
-        eyebrow={`${active.length} active · ${expiringSoon.length} expiring soon · ${converted.length} converted`}
-        title="Reservations"
-        description="Deposit-locked unit reservations. Each reservation locks the unit's market price and holds the villa for the configured timeout. Convert to a contract group when the buyer signs."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Reservations</span>
+          </div>
+          <h1>Reservations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Deposit-locked unit reservations. Each reservation locks the unit&apos;s
+            market price and holds the villa for the configured timeout. Convert to
+            a contract group when the buyer signs.
+          </p>
+          <div className="text-[12px] text-ink-3 mt-1.5">
+            {active.length} active · {expiringSoon.length} expiring soon ·{" "}
+            {converted.length} converted
+          </div>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <ReservationModalForm contacts={contactRows} villas={villaRows} />
             <ExportButton entity="reservations" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+            <Link href="/development-os" className="btn btn-secondary">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {reservations.length === 0 ? (
         <EmptyState
@@ -130,60 +134,58 @@ export default async function ReservationsPage() {
           description="Reservations are created from a qualified lead — open the lead detail page and click Create reservation."
         />
       ) : (
-        <Section eyebrow="All reservations" title={`${reservations.length} records`}>
-          <div className="rounded-md border border-line-soft bg-surface overflow-hidden">
+        <div>
+          <div className="label mb-2.5">
+            All reservations · {reservations.length} records
+          </div>
+          <Card padding="none" overflowHidden>
             <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-muted/60 border-b border-line-soft text-left">
+              <table className="data">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Buyer</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Unit</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary text-right">Price locked</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary text-right">Fee</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Expires</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary">Status</th>
-                    <th className="px-4 py-2.5 text-[11px] uppercase tracking-wide font-medium text-ink-tertiary text-right">Actions</th>
+                    <th scope="col">Buyer</th>
+                    <th scope="col">Unit</th>
+                    <th scope="col" className="num">Price locked</th>
+                    <th scope="col" className="num">Fee</th>
+                    <th scope="col">Expires</th>
+                    <th scope="col">Status</th>
+                    <th scope="col" className="num">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reservations.map((r) => (
-                    <tr
-                      key={r.id}
-                      className="border-b border-line-soft last:border-b-0 hover:bg-muted/30"
-                    >
-                      <td className="px-4 py-3">
+                    <tr key={r.id}>
+                      <td>
                         <div className="flex flex-col">
-                          <span className="text-ink">{r.contactFullName}</span>
-                          <span className="text-xs text-ink-tertiary">
+                          <span className="row-title">{r.contactFullName}</span>
+                          <span className="text-xs text-ink-3">
                             {r.contactEmail ?? r.contactPhone ?? "—"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <div className="flex flex-col">
-                          <span className="font-mono text-xs text-ink-tertiary">
+                          <span className="mono text-xs text-ink-3">
                             {r.villaCode}
                           </span>
-                          <span className="text-xs text-ink-secondary">
+                          <span className="text-xs text-ink-2">
                             {r.projectName}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right font-mono tabular-nums text-ink">
-                        {fmtUsd(r.priceLockedUsdMinor)}
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono tabular-nums text-ink-secondary">
+                      <td className="num">{fmtUsd(r.priceLockedUsdMinor)}</td>
+                      <td className="num text-ink-2">
                         {fmtUsd(r.reservationFeeUsdMinor)}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs">
+                      <td className="mono text-xs">
                         {r.expiresAt ? formatDate(r.expiresAt, "short") : "—"}
                       </td>
-                      <td className="px-4 py-3">
-                        <Badge tone={statusTone[r.status]}>
+                      <td>
+                        <HandoffBadge tone={statusTone[r.status]}>
                           {RESERVATION_STATUS_LABEL[r.status]}
-                        </Badge>
+                        </HandoffBadge>
                       </td>
-                      <td className="px-4 py-3">
+                      <td>
                         <div className="flex flex-col items-end gap-2">
                           <ReservationRowActions
                             reservationId={r.id}
@@ -212,8 +214,8 @@ export default async function ReservationsPage() {
                 </tbody>
               </table>
             </div>
-          </div>
-        </Section>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

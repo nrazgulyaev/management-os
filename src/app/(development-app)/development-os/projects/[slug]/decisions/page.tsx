@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -17,11 +14,11 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Decisions · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  draft: "neutral",
-  active: "success",
-  superseded: "neutral",
-  reversed: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
+  draft: "soft",
+  active: "ok",
+  superseded: "soft",
+  reversed: "warn",
 };
 
 export default async function ProjectDecisionsPage({
@@ -34,7 +31,11 @@ export default async function ProjectDecisionsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Decisions" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Decisions</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -53,32 +54,37 @@ export default async function ProjectDecisionsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Decisions" },
-        ]}
-        eyebrow={`${active} active · ${decisions.length} total`}
-        title="Decision Log"
-        description="Important project decisions captured for institutional memory. Supersede flow preserves audit trail — old decisions stay readable but marked 'superseded'."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link href={`/development-os/projects/${slug}/decisions/new`}>
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New decision
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Project
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>Decisions</span>
           </div>
-        }
-      />
+          <h1>Decision Log</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Important project decisions captured for institutional memory.
+            Supersede flow preserves audit trail — old decisions stay readable
+            but marked &apos;superseded&apos;.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/decisions/new`}
+            className="btn btn-accent btn-sm"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            New decision
+          </Link>
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </div>
 
       {decisions.length === 0 ? (
         <EmptyState
@@ -86,7 +92,8 @@ export default async function ProjectDecisionsPage({
           description="Capture an important decision so it lives beyond a Slack thread."
         />
       ) : (
-        <Section eyebrow="Log" title="All decisions (most recent first)">
+        <div>
+          <div className="label mb-2.5">Log</div>
           <Table>
             <THead>
               <TR>
@@ -111,16 +118,16 @@ export default async function ProjectDecisionsPage({
                   <TD className="text-sm">{d.title}</TD>
                   <TD className="text-xs">{d.category ?? "—"}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[d.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[d.status] ?? "soft"}>
                       {d.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{d.decisionDate}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

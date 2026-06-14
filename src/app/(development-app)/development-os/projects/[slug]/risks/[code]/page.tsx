@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -14,12 +11,12 @@ import { getProjectRiskByCode } from "@/lib/development/server/risks/risk-querie
 export const metadata: Metadata = { title: "Risk · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  identified: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  identified: "warn",
   planning_mitigation: "info",
   mitigating: "info",
-  monitored: "neutral",
-  closed_resolved: "success",
+  monitored: "soft",
+  closed_resolved: "ok",
   closed_realized: "danger",
 };
 
@@ -33,7 +30,11 @@ export default async function RiskDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Risk" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Risk</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -43,84 +44,98 @@ export default async function RiskDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Risks", href: `/development-os/projects/${slug}/risks` },
-          { label: risk.riskCode },
-        ]}
-        eyebrow={`Score ${risk.riskScore ?? "?"} · ${risk.mitigationStatus}`}
-        title={risk.title}
-        description={risk.description}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/projects/${slug}/risks`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Risks
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/risks`}>Risks</Link> /{" "}
+            <span>{risk.riskCode}</span>
+          </div>
+          <h1>{risk.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">{risk.description}</p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/risks`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Risks
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Assessment" title="Probability + impact + score">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <Field label="Category" value={risk.category} />
-          <Field label="Probability" value={risk.probability} />
-          <Field label="Impact" value={risk.impact} />
-          <Field
-            label="Risk score (P × I)"
-            value={String(risk.riskScore ?? "—")}
-          />
-        </div>
-        <div className="mt-3">
-          <Badge tone={STATUS_TONE[risk.mitigationStatus] ?? "neutral"}>
-            {risk.mitigationStatus}
-          </Badge>
-        </div>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Assessment</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <Field label="Category" value={risk.category} />
+            <Field label="Probability" value={risk.probability} />
+            <Field label="Impact" value={risk.impact} />
+            <Field
+              label="Risk score (P × I)"
+              value={String(risk.riskScore ?? "—")}
+            />
+          </div>
+          <div className="mt-3">
+            <HandoffBadge tone={STATUS_TONE[risk.mitigationStatus] ?? "soft"}>
+              {risk.mitigationStatus}
+            </HandoffBadge>
+          </div>
+        </Card>
+      </div>
 
       {risk.mitigationPlan && (
-        <Section eyebrow="Mitigation" title="Plan">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
-            {risk.mitigationPlan}
-          </p>
-          {risk.mitigationDeadline && (
-            <p className="text-xs text-ink-tertiary mt-2">
-              Deadline: {risk.mitigationDeadline}
+        <div>
+          <div className="label mb-2.5">Mitigation</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
+              {risk.mitigationPlan}
             </p>
-          )}
-        </Section>
+            {risk.mitigationDeadline && (
+              <p className="text-xs text-ink-tertiary mt-2">
+                Deadline: {risk.mitigationDeadline}
+              </p>
+            )}
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Impact estimates" title="Cost + schedule">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Field
-            label="Cost impact"
-            value={
-              risk.estimatedCostImpactMinor != null
-                ? `$${(Number(risk.estimatedCostImpactMinor) / 100).toLocaleString()}`
-                : "—"
-            }
-          />
-          <Field
-            label="Schedule impact (days)"
-            value={String(risk.estimatedScheduleImpactDays ?? "—")}
-          />
-        </div>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Impact estimates</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Field
+              label="Cost impact"
+              value={
+                risk.estimatedCostImpactMinor != null
+                  ? `$${(Number(risk.estimatedCostImpactMinor) / 100).toLocaleString()}`
+                  : "—"
+              }
+            />
+            <Field
+              label="Schedule impact (days)"
+              value={String(risk.estimatedScheduleImpactDays ?? "—")}
+            />
+          </div>
+        </Card>
+      </div>
 
-      <Section eyebrow="Lifecycle" title="Identification + closure">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Identified at" value={risk.identifiedAt} />
-          <Field label="Closed at" value={risk.closedAt ?? "—"} />
-          <Field label="Closed reason" value={risk.closedReason ?? "—"} />
-          <Field
-            label="Owner"
-            value={risk.ownerId?.slice(0, 8) ?? "—"}
-            mono
-          />
-        </div>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Lifecycle</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Identified at" value={risk.identifiedAt} />
+            <Field label="Closed at" value={risk.closedAt ?? "—"} />
+            <Field label="Closed reason" value={risk.closedReason ?? "—"} />
+            <Field
+              label="Owner"
+              value={risk.ownerId?.slice(0, 8) ?? "—"}
+              mono
+            />
+          </div>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

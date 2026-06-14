@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { NotificationRulesTabs } from "@/components/development/notifications/notification-rules-tabs";
 import {
@@ -48,29 +45,35 @@ export default async function NotificationsAdminPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "Notifications" },
-        ]}
-        eyebrow={`${rules.filter((r) => r.isActive).length} active rules · ${deliveryLog.length} recent deliveries`}
-        title="Notification rules"
-        description="Drives the notification dispatch cron. Each rule pairs a trigger event (milestone due, reservation expiring) with a recipient resolver, channel, and template. EMAIL_DRY_RUN=1 keeps every send local."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
-      <Section
-        eyebrow="Provider configuration"
-        title="Outbound delivery providers"
-        description="Resend (transactional email) + Twilio (SMS / WhatsApp) are configured via env vars. Set NOTIFICATIONS_DRY_RUN=0 in production to enable live delivery."
-      >
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span> / <span>Notifications</span>
+          </div>
+          <h1>Notification rules</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Drives the notification dispatch cron. Each rule pairs a trigger
+            event (milestone due, reservation expiring) with a recipient
+            resolver, channel, and template. EMAIL_DRY_RUN=1 keeps every send
+            local.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Provider configuration</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Resend (transactional email) + Twilio (SMS / WhatsApp) are configured
+          via env vars. Set NOTIFICATIONS_DRY_RUN=0 in production to enable live
+          delivery.
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <ProviderStatus
             name="Resend"
@@ -87,9 +90,9 @@ export default async function NotificationsAdminPage() {
               Mode
             </div>
             <div className="mt-1">
-              <Badge tone={isNotificationsDryRun() ? "warning" : "success"}>
+              <HandoffBadge tone={isNotificationsDryRun() ? "warn" : "ok"}>
                 {isNotificationsDryRun() ? "DRY RUN" : "LIVE"}
-              </Badge>
+              </HandoffBadge>
             </div>
             <p className="text-xs text-ink-tertiary mt-2">
               Set <code>NOTIFICATIONS_DRY_RUN=0</code> to send real
@@ -97,7 +100,7 @@ export default async function NotificationsAdminPage() {
             </p>
           </div>
         </div>
-      </Section>
+      </div>
       <NotificationRulesTabs
         rules={rules}
         templates={templates}
@@ -120,9 +123,9 @@ function ProviderStatus({
     <div className="rounded-md border border-line-soft bg-surface p-4">
       <div className="flex items-center gap-2 mb-2">
         <span className="font-medium text-sm">{name}</span>
-        <Badge tone={configured ? "success" : "neutral"}>
+        <HandoffBadge tone={configured ? "ok" : "soft"}>
           {configured ? "Configured" : "Not configured"}
-        </Badge>
+        </HandoffBadge>
       </div>
       <div className="text-xs text-ink-tertiary space-y-1">
         <div>Required env:</div>

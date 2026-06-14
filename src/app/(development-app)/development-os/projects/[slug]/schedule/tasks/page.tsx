@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -16,13 +14,13 @@ import { listProjectTasks } from "@/lib/development/server/schedule/schedule-que
 export const metadata: Metadata = { title: "Tasks · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  planned: "neutral",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
+  planned: "soft",
   ready_to_start: "info",
   in_progress: "info",
-  completed: "success",
-  blocked: "warning",
-  cancelled: "neutral",
+  completed: "ok",
+  blocked: "warn",
+  cancelled: "soft",
 };
 
 export default async function TaskListPage({
@@ -35,7 +33,11 @@ export default async function TaskListPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Tasks" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Tasks</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -47,17 +49,21 @@ export default async function TaskListPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Schedule", href: `/development-os/projects/${slug}/schedule` },
-          { label: "Tasks" },
-        ]}
-        eyebrow={`${tasks.length} task${tasks.length === 1 ? "" : "s"}`}
-        title="Task list"
-        description="Tabular view of all tasks. Click a task to see its details. Critical-path tasks are flagged."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/schedule`}>Schedule</Link> /{" "}
+            <span>Tasks</span>
+          </div>
+          <h1>Task list</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Tabular view of all tasks. Click a task to see its details.
+            Critical-path tasks are flagged.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <Button asChild>
               <Link
@@ -74,8 +80,8 @@ export default async function TaskListPage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {tasks.length === 0 ? (
         <EmptyState
@@ -83,7 +89,8 @@ export default async function TaskListPage({
           description="Add a task to start populating the schedule."
         />
       ) : (
-        <Section eyebrow="All" title="Tasks (chronological)">
+        <div>
+          <div className="label mb-2.5">All</div>
           <Table>
             <THead>
               <TR>
@@ -111,12 +118,12 @@ export default async function TaskListPage({
                   </TD>
                   <TD className="text-sm">{t.name}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[t.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[t.status] ?? "soft"}>
                       {t.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    {t.isOnCriticalPath && <Badge tone="danger">CP</Badge>}
+                    {t.isOnCriticalPath && <HandoffBadge tone="danger">CP</HandoffBadge>}
                   </TD>
                   <TD className="text-xs">{t.plannedStart}</TD>
                   <TD className="text-xs">{t.plannedFinish}</TD>
@@ -127,7 +134,7 @@ export default async function TaskListPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

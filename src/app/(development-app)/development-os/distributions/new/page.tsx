@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -46,21 +43,20 @@ export default async function NewDistributionPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            {
-              label: "Distributions",
-              href: "/development-os/distributions",
-            },
-            { label: "New" },
-          ]}
-          title="Declare distribution"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/distributions">Distributions</Link> /{" "}
+              <span>New</span>
+            </div>
+            <h1>Declare distribution</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to declare distributions."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
@@ -124,25 +120,35 @@ export default async function NewDistributionPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Distributions", href: "/development-os/distributions" },
-          { label: "Declare" },
-        ]}
-        title="Declare distribution"
-        description="Pick a project, type, and total amount. Preview the per-commitment allocation before declaring. Declared distributions create database rows but do NOT move balances until you click Execute on the detail page."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/distributions">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/distributions">Distributions</Link> /{" "}
+            <span>Declare</span>
+          </div>
+          <h1>Declare distribution</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Pick a project, type, and total amount. Preview the per-commitment
+            allocation before declaring. Declared distributions create database
+            rows but do NOT move balances until you click Execute on the detail
+            page.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/distributions"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Inputs" title="Distribution parameters">
+      <div>
+        <div className="label mb-2.5">Inputs</div>
+        <Card padding="default">
         {/* GET form so the URL holds the preview state — no client JS needed. */}
         <form
           method="GET"
@@ -233,7 +239,8 @@ export default async function NewDistributionPage({
             </button>
           </div>
         </form>
-      </Section>
+        </Card>
+      </div>
 
       {previewError && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -242,15 +249,15 @@ export default async function NewDistributionPage({
       )}
 
       {preview && (
-        <Section
-          eyebrow="Preview"
-          title={`${preview.allocations.length} allocation${preview.allocations.length === 1 ? "" : "s"}`}
-          description={
-            preview.unallocatedUsdMinor > 0n
+        <div>
+          <div className="label mb-2.5">Preview</div>
+          <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+            {`${preview.allocations.length} allocation${preview.allocations.length === 1 ? "" : "s"}`}
+            {" — "}
+            {preview.unallocatedUsdMinor > 0n
               ? `Note: ${formatUsdMinor(preview.unallocatedUsdMinor)} would remain unallocated (no outstanding capital or profit-share weights to absorb it).`
-              : "All funds allocated."
-          }
-        >
+              : "All funds allocated."}
+          </p>
           {preview.allocations.length === 0 ? (
             <EmptyState
               title="Nothing to allocate"
@@ -322,7 +329,7 @@ export default async function NewDistributionPage({
               </form>
             </>
           )}
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

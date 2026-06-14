@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, MapPin, MessageSquare, Phone } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import {
   ProjectDetailTabs,
@@ -79,49 +76,64 @@ export default async function LeadDetailPage({
       content: (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
           <div className="flex flex-col gap-5">
-            <Section eyebrow="Contact" title={lead.fullName}>
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <Stat label="Email" value={lead.email ?? "—"} icon={<Mail className="w-3 h-3" strokeWidth={1.75} />} />
-                <Stat label="Phone" value={lead.phone ?? "—"} icon={<Phone className="w-3 h-3" strokeWidth={1.75} />} />
-                <Stat label="Channel" value={lead.preferredCommunicationChannel ?? "—"} icon={<Channel className="w-3 h-3" strokeWidth={1.75} />} />
-                <Stat label="Language" value={lead.preferredLanguage ?? "—"} />
-                <Stat label="Country" value={lead.countryOfResidence ?? "—"} />
-                <Stat label="Source" value={lead.acquisitionSource ?? lead.sourceCode ?? "—"} />
-              </dl>
-            </Section>
+            <div>
+              <div className="label mb-2.5">Contact</div>
+              <Card padding="default">
+                <h2 className="serif text-[18px] mt-0 mb-3">{lead.fullName}</h2>
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Stat label="Email" value={lead.email ?? "—"} icon={<Mail className="w-3 h-3" strokeWidth={1.75} />} />
+                  <Stat label="Phone" value={lead.phone ?? "—"} icon={<Phone className="w-3 h-3" strokeWidth={1.75} />} />
+                  <Stat label="Channel" value={lead.preferredCommunicationChannel ?? "—"} icon={<Channel className="w-3 h-3" strokeWidth={1.75} />} />
+                  <Stat label="Language" value={lead.preferredLanguage ?? "—"} />
+                  <Stat label="Country" value={lead.countryOfResidence ?? "—"} />
+                  <Stat label="Source" value={lead.acquisitionSource ?? lead.sourceCode ?? "—"} />
+                </dl>
+              </Card>
+            </div>
 
             {lead.projectName && (
-              <Section eyebrow="Project of interest" title={lead.projectName}>
-                <div className="flex items-center gap-2 flex-wrap">
-                  {lead.unitTypeName && <Badge tone="accent">{lead.unitTypeName}</Badge>}
-                  {lead.agentDisplayName && <Badge tone="gold">via {lead.agentDisplayName}</Badge>}
-                  {lead.projectSlug && (
-                    <Button asChild variant="secondary" size="sm">
-                      <Link href={`/development-os/projects/${lead.projectSlug}`}>
+              <div>
+                <div className="label mb-2.5">Project of interest</div>
+                <Card padding="default">
+                  <h2 className="serif text-[18px] mt-0 mb-3">{lead.projectName}</h2>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {lead.unitTypeName && <HandoffBadge tone="info">{lead.unitTypeName}</HandoffBadge>}
+                    {lead.agentDisplayName && <HandoffBadge tone="gold">via {lead.agentDisplayName}</HandoffBadge>}
+                    {lead.projectSlug && (
+                      <Link
+                        href={`/development-os/projects/${lead.projectSlug}`}
+                        className="btn btn-secondary btn-sm"
+                      >
                         Open project →
                       </Link>
-                    </Button>
-                  )}
-                </div>
-              </Section>
+                    )}
+                  </div>
+                </Card>
+              </div>
             )}
 
             {lead.notes && (
-              <Section eyebrow="Internal notes" title="Context">
-                <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap">
-                  {lead.notes}
-                </p>
-              </Section>
+              <div>
+                <div className="label mb-2.5">Internal notes</div>
+                <Card padding="default">
+                  <p className="text-sm text-ink-secondary leading-relaxed whitespace-pre-wrap m-0">
+                    {lead.notes}
+                  </p>
+                </Card>
+              </div>
             )}
 
             {/* CRM-CUSTOM-FIELDS-TAGS — editable tags + custom fields. */}
-            <Section eyebrow="CRM" title="Tags & custom fields">
-              <CrmAnnotationsPanel
-                subjectType="contact"
-                subjectId={lead.contactId}
-                canManage={canManageCrm}
-              />
-            </Section>
+            <div>
+              <div className="label mb-2.5">CRM</div>
+              <Card padding="default">
+                <CrmAnnotationsPanel
+                  subjectType="contact"
+                  subjectId={lead.contactId}
+                  canManage={canManageCrm}
+                />
+              </Card>
+            </div>
           </div>
 
           <aside className="flex flex-col gap-3">
@@ -140,10 +152,10 @@ export default async function LeadDetailPage({
                 )}
               </div>
               {contact?.linkedOwnerId && (
-                <Badge tone="success">Linked to Owner record</Badge>
+                <HandoffBadge tone="ok">Linked to Owner record</HandoffBadge>
               )}
               {contact?.linkedGuestId && (
-                <Badge tone="info">Linked to Guest record</Badge>
+                <HandoffBadge tone="info">Linked to Guest record</HandoffBadge>
               )}
             </div>
           </aside>
@@ -155,22 +167,22 @@ export default async function LeadDetailPage({
       label: "Activity",
       badge: crmActivity.length > 0 ? `${crmActivity.length}` : undefined,
       content: (
-        <Section
-          eyebrow="CRM"
-          title="Activity timeline"
-          action={
+        <div>
+          <div className="flex items-center justify-between mb-2.5">
+            <div className="label">CRM</div>
             <LogActivityComposer
               subjectType="contact"
               subjectId={lead.contactId}
               canManage={canManageCrm}
             />
-          }
-        >
-          <RecordTimeline
-            activities={crmActivity}
-            emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
-          />
-        </Section>
+          </div>
+          <Card padding="default">
+            <RecordTimeline
+              activities={crmActivity}
+              emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
+            />
+          </Card>
+        </div>
       ),
     },
     {
@@ -214,28 +226,28 @@ export default async function LeadDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Sales", href: "/development-os/sales" },
-          { label: lead.fullName },
-        ]}
-        eyebrow={`Lead · ${lead.status}`}
-        title={lead.fullName}
-        description={
-          lead.projectName
-            ? `${lead.projectName}${lead.unitTypeName ? ` · ${lead.unitTypeName}` : ""}${lead.agentDisplayName ? ` · referred by ${lead.agentDisplayName}` : ""}`
-            : "Unscoped lead — no project association yet."
-        }
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/sales">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Pipeline
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/sales">Sales</Link> /{" "}
+            <span>{lead.fullName}</span>
+          </div>
+          <div className="label mt-1.5">Lead · {lead.status}</div>
+          <h1>{lead.fullName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {lead.projectName
+              ? `${lead.projectName}${lead.unitTypeName ? ` · ${lead.unitTypeName}` : ""}${lead.agentDisplayName ? ` · referred by ${lead.agentDisplayName}` : ""}`
+              : "Unscoped lead — no project association yet."}
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/sales" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Pipeline
+          </Link>
+        </div>
+      </div>
 
       <ProjectDetailTabs tabs={tabs} defaultValue="overview" />
     </DevelopmentShell>
@@ -267,7 +279,7 @@ function Stat({
 function ComingInPlaceholder({ stage, summary }: { stage: string; summary: string }) {
   return (
     <div className="rounded-md border border-dashed border-line-soft bg-muted/30 px-6 py-10 flex flex-col items-center text-center gap-2">
-      <Badge tone="gold">Stage {stage}</Badge>
+      <HandoffBadge tone="gold">Stage {stage}</HandoffBadge>
       <p className="text-sm text-ink-secondary max-w-md leading-relaxed">{summary}</p>
     </div>
   );

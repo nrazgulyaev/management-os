@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { ImportBoqPageClient } from "./_import-client";
 
@@ -20,24 +18,29 @@ export const dynamic = "force-dynamic";
 export default function ImportBoqPage() {
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "QS · Cost analyst", href: "/development-os/cabinets/qs" },
-          { label: "Import BOQ" },
-        ]}
-        eyebrow="3-step wizard · upload → map → reconcile"
-        title="Import BOQ"
-        description="Upload a CSV or XLSX from the QS estimator. Step 2 maps columns; step 3 shows the diff vs the current revision before publishing."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/cabinets/qs">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              QS cabinet
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/cabinets/qs">QS · Cost analyst</Link> /{" "}
+            <span>Import BOQ</span>
+          </div>
+          <h1>Import BOQ</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Upload a CSV or XLSX from the QS estimator. Step 2 maps columns;
+            step 3 shows the diff vs the current revision before publishing.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cabinets/qs"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            QS cabinet
+          </Link>
+        </div>
+      </div>
       <ImportBoqPageClient projectLabel="Pick project after upload" />
     </DevelopmentShell>
   );

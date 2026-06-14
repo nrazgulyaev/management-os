@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -20,7 +17,11 @@ export default async function MarketingConnectionsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Connections" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Connections</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -33,34 +34,41 @@ export default async function MarketingConnectionsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing", href: "/development-os/marketing/dashboard" },
-          { label: "Connections" },
-        ]}
-        eyebrow={`${connections.length} connections · ${connections.filter((c) => c.status === "active").length} active`}
-        title="Marketing connections"
-        description="Per-platform integration configuration. Credentials are encrypted at rest via STAY_LINK_KMS_SECRET. Sync cadence: 6h for campaigns, 3h for metrics, 1h for attribution."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="primary">
-              <Link href="/development-os/marketing/connections/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Connect provider
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/marketing/dashboard">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Marketing
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/marketing/dashboard">Marketing</Link> /{" "}
+            <span>Connections</span>
           </div>
-        }
-      />
+          <h1>Marketing connections</h1>
+          <div className="label mt-2">{`${connections.length} connections · ${connections.filter((c) => c.status === "active").length} active`}</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-platform integration configuration. Credentials are encrypted at
+            rest via STAY_LINK_KMS_SECRET. Sync cadence: 6h for campaigns, 3h for
+            metrics, 1h for attribution.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/marketing/connections/new"
+            className="btn btn-accent btn-sm"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            Connect provider
+          </Link>
+          <Link
+            href="/development-os/marketing/dashboard"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Marketing
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Connections">
+      <div>
+        <div className="label mb-2.5">Connections</div>
         {connections.length === 0 ? (
           <EmptyState
             title="No marketing connections yet"
@@ -86,7 +94,7 @@ export default async function MarketingConnectionsPage() {
                       href={`/development-os/marketing/connections/${c.id}`}
                       className="text-stone-700 hover:text-stone-900 hover:underline"
                     >
-                      <Badge tone="outline">{c.provider}</Badge>
+                      <HandoffBadge tone="soft">{c.provider}</HandoffBadge>
                     </Link>
                   </TD>
                   <TD className="text-xs">
@@ -98,19 +106,19 @@ export default async function MarketingConnectionsPage() {
                     </Link>
                   </TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         c.status === "active"
-                          ? "success"
+                          ? "ok"
                           : c.status === "error"
                             ? "danger"
                             : c.status === "dry_run"
-                              ? "warning"
-                              : "neutral"
+                              ? "warn"
+                              : "soft"
                       }
                     >
                       {c.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs text-ink-secondary">
                     {c.lastSyncedAt
@@ -129,7 +137,7 @@ export default async function MarketingConnectionsPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

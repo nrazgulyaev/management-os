@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Card, Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -20,7 +18,11 @@ export default async function MarketingDashboardPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Marketing dashboard" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Marketing dashboard</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -72,63 +74,65 @@ export default async function MarketingDashboardPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Marketing dashboard"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing" },
-          { label: "Dashboard" },
-        ]}
-        description="Cross-channel attribution, content pipeline, sales conversation health."
-      />
-      <Section title="Top-line">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          <MetricCard label="Active campaigns" value={row?.active_campaigns ?? "0"} />
-          <MetricCard label="Total leads" value={row?.total_leads ?? "0"} />
-          <MetricCard
-            label="Content published"
-            value={row?.content_published ?? "0"}
-          />
-          <MetricCard
-            label="Content scheduled"
-            value={row?.content_scheduled ?? "0"}
-          />
-          <MetricCard
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Marketing</span> / <span>Dashboard</span>
+          </div>
+          <h1>Marketing dashboard</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Cross-channel attribution, content pipeline, sales conversation
+            health.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Top-line</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Kpi label="Active campaigns" value={row?.active_campaigns ?? "0"} />
+          <Kpi label="Total leads" value={row?.total_leads ?? "0"} />
+          <Kpi label="Content published" value={row?.content_published ?? "0"} />
+          <Kpi label="Content scheduled" value={row?.content_scheduled ?? "0"} />
+          <Kpi
             label="Open follow-up alerts"
             value={row?.open_followup_alerts ?? "0"}
-            hint="missed conversations"
+            sub="missed conversations"
           />
         </div>
-      </Section>
-      <Section title="Lead source mix">
+      </div>
+      <div>
+        <div className="label mb-2.5">Lead source mix</div>
         {sourceRows.length === 0 ? (
           <EmptyState
             title="No leads yet"
             description="Create or import leads to populate this view."
-          
+
           action={
-            <Link href="/development-os/marketing/connections" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">Configure connections</Link>
+            <Link href="/development-os/marketing/connections" className="btn btn-secondary btn-sm">Configure connections</Link>
           }
         />
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Source</th>
-                <th>Leads</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sourceRows.map((s) => (
-                <tr key={s.source} className="border-b border-line-soft">
-                  <td className="py-2">{s.source}</td>
-                  <td className="font-mono tabular-nums">{s.n}</td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Source</th>
+                  <th scope="col" className="num">Leads</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sourceRows.map((s) => (
+                  <tr key={s.source}>
+                    <td className="row-title">{s.source}</td>
+                    <td className="num">{s.n}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

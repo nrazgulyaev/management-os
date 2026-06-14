@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, AlertCircle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
+import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   Table,
   THead,
@@ -55,7 +51,11 @@ export default async function ConnectionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Connection" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Connection</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -79,41 +79,48 @@ export default async function ConnectionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels", href: "/development-os/channels" },
-          { label: `${CHANNEL_LABELS[channel]} · ${connection.externalPropertyId}` },
-        ]}
-        eyebrow={`${CHANNEL_LABELS[channel]} · ${status}`}
-        title={`${CHANNEL_LABELS[channel]} connection`}
-        description={`External property ID: ${connection.externalPropertyId}`}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All channels
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/channels">Channels</Link> /{" "}
+            <span>
+              {CHANNEL_LABELS[channel]} · {connection.externalPropertyId}
+            </span>
+          </div>
+          <h1>{CHANNEL_LABELS[channel]} connection</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            External property ID: {connection.externalPropertyId}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/channels"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All channels
+          </Link>
+        </div>
+      </div>
 
       <TabStrip current={tab} connectionId={connectionId} />
 
       {tab === "overview" && (
         <>
-          <Section eyebrow="Snapshot" title="Status + activity">
+          <div>
+            <div className="label mb-2.5">Snapshot</div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <MetricCard
+              <Kpi
                 label="Status"
                 value={status}
-                hint={
+                sub={
                   connection.connectedAt
                     ? `connected ${connection.connectedAt.toISOString().slice(0, 10)}`
                     : "not yet connected"
                 }
               />
-              <MetricCard
+              <Kpi
                 label="Last inventory sync"
                 value={
                   connection.lastInventorySyncAt
@@ -123,9 +130,9 @@ export default async function ConnectionDetailPage({
                         .replace("T", " ")
                     : "—"
                 }
-                hint={connection.lastInventorySyncStatus ?? undefined}
+                sub={connection.lastInventorySyncStatus ?? undefined}
               />
-              <MetricCard
+              <Kpi
                 label="Last reservations pull"
                 value={
                   connection.lastReservationSyncAt
@@ -135,9 +142,9 @@ export default async function ConnectionDetailPage({
                         .replace("T", " ")
                     : "—"
                 }
-                hint={connection.lastReservationSyncStatus ?? undefined}
+                sub={connection.lastReservationSyncStatus ?? undefined}
               />
-              <MetricCard
+              <Kpi
                 label="Channel commission"
                 value={
                   connection.channelCommissionPct
@@ -159,13 +166,17 @@ export default async function ConnectionDetailPage({
                 </div>
               </div>
             )}
-          </Section>
+          </div>
 
-          <Section eyebrow="Actions" title="Operate this connection">
-            <ConnectionActions connectionId={connectionId} status={status} />
-          </Section>
+          <div>
+            <div className="label mb-2.5">Actions</div>
+            <Card padding="default">
+              <ConnectionActions connectionId={connectionId} status={status} />
+            </Card>
+          </div>
 
-          <Section eyebrow="Recent activity" title="Last 25 sync attempts">
+          <div>
+            <div className="label mb-2.5">Recent activity</div>
             {syncLog.length === 0 ? (
               <EmptyState
                 title="No sync activity yet"
@@ -193,7 +204,7 @@ export default async function ConnectionDetailPage({
                       <TD className="text-xs">{s.syncType}</TD>
                       <TD className="text-xs">{s.triggerSource}</TD>
                       <TD>
-                        <Badge tone={syncStatusTone(s.status)}>{s.status}</Badge>
+                        <HandoffBadge tone={syncStatusTone(s.status)}>{s.status}</HandoffBadge>
                       </TD>
                       <TDNum>
                         {s.recordsSucceeded}
@@ -208,37 +219,31 @@ export default async function ConnectionDetailPage({
                 </TBody>
               </Table>
             )}
-          </Section>
+          </div>
         </>
       )}
 
       {tab === "rates" && (
-        <Section
-          eyebrow="Rate management"
-          title="Per-day rates"
-          description="Calendar view + bulk edit. Rates push to the channel via the cron schedule (P1.G); use 'Push now' on the calendar page to sync immediately."
-        >
-          <div className="rounded-md border border-line-soft p-4">
-            <Button asChild>
-              <Link
-                href={`/development-os/channels/${connectionId}/rates`}
-              >
-                Open rate calendar →
-              </Link>
-            </Button>
+        <div>
+          <div className="label mb-2.5">Rate management</div>
+          <Card padding="default">
+            <Link
+              href={`/development-os/channels/${connectionId}/rates`}
+              className="btn btn-accent"
+            >
+              Open rate calendar →
+            </Link>
             <p className="text-xs text-ink-tertiary mt-3">
               The rate calendar lives on its own page so the month grid
               has the screen real estate it needs.
             </p>
-          </div>
-        </Section>
+          </Card>
+        </div>
       )}
 
       {tab === "reservations" && (
-        <Section
-          eyebrow="Reservations"
-          title={`Recent reservations from ${CHANNEL_LABELS[channel]}`}
-        >
+        <div>
+          <div className="label mb-2.5">Reservations</div>
           {reservations.length === 0 ? (
             <EmptyState
               title="No reservations yet"
@@ -272,23 +277,21 @@ export default async function ConnectionDetailPage({
                     <TD className="text-xs">{r.checkIn}</TD>
                     <TD className="text-xs">{r.checkOut}</TD>
                     <TD>
-                      <Badge tone="neutral">{r.reservationState}</Badge>
+                      <HandoffBadge tone="soft">{r.reservationState}</HandoffBadge>
                     </TD>
                   </TR>
                 ))}
               </TBody>
             </Table>
           )}
-        </Section>
+        </div>
       )}
 
       {tab === "settings" && (
-        <Section
-          eyebrow="Settings"
-          title="Configured credentials"
-          description="Secret-bearing fields are stripped before display. To rotate credentials, re-run the Connect flow from the channels grid."
-        >
-          <div className="rounded-md border border-line-soft p-4 space-y-2">
+        <div>
+          <div className="label mb-2.5">Settings</div>
+          <Card padding="default">
+            <div className="space-y-2">
             {Object.entries(redactedCreds).map(([k, v]) => (
               <div key={k} className="flex items-center justify-between text-xs">
                 <span className="text-ink-tertiary">{k}</span>
@@ -300,8 +303,9 @@ export default async function ConnectionDetailPage({
                 No credentials configured (DryRun mode).
               </p>
             )}
-          </div>
-        </Section>
+            </div>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );
@@ -352,18 +356,18 @@ function tabLabel(t: Tab): string {
 
 function syncStatusTone(
   s: string,
-): "success" | "warning" | "danger" | "info" | "neutral" {
+): "ok" | "warn" | "danger" | "info" | "soft" {
   switch (s) {
     case "success":
-      return "success";
+      return "ok";
     case "partial":
-      return "warning";
+      return "warn";
     case "failed":
       return "danger";
     case "pending":
     case "running":
       return "info";
     default:
-      return "neutral";
+      return "soft";
   }
 }

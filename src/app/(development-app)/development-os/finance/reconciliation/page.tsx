@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Play } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -30,7 +28,11 @@ export default async function ReconciliationPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Reconciliation" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Reconciliation</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -50,16 +52,25 @@ export default async function ReconciliationPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Reconciliation" },
-        ]}
-        eyebrow={`${matchRate}% auto-matched · ${stats.partial} need review · ${stats.unmatched} unmatched`}
-        title="Reconciliation dashboard"
-        description="Auto-matcher confidence ≥ 0.95 → auto-match. 0.5–0.95 → flagged for manual review here. The 30-min reconciliation cron retries unmatched transactions when new invoices land."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Reconciliation</span>
+          </div>
+          <h1>Reconciliation dashboard</h1>
+          <div className="label mt-1.5">
+            {matchRate}% auto-matched · {stats.partial} need review ·{" "}
+            {stats.unmatched} unmatched
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Auto-matcher confidence ≥ 0.95 → auto-match. 0.5–0.95 → flagged for
+            manual review here. The 30-min reconciliation cron retries unmatched
+            transactions when new invoices land.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <Button asChild variant="secondary">
               <Link href="/development-os/finance/bank-review">
@@ -74,13 +85,15 @@ export default async function ReconciliationPage() {
               </Button>
             </form>
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      <Section
-        title="Partial matches — needs review"
-        description="The auto-matcher found a candidate but isn't confident. Confirm or reject manually."
-      >
+      <div>
+        <div className="label mb-2.5">Partial matches — needs review</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          The auto-matcher found a candidate but isn&apos;t confident. Confirm or
+          reject manually.
+        </p>
         {partial.length === 0 ? (
           <EmptyState
             title="No partial matches"
@@ -108,7 +121,7 @@ export default async function ReconciliationPage() {
                     {formatAmount(t.amountMinor, t.currency)}
                   </TD>
                   <TD>
-                    <Badge tone="warning">{t.matchStatus}</Badge>
+                    <HandoffBadge tone="warn">{t.matchStatus}</HandoffBadge>
                   </TD>
                   <TD className="text-right tabular-nums text-xs">
                     {t.matchConfidence ?? "—"}
@@ -118,7 +131,7 @@ export default async function ReconciliationPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

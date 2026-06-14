@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
@@ -23,13 +20,13 @@ export const dynamic = "force-dynamic";
 
 const PO_STATUS_TONE: Record<
   MaterialPoStatus,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
-  draft: "neutral",
+  draft: "soft",
   ordered: "info",
-  partially_delivered: "warning",
-  fully_delivered: "success",
-  cancelled: "neutral",
+  partially_delivered: "warn",
+  fully_delivered: "ok",
+  cancelled: "soft",
 };
 
 /** QC chain (mock §03): receive → inspect → photograph → putaway. */
@@ -58,14 +55,16 @@ export default async function WarehouseReceivePage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Warehouse", href: "/development-os/warehouse" },
-            { label: "Receive" },
-          ]}
-          title="Receive purchase order"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/warehouse">Warehouse</Link> /{" "}
+              <span>Receive</span>
+            </div>
+            <h1>Receive purchase order</h1>
+          </div>
+        </div>
         <EmptyState
           variant="error"
           title="Database not configured"
@@ -85,47 +84,48 @@ export default async function WarehouseReceivePage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Warehouse", href: "/development-os/warehouse" },
-          { label: "Receiving", href: "/development-os/warehouse/stock" },
-          { label: detail.poCode },
-        ]}
-        eyebrow={`${detail.vendorLegalName}${detail.projectName ? ` · ${detail.projectName}` : ""}`}
-        title={`Receive ${detail.poCode}`}
-        description="Run the QC chain line by line, then receive into stock. QC-passed lines with a matching SKU post a received movement and credit on-hand; the PO delivered total + status update atomically. Audit-logged; payment stays in its own manual flow."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/warehouse">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Warehouse
-            </Link>
-          </Button>
-        }
-      />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={PO_STATUS_TONE[detail.status] ?? "neutral"}>
-          {MATERIAL_PO_STATUS_LABEL[detail.status] ?? detail.status}
-        </Badge>
-        <Badge tone="outline">Ordered {detail.orderDate}</Badge>
-        {detail.expectedDeliveryDate && (
-          <Badge tone="outline">ETA {detail.expectedDeliveryDate}</Badge>
-        )}
-        <Badge tone={detail.outstandingQty > 0 ? "warning" : "success"}>
-          {detail.outstandingQty.toFixed(2)} outstanding
-        </Badge>
-        <Badge tone="outline">
-          {detail.lines.length} line{detail.lines.length === 1 ? "" : "s"}
-        </Badge>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/warehouse">Warehouse</Link> /{" "}
+            <Link href="/development-os/warehouse/stock">Receiving</Link> /{" "}
+            <span>{detail.poCode}</span>
+          </div>
+          <h1>{`Receive ${detail.poCode}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Run the QC chain line by line, then receive into stock. QC-passed
+            lines with a matching SKU post a received movement and credit
+            on-hand; the PO delivered total + status update atomically.
+            Audit-logged; payment stays in its own manual flow.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/warehouse" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Warehouse
+          </Link>
+        </div>
       </div>
 
-      <Section
-        eyebrow="QC chain"
-        title="Dock → inspect → photograph → putaway"
-        description="The four-step receiving chain. Receiving here advances the PO; photo + bin putaway land with the bins schema (mock §02 variant C)."
-      >
+      <div className="flex flex-wrap items-center gap-2">
+        <HandoffBadge tone={PO_STATUS_TONE[detail.status] ?? "soft"}>
+          {MATERIAL_PO_STATUS_LABEL[detail.status] ?? detail.status}
+        </HandoffBadge>
+        <HandoffBadge tone="soft">Ordered {detail.orderDate}</HandoffBadge>
+        {detail.expectedDeliveryDate && (
+          <HandoffBadge tone="soft">ETA {detail.expectedDeliveryDate}</HandoffBadge>
+        )}
+        <HandoffBadge tone={detail.outstandingQty > 0 ? "warn" : "ok"}>
+          {detail.outstandingQty.toFixed(2)} outstanding
+        </HandoffBadge>
+        <HandoffBadge tone="soft">
+          {detail.lines.length} line{detail.lines.length === 1 ? "" : "s"}
+        </HandoffBadge>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">QC chain</div>
         <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6">
           <ol className="flex flex-wrap items-center gap-x-3 gap-y-3">
             {QC_STEPS.map((step, i) => {
@@ -169,14 +169,11 @@ export default async function WarehouseReceivePage({
             })}
           </ol>
         </div>
-      </Section>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        <Section
-          eyebrow="Receive"
-          title="Line items"
-          description="Received-qty vs ordered, per-line QC pass/fail. Hold a line to record arrival without posting stock."
-        >
+        <div>
+          <div className="label mb-2.5">Receive</div>
           {detail.lines.length === 0 ? (
             <EmptyState
               variant="caught-up"
@@ -201,9 +198,10 @@ export default async function WarehouseReceivePage({
               locations={detail.warehouseLocations}
             />
           )}
-        </Section>
+        </div>
 
-        <Section eyebrow="Vendor + delivery" title="Metadata">
+        <div>
+          <div className="label mb-2.5">Vendor + delivery</div>
           <dl className="rounded-3xl border border-line-soft bg-surface shadow-soft-card divide-y divide-line-soft">
             {[
               { k: "PO code", v: detail.poCode, mono: true },
@@ -250,7 +248,7 @@ export default async function WarehouseReceivePage({
               {detail.notes}
             </p>
           )}
-        </Section>
+        </div>
       </div>
     </DevelopmentShell>
   );

@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -18,18 +15,18 @@ import {
 export const metadata: Metadata = { title: "Item · Development OS" };
 export const dynamic = "force-dynamic";
 
-const MOVEMENT_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  received: "success",
+const MOVEMENT_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  received: "ok",
   reserved: "info",
-  unreserved: "neutral",
+  unreserved: "soft",
   issued_to_site: "info",
-  used: "neutral",
+  used: "soft",
   returned: "info",
   damaged: "danger",
   lost: "danger",
   transferred: "info",
   written_off: "danger",
-  adjusted: "warning",
+  adjusted: "warn",
 };
 
 export default async function InventoryItemDetailPage({
@@ -42,7 +39,11 @@ export default async function InventoryItemDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Item" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Item</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -63,29 +64,37 @@ export default async function InventoryItemDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: item.sku },
-        ]}
-        eyebrow={`${item.category} · ${item.unitOfMeasure}`}
-        title={item.displayName}
-        description={item.description ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inventory/items">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All items
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inventory/items">Inventory</Link> /{" "}
+            <span>{item.sku}</span>
+          </div>
+          <div className="label">{`${item.category} · ${item.unitOfMeasure}`}</div>
+          <h1>{item.displayName}</h1>
+          {item.description && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {item.description}
+            </p>
+          )}
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/inventory/items"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All items
+          </Link>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Stock"
-        title={`Total on hand: ${totalOnHand.toLocaleString()} ${item.unitOfMeasure}`}
-      >
+      <div>
+        <div className="label mb-2.5">
+          Stock · Total on hand: {totalOnHand.toLocaleString()}{" "}
+          {item.unitOfMeasure}
+        </div>
         {balances.length === 0 ? (
           <p className="text-sm text-ink-tertiary">
             No stock recorded yet for this SKU.
@@ -123,9 +132,12 @@ export default async function InventoryItemDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Activity" title={`${movements.length} recent movements`}>
+      <div>
+        <div className="label mb-2.5">
+          Activity · {movements.length} recent movements
+        </div>
         {movements.length === 0 ? (
           <p className="text-sm text-ink-tertiary">No movements yet.</p>
         ) : (
@@ -147,9 +159,9 @@ export default async function InventoryItemDetailPage({
                   <TD className="font-mono text-xs">{m.movementCode}</TD>
                   <TD className="text-xs">{m.movementDate}</TD>
                   <TD>
-                    <Badge tone={MOVEMENT_TONE[m.movementType] ?? "neutral"}>
+                    <HandoffBadge tone={MOVEMENT_TONE[m.movementType] ?? "soft"}>
                       {m.movementType}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TDNum>{Number(m.quantity).toFixed(2)}</TDNum>
                   <TD className="font-mono text-xs">
@@ -164,7 +176,7 @@ export default async function InventoryItemDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

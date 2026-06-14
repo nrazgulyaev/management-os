@@ -17,7 +17,7 @@ import {
   type KpiItem,
   type PatrolEvent,
 } from "@/components/award";
-import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadWarehouseCabinet } from "@/lib/development/server/cabinets/warehouse-cabinet-queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -231,11 +231,14 @@ export default async function WarehouseCabinetPage() {
 
         <KpiRowMixed kpis={kpis} heroTone="gold-solid" />
 
-        <Section
-          eyebrow="Today's pulse"
-          title="Movement cadence + stock health"
-          description="Daily inventory movement volume over the last 7 days, alongside the share of active SKUs above their reorder point."
-        >
+        <div>
+          <div className="label mb-2.5">
+            Today&rsquo;s pulse — Movement cadence + stock health
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Daily inventory movement volume over the last 7 days, alongside the
+            share of active SKUs above their reorder point.
+          </p>
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
             <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
@@ -275,21 +278,21 @@ export default async function WarehouseCabinetPage() {
               ]}
             />
           </div>
-        </Section>
+        </div>
 
-        <Section
-          eyebrow="Activity"
-          title="Recent inventory movements"
-          description="Last 8 inflows, outflows, and transfers across all locations."
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">Activity — Recent inventory movements</div>
             <Link
               href="/development-os/inventory/movements"
               className="text-xs text-ink-tertiary hover:underline"
             >
               All movements →
             </Link>
-          }
-        >
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Last 8 inflows, outflows, and transfers across all locations.
+          </p>
           {timelineEvents.length === 0 ? (
             <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 text-sm text-ink-tertiary">
               No movements yet. Log the first one from the quick-action
@@ -302,28 +305,29 @@ export default async function WarehouseCabinetPage() {
               moreHref="/development-os/inventory/movements"
             />
           )}
-        </Section>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Section
-              eyebrow="Inventory"
-              title="Material quality"
-            >
-              <DashboardKpi
-                label="QA on materials"
-                value={String(data.qaqcLinkedToMaterialsCount)}
-                status={
-                  data.qaqcLinkedToMaterialsCount === 0 ? "good" : "warn"
-                }
-                drillHref="/development-os/qa-qc?entity=material"
-                hint="Material-linked QA/QC issues"
-              />
-            </Section>
+            <div>
+              <div className="label mb-2.5">Inventory — Material quality</div>
+              <Card padding="default">
+                <DashboardKpi
+                  label="QA on materials"
+                  value={String(data.qaqcLinkedToMaterialsCount)}
+                  status={
+                    data.qaqcLinkedToMaterialsCount === 0 ? "good" : "warn"
+                  }
+                  drillHref="/development-os/qa-qc?entity=material"
+                  hint="Material-linked QA/QC issues"
+                />
+              </Card>
+            </div>
           </div>
 
           <aside>
-            <Section eyebrow="Surfaces" title="Jump to">
+            <div>
+              <div className="label mb-2.5">Surfaces — Jump to</div>
               <ul className="grid grid-cols-1 gap-2">
                 {[
                   {
@@ -365,7 +369,7 @@ export default async function WarehouseCabinetPage() {
                 hint="Active items"
                 className="mt-3"
               />
-            </Section>
+            </div>
           </aside>
         </div>
       </div>

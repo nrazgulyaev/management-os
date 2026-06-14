@@ -4,10 +4,7 @@ import { notFound } from "next/navigation";
 import { and, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { requireOrgId } from "@/features/auth/require-org";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge, Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -19,15 +16,15 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> =
+const STATUS_TONE: Record<string, "ok" | "danger" | "warn" | "soft"> =
   {
-    active: "success",
+    active: "ok",
     error: "danger",
-    pending: "warning",
-    paused: "warning",
-    dry_run: "warning",
-    archived: "neutral",
-    connecting: "warning",
+    pending: "warn",
+    paused: "warn",
+    dry_run: "warn",
+    archived: "soft",
+    connecting: "warn",
   };
 
 export default async function MarketingConnectionDetailPage({
@@ -40,7 +37,11 @@ export default async function MarketingConnectionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Connection detail" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Connection detail</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -64,97 +65,105 @@ export default async function MarketingConnectionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing", href: "/development-os/marketing/dashboard" },
-          {
-            label: "Connections",
-            href: "/development-os/marketing/connections",
-          },
-          { label: conn.accountName ?? conn.externalAccountId },
-        ]}
-        eyebrow={conn.provider}
-        title={conn.accountName ?? conn.externalAccountId}
-        description="Per-connection diagnostics + manual triggers. Cron path syncs every 6h; use 'Sync now' to override."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/marketing/connections">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All connections
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section title="Status">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <Stat
-            label="Status"
-            value={
-              <Badge tone={STATUS_TONE[conn.status] ?? "neutral"}>
-                {conn.status}
-              </Badge>
-            }
-          />
-          <Stat
-            label="External account"
-            value={
-              <span className="font-mono text-xs">{conn.externalAccountId}</span>
-            }
-          />
-          <Stat label="Last sync" value={<span className="text-sm">{lastSyncedDisplay}</span>} />
-          <Stat
-            label="Last sync result"
-            value={
-              <span className="text-sm">
-                {conn.lastSyncStatus ?? "—"}
-                {conn.lastSyncRecordsPulled != null && (
-                  <span className="text-stone-500 ml-1">
-                    · {conn.lastSyncRecordsPulled} rows
-                  </span>
-                )}
-              </span>
-            }
-          />
-        </div>
-        <MarketingConnectionActions
-          connectionId={conn.id}
-          status={conn.status}
-        />
-        {conn.lastSyncError && (
-          <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
-            <strong>Last error:</strong> {conn.lastSyncError}
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/marketing/dashboard">Marketing</Link> /{" "}
+            <Link href="/development-os/marketing/connections">Connections</Link> /{" "}
+            <span>{conn.accountName ?? conn.externalAccountId}</span>
           </div>
-        )}
-      </Section>
-
-      <Section title="Sync configuration">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Stat
-            label="Auto-sync"
-            value={
-              <Badge tone={conn.autoSyncEnabled ? "success" : "neutral"}>
-                {conn.autoSyncEnabled ? "Enabled" : "Disabled"}
-              </Badge>
-            }
-          />
-          <Stat
-            label="Cadence"
-            value={`${conn.syncFrequencyMinutes} minutes`}
-          />
-          <Stat
-            label="Connected"
-            value={
-              <span className="text-sm">
-                {conn.connectedAt
-                  ? conn.connectedAt.toISOString().slice(0, 10)
-                  : "—"}
-              </span>
-            }
-          />
+          <h1>{conn.accountName ?? conn.externalAccountId}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-connection diagnostics + manual triggers. Cron path syncs every
+            6h; use &apos;Sync now&apos; to override.
+          </p>
         </div>
-      </Section>
+        <div className="actions">
+          <Link
+            href="/development-os/marketing/connections"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All connections
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <Stat
+              label="Status"
+              value={
+                <HandoffBadge tone={STATUS_TONE[conn.status] ?? "soft"}>
+                  {conn.status}
+                </HandoffBadge>
+              }
+            />
+            <Stat
+              label="External account"
+              value={
+                <span className="font-mono text-xs">{conn.externalAccountId}</span>
+              }
+            />
+            <Stat label="Last sync" value={<span className="text-sm">{lastSyncedDisplay}</span>} />
+            <Stat
+              label="Last sync result"
+              value={
+                <span className="text-sm">
+                  {conn.lastSyncStatus ?? "—"}
+                  {conn.lastSyncRecordsPulled != null && (
+                    <span className="text-stone-500 ml-1">
+                      · {conn.lastSyncRecordsPulled} rows
+                    </span>
+                  )}
+                </span>
+              }
+            />
+          </div>
+          <MarketingConnectionActions
+            connectionId={conn.id}
+            status={conn.status}
+          />
+          {conn.lastSyncError && (
+            <div className="mt-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              <strong>Last error:</strong> {conn.lastSyncError}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Sync configuration</div>
+        <Card padding="default">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Stat
+              label="Auto-sync"
+              value={
+                <HandoffBadge tone={conn.autoSyncEnabled ? "ok" : "soft"}>
+                  {conn.autoSyncEnabled ? "Enabled" : "Disabled"}
+                </HandoffBadge>
+              }
+            />
+            <Stat
+              label="Cadence"
+              value={`${conn.syncFrequencyMinutes} minutes`}
+            />
+            <Stat
+              label="Connected"
+              value={
+                <span className="text-sm">
+                  {conn.connectedAt
+                    ? conn.connectedAt.toISOString().slice(0, 10)
+                    : "—"}
+                </span>
+              }
+            />
+          </div>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

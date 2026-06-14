@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -22,16 +20,16 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
-  draft: "neutral",
+  draft: "soft",
   issued: "info",
-  partial_paid: "warning",
-  paid: "success",
+  partial_paid: "warn",
+  paid: "ok",
   overdue: "danger",
-  disputed: "warning",
-  cancelled: "neutral",
-  voided: "neutral",
+  disputed: "warn",
+  cancelled: "soft",
+  voided: "soft",
 };
 
 const TYPE_LABEL: Record<string, string> = {
@@ -61,14 +59,16 @@ export default async function InvoicesPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Finance", href: "/development-os/finance" },
-            { label: "Invoices" },
-          ]}
-          title="Invoices"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/finance">Finance</Link> /{" "}
+              <span>Invoices</span>
+            </div>
+            <h1>Invoices</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -121,16 +121,24 @@ export default async function InvoicesPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Invoices" },
-        ]}
-        eyebrow={`${invoices.length} invoices · ${fmtUsd(totalOutstanding)} outstanding`}
-        title="Invoices"
-        description="Vendor bills, milestone invoices to buyers, and capital-call invoices to investors. Lives in parallel with capital_commitments — they never overlap."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Invoices</span>
+          </div>
+          <h1>Invoices</h1>
+          <div className="label mt-1.5">
+            {invoices.length} invoices · {fmtUsd(totalOutstanding)} outstanding
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Vendor bills, milestone invoices to buyers, and capital-call invoices
+            to investors. Lives in parallel with capital_commitments — they never
+            overlap.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <InvoiceAddButton taxTypes={taxTypes} categories={categoryOpts} />
             <ExportButton entity="invoices" />
@@ -141,8 +149,8 @@ export default async function InvoicesPage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       <FinanceTabs />
 
@@ -228,7 +236,8 @@ export default async function InvoicesPage({
         </div>
       </form>
 
-      <Section eyebrow="Catalog" title="All invoices">
+      <div>
+        <div className="label mb-2.5">Catalog</div>
         {invoices.length === 0 ? (
           <EmptyState
             title="No invoices match"
@@ -268,16 +277,16 @@ export default async function InvoicesPage({
                   <TDNum>{fmtUsd(i.paidMinor)}</TDNum>
                   <TDNum>{fmtUsd(i.outstandingMinor)}</TDNum>
                   <TD>
-                    <Badge tone={STATUS_TONE[i.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[i.status] ?? "soft"}>
                       {i.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

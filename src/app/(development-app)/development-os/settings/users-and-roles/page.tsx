@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -26,7 +25,16 @@ export default async function UsersAndRolesAdminPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Users & roles" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/settings">Settings</Link> /{" "}
+              <span>Users &amp; roles</span>
+            </div>
+            <h1>Users &amp; roles</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -48,50 +56,59 @@ export default async function UsersAndRolesAdminPage() {
   const rows = rowsOf<RoleRow>(rowsResult);
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Users & roles"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "Users & roles" },
-        ]}
-        description={`${rows.length} active role grant(s).`}
-      />
-      <Section title="Active grants">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/settings">Settings</Link> /{" "}
+            <span>Users &amp; roles</span>
+          </div>
+          <h1>Users &amp; roles</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${rows.length} active role grant(s).`}
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Active grants</div>
         {rows.length === 0 ? (
-          <EmptyState
-            title="No roles granted yet"
-            description="Use the grantUserRole server action."
-          />
+          <Card padding="default">
+            <EmptyState
+              title="No roles granted yet"
+              description="Use the grantUserRole server action."
+            />
+          </Card>
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">User</th>
-                <th>Role</th>
-                <th>Scope</th>
-                <th>Primary</th>
-                <th>Granted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={`${r.user_id}-${r.role_key}-${i}`} className="border-b border-line-soft">
-                  <td className="py-2">{r.user_email}</td>
-                  <td className="font-mono text-xs">{r.role_key}</td>
-                  <td className="text-xs">{r.scope}</td>
-                  <td>
-                    {r.is_primary && <Badge tone="success">primary</Badge>}
-                  </td>
-                  <td className="text-xs text-ink-tertiary">
-                    {new Date(r.granted_at).toLocaleDateString()}
-                  </td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">User</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col">Primary</th>
+                  <th scope="col">Granted</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={`${r.user_id}-${r.role_key}-${i}`}>
+                    <td className="row-title">{r.user_email}</td>
+                    <td className="mono text-[12px]">{r.role_key}</td>
+                    <td className="text-[12px]">{r.scope}</td>
+                    <td>
+                      {r.is_primary && <HandoffBadge tone="ok">primary</HandoffBadge>}
+                    </td>
+                    <td className="text-[12px] text-ink-3">
+                      {new Date(r.granted_at).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

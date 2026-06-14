@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Truck } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
@@ -22,29 +19,29 @@ import type { MaterialPoStatus } from "@/lib/development/constants/material-cons
 export const metadata: Metadata = { title: "Receiving · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<MaterialPoStatus, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  draft: "neutral",
+const STATUS_TONE: Record<MaterialPoStatus, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  draft: "soft",
   ordered: "info",
-  partially_delivered: "warning",
-  fully_delivered: "success",
-  cancelled: "neutral",
+  partially_delivered: "warn",
+  fully_delivered: "ok",
+  cancelled: "soft",
 };
 
 function etaBadge(item: ReceivingQueueItem) {
   if (item.daysToExpected === null) {
-    return <Badge tone="neutral">No ETA</Badge>;
+    return <HandoffBadge tone="soft">No ETA</HandoffBadge>;
   }
   if (item.daysToExpected < 0) {
     return (
-      <Badge tone="danger">
+      <HandoffBadge tone="danger">
         {Math.abs(item.daysToExpected)}d late
-      </Badge>
+      </HandoffBadge>
     );
   }
   if (item.daysToExpected === 0) {
-    return <Badge tone="warning">Due today</Badge>;
+    return <HandoffBadge tone="warn">Due today</HandoffBadge>;
   }
-  return <Badge tone="info">{item.daysToExpected}d out</Badge>;
+  return <HandoffBadge tone="info">{item.daysToExpected}d out</HandoffBadge>;
 }
 
 export default async function ReceivingQueuePage() {
@@ -69,7 +66,11 @@ export default async function ReceivingQueuePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Receiving" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Receiving</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to load the at-dock receiving queue."
@@ -92,24 +93,34 @@ export default async function ReceivingQueuePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: "Receiving" },
-        ]}
-        eyebrow={`${queue.length} PO${queue.length === 1 ? "" : "s"} at the dock`}
-        title="Receiving workbench"
-        description="At-dock FIFO queue of open material POs awaiting receipt — oldest expected delivery first. Drill into a PO to run the QC chain and record an accept-partial / wait-for-back-order / return-whole / escalate decision."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/cabinets/warehouse-manager">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Warehouse
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inventory/items">Inventory</Link> /{" "}
+            <span>Receiving</span>
+          </div>
+          <div className="label">
+            {`${queue.length} PO${queue.length === 1 ? "" : "s"} at the dock`}
+          </div>
+          <h1>Receiving workbench</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            At-dock FIFO queue of open material POs awaiting receipt — oldest
+            expected delivery first. Drill into a PO to run the QC chain and
+            record an accept-partial / wait-for-back-order / return-whole /
+            escalate decision.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cabinets/warehouse-manager"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Warehouse
+          </Link>
+        </div>
+      </div>
 
       {queue.length === 0 ? (
         <EmptyState
@@ -117,23 +128,21 @@ export default async function ReceivingQueuePage() {
           title="Nothing in transit"
           description="No open purchase orders are awaiting receipt. New deliveries will appear here, oldest expected-delivery first."
           action={
-            <Button asChild variant="secondary">
-              <Link href="/development-os/procurement/purchase-requests">
-                Procurement
-              </Link>
-            </Button>
+            <Link
+              href="/development-os/procurement/purchase-requests"
+              className="btn btn-secondary btn-sm"
+            >
+              Procurement
+            </Link>
           }
         />
       ) : (
-        <Section
-          eyebrow={
-            lateCount > 0
+        <div>
+          <div className="label mb-2.5">
+            {lateCount > 0
               ? `${lateCount} late · ${heldCount} held`
-              : `${heldCount} held`
-          }
-          title="At-dock queue (FIFO)"
-          description="Oldest expected delivery first. Outstanding = ordered − delivered across all PO lines."
-        >
+              : `${heldCount} held`}
+          </div>
           <Table>
             <THead>
               <TR>
@@ -163,9 +172,9 @@ export default async function ReceivingQueuePage() {
                     {q.projectName ?? "—"}
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[q.status as MaterialPoStatus] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[q.status as MaterialPoStatus] ?? "soft"}>
                       {MATERIAL_PO_STATUS_LABEL[q.status as MaterialPoStatus] ?? q.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>{etaBadge(q)}</TD>
                   <TDNum>
@@ -177,26 +186,25 @@ export default async function ReceivingQueuePage() {
                   </TDNum>
                   <TD>
                     {q.openHoldCount > 0 ? (
-                      <Badge tone="warning">{q.openHoldCount} open</Badge>
+                      <HandoffBadge tone="warn">{q.openHoldCount} open</HandoffBadge>
                     ) : (
                       <span className="text-ink-tertiary text-xs">—</span>
                     )}
                   </TD>
                   <TD>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link
-                        href={`/development-os/inventory/receiving/${encodeURIComponent(q.poCode)}`}
-                      >
-                        Inspect
-                        <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-                      </Link>
-                    </Button>
+                    <Link
+                      href={`/development-os/inventory/receiving/${encodeURIComponent(q.poCode)}`}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Inspect
+                      <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+                    </Link>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

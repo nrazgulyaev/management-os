@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -19,12 +17,12 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
   draft: "info",
-  approved: "success",
-  applied: "success",
-  reversed: "warning",
-  superseded: "neutral",
+  approved: "ok",
+  applied: "ok",
+  reversed: "warn",
+  superseded: "soft",
 };
 
 export default async function SharedCostDetailPage({
@@ -37,7 +35,11 @@ export default async function SharedCostDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Shared cost" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Shared cost</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -48,41 +50,51 @@ export default async function SharedCostDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Shared costs", href: "/development-os/finance/shared-costs" },
-          { label: allocation.id.slice(0, 8) },
-        ]}
-        eyebrow={`${allocation.allocationMethod} · ${allocation.status}`}
-        title="Shared cost allocation"
-        description={allocation.notes ?? undefined}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance/shared-costs">Shared costs</Link>{" "}
+            / <span>{allocation.id.slice(0, 8)}</span>
+          </div>
+          <h1>Shared cost allocation</h1>
+          <div className="label mt-1.5">
+            {allocation.allocationMethod} · {allocation.status}
+          </div>
+          {allocation.notes && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {allocation.notes}
+            </p>
+          )}
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/finance/shared-costs">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               All allocations
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Header" title="Status">
-        <Badge tone={STATUS_TONE[allocation.status] ?? "neutral"}>
-          {allocation.status}
-        </Badge>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Header</div>
+        <Card padding="default">
+          <HandoffBadge tone={STATUS_TONE[allocation.status] ?? "soft"}>
+            {allocation.status}
+          </HandoffBadge>
+        </Card>
+      </div>
 
-      <Section eyebrow="Source" title="Source transaction">
-        <p className="font-mono text-xs">
-          {allocation.sourceTransactionId}
-        </p>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Source</div>
+        <Card padding="default">
+          <p className="font-mono text-xs">{allocation.sourceTransactionId}</p>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Splits"
-        title={`${lines.length} project allocation${lines.length === 1 ? "" : "s"}`}
-      >
+      <div>
+        <div className="label mb-2.5">Splits</div>
         <Table>
           <THead>
             <TR>
@@ -113,35 +125,43 @@ export default async function SharedCostDetailPage({
           Sum check: {lines.reduce((s, l) => s + Number(l.percentage), 0).toFixed(2)}% (DB trigger
           enforces exactly 100% at COMMIT time).
         </p>
-      </Section>
+      </div>
 
       {allocation.allocationBasis != null && (
-        <Section eyebrow="Audit" title="Allocation basis (snapshot)">
+        <div>
+          <div className="label mb-2.5">Audit</div>
           <pre className="rounded-md border border-line-soft bg-muted/30 p-3 text-xs overflow-auto whitespace-pre-wrap">
             {JSON.stringify(allocation.allocationBasis, null, 2)}
           </pre>
-        </Section>
+        </div>
       )}
 
       {allocation.status === "draft" && (
-        <Section eyebrow="HITL" title="Approve allocation">
-          <SharedCostApproveButton allocationId={allocation.id} />
-          <p className="text-[11px] text-ink-tertiary mt-2">
-            Approve creates derivative dev_transactions on each project's books
-            atomically. The source transaction stays as the canonical cash record.
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">HITL</div>
+          <Card padding="default">
+            <SharedCostApproveButton allocationId={allocation.id} />
+            <p className="text-[11px] text-ink-tertiary mt-2">
+              Approve creates derivative dev_transactions on each project&apos;s
+              books atomically. The source transaction stays as the canonical
+              cash record.
+            </p>
+          </Card>
+        </div>
       )}
 
       {allocation.status === "applied" && (
-        <Section eyebrow="HITL" title="Reverse allocation">
-          <SharedCostReverseButton allocationId={allocation.id} />
-          <p className="text-[11px] text-ink-tertiary mt-2">
-            Marks the allocation reversed and records the reason. Note: the
-            derivative transactions are not auto-deleted — adjust the project
-            ledgers manually if needed.
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">HITL</div>
+          <Card padding="default">
+            <SharedCostReverseButton allocationId={allocation.id} />
+            <p className="text-[11px] text-ink-tertiary mt-2">
+              Marks the allocation reversed and records the reason. Note: the
+              derivative transactions are not auto-deleted — adjust the project
+              ledgers manually if needed.
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -26,7 +25,11 @@ export default async function NewTaskPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New task" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New task</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -43,15 +46,17 @@ export default async function NewTaskPage({
   if (packages.length === 0) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: project.name, href: `/development-os/projects/${slug}` },
-            { label: "Schedule", href: `/development-os/projects/${slug}/schedule` },
-            { label: "New task" },
-          ]}
-          title="No work packages yet"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+              <Link href={`/development-os/projects/${slug}/schedule`}>Schedule</Link> /{" "}
+              <span>New task</span>
+            </div>
+            <h1>No work packages yet</h1>
+          </div>
+        </div>
         <EmptyState
           title="Create a work package first"
           description="Tasks belong to work packages. Add the first one to begin scheduling."
@@ -71,40 +76,48 @@ export default async function NewTaskPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Schedule", href: `/development-os/projects/${slug}/schedule` },
-          { label: "Tasks", href: `/development-os/projects/${slug}/schedule/tasks` },
-          { label: "New" },
-        ]}
-        title="New task"
-        description="Optional dependency picker creates a single FS/SS/FF/SF edge with lag days. Cycle detection runs server-side — refuses cyclic graphs."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/schedule`}>Schedule</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/schedule/tasks`}>Tasks</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New task</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Optional dependency picker creates a single FS/SS/FF/SF edge with lag
+            days. Cycle detection runs server-side — refuses cyclic graphs.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/projects/${slug}/schedule/tasks`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Tasks
             </Link>
           </Button>
-        }
-      />
-      <Section eyebrow="Form" title="Task details">
-        <TaskForm
-          workPackages={packages.map((p) => ({
-            id: p.id,
-            packageCode: p.packageCode,
-            name: p.name,
-          }))}
-          existingTasks={tasks.map((t) => ({
-            id: t.id,
-            taskCode: t.taskCode,
-            name: t.name,
-          }))}
-          projectSlug={slug}
-        />
-      </Section>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Form</div>
+        <Card padding="default">
+          <TaskForm
+            workPackages={packages.map((p) => ({
+              id: p.id,
+              packageCode: p.packageCode,
+              name: p.name,
+            }))}
+            existingTasks={tasks.map((t) => ({
+              id: t.id,
+              taskCode: t.taskCode,
+              name: t.name,
+            }))}
+            projectSlug={slug}
+          />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

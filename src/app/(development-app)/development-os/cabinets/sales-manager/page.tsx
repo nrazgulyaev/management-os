@@ -19,8 +19,7 @@ import {
   type HatchedBarDatum,
   type KpiItem,
 } from "@/components/award";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { loadSalesCabinet } from "@/lib/development/server/cabinets/sales-cabinet-queries";
@@ -283,11 +282,14 @@ export default async function SalesManagerCabinetPage() {
 
         <KpiRowMixed kpis={kpis} heroTone="emerald-solid" />
 
-        <Section
-          eyebrow="Today's pulse"
-          title="Conversation cadence"
-          description="Reply activity across your assigned threads over the last 7 days, alongside this week's manager-performance snapshot."
-        >
+        <div>
+          <div className="label mb-2.5">
+            Today&rsquo;s pulse — Conversation cadence
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Reply activity across your assigned threads over the last 7 days,
+            alongside this week&rsquo;s manager-performance snapshot.
+          </p>
           <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-4 md:gap-5">
             <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
               <div className="flex items-center justify-between gap-2">
@@ -349,31 +351,32 @@ export default async function SalesManagerCabinetPage() {
               )}
             </div>
           </div>
-        </Section>
+        </div>
 
-        <Section
-          eyebrow="Pipeline"
-          title="Lead funnel"
-          description="Counts by lifecycle stage across leads assigned to you. Conversion-% chips between stages reflect the previous-stage carry-through."
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">Pipeline — Lead funnel</div>
             <Link
               href="/development-os/sales?assigned=me"
               className="text-xs text-ink-tertiary hover:underline"
             >
               All my leads →
             </Link>
-          }
-        >
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Counts by lifecycle stage across leads assigned to you. Conversion-%
+            chips between stages reflect the previous-stage carry-through.
+          </p>
           <LeadFunnelChart stages={funnelStages} height={300} />
-        </Section>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Section
-              eyebrow="Pipeline"
-              title="Top hot leads"
-              description="Your five most-recent hot or qualified leads."
-            >
+            <div>
+              <div className="label mb-2.5">Pipeline — Top hot leads</div>
+              <p className="text-[13px] text-ink-3 mt-2">
+                Your five most-recent hot or qualified leads.
+              </p>
               {data.topHotLeads.length === 0 ? (
                 <NoItemsYet
                   entityLabel="hot leads"
@@ -390,53 +393,54 @@ export default async function SalesManagerCabinetPage() {
                         <span className="font-mono text-xs text-ink">
                           {l.leadCode}
                         </span>
-                        <Badge
+                        <HandoffBadge
                           tone={
-                            l.lifecycleStatus === "hot"
-                              ? "warning"
-                              : "neutral"
+                            l.lifecycleStatus === "hot" ? "warn" : "soft"
                           }
                         >
                           {l.lifecycleStatus}
-                        </Badge>
+                        </HandoffBadge>
                       </Link>
                     </li>
                   ))}
                 </ul>
               )}
-            </Section>
+            </div>
           </div>
 
           <aside>
-            <Section
-              eyebrow="Overdue"
-              title="Follow-up status"
-              description="Threads with no reply for 5+ days."
-            >
-              <DashboardKpi
-                label="Overdue follow-ups"
-                value={String(data.followupsOverdueCount)}
-                status={overdueStatus}
-                drillHref="/development-os/marketing/conversations?stale=true"
-                hint="No reply for 5+ days"
-              />
-            </Section>
+            <div>
+              <div className="label mb-2.5">Overdue — Follow-up status</div>
+              <p className="text-[13px] text-ink-3 mt-2">
+                Threads with no reply for 5+ days.
+              </p>
+              <Card padding="default">
+                <DashboardKpi
+                  label="Overdue follow-ups"
+                  value={String(data.followupsOverdueCount)}
+                  status={overdueStatus}
+                  drillHref="/development-os/marketing/conversations?stale=true"
+                  hint="No reply for 5+ days"
+                />
+              </Card>
+            </div>
           </aside>
         </div>
 
-        <Section
-          eyebrow="AI"
-          title="Marketing assistant"
-          description="Draft polite follow-ups, qualify replies, and prep contract handoffs."
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">AI — Marketing assistant</div>
             <Link
               href="/development-os/ai-agents/marketing-assistant"
               className="text-xs text-ink-tertiary hover:underline"
             >
               Open agent →
             </Link>
-          }
-        >
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Draft polite follow-ups, qualify replies, and prep contract
+            handoffs.
+          </p>
           {drafts.length === 0 ? (
             <Link
               href="/development-os/ai-agents/marketing-assistant"
@@ -450,9 +454,9 @@ export default async function SalesManagerCabinetPage() {
                 messages for overdue threads and suggests next-step
                 qualifying questions. Trigger a run to populate this grid.
               </p>
-              <Badge tone="outline" className="self-start">
-                Generate draft →
-              </Badge>
+              <span className="self-start">
+                <HandoffBadge tone="soft">Generate draft →</HandoffBadge>
+              </span>
             </Link>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
@@ -471,15 +475,17 @@ export default async function SalesManagerCabinetPage() {
                         month: "short",
                       })}
                     </span>
-                    <Badge tone="outline" className="text-[10px]">
-                      {d.status === "awaiting_review"
-                        ? "Draft"
-                        : d.status === "approved"
-                          ? "Approved"
-                          : d.status === "executed"
-                            ? "Published"
-                            : d.status}
-                    </Badge>
+                    <span className="text-[10px]">
+                      <HandoffBadge tone="soft">
+                        {d.status === "awaiting_review"
+                          ? "Draft"
+                          : d.status === "approved"
+                            ? "Approved"
+                            : d.status === "executed"
+                              ? "Published"
+                              : d.status}
+                      </HandoffBadge>
+                    </span>
                   </div>
                   <p className="text-sm font-medium leading-snug line-clamp-2">
                     {d.headline}
@@ -494,7 +500,7 @@ export default async function SalesManagerCabinetPage() {
               ))}
             </div>
           )}
-        </Section>
+        </div>
       </div>
     </DevelopmentShell>
   );

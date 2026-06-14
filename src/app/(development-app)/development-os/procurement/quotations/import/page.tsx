@@ -17,10 +17,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { asc, desc, inArray } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 import { devOsPurchaseRequests } from "@/lib/db/schema/procurement";
@@ -42,7 +40,11 @@ export default async function QuotationImportPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Quotation import" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Quotation import</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the quotation import wizard."
@@ -98,27 +100,34 @@ export default async function QuotationImportPage() {
   return (
     <DevelopmentShell>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Procurement" },
-            {
-              label: "Quotation comparison",
-              href: "/development-os/procurement/quotation-comparison",
-            },
-            { label: "Import" },
-          ]}
-          title="Quotation import"
-          description="Paste vendor quote rows from a spreadsheet, upload an XLSX file, or — in Sprint 4.5 — connect Google Sheets. The wizard groups rows by vendor and creates one procurement_quotations row per (PR, vendor) pair."
-          actions={
-            <Button asChild variant="ghost" size="sm">
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Procurement</span> /{" "}
               <Link href="/development-os/procurement/quotation-comparison">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Back to comparisons
-              </Link>
-            </Button>
-          }
-        />
+                Quotation comparison
+              </Link>{" "}
+              / <span>Import</span>
+            </div>
+            <h1>Quotation import</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Paste vendor quote rows from a spreadsheet, upload an XLSX file, or
+              — in Sprint 4.5 — connect Google Sheets. The wizard groups rows by
+              vendor and creates one procurement_quotations row per (PR, vendor)
+              pair.
+            </p>
+          </div>
+          <div className="actions">
+            <Link
+              href="/development-os/procurement/quotation-comparison"
+              className="btn btn-secondary btn-sm"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Back to comparisons
+            </Link>
+          </div>
+        </div>
 
         {prOptions.length === 0 ? (
           <EmptyState
@@ -127,7 +136,7 @@ export default async function QuotationImportPage() {
             action={
               <Link
                 href="/development-os/procurement/purchase-requests/new"
-                className="inline-flex items-center px-4 py-2 rounded-sm bg-ink text-ink-inverse text-sm font-medium hover:bg-ink/90"
+                className="btn btn-accent btn-sm"
               >
                 Raise a PR
               </Link>

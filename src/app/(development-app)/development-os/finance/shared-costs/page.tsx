@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -18,12 +16,12 @@ import { ProposeSharedCostForm } from "./_propose-form";
 export const metadata: Metadata = { title: "Shared costs · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
   draft: "info",
-  approved: "success",
-  applied: "success",
-  reversed: "warning",
-  superseded: "neutral",
+  approved: "ok",
+  applied: "ok",
+  reversed: "warn",
+  superseded: "soft",
 };
 
 export default async function SharedCostsPage() {
@@ -31,7 +29,11 @@ export default async function SharedCostsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Shared costs" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Shared costs</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -51,16 +53,24 @@ export default async function SharedCostsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Shared costs" },
-        ]}
-        eyebrow={`${allocations.length} allocation${allocations.length === 1 ? "" : "s"}`}
-        title="Shared cost allocations"
-        description="Allocate one transaction (office rent, payroll, marketing) across multiple projects. DB trigger enforces percentages sum to exactly 100%. Approval creates derivative dev_transactions atomically."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Shared costs</span>
+          </div>
+          <h1>Shared cost allocations</h1>
+          <div className="label mt-1.5">
+            {allocations.length} allocation{allocations.length === 1 ? "" : "s"}
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Allocate one transaction (office rent, payroll, marketing) across
+            multiple projects. DB trigger enforces percentages sum to exactly
+            100%. Approval creates derivative dev_transactions atomically.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <ProposeSharedCostForm projects={projectOpts} sources={sourceOpts} />
             <Button asChild variant="secondary">
@@ -70,8 +80,8 @@ export default async function SharedCostsPage() {
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {allocations.length === 0 ? (
         <EmptyState
@@ -79,11 +89,12 @@ export default async function SharedCostsPage() {
           description="Use the proposeSharedCostAllocation server action to create one. The allocation math (sum-to-100, rounding remainder folding) is in lib/development/server/shared-costs/allocation-helpers.ts."
         
           action={
-            <Link href="/development-os/finance" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View finance hub</Link>
+            <Link href="/development-os/finance" className="btn btn-secondary btn-sm">View finance hub</Link>
           }
         />
       ) : (
-        <Section eyebrow="Catalog" title="All allocations">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -108,9 +119,9 @@ export default async function SharedCostsPage() {
                   </TD>
                   <TD className="text-xs">{a.allocationMethod}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[a.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[a.status] ?? "soft"}>
                       {a.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="font-mono text-xs">
                     {a.approvedBy ? a.approvedBy.slice(0, 8) : "—"}
@@ -127,7 +138,7 @@ export default async function SharedCostsPage() {
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

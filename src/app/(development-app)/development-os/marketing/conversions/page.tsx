@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -22,7 +19,11 @@ export default async function ConversionsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Conversions" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Conversions</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -39,26 +40,34 @@ export default async function ConversionsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing", href: "/development-os/marketing/dashboard" },
-          { label: "Conversions" },
-        ]}
-        eyebrow={`${conversions.length} conversions · ${touchpoints.length} recent touchpoints`}
-        title="Conversions"
-        description="Every recorded conversion event with its source touchpoint trail. Touchpoints (UTM-tagged + referrer) are ingested via the JS Tag client; conversions are recorded server-side when a reservation/lead/deal lands."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/marketing/dashboard">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Marketing
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/marketing/dashboard">Marketing</Link> /{" "}
+            <span>Conversions</span>
+          </div>
+          <h1>Conversions</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every recorded conversion event with its source touchpoint trail.
+            Touchpoints (UTM-tagged + referrer) are ingested via the JS Tag
+            client; conversions are recorded server-side when a
+            reservation/lead/deal lands.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/marketing/dashboard"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Marketing
+          </Link>
+        </div>
+      </div>
 
-      <Section title="By type">
+      <div>
+        <div className="label mb-2.5">By type</div>
         {byType.size === 0 ? (
           <EmptyState title="No conversions yet" />
         ) : (
@@ -73,7 +82,7 @@ export default async function ConversionsPage() {
               {Array.from(byType.entries()).map(([type, count]) => (
                 <TR key={type}>
                   <TD>
-                    <Badge tone="outline">{type}</Badge>
+                    <HandoffBadge tone="soft">{type}</HandoffBadge>
                   </TD>
                   <TD className="text-right tabular-nums">{count}</TD>
                 </TR>
@@ -81,9 +90,10 @@ export default async function ConversionsPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section title="Recent touchpoints" description="Latest 200 inbound touchpoints. Channel is classified at ingest time via the UTM tracker.">
+      <div>
+        <div className="label mb-2.5">Recent touchpoints</div>
         {touchpoints.length === 0 ? (
           <EmptyState title="No touchpoints yet" />
         ) : (
@@ -105,7 +115,7 @@ export default async function ConversionsPage() {
                     {new Date(t.touchpointAt).toISOString().slice(0, 16).replace("T", " ")}
                   </TD>
                   <TD>
-                    <Badge tone="outline">{t.channel}</Badge>
+                    <HandoffBadge tone="soft">{t.channel}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">{t.source ?? "—"}</TD>
                   <TD className="text-xs">{t.medium ?? "—"}</TD>
@@ -116,7 +126,7 @@ export default async function ConversionsPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

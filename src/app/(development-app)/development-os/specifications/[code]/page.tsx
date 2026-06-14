@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getSpecificationByCode } from "@/lib/development/server/specifications/specification-queries";
@@ -26,7 +23,11 @@ export default async function SpecificationDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Specification" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Specification</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -36,83 +37,104 @@ export default async function SpecificationDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Specifications", href: "/development-os/specifications" },
-          { label: spec.specCode },
-        ]}
-        eyebrow={spec.specCategory}
-        title={spec.specName}
-        description={spec.description}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/specifications">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All specs
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Identity" title="Material details">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Code" value={spec.specCode} mono />
-          <Field label="Brand" value={spec.brand ?? "—"} />
-          <Field label="Model" value={spec.modelNumber ?? "—"} mono />
-          <Field label="Color code" value={spec.colorCode ?? "—"} />
-          <Field label="Dimensions" value={spec.dimensions ?? "—"} />
-          <Field label="Finish type" value={spec.finishType ?? "—"} />
-        </div>
-        <div className="mt-3">
-          {spec.isActive ? (
-            <Badge tone="success">active</Badge>
-          ) : (
-            <Badge tone="neutral">inactive</Badge>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/specifications">Specifications</Link> /{" "}
+            <span>{spec.specCode}</span>
+          </div>
+          <h1>{spec.specName}</h1>
+          {spec.description && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {spec.description}
+            </p>
           )}
         </div>
-      </Section>
+        <div className="actions">
+          <Link
+            href="/development-os/specifications"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All specs
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Identity</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Code" value={spec.specCode} mono />
+            <Field label="Brand" value={spec.brand ?? "—"} />
+            <Field label="Model" value={spec.modelNumber ?? "—"} mono />
+            <Field label="Color code" value={spec.colorCode ?? "—"} />
+            <Field label="Dimensions" value={spec.dimensions ?? "—"} />
+            <Field label="Finish type" value={spec.finishType ?? "—"} />
+          </div>
+          <div className="mt-3">
+            {spec.isActive ? (
+              <HandoffBadge tone="ok">active</HandoffBadge>
+            ) : (
+              <HandoffBadge tone="soft">inactive</HandoffBadge>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {spec.applicableStandards && spec.applicableStandards.length > 0 && (
-        <Section eyebrow="Standards" title="Applicable industry standards">
-          <ul className="flex flex-wrap gap-2">
-            {spec.applicableStandards.map((s, i) => (
-              <li key={i}>
-                <Badge tone="neutral">{s}</Badge>
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Standards</div>
+          <Card padding="default">
+            <ul className="flex flex-wrap gap-2">
+              {spec.applicableStandards.map((s, i) => (
+                <li key={i}>
+                  <HandoffBadge tone="soft">{s}</HandoffBadge>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
 
       {spec.toleranceSpecifications && (
-        <Section eyebrow="Tolerances" title="Acceptable tolerances">
-          <p className="text-sm whitespace-pre-wrap">
-            {spec.toleranceSpecifications}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Tolerances</div>
+          <Card padding="default">
+            <p className="text-sm whitespace-pre-wrap">
+              {spec.toleranceSpecifications}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Vendors" title="Preferred + alternatives">
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Field
-            label="Preferred vendor"
-            value={spec.preferredVendorId?.slice(0, 8) ?? "—"}
-            mono
-          />
-          <Field
-            label="Alternative count"
-            value={String(spec.alternativeVendorIds.length)}
-          />
-        </div>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Vendors</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Field
+              label="Preferred vendor"
+              value={spec.preferredVendorId?.slice(0, 8) ?? "—"}
+              mono
+            />
+            <Field
+              label="Alternative count"
+              value={String(spec.alternativeVendorIds.length)}
+            />
+          </div>
+        </Card>
+      </div>
 
       {spec.notes && (
-        <Section eyebrow="Notes" title="Operator notes">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">
-            {spec.notes}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Notes</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap">
+              {spec.notes}
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

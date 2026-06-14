@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listUsageMetricsAcrossOrgs } from "@/lib/development/server/usage/usage-queries";
@@ -13,66 +12,61 @@ export default async function UsageMetricsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Usage metrics"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Platform" },
-          { label: "Usage" },
-        ]}
-        description="Per-tenant snapshots of activity, AI consumption, API traffic, and storage. Aggregated by the dev_os_usage_metrics_aggregation cron."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Platform</span> / <span>Usage</span>
+          </div>
+          <h1>Usage metrics</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-tenant snapshots of activity, AI consumption, API traffic, and
+            storage. Aggregated by the dev_os_usage_metrics_aggregation cron.
+          </p>
+        </div>
+      </div>
 
-      <Section title={`${metrics.length} snapshot(s)`}>
+      <div>
+        <div className="label mb-2.5">{metrics.length} snapshot(s)</div>
         {metrics.length === 0 ? (
           <EmptyState
             title="No usage data yet"
             description="The dev_os_usage_metrics_aggregation cron will populate this once it has run."
           />
         ) : (
-          <table className="w-full text-sm border-collapse">
+          <table className="data">
             <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Period</th>
-                <th>Type</th>
-                <th>Users</th>
-                <th>Projects</th>
-                <th>Tx</th>
-                <th>Invoices</th>
-                <th>AI calls</th>
-                <th>API req</th>
-                <th>Webhooks ok/fail</th>
+              <tr>
+                <th scope="col">Period</th>
+                <th scope="col">Type</th>
+                <th scope="col" className="num">Users</th>
+                <th scope="col" className="num">Projects</th>
+                <th scope="col" className="num">Tx</th>
+                <th scope="col" className="num">Invoices</th>
+                <th scope="col" className="num">AI calls</th>
+                <th scope="col" className="num">API req</th>
+                <th scope="col" className="num">Webhooks ok/fail</th>
               </tr>
             </thead>
             <tbody>
               {metrics.map((m) => (
-                <tr key={m.id} className="border-b border-line-soft">
-                  <td className="py-2 text-xs">
+                <tr key={m.id}>
+                  <td className="text-xs">
                     {m.metricPeriodStart}
                     {m.metricPeriodEnd !== m.metricPeriodStart
                       ? ` → ${m.metricPeriodEnd}`
                       : ""}
                   </td>
-                  <td className="text-xs text-ink-tertiary">{m.metricType}</td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {m.activeUsersCount}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {m.activeProjectsCount}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
+                  <td className="text-xs text-ink-3">{m.metricType}</td>
+                  <td className="num mono text-xs">{m.activeUsersCount}</td>
+                  <td className="num mono text-xs">{m.activeProjectsCount}</td>
+                  <td className="num mono text-xs">
                     {m.totalTransactionsCount}
                   </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {m.totalInvoicesCount}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {m.aiInvocationsCount}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {m.apiRequestsCount}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
+                  <td className="num mono text-xs">{m.totalInvoicesCount}</td>
+                  <td className="num mono text-xs">{m.aiInvocationsCount}</td>
+                  <td className="num mono text-xs">{m.apiRequestsCount}</td>
+                  <td className="num mono text-xs">
                     {m.webhooksDispatchedCount}/{m.webhooksFailedCount}
                   </td>
                 </tr>
@@ -80,7 +74,7 @@ export default async function UsageMetricsPage() {
             </tbody>
           </table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Lock } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -30,7 +28,11 @@ export default async function PeriodClosePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Period close" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Period close</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -51,29 +53,38 @@ export default async function PeriodClosePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Period close" },
-        ]}
-        eyebrow={`${periods.length} periods on record`}
-        title="Period close"
-        description="Lock an accounting period after the bookkeeper has reviewed every transaction. Reopening requires a written reason and is logged for audit."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Period close</span>
+          </div>
+          <h1>Period close</h1>
+          <div className="label mt-1.5">{periods.length} periods on record</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Lock an accounting period after the bookkeeper has reviewed every
+            transaction. Reopening requires a written reason and is logged for
+            audit.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/finance/bank-review">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Bank review
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section
-        title="Close a period"
-        description="Defaults to last calendar month. Counters (transactions / reconciled / unmatched) are snapshotted at close-time so the audit trail records what the bookkeeper saw."
-      >
+      <div>
+        <div className="label mb-2.5">Close a period</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Defaults to last calendar month. Counters (transactions / reconciled /
+          unmatched) are snapshotted at close-time so the audit trail records
+          what the bookkeeper saw.
+        </p>
         <form
           action={closePeriodAction}
           className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-md border border-line-soft bg-surface p-3 text-sm"
@@ -114,9 +125,10 @@ export default async function PeriodClosePage() {
             </Button>
           </div>
         </form>
-      </Section>
+      </div>
 
-      <Section title="Closed periods">
+      <div>
+        <div className="label mb-2.5">Closed periods</div>
         {periods.length === 0 ? (
           <EmptyState
             title="No periods closed yet"
@@ -145,7 +157,7 @@ export default async function PeriodClosePage() {
                       {p.periodStart} → {p.periodEnd}
                     </TD>
                     <TD>
-                      <Badge tone="outline">{p.scope}</Badge>
+                      <HandoffBadge tone="soft">{p.scope}</HandoffBadge>
                     </TD>
                     <TD className="text-right tabular-nums">
                       {p.transactionsCount}
@@ -157,9 +169,9 @@ export default async function PeriodClosePage() {
                       {p.unmatchedCount}
                     </TD>
                     <TD>
-                      <Badge tone={isLocked ? "success" : "neutral"}>
+                      <HandoffBadge tone={isLocked ? "ok" : "soft"}>
                         {isLocked ? "locked" : "reopened"}
-                      </Badge>
+                      </HandoffBadge>
                     </TD>
                     <TD className="text-xs text-ink-secondary">
                       {new Date(p.closedAt)
@@ -201,7 +213,7 @@ export default async function PeriodClosePage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

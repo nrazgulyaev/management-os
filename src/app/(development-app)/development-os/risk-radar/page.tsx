@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listRecentAlerts } from "@/lib/development/server/risk-radar/risk-radar-queries";
@@ -14,25 +12,25 @@ export const dynamic = "force-dynamic";
 
 const SEVERITY_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
   info: "info",
-  low: "neutral",
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
 const STATUS_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
-  open: "warning",
+  open: "warn",
   acknowledged: "info",
   investigating: "info",
-  resolved: "success",
-  false_positive: "neutral",
-  archived: "neutral",
+  resolved: "ok",
+  false_positive: "soft",
+  archived: "soft",
 };
 
 export default async function RiskRadarPage() {
@@ -40,7 +38,11 @@ export default async function RiskRadarPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Risk radar" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Risk radar</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -50,65 +52,73 @@ export default async function RiskRadarPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Risk radar"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Risk radar" },
-        ]}
-        description="AI- and rule-based pattern detection. Operator review required for resolution."
-      />
-      <Section title={`${alerts.length} alert${alerts.length === 1 ? "" : "s"}`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Risk radar</span>
+          </div>
+          <h1>Risk radar</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            AI- and rule-based pattern detection. Operator review required for
+            resolution.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">{`${alerts.length} alert${alerts.length === 1 ? "" : "s"}`}</div>
         {alerts.length === 0 ? (
           <EmptyState
             title="No alerts yet"
             description="The weekly risk-radar cron will populate this inbox. Run it manually from Jobs to seed data."
           
           action={
-            <Link href="/dashboard/jobs" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View jobs</Link>
+            <Link href="/dashboard/jobs" className="btn btn-secondary btn-sm">View jobs</Link>
           }
         />
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Code</th>
-                <th>Severity</th>
-                <th>Category</th>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Detected</th>
-              </tr>
-            </thead>
-            <tbody>
-              {alerts.map((a) => (
-                <tr key={a.id} className="border-b border-line-soft hover:bg-muted/30">
-                  <td className="py-2 font-mono text-xs">
-                    <Link href={`/development-os/risk-radar/${a.alertCode}`} className="hover:underline">
-                      {a.alertCode}
-                    </Link>
-                  </td>
-                  <td>
-                    <Badge tone={SEVERITY_TONE[a.severity] ?? "neutral"}>
-                      {a.severity}
-                    </Badge>
-                  </td>
-                  <td className="text-xs">{a.alertCategory}</td>
-                  <td className="truncate max-w-md">{a.title}</td>
-                  <td>
-                    <Badge tone={STATUS_TONE[a.status] ?? "neutral"}>
-                      {a.status}
-                    </Badge>
-                  </td>
-                  <td className="text-xs text-ink-tertiary">
-                    {new Date(a.detectedAt).toLocaleDateString()}
-                  </td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Severity</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Detected</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {alerts.map((a) => (
+                  <tr key={a.id}>
+                    <td className="mono text-[12px]">
+                      <Link href={`/development-os/risk-radar/${a.alertCode}`} className="hover:underline">
+                        {a.alertCode}
+                      </Link>
+                    </td>
+                    <td>
+                      <HandoffBadge tone={SEVERITY_TONE[a.severity] ?? "soft"}>
+                        {a.severity}
+                      </HandoffBadge>
+                    </td>
+                    <td className="text-xs">{a.alertCategory}</td>
+                    <td className="row-title truncate max-w-md">{a.title}</td>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONE[a.status] ?? "soft"}>
+                        {a.status}
+                      </HandoffBadge>
+                    </td>
+                    <td className="text-xs text-ink-3">
+                      {new Date(a.detectedAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

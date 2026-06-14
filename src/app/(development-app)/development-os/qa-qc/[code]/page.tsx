@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ClipboardCheck } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -19,27 +16,27 @@ import type { QaQcStatus } from "@/lib/development/server/qa-qc/qa-qc-helpers";
 export const metadata: Metadata = { title: "QA/QC issue · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  open: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  open: "warn",
   assigned: "info",
   in_progress: "info",
-  ready_for_reinspection: "warning",
+  ready_for_reinspection: "warn",
   rejected: "danger",
-  accepted: "success",
-  closed: "neutral",
+  accepted: "ok",
+  closed: "soft",
 };
 
-const SEVERITY_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  low: "neutral",
+const SEVERITY_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
-const RESULT_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> = {
-  passed: "success",
+const RESULT_TONE: Record<string, "ok" | "danger" | "warn" | "soft"> = {
+  passed: "ok",
   failed: "danger",
-  partial_pass: "warning",
+  partial_pass: "warn",
 };
 
 export default async function QaQcDetailPage({
@@ -52,7 +49,11 @@ export default async function QaQcDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="QA/QC issue" />
+        <div className="page-header">
+          <div className="left">
+            <h1>QA/QC issue</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -63,56 +64,63 @@ export default async function QaQcDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "QA/QC", href: "/development-os/qa-qc" },
-          { label: issue.issueCode },
-        ]}
-        eyebrow={`${issue.issueCode} · ${issue.severity} severity`}
-        title={issue.title}
-        description={issue.description}
-        actions={
-          <div className="flex gap-2">
-            {issue.status === "ready_for_reinspection" && (
-              <Button asChild>
-                <Link href={`/development-os/qa-qc/${issue.issueCode}/inspect`}>
-                  <ClipboardCheck className="w-4 h-4" strokeWidth={1.75} />
-                  Record inspection
-                </Link>
-              </Button>
-            )}
-            <Button asChild variant="secondary">
-              <Link href="/development-os/qa-qc">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Inbox
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/qa-qc">QA/QC</Link> /{" "}
+            <span>{issue.issueCode}</span> · {issue.severity} severity
           </div>
-        }
-      />
-
-      <Section eyebrow="Status" title="Lifecycle">
-        <div className="flex items-center gap-2 mb-3">
-          <Badge tone={STATUS_TONE[issue.status] ?? "neutral"}>
-            {issue.status}
-          </Badge>
-          <Badge tone={SEVERITY_TONE[issue.severity] ?? "neutral"}>
-            {issue.severity}
-          </Badge>
-          {issue.deadlineAt && (
-            <span className="text-xs text-ink-tertiary">
-              Deadline {issue.deadlineAt}
-            </span>
+          <h1>{issue.title}</h1>
+          {issue.description && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {issue.description}
+            </p>
           )}
         </div>
-        <QaQcTransitionActions
-          issueId={issue.id}
-          status={issue.status as QaQcStatus}
-        />
-      </Section>
+        <div className="actions">
+          {issue.status === "ready_for_reinspection" && (
+            <Link
+              href={`/development-os/qa-qc/${issue.issueCode}/inspect`}
+              className="btn btn-accent btn-sm"
+            >
+              <ClipboardCheck className="w-4 h-4" strokeWidth={1.75} />
+              Record inspection
+            </Link>
+          )}
+          <Link href="/development-os/qa-qc" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Details" title="Where + who">
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="flex items-center gap-2 mb-3">
+            <HandoffBadge tone={STATUS_TONE[issue.status] ?? "soft"}>
+              {issue.status}
+            </HandoffBadge>
+            <HandoffBadge tone={SEVERITY_TONE[issue.severity] ?? "soft"}>
+              {issue.severity}
+            </HandoffBadge>
+            {issue.deadlineAt && (
+              <span className="text-xs text-ink-tertiary">
+                Deadline {issue.deadlineAt}
+              </span>
+            )}
+          </div>
+          <QaQcTransitionActions
+            issueId={issue.id}
+            status={issue.status as QaQcStatus}
+          />
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Details</div>
+        <Card padding="default">
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
           <Field label="Project" value={issue.projectId.slice(0, 8)} mono />
           <Field
@@ -149,17 +157,18 @@ export default async function QaQcDetailPage({
             }
           />
         </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Inspections"
-        title={`${inspections.length} round${inspections.length === 1 ? "" : "s"}`}
-      >
+      <div>
+        <div className="label mb-2.5">Inspections</div>
         {inspections.length === 0 ? (
-          <p className="text-sm text-ink-tertiary">
-            No inspections yet. Once the contractor marks the issue
-            'ready_for_reinspection', record an inspection from the action above.
-          </p>
+          <Card padding="default">
+            <p className="text-sm text-ink-tertiary m-0">
+              No inspections yet. Once the contractor marks the issue
+              'ready_for_reinspection', record an inspection from the action above.
+            </p>
+          </Card>
         ) : (
           <Table>
             <THead>
@@ -180,9 +189,9 @@ export default async function QaQcDetailPage({
                     {i.inspectorId.slice(0, 8)}
                   </TD>
                   <TD>
-                    <Badge tone={RESULT_TONE[i.result] ?? "neutral"}>
+                    <HandoffBadge tone={RESULT_TONE[i.result] ?? "soft"}>
                       {i.result}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{i.resultNotes ?? "—"}</TD>
                 </TR>
@@ -190,34 +199,40 @@ export default async function QaQcDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Photos" title={`${photos.length} attached`}>
-        <div className="space-y-4">
-          <QaQcPhotoGallery
-            photos={photos.map((p) => ({
-              id: p.id,
-              documentId: p.documentId,
-              photoRole: p.photoRole,
-              caption: p.caption,
-              uploadedAt: new Date(p.uploadedAt).toISOString(),
-            }))}
-          />
-          <div>
-            <h4 className="text-[11px] uppercase tracking-wide text-ink-tertiary mb-2">
-              Add site evidence
-            </h4>
-            <QaQcPhotoUploadZone issueId={issue.id} />
+      <div>
+        <div className="label mb-2.5">Photos</div>
+        <Card padding="default">
+          <div className="space-y-4">
+            <QaQcPhotoGallery
+              photos={photos.map((p) => ({
+                id: p.id,
+                documentId: p.documentId,
+                photoRole: p.photoRole,
+                caption: p.caption,
+                uploadedAt: new Date(p.uploadedAt).toISOString(),
+              }))}
+            />
+            <div>
+              <h4 className="text-[11px] uppercase tracking-wide text-ink-tertiary mb-2">
+                Add site evidence
+              </h4>
+              <QaQcPhotoUploadZone issueId={issue.id} />
+            </div>
           </div>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
       {issue.notes && (
-        <Section eyebrow="Notes" title="Operator notes">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">
-            {issue.notes}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Notes</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap m-0">
+              {issue.notes}
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -24,15 +21,15 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
-  pending: "neutral",
+  pending: "soft",
   validating: "info",
   ready: "info",
-  processing: "warning",
-  completed: "success",
+  processing: "warn",
+  completed: "ok",
   failed: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function BulkImportJobsPage() {
@@ -45,32 +42,30 @@ export default async function BulkImportJobsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Bulk import", href: "/development-os/bulk-import" },
-          { label: "Past jobs" },
-        ]}
-        eyebrow={`${jobs.length} past job${jobs.length === 1 ? "" : "s"}`}
-        title="Bulk import jobs"
-        description="Every CSV/XLSX/JSON import this organization has run. Click a job for the per-row error log."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/bulk-import">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New import
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/bulk-import">Bulk import</Link> /{" "}
+            <span>Past jobs</span>
           </div>
-        }
-      />
+          <h1>Bulk import jobs</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every CSV/XLSX/JSON import this organization has run. Click a job for
+            the per-row error log.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/bulk-import" className="btn btn-accent">
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            New import
+          </Link>
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {jobs.length === 0 ? (
         <EmptyState
@@ -78,7 +73,8 @@ export default async function BulkImportJobsPage() {
           description="Use the New import button above to upload your first file."
         />
       ) : (
-        <Section title="All jobs">
+        <div>
+          <div className="label mb-2.5">All jobs</div>
           <Table>
             <THead>
               <TR>
@@ -103,9 +99,9 @@ export default async function BulkImportJobsPage() {
                     {j.sourceFilename ?? "—"}
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[j.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[j.status] ?? "soft"}>
                       {j.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TDNum>{j.totalRows ?? "—"}</TDNum>
                   <TDNum>{j.successfulRows}</TDNum>
@@ -117,7 +113,7 @@ export default async function BulkImportJobsPage() {
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

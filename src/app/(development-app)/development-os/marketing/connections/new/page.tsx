@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -20,7 +18,11 @@ export default async function NewMarketingConnectionPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Connect provider" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Connect provider</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -32,7 +34,11 @@ export default async function NewMarketingConnectionPage() {
   } catch {
     return (
       <DevelopmentShell>
-        <PageHeader title="Connect provider" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Connect provider</h1>
+          </div>
+        </div>
         <EmptyState
           title="No active organization"
           description="The default organization is missing. Contact support."
@@ -43,31 +49,37 @@ export default async function NewMarketingConnectionPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing", href: "/development-os/marketing/dashboard" },
-          {
-            label: "Connections",
-            href: "/development-os/marketing/connections",
-          },
-          { label: "New" },
-        ]}
-        title="Connect a marketing provider"
-        description="Pick a provider, fill in the credential fields it requires. We test the connection immediately on save and surface the result."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/marketing/connections">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All connections
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/marketing/dashboard">Marketing</Link> /{" "}
+            <Link href="/development-os/marketing/connections">Connections</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>Connect a marketing provider</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Pick a provider, fill in the credential fields it requires. We test
+            the connection immediately on save and surface the result.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/marketing/connections"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All connections
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Provider + credentials">
-        <ConnectMarketingForm organizationId={orgId} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Provider + credentials</div>
+        <Card padding="default">
+          <ConnectMarketingForm organizationId={orgId} />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

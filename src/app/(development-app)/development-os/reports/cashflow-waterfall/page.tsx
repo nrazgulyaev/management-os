@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb, rowsOf } from "@/lib/db/client";
@@ -21,7 +21,16 @@ export default async function CashflowWaterfallPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Cashflow waterfall" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/reports">Reports</Link> /{" "}
+              <span>Cashflow waterfall</span>
+            </div>
+            <h1>Cashflow waterfall</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -56,49 +65,56 @@ export default async function CashflowWaterfallPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Cashflow waterfall"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Reports", href: "/development-os/reports" },
-          { label: "Cashflow waterfall" },
-        ]}
-        description="Aggregated from the latest active 12-month cashflow forecast."
-      />
-      <Section title="Chart">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/reports">Reports</Link> /{" "}
+            <span>Cashflow waterfall</span>
+          </div>
+          <h1>Cashflow waterfall</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Aggregated from the latest active 12-month cashflow forecast.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Chart</div>
         {bars.length === 0 ? (
           <EmptyState
             title="No active forecast"
             description="Generate or activate a cashflow forecast to populate this chart."
           />
         ) : (
-          <div
-            className="rounded-md border border-line-soft bg-surface p-4 overflow-x-auto"
-            dangerouslySetInnerHTML={{ __html: svg }}
-          />
+          <Card padding="default" className="overflow-x-auto">
+            <div dangerouslySetInnerHTML={{ __html: svg }} />
+          </Card>
         )}
-      </Section>
+      </div>
       {steps.length > 0 && (
-        <Section title="Underlying steps">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Label</th>
-                <th>Amount</th>
-                <th>Cumulative</th>
-              </tr>
-            </thead>
-            <tbody>
-              {steps.map((s, i) => (
-                <tr key={i} className="border-b border-line-soft">
-                  <td className="py-2">{s.label}</td>
-                  <td className="font-mono tabular-nums">{s.amountMinor.toLocaleString()}</td>
-                  <td className="font-mono tabular-nums">{s.cumulativeMinor.toLocaleString()}</td>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Underlying steps</div>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Label</th>
+                  <th scope="col" className="num">Amount</th>
+                  <th scope="col" className="num">Cumulative</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
+              </thead>
+              <tbody>
+                {steps.map((s, i) => (
+                  <tr key={i}>
+                    <td className="row-title">{s.label}</td>
+                    <td className="num">{s.amountMinor.toLocaleString()}</td>
+                    <td className="num">{s.cumulativeMinor.toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

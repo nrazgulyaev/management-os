@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getMaterialDeliveries } from "@/lib/development/server/materials";
@@ -29,26 +27,30 @@ export default async function MaterialDeliveriesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Materials", href: "/development-os/materials" },
-          { label: "Deliveries" },
-        ]}
-        eyebrow={
-          db ? `${list.length} delivery events` : "Database not configured"
-        }
-        title="Material deliveries"
-        description="Receipt events tied to vendor POs. Each delivery captures quality check status and line-by-line received quantities; the recordMaterialDelivery action atomically updates po_lines.quantity_delivered."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/materials">Materials</Link> /{" "}
+            <span>Deliveries</span>
+          </div>
+          <h1>Material deliveries</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Receipt events tied to vendor POs. Each delivery captures quality
+            check status and line-by-line received quantities; the
+            recordMaterialDelivery action atomically updates
+            po_lines.quantity_delivered.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/materials">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               POs
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {!db ? (
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
@@ -58,7 +60,8 @@ export default async function MaterialDeliveriesPage() {
           description="Use the recordMaterialDelivery action to add the first."
         />
       ) : (
-        <Section eyebrow="All deliveries" title="Chronological">
+        <div>
+          <div className="label mb-2.5">{`All deliveries · ${list.length} events`}</div>
           <Table>
             <THead>
               <TR>
@@ -88,25 +91,25 @@ export default async function MaterialDeliveriesPage() {
                   <TD className="text-xs">{d.deliveryDate}</TD>
                   <TDNum>{d.lineCount}</TDNum>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         d.qualityCheckStatus === "accepted"
-                          ? "success"
+                          ? "ok"
                           : d.qualityCheckStatus === "partial_acceptance"
-                            ? "warning"
+                            ? "warn"
                             : d.qualityCheckStatus === "rejected"
                               ? "danger"
-                              : "neutral"
+                              : "soft"
                       }
                     >
                       {MATERIAL_QUALITY_LABEL[d.qualityCheckStatus]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

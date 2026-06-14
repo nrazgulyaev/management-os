@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -22,7 +20,11 @@ export default async function TaxTypesPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Tax types" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Tax types</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -36,24 +38,32 @@ export default async function TaxTypesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Tax types" },
-        ]}
-        eyebrow={`${types.length} types · ${types.filter((t) => t.isActive).length} active`}
-        title="Tax types"
-        description="Operator-configurable tax types. NOT hardcoded; edit rates/applicability/reporting period as needed. Used by the per-transaction classification flow on the transaction detail page."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Tax types</span>
+          </div>
+          <h1>Tax types</h1>
+          <div className="label mt-1.5">
+            {types.length} types · {types.filter((t) => t.isActive).length} active
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator-configurable tax types. NOT hardcoded; edit
+            rates/applicability/reporting period as needed. Used by the
+            per-transaction classification flow on the transaction detail page.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/finance">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Finance
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {types.length === 0 ? (
         <NoItemsYet
@@ -61,7 +71,8 @@ export default async function TaxTypesPage() {
           description="Add your first tax type — typical Indonesian setup includes PPN, PPh23, lease tax, and corporate income."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All tax types">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -91,9 +102,9 @@ export default async function TaxTypesPage() {
                   <TD className="text-xs">{t.reportingAuthority ?? "—"}</TD>
                   <TD className="text-xs">{t.countryCode ?? "—"}</TD>
                   <TD>
-                    <Badge tone={t.isActive ? "success" : "neutral"}>
+                    <HandoffBadge tone={t.isActive ? "ok" : "soft"}>
                       {t.isActive ? "active" : "inactive"}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-right">
                     <DevOsRowActions
@@ -120,7 +131,7 @@ export default async function TaxTypesPage() {
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

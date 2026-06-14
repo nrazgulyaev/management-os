@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getInvoice } from "@/lib/development/server/invoices/invoice-actions";
@@ -27,6 +24,19 @@ const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "n
   voided: "neutral",
 };
 
+/** Map the legacy Badge tone vocabulary onto the handoff badge palette. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "soft"
+> = {
+  success: "ok",
+  warning: "warn",
+  danger: "danger",
+  gold: "gold",
+  info: "info",
+  neutral: "soft",
+};
+
 function fmtUsd(b: bigint | string | number | null): string {
   if (b == null) return "—";
   const n = typeof b === "bigint" ? Number(b) : Number(b);
@@ -43,7 +53,11 @@ export default async function InvoiceDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Invoice" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Invoice</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -54,30 +68,34 @@ export default async function InvoiceDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Invoices", href: "/development-os/finance/invoices" },
-          { label: inv.invoiceNumber },
-        ]}
-        eyebrow={`${inv.invoiceType} · issued ${inv.issueDate} · due ${inv.dueDate}`}
-        title={inv.invoiceNumber}
-        description={inv.notes ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance/invoices">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All invoices
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <Link href="/development-os/finance/invoices">Invoices</Link> /{" "}
+            <span>{inv.invoiceNumber}</span>
+          </div>
+          <h1>{inv.invoiceNumber}</h1>
+          <div className="label mt-2">{`${inv.invoiceType} · issued ${inv.issueDate} · due ${inv.dueDate}`}</div>
+          {inv.notes && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">{inv.notes}</p>
+          )}
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance/invoices" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All invoices
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Header" title="Amounts">
+      <div>
+        <div className="label mb-2.5">Header</div>
+        <Card padding="default">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
           <Field label="Status">
-            <Badge tone={STATUS_TONE[inv.status] ?? "neutral"}>{inv.status}</Badge>
+            <HandoffBadge tone={HANDOFF_TONE[STATUS_TONE[inv.status] ?? "neutral"]}>{inv.status}</HandoffBadge>
           </Field>
           <Field label="Currency" value={inv.currency} />
           <Field label="Subtotal" value={fmtUsd(inv.subtotalMinor)} />
@@ -92,9 +110,12 @@ export default async function InvoiceDetailPage({
             mono
           />
         </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Parties" title="Who's involved">
+      <div>
+        <div className="label mb-2.5">Parties</div>
+        <Card padding="default">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           <Field label="Vendor ID" value={inv.vendorId ?? "—"} mono />
           <Field
@@ -106,9 +127,11 @@ export default async function InvoiceDetailPage({
           <Field label="Project ID" value={inv.projectId ?? "—"} mono />
           <Field label="Unit ID" value={inv.unitId ?? "—"} mono />
         </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Lines" title={`${lines.length} line${lines.length === 1 ? "" : "s"}`}>
+      <div>
+        <div className="label mb-2.5">Lines</div>
         {lines.length === 0 ? (
           <EmptyState
             title="No lines"
@@ -146,13 +169,15 @@ export default async function InvoiceDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {(inv.relatedPoId ||
         inv.relatedCommitmentId ||
         inv.relatedLandInstallmentId ||
         inv.relatedPermitId) && (
-        <Section eyebrow="Linked" title="Related entities">
+        <div>
+          <div className="label mb-2.5">Linked</div>
+          <Card padding="default">
           <ul className="text-sm space-y-1">
             {inv.relatedPoId && (
               <li>
@@ -180,19 +205,21 @@ export default async function InvoiceDetailPage({
               </li>
             )}
           </ul>
-        </Section>
+          </Card>
+        </div>
       )}
 
       {inv.status !== "paid" &&
         inv.status !== "voided" &&
         inv.status !== "cancelled" && (
-          <Section eyebrow="Action" title="Record payment">
+          <div>
+            <div className="label mb-2.5">Action</div>
             <InvoicePaymentForm
               invoiceId={inv.id}
               outstandingMinor={String(inv.outstandingMinor ?? 0)}
               currency={inv.currency}
             />
-          </Section>
+          </div>
         )}
     </DevelopmentShell>
   );

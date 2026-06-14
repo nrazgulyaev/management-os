@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -30,7 +27,11 @@ export default async function DrawingDistributionPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Drawing distribution" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Drawing distribution</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -42,28 +43,34 @@ export default async function DrawingDistributionPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Drawings", href: "/development-os/drawings" },
-          {
-            label: drawing.drawingCode,
-            href: `/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}`,
-          },
-          { label: "Distribution" },
-        ]}
-        eyebrow={`${dist.length} distribution event${dist.length === 1 ? "" : "s"}`}
-        title="Distribution log"
-        description="Per-revision vendor receipts. Operational requirement so site teams always know which revision the contractor was working from."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Drawing
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/drawings">Drawings</Link> /{" "}
+            <Link
+              href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}`}
+            >
+              {drawing.drawingCode}
+            </Link>{" "}
+            / <span>Distribution</span>
+          </div>
+          <h1>Distribution log</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-revision vendor receipts. Operational requirement so site teams
+            always know which revision the contractor was working from.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Drawing
+          </Link>
+        </div>
+      </div>
 
       {dist.length === 0 ? (
         <EmptyState
@@ -71,7 +78,8 @@ export default async function DrawingDistributionPage({
           description="Once a revision is sent to a vendor, log it here so the chain of custody is preserved."
         />
       ) : (
-        <Section eyebrow="Log" title="Distribution events">
+        <div>
+          <div className="label mb-2.5">Log</div>
           <Table>
             <THead>
               <TR>
@@ -94,7 +102,7 @@ export default async function DrawingDistributionPage({
                       .replace("T", " ")}
                   </TD>
                   <TD>
-                    <Badge tone="neutral">{d.distributionMethod}</Badge>
+                    <HandoffBadge tone="soft">{d.distributionMethod}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">
                     {d.acknowledgedAt
@@ -108,7 +116,7 @@ export default async function DrawingDistributionPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

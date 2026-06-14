@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -22,20 +19,20 @@ import { ExportButton } from "@/components/development/bulk-import/export-button
 export const metadata: Metadata = { title: "QA/QC · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  open: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  open: "warn",
   assigned: "info",
   in_progress: "info",
-  ready_for_reinspection: "warning",
+  ready_for_reinspection: "warn",
   rejected: "danger",
-  accepted: "success",
-  closed: "neutral",
+  accepted: "ok",
+  closed: "soft",
 };
 
-const SEVERITY_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  low: "neutral",
+const SEVERITY_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -49,7 +46,11 @@ export default async function QaQcListPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="QA/QC" />
+        <div className="page-header">
+          <div className="left">
+            <h1>QA/QC</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -89,31 +90,32 @@ export default async function QaQcListPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "QA/QC" },
-        ]}
-        eyebrow={`${openCount} open / ${issues.length} total`}
-        title="QA/QC defect tracking"
-        description="Per-villa quality issues. Lifecycle: open → assigned → in_progress → ready_for_reinspection → accepted/rejected → closed. Status transitions are validated by qa-qc-helpers.ts (pure, runtime tested)."
-        actions={
-          <div className="flex gap-2">
-            <QaQcAddButton
-              projects={addProjects}
-              villas={addVillas}
-              categories={addCategories}
-            />
-            <ExportButton entity="qa_qc_issues" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>QA/QC</span> · {openCount} open / {issues.length} total
           </div>
-        }
-      />
+          <h1>QA/QC defect tracking</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa quality issues. Lifecycle: open → assigned → in_progress →
+            ready_for_reinspection → accepted/rejected → closed. Status
+            transitions are validated by qa-qc-helpers.ts (pure, runtime tested).
+          </p>
+        </div>
+        <div className="actions">
+          <QaQcAddButton
+            projects={addProjects}
+            villas={addVillas}
+            categories={addCategories}
+          />
+          <ExportButton entity="qa_qc_issues" />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {issues.length === 0 ? (
         <EmptyState
@@ -121,7 +123,8 @@ export default async function QaQcListPage({
           description="Open the create form above to log a new defect."
         />
       ) : (
-        <Section eyebrow="Inbox" title="Issues (most recent first)">
+        <div>
+          <div className="label mb-2.5">Inbox</div>
           <Table>
             <THead>
               <TR>
@@ -147,14 +150,14 @@ export default async function QaQcListPage({
                   </TD>
                   <TD className="text-sm">{i.title}</TD>
                   <TD>
-                    <Badge tone={SEVERITY_TONE[i.severity] ?? "neutral"}>
+                    <HandoffBadge tone={SEVERITY_TONE[i.severity] ?? "soft"}>
                       {i.severity}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[i.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[i.status] ?? "soft"}>
                       {i.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="font-mono text-xs">
                     {i.villaId?.slice(0, 8) ?? "—"}
@@ -167,7 +170,7 @@ export default async function QaQcListPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

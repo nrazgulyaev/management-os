@@ -10,9 +10,7 @@ import {
   LineChart,
   TrendingUp,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 
 export const metadata: Metadata = { title: "Visual reports · Development OS" };
@@ -72,16 +70,21 @@ const REPORTS = [
 export default async function VisualReportsIndexPage() {
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Visual reports" },
-        ]}
-        eyebrow="Visual analytics"
-        title="Visual reports"
-        description="Server-rendered SVG charts. Open any report to view the chart and the underlying data table."
-      />
-      <Section title="All reports">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Visual reports</span>
+          </div>
+          <h1>Visual reports</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Server-rendered SVG charts. Open any report to view the chart and the
+            underlying data table.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">All reports</div>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {REPORTS.map((r) => (
             <li
@@ -101,7 +104,7 @@ export default async function VisualReportsIndexPage() {
                       {r.name}
                     </Link>
                   </h4>
-                  <Badge tone="neutral">Report</Badge>
+                  <HandoffBadge tone="soft">Report</HandoffBadge>
                 </div>
                 <p className="text-xs text-ink-secondary mt-1 leading-relaxed">
                   {r.description}
@@ -110,7 +113,7 @@ export default async function VisualReportsIndexPage() {
             </li>
           ))}
         </ul>
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

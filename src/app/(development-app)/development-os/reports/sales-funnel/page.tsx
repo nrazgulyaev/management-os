@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import {
   computeFunnelStages,
@@ -23,43 +23,50 @@ export default async function SalesFunnelPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Sales funnel"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Reports", href: "/development-os/reports" },
-          { label: "Sales funnel" },
-        ]}
-        description="Stage-by-stage conversion. Hover the bars to see the drop-off."
-      />
-      <Section title="Funnel">
-        <div
-          className="rounded-md border border-line-soft bg-surface p-4 overflow-x-auto"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
-      </Section>
-      <Section title="Conversion table">
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="text-left text-ink-tertiary border-b border-line-soft">
-              <th className="py-2">Stage</th>
-              <th>Count</th>
-              <th>Conv. from prev</th>
-            </tr>
-          </thead>
-          <tbody>
-            {computed.map((s) => (
-              <tr key={s.label} className="border-b border-line-soft">
-                <td className="py-2">{s.label}</td>
-                <td className="font-mono tabular-nums">{s.count}</td>
-                <td className="font-mono tabular-nums">
-                  {s.conversionFromPrevPct.toFixed(1)}%
-                </td>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/reports">Reports</Link> /{" "}
+            <span>Sales funnel</span>
+          </div>
+          <h1>Sales funnel</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Stage-by-stage conversion. Hover the bars to see the drop-off.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Funnel</div>
+        <Card padding="default" className="overflow-x-auto">
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </Card>
+      </div>
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Conversion table</div>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Stage</th>
+                <th scope="col" className="num">Count</th>
+                <th scope="col" className="num">Conv. from prev</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </Section>
+            </thead>
+            <tbody>
+              {computed.map((s) => (
+                <tr key={s.label}>
+                  <td className="row-title">{s.label}</td>
+                  <td className="num">{s.count}</td>
+                  <td className="num">
+                    {s.conversionFromPrevPct.toFixed(1)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

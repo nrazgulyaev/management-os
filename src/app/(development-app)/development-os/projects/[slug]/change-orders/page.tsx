@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
@@ -17,14 +14,17 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Change orders · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  requested: "warning",
+const STATUS_TONE: Record<
+  string,
+  "info" | "ok" | "warn" | "danger" | "soft"
+> = {
+  requested: "warn",
   under_review: "info",
   approved: "info",
   in_progress: "info",
-  completed: "success",
+  completed: "ok",
   rejected: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function ChangeOrdersPage({
@@ -37,7 +37,11 @@ export default async function ChangeOrdersPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Change orders" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Change orders</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -61,32 +65,43 @@ export default async function ChangeOrdersPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Change orders" },
-        ]}
-        eyebrow={`${cos.length} change order${cos.length === 1 ? "" : "s"} · net cost impact $${(totalCost / 100).toLocaleString()} · schedule ${totalSchedule >= 0 ? "+" : ""}${totalSchedule}d`}
-        title="Change orders / variations"
-        description="Scope changes with cost + schedule impact. Cost and schedule impacts can be NEGATIVE (downgrades save money/time). Approval routing follows the configured approval-thresholds matrix."
-        actions={
-          <div className="flex gap-2">
-            <Button asChild>
-              <Link href={`/development-os/projects/${slug}/change-orders/new`}>
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New change order
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Project
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link>{" "}
+            / <span>Change orders</span>
           </div>
-        }
-      />
+          <h1>Change orders / variations</h1>
+          <div className="label mt-2">
+            {cos.length} change order{cos.length === 1 ? "" : "s"} · net cost
+            impact ${(totalCost / 100).toLocaleString()} · schedule{" "}
+            {totalSchedule >= 0 ? "+" : ""}
+            {totalSchedule}d
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Scope changes with cost + schedule impact. Cost and schedule impacts
+            can be NEGATIVE (downgrades save money/time). Approval routing follows
+            the configured approval-thresholds matrix.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/change-orders/new`}
+            className="btn btn-accent"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            New change order
+          </Link>
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </div>
 
       {cos.length === 0 ? (
         <EmptyState
@@ -94,7 +109,8 @@ export default async function ChangeOrdersPage({
           description="Use 'New change order' to log the first scope change."
         />
       ) : (
-        <Section eyebrow="Log" title="All change orders (most recent first)">
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Log</div>
           <Table>
             <THead>
               <TR>
@@ -146,16 +162,16 @@ export default async function ChangeOrdersPage({
                     {c.scheduleImpactDays}d
                   </TDNum>
                   <TD>
-                    <Badge tone={STATUS_TONE[c.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[c.status] ?? "soft"}>
                       {c.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{c.requestedAt}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );
