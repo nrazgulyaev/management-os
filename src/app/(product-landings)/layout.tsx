@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 
+import { MotionLayer } from "@/components/motion-layer";
 import "./landing-responsive.css";
 
 /**
@@ -34,5 +35,12 @@ export default function ProductLandingsLayout({
 }: {
   children: ReactNode;
 }) {
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {/* Scroll-reveal / parallax / count-up engine — scoped to the product
+          landing surfaces (moved out of the global root layout). */}
+      <MotionLayer />
+    </>
+  );
 }

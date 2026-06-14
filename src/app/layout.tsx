@@ -9,7 +9,6 @@ import {
 } from "next/font/google";
 import { headers } from "next/headers";
 import { Analytics } from "@vercel/analytics/next";
-import { MotionLayer } from "@/components/motion-layer";
 import { CommandPaletteProvider } from "@/components/command-palette-provider";
 import "./globals.css";
 
@@ -157,8 +156,14 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-canvas text-ink antialiased">
+        {/* MotionLayer (scroll-reveal / parallax / count-up / magnetic) is a
+            MARKETING animation engine — it auto-tags every <section> with
+            data-reveal (hiding it until scrolled into view) and runs a
+            document-wide MutationObserver. Mounting it globally taxed every
+            data-dense dashboard render and made dashboard sections start
+            hidden. It now lives only in the public + product-landing layouts,
+            where the reveal effects actually belong. */}
         <CommandPaletteProvider>{children}</CommandPaletteProvider>
-        <MotionLayer />
         <Analytics />
       </body>
     </html>
