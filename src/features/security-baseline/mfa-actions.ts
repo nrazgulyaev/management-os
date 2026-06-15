@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAuditEvent } from "@/features/audit/services";
+import { clearMfaPendingMarker } from "./mfa-pending-marker";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import {
@@ -125,7 +127,11 @@ export async function verifyMfaChallengeAction(
     appUserId: me.id,
     metadata: { stage: "challenge" },
   });
-  return { ok: true };
+  // MFA-ENFORCE-1 — challenge cleared: drop the `mfa_pending` marker so the
+  // layout gate stops bouncing the user to /login/mfa, then send them into
+  // the app. redirect() throws a control-flow signal; nothing after it runs.
+  await clearMfaPendingMarker();
+  redirect("/dashboard");
 }
 
 export async function useRecoveryCodeAction(
@@ -166,7 +172,11 @@ export async function useRecoveryCodeAction(
     entityType: "auth_mfa_recovery_code",
     entityId: null,
   });
-  return { ok: true, remaining: out.remaining };
+  // MFA-ENFORCE-1 — a valid recovery code satisfies the second factor:
+  // clear the `mfa_pending` marker and enter the app. redirect() throws a
+  // control-flow signal, so nothing after it runs.
+  await clearMfaPendingMarker();
+  redirect("/dashboard");
 }
 
 export async function disableMfaAction(

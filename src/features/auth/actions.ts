@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { getSupabaseServer } from "@/lib/supabase/server";
@@ -66,11 +67,59 @@ export async function signInAction(
     };
   }
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
   if (error) return { ok: false, error: error.message };
+
+  // MFA-ENFORCE-1 — if this user has a VERIFIED MFA factor, gate app
+  // access behind a second-factor challenge. We resolve the app_users
+  // row for the just-authenticated session, check getMfaStatus, and —
+  // ONLY when a verified factor exists — stamp the unforgeable
+  // `mfa_pending` marker (HMAC-signed, user-bound, 10-min TTL) and
+  // redirect to /login/mfa. The dashboard / development-os layouts gate
+  // on this marker so no product surface renders until it's cleared.
+  //
+  // CRITICAL: a user with NO verified factor takes the exact prior path
+  // below — no marker, no challenge, no behaviour change. The status
+  // lookup is fail-open: any error here must not block a legitimate
+  // sign-in (and never sets a marker), so we swallow it.
+  try {
+    const authUserId = signInData.user?.id;
+    if (authUserId) {
+      const { getDb } = await import("@/lib/db/client");
+      const { appUsers } = await import("@/lib/db/schema/identity");
+      const { eq } = await import("drizzle-orm");
+      const db = getDb();
+      if (db) {
+        const [appUser] = await db
+          .select({ id: appUsers.id })
+          .from(appUsers)
+          .where(eq(appUsers.authUserId, authUserId))
+          .limit(1);
+        if (appUser) {
+          const { getMfaStatus } = await import(
+            "@/features/security-baseline/mfa-services"
+          );
+          const status = await getMfaStatus(appUser.id);
+          if (status.verified) {
+            const { setMfaPendingMarker } = await import(
+              "@/features/security-baseline/mfa-pending-marker"
+            );
+            await setMfaPendingMarker(appUser.id);
+            redirect("/login/mfa");
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // `redirect()` throws a control-flow signal — never swallow it.
+    if (isRedirectError(err)) throw err;
+    // Any real failure (DB hiccup, status lookup) falls open: continue to
+    // the normal landing WITHOUT a marker. We never lock a user out on an
+    // infrastructure error in the MFA path.
+  }
 
   // Sprint 2 — when the user signed in on a product subdomain, prefer
   // that product's canonical landing. Otherwise fall back to the
