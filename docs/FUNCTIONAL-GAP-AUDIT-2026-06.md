@@ -1,0 +1,189 @@
+# Functional Gap Audit — 2026-06-15
+
+16-cluster multi-agent functional audit → adversarial verify (default real=false). **60 confirmed gaps**: 11 high · 40 med · 9 low. ~49 are *wireup* (action exists, mount UI), ~11 *build*.
+
+## HIGH — fix first (11)
+- **[wireup·orphaned]** Assign-vendor to a fulfilment has no UI — the entire vendor-dispatch workflow is unreachable from the dashboard
+  - `src/features/service-fulfilment/actions.ts:375` · guest-services / service-fulfilment / gu
+  - Fix: Add an AssignVendorForm wrapper in src/components/service-fulfilment/buttons.tsx (useActionState over assignFulfilmentVendorAction) with a vendor <select> (populated from listServiceVendors / the order's service→vendor mappings), an optional vendorQuoteMinor number input, and a hidden id=fulfilment.id; render it in the 'Vendor' aside card of fulfilments/[id]/page.tsx, shown when f.status is in {tr
+- **[build·incomplete]** No way to add line items to a Purchase Request or Purchase Order — entire procurement→stock pipeline dead-ends at zero lines
+  - `src/features/procurement/schema.ts:76` · inventory-procurement
+  - Fix: Write two server actions — addPurchaseRequestLineAction (validate with the existing purchaseRequestLineSchema, insert into purchaseRequestLines with organizationId stamped + requestId scoped to caller's org, recompute totalEstimatedMinor) and addPurchaseOrderLineAction (new schema: purchaseOrderId, optional itemId, description, quantityOrdered, unit, unitCostMinor, currency; insert into purchaseOr
+- **[wireup·orphaned]** No UI to create an owner payout line — only empty batches can be made
+  - `src/features/finance/actions.ts:574` · finance-statements
+  - Fix: Add a 'New payout line' form/modal on /dashboard/finance/payouts (a PayoutLineAddButton mirroring PayoutBatchAddButton at page.tsx:55) that posts to createPayoutLineAction with owner, statementId, amountMinor, currency, payoutMethodId, scheduledFor, reference, and optional payoutBatchId. Ideally also surface a 'Schedule payout' button on the approved/sent statement detail that pre-fills ownerId + 
+- **[wireup·orphaned]** No UI to advance a payout line through pending→approved→paid/failed
+  - `src/features/finance/actions.ts:650` · finance-statements
+  - Fix: Add per-line status controls (Approve / Mark paid / Mark failed / Cancel buttons in a small <form action={setPayoutLineStatusAction}> with hidden id + next) in the payout-lines table rows on /dashboard/finance/payouts/page.tsx, gated by the allowed transitions for each current status.
+- **[wireup·orphaned]** Operator cannot manually match a bank transaction to an invoice — the central reconciliation action has no UI
+  - `src/lib/banking/bookkeeper-actions.ts:94` · payments-banking
+  - Fix: On the Reconciliation page's partial-match rows (and Bank review unmatched/partial rows), add a per-row form whose action={matchInvoiceAction} with a hidden bankTransactionId and an invoice <select> populated from the org's open invoices (a candidate list is already what the auto-matcher scores). A 'Reject' is just submitting matchInvoiceAction with invoiceId empty (it clears the match back to 'un
+- **[wireup·orphaned]** Safe villa-reassignment (conflict-checked) is orphaned; the wired edit path lets you double-book
+  - `src/features/availability/actions.ts:184` · channels-pricing
+  - Fix: Mount assignBookingToVillaAction behind a 'Move to villa' control on the booking detail page (src/app/(dashboard)/dashboard/bookings/[id]/page.tsx) — a small form posting bookingId + target villaId — and have it own the villa-change path instead of letting BookingForm's villa <select> silently change villaId. Alternatively fold its detectAvailabilityConflicts + syncBookingCalendarBlock guard into 
+- **[wireup·orphaned]** Capital commitments cannot be created from the UI — the entire investor-capital ledger has no entry point
+  - `src/lib/development/server/commitment-actions.ts:72` · devos-sales-contracts
+  - Fix: Build a CommitmentModalForm (mirror src/components/development/investors/investor-modal-form.tsx) that collects investorId/projectId/committedAmountMinor/committedCurrency/fxRateAtCommitment/profitSharePercent/capitalReturnPriority and calls createCommitment, then mount it behind the '+ New commitment' button on commitments/page.tsx (replace the self-Link with the modal trigger).
+- **[build·incomplete]** Buyer progress reports can never be created or published — buyer portal /reports surface is permanently empty
+  - `src/lib/development/server/buyers/buyer-progress-actions.ts:35` · devos-sales-contracts
+  - Fix: Add an operator surface under development-os (e.g. a 'Progress reports' tab on the buyer/unit detail) with a create form calling createBuyerProgressReport and per-report transition buttons calling transitionBuyerProgressReport(reportId, to). Then the existing buyer-portal/reports pages light up.
+- **[wireup·incomplete]** Milestone invoices can be issued but never PDF-rendered or sent to the buyer — billing dead-ends at draft
+  - `src/lib/development/server/invoice-actions.ts:145` · devos-sales-contracts
+  - Fix: Add row-level 'Generate PDF' (→ generateInvoicePDF) and 'Send' (→ sendInvoice) buttons on invoices/page.tsx (and/or the contract milestone row), each posting FormData with invoiceId. Wire the dead '+ Issue invoice' header button to the existing issue flow.
+- **[wireup·orphaned]** Buyer lifecycle stalls after creation — no unit assignment, KYC update, or portal activation UI
+  - `src/lib/development/server/buyers/buyer-actions.ts:79` · devos-sales-contracts
+  - Fix: On buyers/[code]/page.tsx add: an 'Assign unit' form (buyerId/unitId/status → assignUnitToBuyer), a KYC status selector (→ updateBuyerKycStatus), and an 'Enable portal access' control (buyerId/supabaseUserId → activateBuyerPortalAccess).
+- **[wireup·orphaned]** Site zones cannot be created — blocks the daily site-report at step 1
+  - `src/lib/development/server/site-report-actions.ts:409` · devos-procurement-site
+  - Fix: Add a zones management surface (e.g. development-os/site-reports/zones or a per-project zones tab) with a create form calling createSiteZone({ projectId, zoneCode, zoneName, zoneType, ... }), and replace the new-report Step 3 empty-state's prose with a real 'Create zone' button.
+
+## MED (40)
+- **[build·incomplete]** Equivalence-group members can be added but never removed/archived — corrupts the relocation candidate set permanently
+  - `src/features/owner-stays/actions.ts:655 (addEquivalenceMemberAction) + UI src/app/(dashboard)/dashboard/owner-stays/equivalence-groups/page.tsx:84-97` · owner-stays
+  - Fix: Add removeEquivalenceMemberAction(formData{id}) in src/features/owner-stays/actions.ts requiring 'relocation.manage'; either delete the villa_equivalence_group_members row or flip its existing status column to 'archived' (the column already exists, default 'active', schema/owner-stays.ts), recordAuditEvent('relocation.group.remove_member'), revalidatePath('/dashboard/owner-stays/equivalence-groups
+- **[wireup·orphaned]** Assign internal staff to a fulfilment has no UI
+  - `src/features/service-fulfilment/actions.ts:444` · guest-services / service-fulfilment / gu
+  - Fix: Add an AssignStaffForm wrapper in src/components/service-fulfilment/buttons.tsx (useActionState over assignFulfilmentStaffAction) with an app-user <select> and hidden id=fulfilment.id, and render it in the fulfilment detail aside (Vendor/Status card) for internal fulfilments, gated on service_fulfilment.dispatch.
+- **[wireup·orphaned]** Mapping a vendor to the guest services they can fulfil has no UI (despite being explicitly promised)
+  - `src/features/service-fulfilment/actions.ts:208` · guest-services / service-fulfilment / gu
+  - Fix: Add an AttachVendorServiceForm component (useActionState over attachVendorToServiceAction) with a guest-service <select> (from listGuestServices), baseCostMinor/currency/leadTimeMinutes inputs, and a hidden vendorId; mount it in the 'Catalogue' section of vendors/[id]/page.tsx, gated on service_vendor.write.
+- **[build·incomplete]** Damage reports dead-end at "open": no resolve/close transition and actual cost can never be recorded
+  - `src/features/operations/actions.ts:1365 (editDamageReportAction) and src/lib/db/schema/operations.ts:300 (status default 'open')` · operations-maint (operations + maintenan
+  - Fix: Add a resolveDamageReportAction (or extend editDamageReportAction) that accepts status + actualCostMinor and writes them with canTransition guarding open->in_review->resolved/closed, plus a DamageStatusActions control on the list rows (and a detail page) mirroring MaintenanceStatusActions. To close the loop, on resolve with ownerChargeable/guestChargeable create the corresponding expense line / de
+- **[build·incomplete]** No manual cleaner assignment/reassignment on the turnover board (cron-only); getCleanerWorkloads reader has no UI consumer
+  - `src/components/operations/turnover-board.tsx:128 (read-only StaffChip) and src/features/operations/turnover-queries.ts:172 (getCleanerWorkloads)` · operations-maint (operations + maintenan
+  - Fix: Add an assignTurnoverAction (org-scoped, permission operations.assign, audit-logged) that sets turnovers.assigneeUserId, then mount a cleaner-picker on each turnover card (fed by getCleanerWorkloads to show load) wired through turnover-board-client. Also add org scoping to the turnover lookups since updateTurnoverStatusAction currently fetches the row by id with no organization filter.
+- **[build·incomplete]** Checklist templates are create-only: no edit or delete
+  - `src/features/operations/actions.ts:1749 (createChecklistTemplateAction) — no edit/archive counterpart` · operations-maint (operations + maintenan
+  - Fix: Add editChecklistTemplateAction (update name/category/items) and deleteChecklistTemplateAction/archiveChecklistTemplateAction (block delete if runs exist, else soft-archive), then expose edit/delete controls on the checklist-templates list in operations/checklists/page.tsx.
+- **[wireup·orphaned]** Purchase Order status transitions (send / confirm / cancel / mark-received) are orphaned — a draft PO can never advance from the UI
+  - `src/features/procurement/actions.ts:347` · inventory-procurement
+  - Fix: Add an OrderActions client component (mirror request-actions.tsx) and render it in orders/[id]/page.tsx header's actions slot. Drive buttons off PO_TRANSITIONS for the current status: draft→'Send to vendor' (sendPurchaseOrderAction); sent→'Confirm' (confirmPurchaseOrderAction); any non-terminal→'Cancel PO' (cancelPurchaseOrderAction); and (perm procurement.approve) 'Mark received' (markPurchaseOrd
+- **[wireup·orphaned]** Management fee rules drive every statement's fee math but have no create/manage UI
+  - `src/features/finance/actions.ts:312` · finance-statements
+  - Fix: Add a /dashboard/finance/fee-rules list page + a 'New fee rule' form (FormShell + useModalOrRouteForm) posting to createManagementFeeRuleAction (fields: ruleName, feeModel percent_of_gross/percent_of_net/fixed_monthly, feePercent or fixedAmountMinor, currency, projectId/villaId scope, startsOn/endsOn, status). A read-only list of active rules would also let operators verify what fee the generator 
+- **[wireup·orphaned]** No single-statement regenerate — only bulk regeneration is wired
+  - `src/features/finance/statement-actions.ts:332` · finance-statements
+  - Fix: Add a 'Regenerate' button on the statement detail page that calls regenerateStatement(detail.ownerId, detail.villaId, detail.periodMonth), guarded to draft statements so approved/sent rows aren't clobbered.
+- **[wireup·orphaned]** Operator cannot categorize a bank transaction — assignCategoryAction has no UI
+  - `src/lib/banking/bookkeeper-actions.ts:54` · payments-banking
+  - Fix: Add a category column to the Bank review transactions table (src/app/(development-app)/development-os/finance/bank-review/page.tsx) with a per-row form action={assignCategoryAction}: hidden bankTransactionId + a <select> of the org's finance categories (already listed at finance/categories). The action exists and is org-scoped; only the form needs mounting.
+- **[wireup·incomplete]** Rate plans can be created but never edited or archived — updateRatePlanAction has no UI
+  - `src/features/pricing/actions.ts:117` · channels-pricing
+  - Fix: Add an EditRatePlanForm (mirror src/components/pricing/create-rate-plan-form.tsx) submitting to updateRatePlanAction with a hidden id, mounted on rates/[id]/page.tsx in the page-header actions; include a status select (active/archived) so the action's archive branch is reachable. The action already org-scopes the UPDATE and audit-logs — pure wireup.
+- **[wireup·orphaned]** Manual guest-review creation is fully built but has no UI button
+  - `src/features/owner-intelligence/actions.ts:208` · owners-intel
+  - Fix: Add an 'Add manual review' button + form on src/app/(dashboard)/dashboard/owner-intelligence/reviews/page.tsx (and/or a per-villa quick-add on the villa health page). Build a client component beside snapshot-buttons.tsx that renders the fields the schema already accepts (villaId select, optional bookingId, source, reviewerDisplayName, reviewerCountry, rating, text, reviewDate, ownerVisible/publicV
+- **[build·stubbed]** Bulk 'Tag' on owners list logs an audit event but never persists the tag
+  - `src/features/owners/bulk-actions.ts:89` · owners-intel
+  - Fix: Rewrite bulkOwnerTagAction to actually persist: for each owner id, call into the crm-custom-fields tag layer — resolve/create the tag (createAndAssignTagAction handles free-text tag names) and insert crmTagAssignments rows (subjectType 'owner', subjectId), reusing the org-scoping and onConflict-idempotent insert already in assignTagAction. Then revalidate /dashboard/owners so the OwnerTagsCell ref
+- **[build·stubbed]** Bulk 'Assign to relationship manager' on owners list persists nothing
+  - `src/features/owners/bulk-actions.ts:123` · owners-intel
+  - Fix: Add a real owner-assignment column (e.g. owners.assigned_app_user_id) via migration, have bulkOwnerAssignAction update it (org-scoped, returning affected ids), and surface the assignee in the owners list/detail; or, if RM ownership is out of scope, remove the Assign control from BulkActionBar for owners so it stops showing a false success.
+- **[wireup·orphaned]** Inbox thread assignment action is built but no UI can assign a conversation to a team member
+  - `src/lib/messaging/inbox-actions.ts:39` · notifications-marketing
+  - Fix: Add an 'Assign to' control on src/app/(development-app)/development-os/inbox/[threadId]/page.tsx (Thread actions block, near line 195): a <select> of internal users (reuse the same user list used by operations task-assign-control) whose form action calls assignThreadAction.bind(null, threadId) with the chosen userId (and a clear/unassign option passing null). Show the current assignee from thread.
+- **[wireup·orphaned]** Admin notification-preference editor action exists but the preferences page is read-only for everyone but yourself
+  - `src/features/notifications/actions.ts:148` · notifications-marketing
+  - Fix: On src/app/(dashboard)/dashboard/notifications/preferences/page.tsx, gate on hasPermission(ctx,'notifications.manage') and add (a) an 'Add preference' form and (b) per-row Edit controls whose <form action> posts FormData to updateNotificationPreferenceAction (it already accepts an optional id for upsert + scope fields appUserId/ownerId/roleKey/channel/templateKey/enabled/quietHoursStart/quietHours
+- **[build·orphaned]** Push-notification scheduling action has no caller — operators can subscribe devices but nothing can ever send a push
+  - `src/lib/development/server/notifications/notification-actions.ts:24` · notifications-marketing
+  - Fix: Add a 'Send push notification' composer (title/body/notificationType/target role|user|subscription) under development-os/settings/notifications-push (or a dedicated /notifications/push/compose page) whose form action calls schedulePushNotification, then surface the resulting dispatchCode/status by reading notification_dispatch_log. Alternatively (or in addition) wire schedulePushNotification into 
+- **[build·incomplete]** Marketing attribution ingestion is dead — touchpoints and conversions are never recorded, so the attribution engine runs over empty data
+  - `src/lib/marketing/service.ts:333` · notifications-marketing
+  - Fix: Add the ingestion edge: (1) a lightweight tracking endpoint (e.g. src/app/api/marketing/touchpoint/route.ts or middleware on public/booking pages) that parses request UTM/referrer via utm-tracker and calls ingestTouchpoint per session; (2) call recordConversion at the real conversion moments already in the codebase — e.g. lead capture (createLead in lead-actions.ts), hold/deposit-paid, and booking
+- **[wireup·orphaned]** Front desk cannot create a check-in/check-out request — only review pre-existing ones
+  - `src/features/front-office/actions.ts:73` · front-office-checkins
+  - Fix: Add a 'New request' button + form on requests/page.tsx (and/or a per-row 'Request late checkout' control on departures/page.tsx and 'Request early check-in' on arrivals/page.tsx). The form should post FormData with bookingId, villaId, requestType (early_checkin|late_checkout|expected_checkout_update|early_checkout), optional requestedTime, feeAmountMinor, currency, guestMessage to createCheckinChe
+- **[wireup·orphaned]** Expected-checkout time is read-only on Departures — no UI to update it
+  - `src/features/front-office/actions.ts:23` · front-office-checkins
+  - Fix: Add an inline edit control (datetime-local input + Save) in the 'Expected checkout' cell on departures/page.tsx, or a small popover on the front-office board, posting FormData { bookingId, expectedCheckoutAt, notes? } to updateExpectedCheckoutTimeAction via a useActionState/useTransition client wrapper (same shape as request-row-actions.tsx). Backend is complete — this is pure wireup.
+- **[wireup·orphaned]** BOQ status state-machine has no UI: documents are stuck in 'draft' forever (no submit/approve/tender)
+  - `src/lib/development/server/boq/boq-actions.ts:533` · devos-projects-cfo
+  - Fix: Add status-transition buttons on the BOQ detail page (e.g. 'Submit for review', 'Approve', 'Send to tender') that call transitionBoqStatus({ boqDocumentId, to }), gated by current document.status, mirroring the CashflowTransition control pattern in cashflow-forecast/_controls.tsx.
+- **[wireup·orphaned]** Waterfall distribution rules are read-only: no UI to create, edit, or deactivate a project's waterfall
+  - `src/lib/development/server/waterfall/waterfall-actions.ts:69` · devos-projects-cfo
+  - Fix: On projects/[slug]/waterfall/page.tsx add a 'New rule' form (scope=project, projectId, ruleType, ruleLabel, ruleParameters) → createWaterfallRule, a per-row 'Edit parameters' → updateWaterfallRuleParameters, and a 'Deactivate' button → deactivateWaterfallRule({ id }). Actions are fully built and org-scoped; this is pure wire-up.
+- **[wireup·orphaned]** Operator capital-account page can view wallet movements but cannot record, reverse, or reallocate one
+  - `src/lib/development/server/capital-account/capital-account-actions.ts:64` · devos-projects-cfo
+  - Fix: On the capital-account page add: a 'Record adjustment' form → recordWalletMovement (walletId, investorId, movementType, amountMinor, affectsBalance, reason); a per-row 'Reverse' button on recorded movements → reverseWalletMovement({ movementId, reason }); and a 'Move capital' form → recordCrossProjectMovement. Reason fields should be required to preserve the audit trail.
+- **[wireup·orphaned]** Project-cycle intelligence has no way to enter its two key inputs: payroll periods and team capacity
+  - `src/lib/development/server/project-cycle/cycle-actions.ts:42` · devos-projects-cfo
+  - Fix: Add a 'New payroll period' form → createPayrollPeriod (periodLabel, periodType, start/end, totalPayrollAmountMinor, headcount, per-project allocations) and a 'Record capacity' form → trackTeamCapacity (period, roleType, totalCapacityHours, utilizedHours, per-project allocations) on the project-cycle page, replacing the seed-script instructions.
+- **[wireup·orphaned]** No manual override for a single asset's unit-cost allocation (bulk recompute only)
+  - `src/lib/development/server/profitability/profitability-actions.ts:177` · devos-projects-cfo
+  - Fix: On the profitability page, add a per-allocation-row 'Override' action (drawer/dialog) that collects the bucket overrides + required notes and calls overrideUnitAllocation({ allocationId, notes, overrides }). Action is built and audit-aware; pure wire-up.
+- **[wireup·orphaned]** Approved discounts can never be applied to a contract — discount workflow dead-ends, price never drops
+  - `src/lib/development/server/discount-actions.ts:293` · devos-sales-contracts
+  - Fix: Add an 'Apply to contract' control on approved discounts (discounts/page.tsx) or on the contract detail page that collects contractGroupId + fxRateUsdToIdr and calls applyDiscountToContract. Also correct/remove the misleading comment in _approval-actions.tsx:9.
+- **[wireup·orphaned]** Capital-call drawdowns cannot be requested or received via UI — commitment detail tells operators to use the API
+  - `src/lib/development/server/drawdown-actions.ts:65` · devos-sales-contracts
+  - Fix: On commitments/[id]/page.tsx add a 'Request capital call' form (amount/currency/dueDate/triggerReason → requestDrawdown) and per-drawdown 'Confirm receipt' / 'Cancel' buttons (→ confirmDrawdownReceipt / cancelDrawdown). Replace the 'use the API' empty-state text.
+- **[wireup·orphaned]** No manual wallet adjustment / reversal UI — capital-account corrections impossible
+  - `src/lib/development/server/capital-account/capital-account-actions.ts:64` · devos-sales-contracts
+  - Fix: Add a permission-gated 'Manual adjustment' / 'Reverse movement' panel on the capital-account page calling recordWalletMovement (type manual_adjustment) and reverseWalletMovement(movementId); optionally a cross-project transfer form for recordCrossProjectMovement.
+- **[wireup·orphaned]** Capital commitments cannot be edited, cancelled, or closed after creation
+  - `src/lib/development/server/commitment-actions.ts:183` · devos-sales-contracts
+  - Fix: On commitments/[id]/page.tsx add an 'Edit terms' form (→ updateCommitmentTerms), plus 'Cancel commitment' (reason → cancelCommitment) and 'Close commitment' (→ closeCommitment) buttons gated on commitment status/wallet balance.
+- **[wireup·orphaned]** Invoices cannot be voided from any UI (both invoice modules)
+  - `src/lib/development/server/invoice-actions.ts:313` · devos-sales-contracts
+  - Fix: Add a 'Void invoice' control (reason input → voidInvoice) on the finance invoice detail page and/or the milestone invoices list row, posting invoiceId + reason as FormData.
+- **[wireup·orphaned]** Drawings can be created but never revised — no "Add revision" UI
+  - `src/lib/development/server/drawings/drawing-actions.ts:106` · devos-procurement-site
+  - Fix: Add an "Add revision" button on the drawing detail page (next to the existing 'Distribution log' / 'All drawings' actions, ~page.tsx:75-87) opening an EntityFormModal that collects revisionLabel + documentId (file upload → documents) + revisionReason and calls addDrawingRevision({ drawingId, revisionLabel, documentId, ... }). Mirror the existing drawings-add-buttons.tsx createDrawing pattern.
+- **[wireup·orphaned]** Drawing distribution log is read-only — cannot log a distribution event
+  - `src/lib/development/server/drawings/drawing-actions.ts:235` · devos-procurement-site
+  - Fix: Add a 'Log distribution' button/modal on distribution/page.tsx that collects revisionId (select from the drawing's revisions), vendorId (vendor picker), distributionMethod (whatsapp/email/physical_print/...) and calls logDrawingDistribution({ revisionId, vendorId, distributionMethod, notes }).
+- **[wireup·orphaned]** Method statements can never be approved/activated — transition FSM has no UI
+  - `src/lib/development/server/method-statements/method-statement-actions.ts:116` · devos-procurement-site
+  - Fix: Add a status-transition control (Submit for review / Approve / Activate / Supersede buttons gated by VALID_NEXT) on the method-statement detail page, in a client island calling transitionMethodStatement({ methodId, to }). Reuse the pattern from drawings/[code]/_revision-actions.tsx.
+- **[wireup·orphaned]** Project risks can never change mitigation status — lifecycle has no UI
+  - `src/lib/development/server/risks/risk-actions.ts:98` · devos-procurement-site
+  - Fix: Add a mitigation-status transition control on risks/[code]/page.tsx (client island, Advance / Close-resolved / Close-realized buttons) calling transitionRiskStatus({ riskId, to, closedReason }). Also surface it on risk-radar/[code] and executive/risk/[id] which likewise only display the status.
+- **[wireup·orphaned]** Material consumption can never be recorded — breaks site→material-usage→finance bridge
+  - `src/lib/development/server/site-report-actions.ts:319` · devos-procurement-site
+  - Fix: Add a 'Record material consumption' form on the site-report detail page (per-zone: select PO line + quantityConsumed) calling recordMaterialConsumption({ reportId, zoneId, poLineId, quantityConsumed }). Show the resulting per-PO utilization on the page.
+- **[wireup·orphaned]** Approval-thresholds matrix is read-only despite being 'operator-configurable'
+  - `src/lib/development/server/procurement/procurement-actions.ts:594` · devos-procurement-site
+  - Fix: On the approval-thresholds settings page add 'Add tier' (createApprovalThreshold), inline edit (updateApprovalThreshold), and a 'Deactivate' action per row (deactivateApprovalThreshold), all in a director-gated client island. Schema fields: thresholdType, amountMinorMin/Max, currency, requiredRole, requiredApproverCount, notes.
+- **[wireup·orphaned]** Specifications cannot be superseded or deactivated — no lifecycle UI
+  - `src/lib/development/server/specifications/specification-actions.ts:87` · devos-procurement-site
+  - Fix: Add 'Deactivate' (deactivateSpecification({ id })) and 'Supersede' (modal collecting the replacement spec's fields → supersedeSpecification({ oldSpecificationId, newSpecInput })) buttons to the spec detail page actions area (~page.tsx:54-62).
+- **[wireup·orphaned]** QA-QC photos cannot be deleted — delete action orphaned
+  - `src/lib/development/server/qa-qc/qa-qc-photo-upload-actions.ts:216` · devos-procurement-site
+  - Fix: Add a per-photo delete control in the QA-QC photo gallery calling deleteQaQcPhoto({ photoId }) with a confirm; and add a requireOrgId() filter to the SELECT/DELETE while wiring it.
+- **[build·incomplete]** MFA is enrolled but never enforced at login — verifyMfaChallengeAction has no page; signInAction redirects straight to dashboard
+  - `src/features/auth/actions.ts:51` · security-team-settings
+  - Fix: After a successful supabase.auth.signInWithPassword in signInAction, check getMfaStatus(user.id); if a verified factor exists, set a 'mfa_pending' session marker and redirect to a new /login/mfa (or /setup/mfa/challenge) route that renders <MfaVerifyForm mode="challenge" />. Gate /dashboard (middleware or dashboard layout) so the marker must be cleared by verifyMfaChallengeAction before app access
+- **[wireup·orphaned]** MFA recovery-code login path (useRecoveryCodeAction) is orphaned — no UI; a user who loses their authenticator is locked out
+  - `src/features/security-baseline/mfa-actions.ts:131` · security-team-settings
+  - Fix: On the MFA challenge page (the route added in finding #1), add a 'Use a recovery code instead' link that reveals an input wired to useRecoveryCodeAction(null, fd). On success, clear the mfa_pending marker and redirect to /dashboard, same as verifyMfaChallengeAction.
+
+## LOW (9)
+- **[wireup·incomplete]** Director "convert without paid deposit" override branch has no UI — operator dead-ends on unpaid deposits
+  - `src/features/direct-booking/actions.ts:221` · direct-booking
+  - Fix: In ConvertToBookingButton (admin-buttons.tsx:85), add an optional override mode for director/super_admin: a checkbox input name="convertWithoutDeposit" value="true" plus a text input name="overrideReason", and change/remove the hardcoded finalStatus=confirmed (the override path forces 'tentative' anyway). Gate its visibility on a director/super_admin permission flag passed from requests/[id]/page.
+- **[wireup·orphaned]** Three guest-side notification actions are exported but wired to no UI (orphaned)
+  - `src/features/direct-booking/guest-status-actions.ts:236` · direct-booking
+  - Fix: For real value, wire guestArchiveNotificationAction: in status/page.tsx, on each notification <li> (around line 203-227) add a small client 'Dismiss' button that calls guestArchiveNotificationAction(token, n.id) — the action + the 'archived' filter already exist, so a dismissed update disappears on the next render. guestMarkNotificationReadAction can back a read/unread indicator if desired. guestM
+- **[wireup·orphaned]** safeRelocateBookingAction is an orphaned re-export wrapper; the 'relocate outside owner-stay flow' capability it advertises is unreachable
+  - `src/features/owner-stays/relocation-actions.ts:145` · owner-stays
+  - Fix: Either delete safeRelocateBookingAction as dead/duplicate code (apply is already wired), or — if a standalone emergency-relocation flow is actually wanted — build the missing piece: a UI + a candidate-discovery path that takes a bookingId directly (not gated on an owner-stay request), then mount a button. As-is it is a no-op duplicate, not a real second capability.
+- **[wireup·orphaned]** Pause a vendor↔service mapping has no UI
+  - `src/features/service-fulfilment/actions.ts:269` · guest-services / service-fulfilment / gu
+  - Fix: Add a PauseVendorServiceButton (useActionState over pauseVendorServiceAction, hidden vendorId+serviceId) next to each active mapping row in the Catalogue list of vendors/[id]/page.tsx.
+- **[wireup·orphaned]** Flag (moderate) a guest-service rating has no button
+  - `src/features/service-fulfilment/actions.ts:1497` · guest-services / service-fulfilment / gu
+  - Fix: Add a FlagRatingButton wrapper (useActionState over flagGuestServiceRatingAction, hidden id, optional reason input) in src/components/service-fulfilment/buttons.tsx and render it alongside HideRatingButton in the Actions column of ratings/page.tsx, gated on service_rating.manage.
+- **[wireup·incomplete]** Service requests cannot be cancelled and have no scheduled/in-progress steps
+  - `src/components/operations/service-request-actions.tsx:41-50 (UI) and src/features/operations/actions.ts:907-911 (no cancel wrapper)` · operations-maint (operations + maintenan
+  - Fix: Add a thin exported cancelServiceRequestAction calling transitionServiceRequest(formData, 'cancelled'), then add a Cancel button (and optionally Schedule / Start controls) to ServiceRequestActions, gated like MaintenanceStatusActions (hide on completed/cancelled).
+- **[wireup·orphaned]** Operator cannot flag a statement as needing changes (request-changes/dispute with notes)
+  - `src/features/finance/statement-actions.ts:92` · finance-statements
+  - Fix: Add a 'Request changes' button + notes textarea on the statement detail (src/app/(dashboard)/dashboard/finance/statements/[id]/page.tsx) and/or the finance statement panel, calling requestStatementChanges(statementId, notes), shown for draft/approved statements.
+- **[wireup·incomplete]** Archived owners cannot be reactivated from the per-row menu (unarchive action orphaned)
+  - `src/features/owners/actions.ts:489` · owners-intel
+  - Fix: In owners-row-actions.tsx, when kind==='owner' and row.status==='archived', swap the Archive item for a 'Reactivate' item whose onArchive-equivalent handler posts the id to unarchiveOwnerAction(null, fd) (mirror the villa/project archive↔unarchive toggle). The action already exists.
+- **[wireup·orphaned]** archiveDocumentAction (soft-archive) is orphaned — documents UI only offers hard delete
+  - `src/features/documents/actions.ts:108` · security-team-settings
+  - Fix: In documents-preview-pane.tsx add an 'Archive' button next to Delete that submits the doc id to archiveDocumentAction (and, for archived docs, an 'Unarchive' button — expose the existing transition(id,'active','document.unarchive') via a thin exported unarchiveDocumentAction). Lets operators retire documents without losing the record.

@@ -2,7 +2,10 @@ import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listPayoutBatches, listPayoutLines } from "@/features/finance/services";
+import { listOwners } from "@/features/owners/services";
 import { PayoutBatchAddButton } from "@/components/finance/payout-batch-add-button";
+import { PayoutLineAddButton } from "@/components/finance/payout-line-add-button";
+import { PayoutLineStatusButtons } from "@/components/finance/payout-line-status-buttons";
 import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Payouts" };
@@ -32,9 +35,20 @@ const LINE_LABEL: Record<string, string> = {
 };
 
 export default async function PayoutsPage() {
-  const batches = await listPayoutBatches();
-  const lines = await listPayoutLines();
+  const [batches, lines, owners] = await Promise.all([
+    listPayoutBatches(),
+    listPayoutLines(),
+    listOwners(),
+  ]);
   const ungrouped = lines.filter((l) => !l.payoutBatchId);
+
+  const ownerOptions = owners
+    .filter((o) => o.status !== "archived")
+    .map((o) => ({ id: o.id, label: o.displayName }));
+  const batchOptions = batches.map((b) => ({
+    id: b.id,
+    label: `${b.batchCode} · ${b.status}`,
+  }));
 
   return (
     <>
@@ -52,6 +66,7 @@ export default async function PayoutsPage() {
           </p>
         </div>
         <div className="actions">
+          <PayoutLineAddButton owners={ownerOptions} batches={batchOptions} />
           <PayoutBatchAddButton />
         </div>
       </div>
@@ -113,6 +128,7 @@ export default async function PayoutsPage() {
                 <th scope="col">Wire date</th>
                 <th scope="col">Status</th>
                 <th scope="col" className="num">Amount</th>
+                <th scope="col" className="num">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -128,6 +144,9 @@ export default async function PayoutsPage() {
                   </td>
                   <td className="num text-terra font-medium">
                     {formatMoneyMinor(l.amountMinor, l.currency)}
+                  </td>
+                  <td className="num">
+                    <PayoutLineStatusButtons lineId={l.id} status={l.status} />
                   </td>
                 </tr>
               ))}
