@@ -63,6 +63,9 @@ export interface OwnerRowVM {
   nationality: string | null;
   taxResidency: string | null;
   riskRowClass: string;
+  /** Relationship-manager display label (migration 0178), or null when
+   *  unassigned. Resolved from owners.assigned_app_user_id on the server. */
+  assignedTo: string | null;
   /** CRM tags assigned to this owner (column + filter). */
   tags: OwnerRowTag[];
 }
@@ -115,6 +118,7 @@ function toCsv(rows: OwnerRowVM[]): string {
     "Retention",
     "Portal",
     "Tags",
+    "Owner manager",
     "Status",
     "Nationality",
     "Tax residency",
@@ -132,6 +136,7 @@ function toCsv(rows: OwnerRowVM[]): string {
       r.riskLevel,
       r.portalStatus,
       r.tags.map((t) => t.label).join("; "),
+      r.assignedTo ?? "",
       r.status,
       r.nationality ?? "",
       r.taxResidency ?? "",
@@ -293,6 +298,7 @@ export function OwnersListClient({
               <TH>Retention</TH>
               <TH>Portal</TH>
               <TH>Tags</TH>
+              <TH>Owner manager</TH>
               <TH>Last contact</TH>
               <TH>Status</TH>
               <TH />
@@ -347,6 +353,13 @@ export function OwnersListClient({
                 <TD>
                   <OwnerTagsCell tags={o.tags} />
                 </TD>
+                <TD>
+                  {o.assignedTo ? (
+                    <Badge tone="accent">{o.assignedTo}</Badge>
+                  ) : (
+                    <span className="text-ink-tertiary text-sm">Unassigned</span>
+                  )}
+                </TD>
                 <TD className="text-ink-secondary text-sm font-mono">{o.lastContact ?? "—"}</TD>
                 <TD>
                   <Badge tone={statusTone[o.status] ?? "neutral"}>{o.status}</Badge>
@@ -389,7 +402,7 @@ export function OwnersListClient({
             ))}
             {filtered.length === 0 && (
               <TR>
-                <TD colSpan={10} className="py-10 text-center text-ink-tertiary text-sm">
+                <TD colSpan={11} className="py-10 text-center text-ink-tertiary text-sm">
                   No owners match these filters.
                 </TD>
               </TR>

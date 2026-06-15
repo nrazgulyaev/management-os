@@ -123,6 +123,12 @@ export default async function OwnersPage() {
   const assignOptions = appUsers
     .filter((u) => u.status === "active")
     .map((u) => ({ id: u.id, label: u.fullName || u.email }));
+  // Resolve the relationship-manager label (migration 0178) for the list
+  // column. Map over ALL app users (not just active) so an owner assigned to a
+  // since-deactivated manager still renders a name rather than a blank cell.
+  const appUserLabelById = new Map(
+    appUsers.map((u) => [u.id, u.fullName || u.email]),
+  );
 
   const activeCount = owners.filter((o) => o.status === "active").length;
   const onboardingCount = owners.filter((o) => o.status === "onboarding").length;
@@ -167,6 +173,9 @@ export default async function OwnersPage() {
     nationality: o.nationality,
     taxResidency: o.taxResidency,
     riskRowClass: riskRowClass[o.riskLevel] ?? "",
+    assignedTo: o.assignedAppUserId
+      ? (appUserLabelById.get(o.assignedAppUserId) ?? null)
+      : null,
     tags: (tagsBySubject.get(o.id) ?? []).map((t) => ({
       id: t.id,
       label: t.label,

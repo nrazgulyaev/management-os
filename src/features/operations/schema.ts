@@ -274,6 +274,15 @@ export const createServiceRequestSchema = z.object({
 
 export const serviceRequestIdSchema = z.object({ id: z.string().uuid() });
 
+// Resolve / close a damage report — records the terminal status + the actual
+// repair/charge cost. Transition is guarded server-side via
+// DAMAGE_REPORT_TRANSITIONS so an operator can't skip the review flow.
+export const resolveDamageReportSchema = z.object({
+  id: z.string().uuid(),
+  status: damageStatusEnum,
+  actualCostMinor: z.coerce.bigint().optional(),
+});
+
 export const createDamageReportSchema = z.object({
   title: z.string().min(2).max(200),
   description: z.string().max(4000).optional().or(z.literal("")),
@@ -385,3 +394,17 @@ export const createChecklistTemplateSchema = z.object({
 export type CreateChecklistTemplateInput = z.input<
   typeof createChecklistTemplateSchema
 >;
+
+// Edit an existing template — same shape as create minus the unique `key`
+// (which never changes once assigned). Items are fully replaced.
+export const editChecklistTemplateSchema = createChecklistTemplateSchema
+  .omit({ key: true })
+  .extend({ id: z.string().uuid() });
+
+export type EditChecklistTemplateInput = z.input<
+  typeof editChecklistTemplateSchema
+>;
+
+export const deleteChecklistTemplateSchema = z.object({
+  id: z.string().uuid(),
+});

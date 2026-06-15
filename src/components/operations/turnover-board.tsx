@@ -42,10 +42,22 @@ export interface TurnoverCard {
   badge?: string;
 }
 
+/** A cleaner option for the per-card assignment picker (+ today's load). */
+export interface CleanerOption {
+  id: string;
+  name: string;
+  currentLoad: number;
+}
+
 export interface TurnoverBoardProps {
   turnovers: TurnoverCard[];
   compact?: boolean;
   onMove?: (id: string, status: TurnoverStatus) => void;
+  /** Cleaner roster for the per-card assignment picker. When omitted the
+   * picker is hidden (read-only board). */
+  cleaners?: CleanerOption[];
+  /** Persist a manual cleaner assignment. `assigneeId` null = unassign. */
+  onAssign?: (id: string, assigneeId: string | null) => void;
   className?: string;
 }
 
@@ -56,7 +68,14 @@ const COLUMNS: { id: TurnoverStatus; label: string }[] = [
   { id: "done", label: "Done" },
 ];
 
-export function TurnoverBoard({ turnovers, compact, onMove, className }: TurnoverBoardProps) {
+export function TurnoverBoard({
+  turnovers,
+  compact,
+  onMove,
+  cleaners,
+  onAssign,
+  className,
+}: TurnoverBoardProps) {
   const [items, setItems] = React.useState(turnovers);
   React.useEffect(() => setItems(turnovers), [turnovers]);
 
@@ -95,7 +114,12 @@ export function TurnoverBoard({ turnovers, compact, onMove, className }: Turnove
               <SortableContext items={shown.map((c) => c.id)} strategy={verticalListSortingStrategy}>
                 <div className="tb-col-body">
                   {shown.map((c) => (
-                    <SortableTurnoverCard key={c.id} card={c} />
+                    <SortableTurnoverCard
+                      key={c.id}
+                      card={c}
+                      cleaners={cleaners}
+                      onAssign={onAssign}
+                    />
                   ))}
                   {overflow > 0 && <div className="tb-overflow mono">+{overflow} more</div>}
                 </div>
@@ -108,13 +132,22 @@ export function TurnoverBoard({ turnovers, compact, onMove, className }: Turnove
   );
 }
 
-function SortableTurnoverCard({ card }: { card: TurnoverCard }) {
+function SortableTurnoverCard({
+  card,
+  cleaners,
+  onAssign,
+}: {
+  card: TurnoverCard;
+  cleaners?: CleanerOption[];
+  onAssign?: (id: string, assigneeId: string | null) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: card.id });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.6 : 1,
   };
+  const showPicker = Boolean(cleaners && onAssign);
   return (
     <div ref={setNodeRef} style={style} className="tb-card" {...attributes} {...listeners}>
       <div className="tb-card-head">
@@ -126,6 +159,27 @@ function SortableTurnoverCard({ card }: { card: TurnoverCard }) {
         {card.guestCheckIn && <> → In {card.guestCheckIn}</>}
       </div>
       <StaffChip staff={card.assignee ?? null} />
+      {showPicker && (
+        // Stop pointer-down from reaching dnd-kit so opening the select
+        // doesn't start a drag.
+        <div
+          className="tb-card-assign mt-2"
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <select
+            className="w-full rounded border border-line-soft bg-surface px-1.5 py-1 text-xs"
+            value={card.assignee?.id ?? ""}
+            onChange={(e) => onAssign!(card.id, e.target.value === "" ? null : e.target.value)}
+          >
+            <option value="">Unassigned</option>
+            {cleaners!.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.currentLoad})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
     </div>
   );
 }

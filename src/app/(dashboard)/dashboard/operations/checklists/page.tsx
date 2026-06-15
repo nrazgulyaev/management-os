@@ -3,6 +3,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listChecklistTemplates } from "@/features/operations/services";
 import { ChecklistTemplateAddButton } from "@/components/operations/checklist-template-add-button";
+import { ChecklistTemplateRowActions } from "@/components/operations/checklist-template-row-actions";
 
 export const metadata = { title: "Operations · Checklists" };
 export const dynamic = "force-dynamic";
@@ -51,7 +52,18 @@ export default async function ChecklistsPage() {
                       </p>
                     )}
                   </div>
-                  <HandoffBadge tone="soft">{t.key}</HandoffBadge>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <HandoffBadge tone="soft">{t.key}</HandoffBadge>
+                    <ChecklistTemplateRowActions
+                      id={t.id}
+                      templateKey={t.key}
+                      name={t.name}
+                      category={t.category}
+                      description={t.description}
+                      villaType={t.villaType}
+                      items={t.items}
+                    />
+                  </div>
                 </li>
               ))}
             </ul>

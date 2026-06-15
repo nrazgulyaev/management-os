@@ -4,7 +4,9 @@ import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { PurchaseRequestStatusPill } from "@/components/procurement/purchase-status-pill";
 import { RequestActions } from "@/components/procurement/request-actions";
+import { PurchaseRequestLineAddButton } from "@/components/procurement/request-line-add-button";
 import { getPurchaseRequestById } from "@/features/procurement/services";
+import { listInventoryItems } from "@/features/inventory/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 import { formatMoneyMinor } from "@/lib/money";
 
@@ -21,6 +23,13 @@ export default async function PurchaseRequestDetail({
   if (!pr) notFound();
   const ctx = await getCurrentUserContext();
   const canApprove = hasPermission(ctx, "procurement.approve");
+  const canWrite = hasPermission(ctx, "procurement.write");
+  const lineEditable = !["ordered", "cancelled", "rejected"].includes(pr.status);
+  const items = canWrite && lineEditable ? await listInventoryItems() : [];
+  const itemOptions = items.map((i) => ({
+    id: i.id,
+    label: i.sku ? `${i.sku} · ${i.name}` : i.name,
+  }));
 
   return (
     <div className="flex flex-col gap-8">
@@ -71,7 +80,16 @@ export default async function PurchaseRequestDetail({
       )}
 
       <div>
-        <div className="label mb-2.5">Lines</div>
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="label">Lines</div>
+          {canWrite && lineEditable && (
+            <PurchaseRequestLineAddButton
+              requestId={pr.id}
+              items={itemOptions}
+              currency={pr.currency ?? "USD"}
+            />
+          )}
+        </div>
         {pr.lines.length === 0 ? (
           <p className="text-sm text-ink-tertiary">No lines on this request yet.</p>
         ) : (

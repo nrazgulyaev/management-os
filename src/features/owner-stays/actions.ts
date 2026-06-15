@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   ownerStayPolicies,
@@ -695,6 +695,70 @@ export async function addEquivalenceMemberAction(
       villaId: parsed.data.villaId,
       qualityRank: parsed.data.qualityRank,
     },
+  });
+  revalidatePath("/dashboard/owner-stays/equivalence-groups");
+  return { ok: true };
+}
+
+// Equivalence-group members can be added but never hard-removed. This flips the
+// member's existing status column to "archived" (the relocation engine already
+// filters on status='active', so an archived member drops out of swap candidates).
+// ORG-SCOPE: confirm the member's parent group belongs to this org (in-org
+// project OR global null-project, matching listEquivalenceGroups/Members reads)
+// before mutating, so a cross-org member id is a no-op not-found.
+export async function removeEquivalenceMemberAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("relocation.manage");
+  const id = String(formData.get("id") ?? "");
+  if (!id) return { ok: false, error: "Missing member id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Resolve the member + its parent group's org scope. Group is in-org when its
+  // project is in this org, OR when it is global (null projectId).
+  const [member] = await db
+    .select({
+      id: villaEquivalenceGroupMembers.id,
+      groupId: villaEquivalenceGroupMembers.groupId,
+      villaId: villaEquivalenceGroupMembers.villaId,
+      status: villaEquivalenceGroupMembers.status,
+      groupProjectId: villaEquivalenceGroups.projectId,
+      projectOrgId: projects.organizationId,
+    })
+    .from(villaEquivalenceGroupMembers)
+    .innerJoin(
+      villaEquivalenceGroups,
+      eq(villaEquivalenceGroups.id, villaEquivalenceGroupMembers.groupId),
+    )
+    .leftJoin(projects, eq(projects.id, villaEquivalenceGroups.projectId))
+    .where(
+      and(
+        eq(villaEquivalenceGroupMembers.id, id),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(villaEquivalenceGroups.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+
+  if (!member) return { ok: false, error: "Member not found." };
+
+  await db
+    .update(villaEquivalenceGroupMembers)
+    .set({ status: "archived" })
+    .where(eq(villaEquivalenceGroupMembers.id, member.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "relocation.group.remove_member",
+    entityType: "villa_equivalence_group",
+    entityId: member.groupId,
+    before: { villaId: member.villaId, status: member.status },
+    after: { villaId: member.villaId, status: "archived" },
   });
   revalidatePath("/dashboard/owner-stays/equivalence-groups");
   return { ok: true };

@@ -120,6 +120,22 @@ export const SERVICE_REQUEST_TRANSITIONS: Record<string, string[]> = {
   cancelled: [],
 };
 
+// Damage report lifecycle. The enum (schema.ts damageStatusEnum) is
+//   open → under_review → {approved → {charged | waived | repaired} | repaired}
+// → closed, with `archived` reachable from anywhere via the archive action
+// (not modelled here — archive is a soft-delete handled separately). Resolve
+// is the operator's path from `open`/`under_review` to a terminal outcome
+// (`charged`/`waived`/`repaired`/`closed`) while recording the actual cost.
+export const DAMAGE_REPORT_TRANSITIONS: Record<string, string[]> = {
+  open: ["under_review", "approved", "repaired", "waived", "closed"],
+  under_review: ["approved", "charged", "waived", "repaired", "closed"],
+  approved: ["charged", "waived", "repaired", "closed"],
+  charged: ["closed"],
+  waived: ["closed"],
+  repaired: ["charged", "waived", "closed"],
+  closed: [],
+};
+
 export function canTransition(
   table: Record<string, string[]>,
   from: string,

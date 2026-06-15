@@ -132,6 +132,13 @@ export interface DamageReportRow {
   createdAt: string;
 }
 
+export interface ChecklistTemplateItemRow {
+  section: string;
+  label: string;
+  itemType: string;
+  isRequired: boolean;
+}
+
 export interface ChecklistTemplateRow {
   id: string;
   key: string;
@@ -140,6 +147,8 @@ export interface ChecklistTemplateRow {
   description: string | null;
   villaType: string | null;
   itemCount: number;
+  /** Authored items, ordered by sort_order — fed to the edit control. */
+  items: ChecklistTemplateItemRow[];
 }
 
 export interface TaskChecklistItemRow {
@@ -578,6 +587,29 @@ export async function listChecklistTemplates(): Promise<WithSource<ChecklistTemp
     .groupBy(checklistTemplates.id)
     .orderBy(asc(checklistTemplates.name));
 
+  if (rows.length === 0) return [];
+
+  // Pull every item for the active templates in one query so the edit
+  // control can pre-fill without an extra round-trip per template.
+  const templateIds = rows.map((r) => r.t.id);
+  const items = await db
+    .select()
+    .from(checklistTemplateItems)
+    .where(inArray(checklistTemplateItems.templateId, templateIds))
+    .orderBy(asc(checklistTemplateItems.sortOrder));
+
+  const itemsByTemplate = new Map<string, ChecklistTemplateItemRow[]>();
+  for (const it of items) {
+    const bucket = itemsByTemplate.get(it.templateId) ?? [];
+    bucket.push({
+      section: it.section,
+      label: it.label,
+      itemType: it.itemType,
+      isRequired: it.isRequired,
+    });
+    itemsByTemplate.set(it.templateId, bucket);
+  }
+
   return rows.map((r) => ({
     source: "db" as const,
     id: r.t.id,
@@ -587,6 +619,7 @@ export async function listChecklistTemplates(): Promise<WithSource<ChecklistTemp
     description: r.t.description,
     villaType: r.t.villaType,
     itemCount: Number(r.itemCount ?? 0),
+    items: itemsByTemplate.get(r.t.id) ?? [],
   }));
 }
 

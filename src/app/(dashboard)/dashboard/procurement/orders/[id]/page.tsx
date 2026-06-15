@@ -2,9 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PurchaseOrderStatusPill } from "@/components/procurement/purchase-status-pill";
 import { ReceiveLineForm } from "@/components/procurement/receive-line-form";
+import { OrderActions } from "@/components/procurement/order-actions";
+import { PurchaseOrderLineAddButton } from "@/components/procurement/order-line-add-button";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { getPurchaseOrderById } from "@/features/procurement/services";
-import { listInventoryLocations } from "@/features/inventory/services";
+import { listInventoryLocations, listInventoryItems } from "@/features/inventory/services";
+import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Purchase order" };
@@ -41,6 +44,15 @@ export default async function PurchaseOrderDetail({
   const po = await getPurchaseOrderById(id);
   if (!po) notFound();
   const locations = await listInventoryLocations();
+  const ctx = await getCurrentUserContext();
+  const canApprove = hasPermission(ctx, "procurement.approve");
+  const canWrite = hasPermission(ctx, "procurement.write");
+  const lineEditable = !["received", "cancelled"].includes(po.status);
+  const items = canWrite && lineEditable ? await listInventoryItems() : [];
+  const itemOptions = items.map((i) => ({
+    id: i.id,
+    label: i.sku ? `${i.sku} · ${i.name}` : i.name,
+  }));
 
   const totalLabel =
     po.totalMinor !== null && po.currency
@@ -76,8 +88,9 @@ export default async function PurchaseOrderDetail({
             </span>
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex items-center gap-3">
           <PurchaseOrderStatusPill status={po.status} />
+          <OrderActions id={po.id} status={po.status} canApprove={canApprove} />
         </div>
       </div>
 
@@ -86,9 +99,18 @@ export default async function PurchaseOrderDetail({
       <div className="card overflow-hidden grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] mt-[18px]">
         {/* Left — line items + approval flow */}
         <div className="px-[28px] py-[22px] border-b lg:border-b-0 lg:border-r border-line-soft">
-          <h2 className="mono text-[10.5px] uppercase tracking-[0.18em] text-ink-3 font-medium mb-3.5">
-            Line items · {po.lines.length} SKU{po.lines.length === 1 ? "" : "s"}
-          </h2>
+          <div className="flex items-center justify-between mb-3.5">
+            <h2 className="mono text-[10.5px] uppercase tracking-[0.18em] text-ink-3 font-medium">
+              Line items · {po.lines.length} SKU{po.lines.length === 1 ? "" : "s"}
+            </h2>
+            {canWrite && lineEditable && (
+              <PurchaseOrderLineAddButton
+                purchaseOrderId={po.id}
+                items={itemOptions}
+                currency={po.currency ?? "USD"}
+              />
+            )}
+          </div>
           {po.lines.length === 0 ? (
             <p className="text-[12.5px] text-ink-3">No lines on this order.</p>
           ) : (

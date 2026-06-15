@@ -168,10 +168,21 @@ async function deriveTodaysTurnovers(
  * The cleaner roster (housekeepers / supervisors) with today's load —
  * the input to the deterministic allocator. Distinct on app_users so a
  * cleaner with multiple role rows is counted once.
+ *
+ * TENANCY (CRON CAVEAT): this is a SHARED reader — the request/page path
+ * (cleaner picker on /dashboard/operations/turnovers) calls it with no
+ * args and the org defaults to `requireOrgId()`, while the turnover-
+ * allocator cron passes its explicit `organizationId`. Both the roster
+ * SELECT (app_users.organization_id, NOT NULL + indexed) and the
+ * per-cleaner load count (turnovers → villa → project.organization_id)
+ * are scoped so a tenant only ever sees its own housekeepers + load.
  */
-export async function getCleanerWorkloads(): Promise<CleanerWorkload[]> {
+export async function getCleanerWorkloads(
+  organizationId: string | null = null,
+): Promise<CleanerWorkload[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = organizationId ?? (await requireOrgId());
 
   const rows = await db
     .selectDistinct({
@@ -181,18 +192,32 @@ export async function getCleanerWorkloads(): Promise<CleanerWorkload[]> {
     .from(appUsers)
     .innerJoin(userRoles, eq(userRoles.userId, appUsers.id))
     .innerJoin(roles, eq(roles.id, userRoles.roleId))
-    .where(and(eq(appUsers.status, "active"), inArray(roles.key, CLEANER_ROLE_KEYS)));
+    .where(
+      and(
+        eq(appUsers.organizationId, orgId),
+        eq(appUsers.status, "active"),
+        inArray(roles.key, CLEANER_ROLE_KEYS),
+      ),
+    );
 
   if (rows.length === 0) return [];
 
-  // Today's load per cleaner.
+  // Today's load per cleaner — scoped to this org via villa → project so a
+  // cleaner's count can't be inflated by another tenant's turnovers.
   const loadRows = await db
     .select({
       assigneeId: turnovers.assigneeUserId,
       load: sql<number>`count(*)::int`,
     })
     .from(turnovers)
-    .where(eq(turnovers.turnoverDate, sql`CURRENT_DATE`))
+    .innerJoin(villas, eq(villas.id, turnovers.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(turnovers.turnoverDate, sql`CURRENT_DATE`),
+        eq(projects.organizationId, orgId),
+      ),
+    )
     .groupBy(turnovers.assigneeUserId);
 
   const loadById = new Map<string, number>();

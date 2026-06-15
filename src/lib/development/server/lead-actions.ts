@@ -29,6 +29,7 @@ import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import { recordCrmActivity } from "@/features/crm-activity/services";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { recordAuditEvent } from "@/features/audit/services";
+import { recordConversion } from "@/lib/marketing/service";
 
 const createLeadSchema = z
   .object({
@@ -119,6 +120,30 @@ export async function createLead(formData: FormData): Promise<CreateLeadResult> 
   }
   const data = parsed.data;
 
+  // 0. TENANCY: when a projectId is supplied, confirm it belongs to the
+  //    caller's org BEFORE it is used to scope the dedup check, the
+  //    contact_roles insert, the interaction, the AI draft, and the
+  //    lead_created attribution conversion. Without this, a client-supplied
+  //    cross-org projectId would attribute a lead + conversion to another
+  //    tenant's project. The no-projectId (global) path is unchanged — it
+  //    already falls back to requireOrgId() below.
+  if (data.projectId) {
+    const callerOrgId = await requireOrgId();
+    const [ownProject] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, data.projectId),
+          eq(projects.organizationId, callerOrgId),
+        ),
+      )
+      .limit(1);
+    if (!ownProject) {
+      return { ok: false, error: "Project not found." };
+    }
+  }
+
   // 1. Find or create the contact (dedup by email/phone).
   const { contact } = await findOrCreateContact({
     fullName: data.fullName,
@@ -188,14 +213,50 @@ export async function createLead(formData: FormData): Promise<CreateLeadResult> 
   }
 
   revalidatePath(`${DEVELOPMENT_APP_PATH}/sales`);
+  // Resolve the lead's org (project's org when project-scoped, else the
+  // caller's org) so the revalidate AND the attribution conversion below are
+  // tenant-correct.
+  let leadOrgId: string | null = null;
   if (data.projectId) {
     const proj = await db
-      .select({ slug: projects.slug })
+      .select({ slug: projects.slug, organizationId: projects.organizationId })
       .from(projects)
       .where(eq(projects.id, data.projectId))
       .limit(1);
     if (proj[0]) {
+      leadOrgId = proj[0].organizationId;
       revalidatePath(`${DEVELOPMENT_APP_PATH}/projects/${proj[0].slug}`);
+    }
+  }
+  if (!leadOrgId) {
+    // Global / project-less lead — fall back to the caller's org. Never throws
+    // the whole lead-create on an auth edge; attribution is best-effort.
+    try {
+      leadOrgId = await requireOrgId();
+    } catch {
+      leadOrgId = null;
+    }
+  }
+
+  // ATTRIBUTION (Stage 6.P4) — record the lead_created conversion so the
+  // attribution engine has a real conversion to attribute touchpoints to.
+  // Org-scoped to the lead's resolved org (never cross-org); best-effort so a
+  // failure here never blocks lead creation.
+  if (leadOrgId) {
+    try {
+      await recordConversion({
+        organizationId: leadOrgId,
+        conversionType: "lead_created",
+        contactId: contact.id,
+        convertedAt: new Date(),
+        metadata: {
+          contactRoleId: role.id,
+          projectId: data.projectId ?? null,
+          via: "development_os.create_lead",
+        },
+      });
+    } catch (err) {
+      console.warn("[lead-actions] recordConversion(lead_created) failed", err);
     }
   }
 

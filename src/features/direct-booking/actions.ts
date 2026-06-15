@@ -42,6 +42,7 @@ import {
 } from "./schema";
 import { runBookingAutomationForBooking } from "@/features/booking-automation/services";
 import { syncBookingCalendarBlock } from "@/features/availability/services";
+import { recordConversion } from "@/lib/marketing/service";
 import type { ActionResult } from "@/features/projects/actions";
 
 // =============================================================================
@@ -369,6 +370,30 @@ export async function convertDirectBookingRequestToBookingAction(
       overrideReason: parsed.data.overrideReason ?? null,
     },
   });
+
+  // ATTRIBUTION (Stage 6.P4) — booking confirmation is the definitive
+  // reservation_booked conversion. Org-scoped to the caller's org (resolved &
+  // enforced above on the request load); value = the hold total. Guest lives
+  // in `guests`, not `contacts`, so contactId is intentionally omitted (it FKs
+  // contacts.id). Best-effort: never roll back a confirmed booking on failure.
+  try {
+    await recordConversion({
+      organizationId,
+      conversionType: "reservation_booked",
+      conversionValueMinor: totalMinor,
+      conversionCurrency: hold.currency,
+      convertedAt: new Date(),
+      metadata: {
+        via: "direct_booking.convert",
+        bookingId: bookingRow.id,
+        bookingCode: bookingRow.bookingCode,
+        requestId: parsed.data.id,
+        finalStatus: effectiveFinalStatus,
+      },
+    });
+  } catch (err) {
+    console.warn("[direct-booking] recordConversion(reservation_booked) failed", err);
+  }
 
   revalidatePath(`/dashboard/direct-bookings/requests/${parsed.data.id}`);
   revalidatePath(`/dashboard/bookings/${bookingRow.id}`);
