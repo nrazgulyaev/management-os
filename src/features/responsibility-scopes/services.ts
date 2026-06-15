@@ -28,7 +28,8 @@ export interface ResponsibilityScopeRow {
   createdAt: string;
 }
 
-export async function listResponsibilityScopes(opts?: {
+export async function listResponsibilityScopes(opts: {
+  organizationId: string;
   userId?: string;
   projectId?: string;
   villaId?: string;
@@ -37,7 +38,11 @@ export async function listResponsibilityScopes(opts?: {
 }): Promise<ResponsibilityScopeRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: user_responsibility_scopes.organization_id is NOT NULL
+  // (migration 0155). Always scope to the caller's org.
+  const filters = [
+    eq(userResponsibilityScopes.organizationId, opts.organizationId),
+  ];
   if (opts?.userId) filters.push(eq(userResponsibilityScopes.userId, opts.userId));
   if (opts?.projectId)
     filters.push(eq(userResponsibilityScopes.projectId, opts.projectId));
@@ -58,7 +63,7 @@ export async function listResponsibilityScopes(opts?: {
     .leftJoin(appUsers, eq(appUsers.id, userResponsibilityScopes.userId))
     .leftJoin(projectsTable, eq(projectsTable.id, userResponsibilityScopes.projectId))
     .leftJoin(villas, eq(villas.id, userResponsibilityScopes.villaId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(asc(appUsers.fullName));
   return rows.map((r) => ({
     id: r.s.id,

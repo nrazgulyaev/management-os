@@ -391,10 +391,19 @@ export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
 export async function listStayEventsForBooking(bookingId: string) {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: booking_stay_events.organization_id is set (0155). Scope to the
+  // caller's org — the service-role connection bypasses RLS, so without this a
+  // foreign bookingId would leak another org's stay-event history.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(bookingStayEvents)
-    .where(eq(bookingStayEvents.bookingId, bookingId))
+    .where(
+      and(
+        eq(bookingStayEvents.bookingId, bookingId),
+        eq(bookingStayEvents.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(bookingStayEvents.eventAt));
   return rows.map((r) => ({
     id: r.id,

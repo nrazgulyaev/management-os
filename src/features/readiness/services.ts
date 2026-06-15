@@ -7,6 +7,7 @@ import {
   type NewVillaReadinessState,
 } from "@/lib/db/schema/availability";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * V9A — readiness timeline reads. Pure DB. The "current" state is the
@@ -57,10 +58,19 @@ export async function getCurrentVillaReadiness(
 
 export async function listCurrentReadiness(opts?: {
   projectId?: string;
+  // TENANCY: defaults to the caller's resolved org. villa_readiness_states.org
+  // is a nullable backfill column, so we anchor on the durable
+  // projects.organization_id (villa -> project) and use inner joins so the
+  // org filter is enforced (a state row whose villa/project is foreign drops).
+  organizationId?: string;
 }): Promise<CurrentReadinessRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [isNull(villaReadinessStates.effectiveTo)];
+  const organizationId = opts?.organizationId ?? (await requireOrgId());
+  const filters = [
+    isNull(villaReadinessStates.effectiveTo),
+    eq(projectsTable.organizationId, organizationId),
+  ];
   if (opts?.projectId) filters.push(eq(villas.projectId, opts.projectId));
   const rows = await db
     .select({
@@ -69,8 +79,8 @@ export async function listCurrentReadiness(opts?: {
       projectName: projectsTable.name,
     })
     .from(villaReadinessStates)
-    .leftJoin(villas, eq(villas.id, villaReadinessStates.villaId))
-    .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .innerJoin(villas, eq(villas.id, villaReadinessStates.villaId))
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
     .where(and(...filters))
     .orderBy(asc(villas.unitCode));
   return rows.map((r) => ({

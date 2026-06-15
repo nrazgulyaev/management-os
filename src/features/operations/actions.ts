@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   checklistTemplateItems,
@@ -788,10 +788,36 @@ export async function generateDuePreventiveTasksAction(): Promise<
   const organizationId = await requireOrgId();
   const today = todayYmd();
 
+  // TENANCY: preventive_schedules has no organization_id; its only org anchor
+  // is villaId / projectId. Scope the due-schedule read to the caller's org
+  // (same subquery pattern as listPreventiveSchedules) so this can't
+  // materialise another tenant's schedules into operation_tasks stamped with
+  // the caller's org.
   const due = await db
     .select()
     .from(preventiveSchedules)
-    .where(eq(preventiveSchedules.status, "active"));
+    .where(
+      and(
+        eq(preventiveSchedules.status, "active"),
+        or(
+          inArray(
+            preventiveSchedules.projectId,
+            db
+              .select({ id: projects.id })
+              .from(projects)
+              .where(eq(projects.organizationId, organizationId)),
+          ),
+          inArray(
+            preventiveSchedules.villaId,
+            db
+              .select({ id: villas.id })
+              .from(villas)
+              .innerJoin(projects, eq(projects.id, villas.projectId))
+              .where(eq(projects.organizationId, organizationId)),
+          ),
+        )!,
+      ),
+    );
 
   let generated = 0;
   for (const s of due) {
@@ -923,6 +949,46 @@ export async function cancelServiceRequestAction(
   return transitionServiceRequest(formData, "cancelled");
 }
 
+/**
+ * TENANCY: `service_requests` has no organization_id column — its only org
+ * anchors are the (nullable) villaId / bookingId / taskId. Resolve the row's
+ * owning org transitively (villa -> project, else booking, else linked task)
+ * and return true only when it matches the caller's org. All-null / mismatch
+ * is treated as not found so a cross-org operator can't transition the row.
+ */
+async function serviceRequestBelongsToOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  anchors: { villaId: string | null; bookingId: string | null; taskId: string | null },
+  organizationId: string,
+): Promise<boolean> {
+  if (anchors.villaId) {
+    const [v] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, anchors.villaId))
+      .limit(1);
+    if (v?.organizationId) return v.organizationId === organizationId;
+  }
+  if (anchors.bookingId) {
+    const [b] = await db
+      .select({ organizationId: bookings.organizationId })
+      .from(bookings)
+      .where(eq(bookings.id, anchors.bookingId))
+      .limit(1);
+    if (b?.organizationId) return b.organizationId === organizationId;
+  }
+  if (anchors.taskId) {
+    const [t] = await db
+      .select({ organizationId: operationTasks.organizationId })
+      .from(operationTasks)
+      .where(eq(operationTasks.id, anchors.taskId))
+      .limit(1);
+    if (t?.organizationId) return t.organizationId === organizationId;
+  }
+  return false;
+}
+
 async function transitionServiceRequest(
   formData: FormData,
   to: "accepted" | "completed" | "cancelled",
@@ -933,6 +999,7 @@ async function transitionServiceRequest(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const [before] = await db
     .select()
@@ -940,6 +1007,9 @@ async function transitionServiceRequest(
     .where(eq(serviceRequests.id, parsed.data.id))
     .limit(1);
   if (!before) return { ok: false, error: "Service request not found." };
+  if (!(await serviceRequestBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Service request not found." };
+  }
   if (!canTransition(SERVICE_REQUEST_TRANSITIONS, before.status, to)) {
     return {
       ok: false,

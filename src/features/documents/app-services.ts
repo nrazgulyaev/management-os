@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { documents } from "@/lib/db/schema/documents";
 import {
@@ -191,6 +191,22 @@ export interface DocDetail {
 export async function getDocDetail(documentId: string): Promise<DocDetail> {
   const db = getDb();
   if (!db) return { versions: [], signatures: [] };
+
+  // TENANCY-FINANCE-DOCS — verify the parent document is in the caller's org
+  // before exposing its versions / signature requests. A cross-org id (the
+  // route only auth-gates, it doesn't org-scope) returns empty.
+  const organizationId = await requireOrgId();
+  const [doc] = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.id, documentId),
+        eq(documents.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!doc) return { versions: [], signatures: [] };
 
   const [vRows, sRows] = await Promise.all([
     db

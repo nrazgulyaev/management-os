@@ -8,6 +8,7 @@ import { requireOrgId } from "@/features/auth/require-org";
 import {
   inventoryCountLines,
   inventoryCounts,
+  inventoryLocations,
 } from "@/lib/db/schema/inventory";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -45,13 +46,29 @@ export async function createInventoryCountAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+
+  // TENANCY: a client-supplied locationId must belong to the caller's org
+  // before we anchor a count to it (otherwise the count + its preloaded lines
+  // would be stamped to our org but reference a foreign location).
+  const [location] = await db
+    .select({ id: inventoryLocations.id })
+    .from(inventoryLocations)
+    .where(and(
+      eq(inventoryLocations.id, parsed.data.locationId),
+      eq(inventoryLocations.organizationId, organizationId),
+    ))
+    .limit(1);
+  if (!location) return { ok: false, error: "Location not found." };
+
   const counter = await nextCountCounter();
   const code = buildCountCode(counter);
 
   const [row] = await db
     .insert(inventoryCounts)
     .values({
+      organizationId,
       countCode: code,
       locationId: parsed.data.locationId,
       countedBy: me?.id ?? null,

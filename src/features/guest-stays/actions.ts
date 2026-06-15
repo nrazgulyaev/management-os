@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestStayTokens,
+  smartLockAccessCodes,
 } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
 import { serviceRequests } from "@/lib/db/schema/operations";
@@ -202,7 +203,28 @@ export async function revokeSmartLockStubAction(
   await requirePermission("smart_lock.manage");
   const id = String(formData.get("id") ?? "");
   if (!id) return { ok: false, error: "Missing id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenancy guard: smart_lock_access_codes has no organization_id of its own —
+  // its tenant is derived via the parent booking. Resolve the code joined to a
+  // booking inside the caller's org so a cross-org code id reads as "not found"
+  // and can never be revoked from another tenant.
+  const [scoped] = await db
+    .select({ id: smartLockAccessCodes.id })
+    .from(smartLockAccessCodes)
+    .innerJoin(bookings, eq(bookings.id, smartLockAccessCodes.bookingId))
+    .where(
+      and(
+        eq(smartLockAccessCodes.id, id),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!scoped) return { ok: false, error: "Smart-lock code not found." };
+
   const out = await revokeStubSmartLockCode(id, me?.id ?? null);
   if (!out.ok) return { ok: false, error: out.reason ?? "revoke failed" };
   await recordAuditEvent({

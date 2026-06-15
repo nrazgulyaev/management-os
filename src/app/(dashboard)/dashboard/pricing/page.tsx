@@ -11,6 +11,7 @@ import { CompTable, type CompRow } from "@/components/pricing/comp-table";
 import { buildPricingRecommendations } from "@/features/dynamic-pricing/recommendations";
 import { requireCabinetAccess } from "@/features/keystone/access";
 import { CabinetGate } from "@/components/keystone/cabinet-gate";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Dynamic pricing — per-villa "production view" (prototype mgmt-p2).
@@ -129,15 +130,21 @@ export default async function PricingProductionView({
     peerMedian > 0 && usAdr > 0 ? Math.round((usAdr / peerMedian) * 100) : null;
 
   const todayIso = new Date().toISOString().slice(0, 10);
+  // Pass org so a raw ?villa= for another tenant resolves to no rule set, and
+  // so the rule list is scoped to the caller's org.
+  const organizationId = await requireOrgId();
   const { ruleSet, cells } = selectedVillaId
     ? await quoteDynamicCalendar({
         villaId: selectedVillaId,
         startDate: todayIso,
         days: DAYS,
+        organizationId,
       }).catch(() => ({ ruleSet: null, cells: [] as QuoteCalendarCell[] }))
     : { ruleSet: null, cells: [] as QuoteCalendarCell[] };
 
-  const rules = ruleSet ? await listPricingRulesForSet(ruleSet.id).catch(() => null) : null;
+  const rules = ruleSet
+    ? await listPricingRulesForSet(ruleSet.id, organizationId).catch(() => null)
+    : null;
 
   const currency = ruleSet?.currency ?? "USD";
   const baseMinor = ruleSet?.baseRateMinor ?? 0n;

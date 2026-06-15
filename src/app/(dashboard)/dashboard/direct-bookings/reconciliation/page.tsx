@@ -5,6 +5,7 @@ import {
   listDirectBookingFinanceLinks,
 } from "@/features/direct-booking/finance-reconciliation";
 import { directBookingFinanceStatusLabel } from "@/features/direct-booking/finance-pure";
+import { requireOrgId } from "@/features/auth/require-org";
 import { ReconcilePendingButton } from "@/components/direct-booking/reconcile-buttons";
 
 export const metadata = { title: "Direct booking reconciliation" };
@@ -30,9 +31,10 @@ export default async function ReconciliationHub({
   const sp = (await searchParams) ?? {};
   type LinkStatus = Parameters<typeof directBookingFinanceStatusLabel>[0];
   const status = (sp.status as LinkStatus | undefined) || undefined;
+  const organizationId = await requireOrgId();
   const [metrics, rows] = await Promise.all([
-    getReconciliationMetrics(),
-    listDirectBookingFinanceLinks({ status, limit: 200 }),
+    getReconciliationMetrics(organizationId),
+    listDirectBookingFinanceLinks(organizationId, { status, limit: 200 }),
   ]);
   return (
     <div className="flex flex-col gap-10">

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDirectBookingFinanceLinkById } from "@/features/direct-booking/finance-reconciliation";
 import { directBookingFinanceStatusLabel } from "@/features/direct-booking/finance-pure";
+import { requireOrgId } from "@/features/auth/require-org";
 import { ReverseLinkForm } from "@/components/direct-booking/reconcile-buttons";
 
 export const metadata = { title: "Finance link" };
@@ -26,7 +27,8 @@ export default async function FinanceLinkDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const link = await getDirectBookingFinanceLinkById(id);
+  const organizationId = await requireOrgId();
+  const link = await getDirectBookingFinanceLinkById(id, organizationId);
   if (!link) notFound();
   type LinkStatus = Parameters<typeof directBookingFinanceStatusLabel>[0];
   const lab = directBookingFinanceStatusLabel(link.status as LinkStatus);

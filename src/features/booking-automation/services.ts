@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   bookingAutomationRules,
@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/schema/integrations";
 import { bookings } from "@/lib/db/schema/bookings";
 import { villas } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   checklistTemplateItems,
   checklistTemplates,
@@ -55,6 +56,7 @@ export interface AutomationRunRow {
 export async function listBookingAutomationRules(): Promise<WithSource<AutomationRuleRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       r: bookingAutomationRules,
@@ -62,6 +64,13 @@ export async function listBookingAutomationRules(): Promise<WithSource<Automatio
     })
     .from(bookingAutomationRules)
     .leftJoin(villas, eq(villas.id, bookingAutomationRules.villaId))
+    // TENANCY: caller's own rules + NULL-org legacy/seed rows (migration 0154).
+    .where(
+      or(
+        eq(bookingAutomationRules.organizationId, organizationId),
+        isNull(bookingAutomationRules.organizationId),
+      ),
+    )
     .orderBy(asc(bookingAutomationRules.ruleName));
   return rows.map((r) => ({
     source: "db" as const,
@@ -86,6 +95,14 @@ export async function listBookingAutomationRuns(opts?: {
 }): Promise<WithSource<AutomationRunRow>[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
+  // TENANCY: scope to the caller's org (+ NULL-org legacy rows, migration
+  // 0154). The page-level call (no bookingId) otherwise returned the latest
+  // 200 runs across every tenant.
+  const orgFilter = or(
+    eq(bookingAutomationRuns.organizationId, organizationId),
+    isNull(bookingAutomationRuns.organizationId),
+  );
   const rows = await db
     .select({
       run: bookingAutomationRuns,
@@ -100,7 +117,11 @@ export async function listBookingAutomationRuns(opts?: {
     )
     .leftJoin(bookings, eq(bookings.id, bookingAutomationRuns.bookingId))
     .leftJoin(operationTasks, eq(operationTasks.id, bookingAutomationRuns.taskId))
-    .where(opts?.bookingId ? eq(bookingAutomationRuns.bookingId, opts.bookingId) : undefined)
+    .where(
+      opts?.bookingId
+        ? and(eq(bookingAutomationRuns.bookingId, opts.bookingId), orgFilter)
+        : orgFilter,
+    )
     .orderBy(desc(bookingAutomationRuns.createdAt))
     .limit(200);
   return rows.map((r) => ({
@@ -128,15 +149,27 @@ export type { TitleContext };
 // Default rule seeder — idempotent.
 // -----------------------------------------------------------------------------
 
-export async function createDefaultBookingAutomationRulesIfMissing(): Promise<number> {
+export async function createDefaultBookingAutomationRulesIfMissing(
+  organizationId?: string,
+): Promise<number> {
   const db = getDb();
   if (!db) return 0;
+  const orgId = organizationId ?? (await requireOrgId());
+  // TENANCY: count only the caller's own rules (+ NULL-org legacy rows) so a
+  // fresh tenant still seeds its defaults once another org has seeded.
   const [existing] = await db
     .select({ count: sql<number>`count(*)` })
-    .from(bookingAutomationRules);
+    .from(bookingAutomationRules)
+    .where(
+      or(
+        eq(bookingAutomationRules.organizationId, orgId),
+        isNull(bookingAutomationRules.organizationId),
+      ),
+    );
   if (Number(existing?.count ?? 0) > 0) return 0;
   await db.insert(bookingAutomationRules).values(
     DEFAULT_RULES.map((r) => ({
+      organizationId: orgId,
       ruleName: r.ruleName,
       triggerEvent: r.triggerEvent,
       taskCategory: r.taskCategory,
@@ -188,6 +221,9 @@ export async function runBookingAutomationForBooking(
     .where(eq(villas.id, booking.villaId))
     .limit(1);
 
+  // TENANCY: only evaluate the booking's own org rules (+ NULL-org legacy/
+  // seed rules from migration 0154). Without this, every tenant's active
+  // rules fired against this booking.
   const rules = await db
     .select()
     .from(bookingAutomationRules)
@@ -195,6 +231,10 @@ export async function runBookingAutomationForBooking(
       and(
         eq(bookingAutomationRules.status, "active"),
         eq(bookingAutomationRules.triggerEvent, "booking_created"),
+        or(
+          eq(bookingAutomationRules.organizationId, booking.organizationId),
+          isNull(bookingAutomationRules.organizationId),
+        ),
       ),
     );
 
@@ -231,6 +271,8 @@ export async function runBookingAutomationForBooking(
       results.push(result);
 
       await db.insert(bookingAutomationRuns).values({
+        // TENANCY: run row inherits the booking's org (migration 0154).
+        organizationId: booking.organizationId,
         bookingId,
         ruleId: rule.id,
         taskId: result.taskId ?? null,
@@ -254,6 +296,8 @@ export async function runBookingAutomationForBooking(
     } catch (e) {
       const message = e instanceof Error ? e.message : "automation failure";
       await db.insert(bookingAutomationRuns).values({
+        // TENANCY: run row inherits the booking's org (migration 0154).
+        organizationId: booking.organizationId,
         bookingId,
         ruleId: rule.id,
         runStatus: "failed",

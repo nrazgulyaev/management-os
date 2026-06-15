@@ -16,6 +16,8 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { projects, villas } from "@/lib/db/schema/projects";
 import {
   adminQuoteStaySchema,
   archivePricingRuleSchema,
@@ -51,11 +53,34 @@ export async function createPricingRuleSetAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+
+  // Validate any client-supplied project/villa FK belongs to the caller's org
+  // before stamping it onto a tenant-anchored rule set (no cross-org scoping).
+  if (v.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(and(eq(projects.id, v.projectId), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    if (!proj) return { ok: false, error: "Project not found." };
+  }
+  if (v.villaId) {
+    const [villa] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(and(eq(villas.id, v.villaId), eq(projects.organizationId, organizationId)))
+      .limit(1);
+    if (!villa) return { ok: false, error: "Villa not found." };
+  }
+
   const [row] = await db
     .insert(pricingRuleSets)
     .values({
+      organizationId,
       ruleSetCode: v.ruleSetCode,
       name: v.name,
       scopeType: v.scopeType,
@@ -96,6 +121,7 @@ export async function updatePricingRuleSetAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const { id, ...v } = parsed.data;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -109,7 +135,12 @@ export async function updatePricingRuleSetAction(
   await db
     .update(pricingRuleSets)
     .set(updates)
-    .where(eq(pricingRuleSets.id, id));
+    .where(
+      and(
+        eq(pricingRuleSets.id, id),
+        eq(pricingRuleSets.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "dynamic_pricing.rule_set.update",
@@ -129,11 +160,17 @@ async function setRuleSetStatus(
   await requirePermission(permission);
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   await db
     .update(pricingRuleSets)
     .set({ status, updatedAt: new Date() })
-    .where(eq(pricingRuleSets.id, id));
+    .where(
+      and(
+        eq(pricingRuleSets.id, id),
+        eq(pricingRuleSets.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `dynamic_pricing.rule_set.${status}`,
@@ -171,6 +208,30 @@ export async function archivePricingRuleSetAction(
 // RULES (upsert / create / archive)
 // =============================================================================
 
+/**
+ * Guard: a client-supplied ruleSetId must belong to the caller's org before
+ * any rule write hangs a child rule off it. pricing_rule_sets carries
+ * organization_id (0153). Returns false for a cross-org / missing id.
+ */
+async function ruleSetInOrg(
+  ruleSetId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: pricingRuleSets.id })
+    .from(pricingRuleSets)
+    .where(
+      and(
+        eq(pricingRuleSets.id, ruleSetId),
+        eq(pricingRuleSets.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
 export async function upsertDayOfWeekRuleAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -182,19 +243,25 @@ export async function upsertDayOfWeekRuleAction(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   const [existing] = await db
     .select()
     .from(pricingDayOfWeekRules)
     .where(
       and(
         eq(pricingDayOfWeekRules.ruleSetId, v.ruleSetId),
+        eq(pricingDayOfWeekRules.organizationId, organizationId),
         eq(pricingDayOfWeekRules.weekday, v.weekday),
       ),
     )
     .limit(1);
   const values = {
+    organizationId,
     ruleSetId: v.ruleSetId,
     weekday: v.weekday,
     modifierType: v.modifierType,
@@ -210,7 +277,12 @@ export async function upsertDayOfWeekRuleAction(
     await db
       .update(pricingDayOfWeekRules)
       .set(values)
-      .where(eq(pricingDayOfWeekRules.id, existing.id));
+      .where(
+        and(
+          eq(pricingDayOfWeekRules.id, existing.id),
+          eq(pricingDayOfWeekRules.organizationId, organizationId),
+        ),
+      );
   } else {
     await db.insert(pricingDayOfWeekRules).values(values);
   }
@@ -239,9 +311,14 @@ export async function upsertOccupancyRuleAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   await db.insert(pricingOccupancyRules).values({
+    organizationId,
     ruleSetId: v.ruleSetId,
     occupancyMin: String(v.occupancyMin),
     occupancyMax: String(v.occupancyMax),
@@ -274,9 +351,14 @@ export async function upsertCloseOutRuleAction(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   await db.insert(pricingCloseOutRules).values({
+    organizationId,
     ruleSetId: v.ruleSetId,
     daysBeforeCheckinMin: v.daysBeforeCheckinMin,
     daysBeforeCheckinMax: v.daysBeforeCheckinMax,
@@ -313,19 +395,25 @@ export async function upsertChannelRuleAction(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   const [existing] = await db
     .select()
     .from(pricingChannelRules)
     .where(
       and(
         eq(pricingChannelRules.ruleSetId, v.ruleSetId),
+        eq(pricingChannelRules.organizationId, organizationId),
         eq(pricingChannelRules.channelKey, v.channelKey),
       ),
     )
     .limit(1);
   const values = {
+    organizationId,
     ruleSetId: v.ruleSetId,
     channelKey: v.channelKey,
     modifierType: v.modifierType,
@@ -341,7 +429,12 @@ export async function upsertChannelRuleAction(
     await db
       .update(pricingChannelRules)
       .set(values)
-      .where(eq(pricingChannelRules.id, existing.id));
+      .where(
+        and(
+          eq(pricingChannelRules.id, existing.id),
+          eq(pricingChannelRules.organizationId, organizationId),
+        ),
+      );
   } else {
     await db.insert(pricingChannelRules).values(values);
   }
@@ -378,9 +471,14 @@ export async function createMinStayRuleAction(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   await db.insert(pricingMinStayRules).values({
+    organizationId,
     ruleSetId: v.ruleSetId,
     name: v.name,
     startsOn: v.startsOn ?? null,
@@ -413,9 +511,14 @@ export async function createStopSellRuleAction(
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  if (!(await ruleSetInOrg(v.ruleSetId, organizationId))) {
+    return { ok: false, error: "Rule set not found." };
+  }
   await db.insert(pricingStopSellRules).values({
+    organizationId,
     ruleSetId: v.ruleSetId,
     name: v.name,
     startsOn: v.startsOn,
@@ -447,6 +550,7 @@ export async function archivePricingRuleAction(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const target =
     parsed.data.ruleType === "day_of_week"
@@ -463,7 +567,12 @@ export async function archivePricingRuleAction(
   await db
     .update(target)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(target.id, parsed.data.id));
+    .where(
+      and(
+        eq(target.id, parsed.data.id),
+        eq(target.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `dynamic_pricing.${parsed.data.ruleType}.archive`,
@@ -487,12 +596,16 @@ export async function adminQuoteStayAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  // Dashboard quote tester — pass the caller's org so a cross-org villaId
+  // resolves to no rule set (empty stay) instead of pricing a foreign villa.
+  const organizationId = await requireOrgId();
   const result = await quoteDynamicStay({
     villaId: parsed.data.villaId,
     checkIn: parsed.data.checkIn,
     checkOut: parsed.data.checkOut,
     channelKey: parsed.data.channelKey,
     publicQuote: false,
+    organizationId,
   });
   return {
     ok: true,
@@ -513,6 +626,7 @@ export async function simulateChannelPushAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await simulateChannelPushForRatePlan({
     ruleSetId: parsed.data.ruleSetId,
@@ -521,6 +635,7 @@ export async function simulateChannelPushAction(
     channelKey: parsed.data.channelKey,
     eventType: parsed.data.eventType,
     createdBy: me?.id ?? null,
+    organizationId,
   });
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -558,11 +673,24 @@ export async function upsertVillaRateOverrideAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+  // The (villaId, stayDate) unique key lets a cross-org villaId overwrite
+  // another tenant's override. Verify the villa belongs to the caller's org
+  // (via projects.organization_id) BEFORE the upsert, and stamp the org on
+  // the row.
+  const [villa] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(and(eq(villas.id, villaId), eq(projects.organizationId, organizationId)))
+    .limit(1);
+  if (!villa) return { ok: false, error: "Villa not found." };
   const rateMinor = BigInt(Math.round(nightlyRateMinor));
   await db
     .insert(villaRateOverrides)
     .values({
+      organizationId,
       villaId,
       stayDate,
       nightlyRateMinor: rateMinor,
@@ -595,12 +723,14 @@ export async function deleteVillaRateOverrideAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   await db
     .delete(villaRateOverrides)
     .where(
       and(
         eq(villaRateOverrides.villaId, villaId),
+        eq(villaRateOverrides.organizationId, organizationId),
         eq(villaRateOverrides.stayDate, stayDate),
       ),
     );

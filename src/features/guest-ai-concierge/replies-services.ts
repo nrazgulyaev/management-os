@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestAiHandoffReplies,
@@ -8,6 +8,7 @@ import {
   type GuestAiHandoffReply,
 } from "@/lib/db/schema/guest-ai-concierge";
 import { appUsers } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface AdminReplyRow extends GuestAiHandoffReply {
   authorName: string | null;
@@ -22,6 +23,12 @@ export async function listAdminRepliesForHandoff(
 ): Promise<AdminReplyRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: guest_ai_handoff_replies.organization_id is a nullable 0154
+  // backfill anchor. NULL rows (pre-threading) are allowed; set-but-mismatched
+  // rows belong to another tenant's handoff and must never enter this admin
+  // timeline (it exposes internal_only notes + raw bodies). The page-level
+  // getHandoffDetail is not org-gated, so this read is the enforcement seam.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       r: guestAiHandoffReplies,
@@ -32,7 +39,15 @@ export async function listAdminRepliesForHandoff(
       appUsers,
       eq(appUsers.id, guestAiHandoffReplies.authorAppUserId),
     )
-    .where(eq(guestAiHandoffReplies.handoffId, handoffId))
+    .where(
+      and(
+        eq(guestAiHandoffReplies.handoffId, handoffId),
+        or(
+          isNull(guestAiHandoffReplies.organizationId),
+          eq(guestAiHandoffReplies.organizationId, organizationId),
+        ),
+      ),
+    )
     .orderBy(asc(guestAiHandoffReplies.createdAt));
   return rows.map((r) => ({
     ...r.r,
@@ -115,10 +130,28 @@ export async function markGuestReadAt(args: {
 
 export async function markStaffReadAt(args: {
   handoffId: string;
+  /** When set, the handoff must belong to this org (NULL anchor allowed,
+   *  set-but-mismatched rejected) before any staff read-state is mutated. */
+  organizationId?: string;
   now?: Date;
 }): Promise<void> {
   const db = getDb();
   if (!db) return;
+  if (args.organizationId) {
+    const [handoff] = await db
+      .select({ organizationId: guestAiHandoffs.organizationId })
+      .from(guestAiHandoffs)
+      .where(eq(guestAiHandoffs.id, args.handoffId))
+      .limit(1);
+    // Unknown handoff or another tenant's handoff → no cross-org state write.
+    if (
+      !handoff ||
+      (handoff.organizationId &&
+        handoff.organizationId !== args.organizationId)
+    ) {
+      return;
+    }
+  }
   const now = args.now ?? new Date();
   await db
     .update(guestAiHandoffReplies)

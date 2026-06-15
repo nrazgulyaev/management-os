@@ -2,9 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { and, eq, isNull, or } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import {
+  directBookingHolds,
+  directBookingRequests,
+} from "@/lib/db/schema/direct-booking";
+import { directBookingDeposits } from "@/lib/db/schema/payments";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   rebuildGuestStatusSnapshotForHold,
   rebuildGuestStatusSnapshotForRequest,
@@ -22,6 +30,102 @@ import {
   setThreadStatus,
 } from "./guest-messages";
 import type { ActionResult } from "@/features/projects/actions";
+
+// -----------------------------------------------------------------------------
+// TENANCY guards — the rebuild/queue services intentionally stay org-agnostic
+// for the token-driven public sync path. The admin actions below must verify
+// the form-supplied entity belongs to the caller's org BEFORE invoking those
+// services, so an operator cannot force a snapshot rebuild / inject a guest
+// notification over another tenant's hold (and read its money fields back).
+// Nullable legacy org rows (pre-0153 backfill) are still accepted.
+// -----------------------------------------------------------------------------
+
+/** True if a hold exists and belongs to the caller's org (or is legacy-NULL). */
+async function holdInOrg(holdId: string, organizationId: string): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: directBookingHolds.id })
+    .from(directBookingHolds)
+    .where(
+      and(
+        eq(directBookingHolds.id, holdId),
+        or(
+          isNull(directBookingHolds.organizationId),
+          eq(directBookingHolds.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+async function requestInOrg(
+  requestId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: directBookingRequests.id })
+    .from(directBookingRequests)
+    .where(
+      and(
+        eq(directBookingRequests.id, requestId),
+        or(
+          isNull(directBookingRequests.organizationId),
+          eq(directBookingRequests.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+async function depositInOrg(
+  depositId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: directBookingDeposits.id })
+    .from(directBookingDeposits)
+    .where(
+      and(
+        eq(directBookingDeposits.id, depositId),
+        or(
+          isNull(directBookingDeposits.organizationId),
+          eq(directBookingDeposits.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
+
+/** A booking is anchored to the org via its direct-booking request. */
+async function bookingInOrg(
+  bookingId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: directBookingRequests.id })
+    .from(directBookingRequests)
+    .where(
+      and(
+        eq(directBookingRequests.bookingId, bookingId),
+        or(
+          isNull(directBookingRequests.organizationId),
+          eq(directBookingRequests.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  return !!row;
+}
 
 // -----------------------------------------------------------------------------
 // Admin: rebuild snapshot
@@ -43,17 +147,26 @@ export async function rebuildDirectBookingGuestStatusAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   let outcome:
     | Awaited<ReturnType<typeof rebuildGuestStatusSnapshotForHold>>
     | null = null;
   if (parsed.data.holdId) {
+    if (!(await holdInOrg(parsed.data.holdId, organizationId)))
+      return { ok: false, error: "Not found." };
     outcome = await rebuildGuestStatusSnapshotForHold(parsed.data.holdId);
   } else if (parsed.data.requestId) {
+    if (!(await requestInOrg(parsed.data.requestId, organizationId)))
+      return { ok: false, error: "Not found." };
     outcome = await rebuildGuestStatusSnapshotForRequest(parsed.data.requestId);
   } else if (parsed.data.depositId) {
+    if (!(await depositInOrg(parsed.data.depositId, organizationId)))
+      return { ok: false, error: "Not found." };
     outcome = await rebuildGuestStatusSnapshotForDeposit(parsed.data.depositId);
   } else if (parsed.data.bookingId) {
+    if (!(await bookingInOrg(parsed.data.bookingId, organizationId)))
+      return { ok: false, error: "Not found." };
     outcome = await rebuildGuestStatusSnapshotForBooking(parsed.data.bookingId);
   } else {
     return { ok: false, error: "Provide one of holdId, requestId, depositId, bookingId." };
@@ -100,6 +213,11 @@ export async function adminQueueGuestNotificationAction(
       ok: false,
       error: parsed.error.issues[0]?.message ?? "Invalid input.",
     };
+  const organizationId = await requireOrgId();
+  // TENANCY: an operator cannot inject a guest-facing notification onto another
+  // tenant's hold.
+  if (!(await holdInOrg(parsed.data.holdId, organizationId)))
+    return { ok: false, error: "Not found." };
   const me = await getCurrentAppUser();
   const out = await queueDirectBookingGuestNotification({
     holdId: parsed.data.holdId,
@@ -113,6 +231,7 @@ export async function adminQueueGuestNotificationAction(
     publicActionHref: parsed.data.publicActionHref ?? null,
     severity: parsed.data.severity,
     dedupeKey: parsed.data.dedupeKey,
+    organizationId,
   });
   if (!out.ok) return { ok: false, error: out.reason ?? "queue_failed" };
   await recordAuditEvent({
@@ -149,12 +268,14 @@ export async function adminReplyToGuestBookingThreadAction(
       ok: false,
       error: parsed.error.issues[0]?.message ?? "Invalid input.",
     };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const out = await createStaffMessageInThread(
     parsed.data.threadId,
     parsed.data.body,
     parsed.data.visibility,
     me?.id ?? null,
+    organizationId,
   );
   if (!out.ok) return { ok: false, error: out.reason ?? "reply_failed" };
   await recordAuditEvent({
@@ -182,8 +303,9 @@ export async function adminSetGuestThreadStatusAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  await setThreadStatus(parsed.data.threadId, parsed.data.status);
+  await setThreadStatus(parsed.data.threadId, parsed.data.status, organizationId);
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "direct_booking.guest_thread.set_status",
@@ -207,7 +329,8 @@ export async function adminMarkThreadReadAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Invalid input." };
-  await markStaffThreadRead(parsed.data.threadId);
+  const organizationId = await requireOrgId();
+  await markStaffThreadRead(parsed.data.threadId, organizationId);
   revalidatePath(`/dashboard/direct-bookings/messages/${parsed.data.threadId}`);
   return { ok: true };
 }

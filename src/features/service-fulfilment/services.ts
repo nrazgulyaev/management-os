@@ -280,12 +280,26 @@ export async function listFulfilmentEvents(
 ): Promise<ServiceFulfilmentEvent[]> {
   const db = getDb();
   if (!db) return [];
-  return db
-    .select()
+  // TENANCY: events.organization_id is nullable (0153 backfill), so anchor org
+  // through the parent fulfilment (NOT NULL-trusted by sibling readers) rather
+  // than the event's own column. A foreign fulfilmentId then yields no rows.
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select({ event: serviceFulfilmentEvents })
     .from(serviceFulfilmentEvents)
-    .where(eq(serviceFulfilmentEvents.fulfilmentId, fulfilmentId))
+    .innerJoin(
+      guestServiceFulfilments,
+      eq(guestServiceFulfilments.id, serviceFulfilmentEvents.fulfilmentId),
+    )
+    .where(
+      and(
+        eq(serviceFulfilmentEvents.fulfilmentId, fulfilmentId),
+        eq(guestServiceFulfilments.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(serviceFulfilmentEvents.createdAt))
     .limit(limit);
+  return rows.map((r) => r.event);
 }
 
 export interface VendorInvoiceRow {
@@ -393,6 +407,9 @@ export async function listFulfilmentsForBooking(
 ): Promise<FulfilmentRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: scope to the caller's org via the fulfilment's org column
+  // (sibling readers trust it) so a foreign bookingId yields nothing.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       fulfilment: guestServiceFulfilments,
@@ -415,7 +432,12 @@ export async function listFulfilmentsForBooking(
       eq(serviceVendors.id, guestServiceFulfilments.vendorId),
     )
     .leftJoin(villas, eq(villas.id, guestServiceOrders.villaId))
-    .where(eq(guestServiceOrders.bookingId, bookingId))
+    .where(
+      and(
+        eq(guestServiceOrders.bookingId, bookingId),
+        eq(guestServiceFulfilments.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(guestServiceFulfilments.createdAt));
   return rows.map((r) => ({
     fulfilment: r.fulfilment,

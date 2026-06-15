@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import {
@@ -181,6 +181,10 @@ export async function createStaffMessageInThread(
   body: string,
   visibility: "guest_visible" | "internal_only",
   createdByAppUserId: string | null,
+  // TENANCY: the action passes requireOrgId() so a staff reply cannot land in
+  // another tenant's thread. Nullable legacy org rows (pre-0153 backfill) are
+  // still accepted via or(isNull(...)).
+  organizationId: string,
 ): Promise<CreateGuestMessageOutcome> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
@@ -189,7 +193,15 @@ export async function createStaffMessageInThread(
   const [thread] = await db
     .select()
     .from(directBookingGuestMessageThreads)
-    .where(eq(directBookingGuestMessageThreads.id, threadId))
+    .where(
+      and(
+        eq(directBookingGuestMessageThreads.id, threadId),
+        or(
+          isNull(directBookingGuestMessageThreads.organizationId),
+          eq(directBookingGuestMessageThreads.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!thread) return { ok: false, reason: "not_found" };
   const redacted = redactGuestMessage(body);
@@ -246,16 +258,33 @@ export async function markGuestThreadReadForToken(
 
 export async function markStaffThreadRead(
   threadId: string,
+  // TENANCY: the action passes requireOrgId(); a cross-org thread resolves to
+  // not_found before any unread counter is reset.
+  organizationId: string,
 ): Promise<{ ok: boolean; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
+  const [thread] = await db
+    .select({ id: directBookingGuestMessageThreads.id })
+    .from(directBookingGuestMessageThreads)
+    .where(
+      and(
+        eq(directBookingGuestMessageThreads.id, threadId),
+        or(
+          isNull(directBookingGuestMessageThreads.organizationId),
+          eq(directBookingGuestMessageThreads.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!thread) return { ok: false, reason: "not_found" };
   const now = new Date();
   await db
     .update(directBookingGuestMessages)
     .set({ readByStaffAt: now })
     .where(
       and(
-        eq(directBookingGuestMessages.threadId, threadId),
+        eq(directBookingGuestMessages.threadId, thread.id),
         sql`${directBookingGuestMessages.readByStaffAt} IS NULL`,
         eq(directBookingGuestMessages.authorType, "guest"),
       ),
@@ -263,7 +292,7 @@ export async function markStaffThreadRead(
   await db
     .update(directBookingGuestMessageThreads)
     .set({ staffUnreadCount: 0, updatedAt: now })
-    .where(eq(directBookingGuestMessageThreads.id, threadId));
+    .where(eq(directBookingGuestMessageThreads.id, thread.id));
   return { ok: true };
 }
 
@@ -353,13 +382,24 @@ export async function getAdminThreadById(
 export async function setThreadStatus(
   threadId: string,
   status: "open" | "closed" | "archived",
+  // TENANCY: the action passes requireOrgId() so an operator cannot
+  // open/close/archive another tenant's thread.
+  organizationId: string,
 ): Promise<{ ok: boolean }> {
   const db = getDb();
   if (!db) return { ok: false };
   await db
     .update(directBookingGuestMessageThreads)
     .set({ status, updatedAt: new Date() })
-    .where(eq(directBookingGuestMessageThreads.id, threadId));
+    .where(
+      and(
+        eq(directBookingGuestMessageThreads.id, threadId),
+        or(
+          isNull(directBookingGuestMessageThreads.organizationId),
+          eq(directBookingGuestMessageThreads.organizationId, organizationId),
+        ),
+      ),
+    );
   return { ok: true };
 }
 
@@ -387,12 +427,19 @@ export async function listAdminSnapshots(opts?: {
 }): Promise<AdminSnapshotRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const { directBookingGuestStatusSnapshots } = await import(
     "@/lib/db/schema/direct-booking-guest"
   );
+  // TENANCY: list only the caller's tenant snapshots (legacy NULL-org rows
+  // stay visible until the 0153 backfill completes).
+  const orgFilter = or(
+    isNull(directBookingGuestStatusSnapshots.organizationId),
+    eq(directBookingGuestStatusSnapshots.organizationId, organizationId),
+  );
   const where = opts?.stage
-    ? eq(directBookingGuestStatusSnapshots.publicStage, opts.stage)
-    : undefined;
+    ? and(eq(directBookingGuestStatusSnapshots.publicStage, opts.stage), orgFilter)
+    : orgFilter;
   const rows = await db
     .select()
     .from(directBookingGuestStatusSnapshots)
@@ -424,13 +471,24 @@ export async function getAdminSnapshotById(
 ): Promise<AdminSnapshotRow | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const { directBookingGuestStatusSnapshots } = await import(
     "@/lib/db/schema/direct-booking-guest"
   );
+  // TENANCY: a foreign snapshot id resolves to null (page calls notFound()),
+  // closing leakage of another org's hold/request/deposit/booking ids.
   const [r] = await db
     .select()
     .from(directBookingGuestStatusSnapshots)
-    .where(eq(directBookingGuestStatusSnapshots.id, id))
+    .where(
+      and(
+        eq(directBookingGuestStatusSnapshots.id, id),
+        or(
+          isNull(directBookingGuestStatusSnapshots.organizationId),
+          eq(directBookingGuestStatusSnapshots.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!r) return null;
   return {

@@ -85,6 +85,7 @@ export default async function VillaAvailabilityPage({
       startDate: todayStr,
       days: 30,
       channelKey: "direct",
+      organizationId,
     }),
   ]);
 

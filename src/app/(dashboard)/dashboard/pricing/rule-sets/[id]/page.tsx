@@ -7,6 +7,7 @@ import {
   listPricingRulesForSet,
 } from "@/features/dynamic-pricing/services";
 import { listVillas } from "@/features/villas/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   AddRuleEditor,
   ArchiveRuleButton,
@@ -36,10 +37,11 @@ export default async function RuleSetDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const organizationId = await requireOrgId();
   const set = await getPricingRuleSetById(id);
   if (!set) notFound();
   const [rules, villas] = await Promise.all([
-    listPricingRulesForSet(id),
+    listPricingRulesForSet(id, organizationId),
     listVillas().catch(() => []),
   ]);
   const cur = set.currency;
@@ -54,7 +56,7 @@ export default async function RuleSetDetailPage({
   let previewVilla: (typeof villas)[number] | null = null;
   if (set.status === "active") {
     for (const v of coveredVillas.slice(0, 4)) {
-      const applicable = await getApplicablePricingRuleSet(v.id).catch(() => null);
+      const applicable = await getApplicablePricingRuleSet(v.id, organizationId).catch(() => null);
       if (applicable?.id === set.id) {
         previewVilla = v;
         break;

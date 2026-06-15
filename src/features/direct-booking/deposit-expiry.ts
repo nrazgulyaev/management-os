@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, lt, inArray } from "drizzle-orm";
+import { and, eq, isNull, lt, inArray, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   directBookingDepositEvents,
@@ -57,13 +57,30 @@ export async function expireDeposit(
   depositId: string,
   actorUserId: string | null = null,
   now: Date = new Date(),
+  /**
+   * TENANCY: when provided (tenant-initiated expiry), a deposit owned by
+   * another org reads as not_found before any status flip + cascade. The
+   * cron sweep (expireUnpaidDeposits) omits it and runs unscoped.
+   */
+  organizationId?: string,
 ): Promise<{ ok: boolean; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
   const [deposit] = await db
     .select()
     .from(directBookingDeposits)
-    .where(eq(directBookingDeposits.id, depositId))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingDeposits.id, depositId),
+            // NULL org = legacy pre-backfill row, allowed for the internal caller.
+            or(
+              eq(directBookingDeposits.organizationId, organizationId),
+              isNull(directBookingDeposits.organizationId),
+            ),
+          )
+        : eq(directBookingDeposits.id, depositId),
+    )
     .limit(1);
   if (!deposit) return { ok: false, reason: "not_found" };
   if (deposit.status === "expired") return { ok: true, reason: "already_expired" };

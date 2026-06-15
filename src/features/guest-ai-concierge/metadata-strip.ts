@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { guestAiHandoffReplyAttachments } from "@/lib/db/schema/guest-ai-concierge";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -242,7 +242,10 @@ function failedOutcome(
  * Sweep `pending` rows and process them. Used by the admin
  * "Strip pending metadata" button + the cron cleanup job.
  */
-export async function processPendingAttachments(opts?: {
+export async function processPendingAttachments(opts: {
+  /** Tenant whose pending attachments to sweep. Required so the admin
+   *  "Strip pending metadata" button never reaches across orgs. */
+  organizationId: string;
   limit?: number;
 }): Promise<{
   scanned: number;
@@ -256,8 +259,19 @@ export async function processPendingAttachments(opts?: {
   const rows = await db
     .select({ id: guestAiHandoffReplyAttachments.id })
     .from(guestAiHandoffReplyAttachments)
-    .where(eq(guestAiHandoffReplyAttachments.metadataStatus, "pending"))
-    .limit(opts?.limit ?? 50);
+    .where(
+      and(
+        eq(guestAiHandoffReplyAttachments.metadataStatus, "pending"),
+        or(
+          isNull(guestAiHandoffReplyAttachments.organizationId),
+          eq(
+            guestAiHandoffReplyAttachments.organizationId,
+            opts.organizationId,
+          ),
+        ),
+      ),
+    )
+    .limit(opts.limit ?? 50);
   let succeeded = 0;
   let failed = 0;
   let warnings = 0;

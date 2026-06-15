@@ -19,7 +19,7 @@
  */
 
 import { getDb } from "@/lib/db/client";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { milestones, milestoneDependencies } from "@/lib/db/schema/milestones";
 import {
   detectScheduleVariance,
@@ -53,9 +53,23 @@ export async function run(input: ScheduleVarianceInput): Promise<ScheduleVarianc
   const db = getDb();
   if (!db) return { flags: [], scanned: 0 };
 
+  // TENANCY: scope both reads by the agent's org. milestones +
+  // milestone_dependencies both carry organization_id, so a cron run for one
+  // tenant never inspects (or flags) another tenant's schedule.
   const milestoneRows = input.projectId
-    ? await db.select().from(milestones).where(eq(milestones.projectId, input.projectId))
-    : await db.select().from(milestones);
+    ? await db
+        .select()
+        .from(milestones)
+        .where(
+          and(
+            eq(milestones.organizationId, input.organizationId),
+            eq(milestones.projectId, input.projectId),
+          ),
+        )
+    : await db
+        .select()
+        .from(milestones)
+        .where(eq(milestones.organizationId, input.organizationId));
 
   if (milestoneRows.length === 0) return { flags: [], scanned: 0 };
 
@@ -65,7 +79,12 @@ export async function run(input: ScheduleVarianceInput): Promise<ScheduleVarianc
   const edges = await db
     .select()
     .from(milestoneDependencies)
-    .where(inArray(milestoneDependencies.toMilestoneId, ids));
+    .where(
+      and(
+        eq(milestoneDependencies.organizationId, input.organizationId),
+        inArray(milestoneDependencies.toMilestoneId, ids),
+      ),
+    );
 
   const { flags, scanned } = detectScheduleVariance(
     milestoneRows.map((m) => ({

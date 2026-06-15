@@ -238,13 +238,20 @@ export interface FinanceLinkRow {
   bookingCode: string | null;
 }
 
-export async function listDirectBookingFinanceLinks(opts?: {
-  status?: FinanceLinkStatus;
-  limit?: number;
-}): Promise<FinanceLinkRow[]> {
+export async function listDirectBookingFinanceLinks(
+  organizationId: string,
+  opts?: {
+    status?: FinanceLinkStatus;
+    limit?: number;
+  },
+): Promise<FinanceLinkRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  // TENANCY: scope finance links to the caller's org so the reconciliation
+  // hub never lists another tenant's money rows.
+  const filters: ReturnType<typeof eq>[] = [
+    eq(directBookingFinanceLinks.organizationId, organizationId),
+  ];
   if (opts?.status)
     filters.push(eq(directBookingFinanceLinks.status, opts.status));
   const rows = await db
@@ -259,7 +266,7 @@ export async function listDirectBookingFinanceLinks(opts?: {
       eq(directBookingRequests.id, directBookingFinanceLinks.requestId),
     )
     .leftJoin(bookings, eq(bookings.id, directBookingFinanceLinks.bookingId))
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(directBookingFinanceLinks.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({
@@ -271,13 +278,20 @@ export async function listDirectBookingFinanceLinks(opts?: {
 
 export async function getDirectBookingFinanceLinkById(
   id: string,
+  organizationId: string,
 ): Promise<DirectBookingFinanceLink | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY: a cross-org link id resolves to null (page calls notFound()).
   const [row] = await db
     .select()
     .from(directBookingFinanceLinks)
-    .where(eq(directBookingFinanceLinks.id, id))
+    .where(
+      and(
+        eq(directBookingFinanceLinks.id, id),
+        eq(directBookingFinanceLinks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -704,6 +718,10 @@ export async function reverseDirectBookingFinanceLink(
 export async function reconcileDirectBookingsBatch(
   limit: number,
   actorUserId: string | null,
+  // TENANCY: a tenant action must only sweep its own converted requests; the
+  // action passes requireOrgId() so other orgs' postings/notifications are
+  // never triggered by one tenant's reconcile click.
+  organizationId: string,
 ): Promise<{ posted: number; skipped: number; failed: number }> {
   const db = getDb();
   if (!db) return { posted: 0, skipped: 0, failed: 0 };
@@ -719,6 +737,7 @@ export async function reconcileDirectBookingsBatch(
     )
     .where(
       and(
+        eq(directBookingRequests.organizationId, organizationId),
         eq(directBookingRequests.status, "converted"),
         sql`${directBookingFinanceLinks.id} IS NULL OR ${directBookingFinanceLinks.status} NOT IN ('posted','reversed')`,
       ),
@@ -750,7 +769,9 @@ export interface ReconciliationMetrics {
   currency: string | null;
 }
 
-export async function getReconciliationMetrics(): Promise<ReconciliationMetrics> {
+export async function getReconciliationMetrics(
+  organizationId: string,
+): Promise<ReconciliationMetrics> {
   const db = getDb();
   if (!db) {
     return {
@@ -778,7 +799,9 @@ export async function getReconciliationMetrics(): Promise<ReconciliationMetrics>
         totalBalanceDueMinor: sql<string | null>`SUM(${directBookingFinanceLinks.balanceDueMinor}) FILTER (WHERE ${directBookingFinanceLinks.status} = 'posted')::text`,
         currency: sql<string | null>`MIN(${directBookingFinanceLinks.currency}) FILTER (WHERE ${directBookingFinanceLinks.status} = 'posted')`,
       })
-      .from(directBookingFinanceLinks),
+      .from(directBookingFinanceLinks)
+      // TENANCY: KPI counts + balance-due sum must cover only this tenant.
+      .where(eq(directBookingFinanceLinks.organizationId, organizationId)),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(directBookingRequests)
@@ -788,6 +811,7 @@ export async function getReconciliationMetrics(): Promise<ReconciliationMetrics>
       )
       .where(
         and(
+          eq(directBookingRequests.organizationId, organizationId),
           eq(directBookingRequests.status, "converted"),
           isNull(directBookingFinanceLinks.id),
         ),

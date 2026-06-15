@@ -60,11 +60,15 @@ export async function createSupplierAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [row] = await db
     .insert(suppliers)
-    .values(emptyToNull(parsed.data) as typeof suppliers.$inferInsert)
+    .values({
+      ...(emptyToNull(parsed.data) as typeof suppliers.$inferInsert),
+      organizationId,
+    })
     .returning({ id: suppliers.id });
 
   await recordAuditEvent({
@@ -96,11 +100,13 @@ export async function createInventoryLocationAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [row] = await db
     .insert(inventoryLocations)
     .values({
+      organizationId,
       name: parsed.data.name,
       locationType: parsed.data.locationType,
       description: parsed.data.description && parsed.data.description !== "" ? parsed.data.description : null,
@@ -137,11 +143,13 @@ export async function createInventoryCategoryAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [row] = await db
     .insert(inventoryCategories)
     .values({
+      organizationId,
       key: parsed.data.key,
       name: parsed.data.name,
       parentId: parsed.data.parentId ?? null,
@@ -176,12 +184,14 @@ export async function createInventoryItemAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const d = parsed.data;
   const [row] = await db
     .insert(inventoryItems)
     .values({
+      organizationId,
       name: d.name,
       sku: d.sku && d.sku !== "" ? d.sku : null,
       categoryId: d.categoryId ?? null,
@@ -758,6 +768,7 @@ export async function createTaskMaterialUsageAction(
   const [usage] = await db
     .insert(taskMaterialUsage)
     .values({
+      organizationId,
       taskId: d.taskId,
       itemId: d.itemId,
       locationId: d.locationId,

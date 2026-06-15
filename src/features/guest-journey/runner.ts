@@ -82,10 +82,19 @@ export async function ensureJourneyRunsForBooking(
     stayTokenIssuedAt: stayToken?.createdAt ?? null,
   };
 
+  // TENANCY: only materialize runs for rules in the BOOKING's org. The booking
+  // org is server-derived (getBookingForJourney), so this is safe on both the
+  // request path and the cron path — a booking never matches another tenant's
+  // rules.
   const activeRules = await db
     .select()
     .from(guestJourneyRules)
-    .where(eq(guestJourneyRules.status, "active"));
+    .where(
+      and(
+        eq(guestJourneyRules.status, "active"),
+        eq(guestJourneyRules.organizationId, booking.organizationId),
+      ),
+    );
 
   let created = 0;
   let updated = 0;
@@ -219,6 +228,13 @@ export async function runGuestJourneyRuleForBooking(
   if (!rule || !booking) {
     await markRunSkipped(run.id, "missing_rule_or_booking");
     return { status: "skipped", skipReason: "missing_rule_or_booking" };
+  }
+  // TENANCY: the rule must belong to the same org as the booking. A foreign
+  // ruleId (cross-tenant) is never dispatched against this booking. Both orgs
+  // are server-derived, so this holds on the cron path too.
+  if (rule.organizationId !== booking.organizationId) {
+    await markRunSkipped(run.id, "rule_org_mismatch");
+    return { status: "skipped", skipReason: "rule_org_mismatch" };
   }
   const stayToken = await getActiveStayTokenForBooking(bookingId);
 

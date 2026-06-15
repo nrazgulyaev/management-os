@@ -126,7 +126,7 @@ export async function listOwnerBookingSummariesForOwner(
 
 export async function getOwnerBookingSummaryById(
   id: string,
-  opts?: { ownerOnly?: boolean },
+  opts?: { ownerOnly?: boolean; organizationId?: string },
 ): Promise<OwnerBookingSummaryRow | null> {
   const db = getDb();
   if (!db) return null;
@@ -138,6 +138,14 @@ export async function getOwnerBookingSummaryById(
     conditions.push(inArray(ownerBookingSummaries.ownerId, ownerIds));
   } else if (ownerIds && ownerIds.length === 0) {
     return null;
+  }
+  // TENANCY: the admin (owner-intelligence) path has no ownerOnly grant filter.
+  // owner_booking_summaries carries organization_id, so the admin caller passes
+  // its verified org and we hard-scope the lookup; a cross-org id reads as null.
+  if (opts?.organizationId) {
+    conditions.push(
+      eq(ownerBookingSummaries.organizationId, opts.organizationId),
+    );
   }
   const rows = await readSummariesRaw(conditions);
   return rows[0] ?? null;

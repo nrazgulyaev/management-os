@@ -5,6 +5,7 @@ import {
   getDepositById,
   listDepositEvents,
 } from "@/features/direct-booking/deposits";
+import { requireOrgId } from "@/features/auth/require-org";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
 import {
   CancelDepositButton,
@@ -33,9 +34,10 @@ export default async function DepositDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const deposit = await getDepositById(id);
+  const organizationId = await requireOrgId();
+  const deposit = await getDepositById(id, organizationId);
   if (!deposit) notFound();
-  const events = await listDepositEvents(id);
+  const events = await listDepositEvents(id, 100, organizationId);
   type DepStatus = Parameters<typeof adminDepositStatusLabel>[0];
   const lab = adminDepositStatusLabel(deposit.status as DepStatus);
   const isPayable =

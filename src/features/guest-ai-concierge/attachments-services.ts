@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestAiHandoffReplies,
   guestAiHandoffReplyAttachments,
@@ -29,16 +30,31 @@ export async function listAdminAttachmentsForHandoff(
 ): Promise<AdminAttachmentRow[]> {
   const db = getDb();
   if (!db) return [];
-  const rows = await db
-    .select()
-    .from(guestAiHandoffReplyAttachments)
-    .where(
-      and(
-        eq(guestAiHandoffReplyAttachments.handoffId, handoffId),
-        sql`${guestAiHandoffReplyAttachments.uploadStatus} <> 'deleted'`,
-      ),
-    )
-    .orderBy(asc(guestAiHandoffReplyAttachments.createdAt));
+  const organizationId = await requireOrgId();
+  // Tenancy: scope through the parent handoff. guest_ai_handoffs.organization_id
+  // is a nullable 0154 backfill anchor — NULL = pre-threading (shared);
+  // set-but-mismatched belongs to another tenant and is excluded, so we never
+  // mint signed download URLs for cross-org attachments.
+  const rows = (
+    await db
+      .select({ att: guestAiHandoffReplyAttachments })
+      .from(guestAiHandoffReplyAttachments)
+      .innerJoin(
+        guestAiHandoffs,
+        eq(guestAiHandoffs.id, guestAiHandoffReplyAttachments.handoffId),
+      )
+      .where(
+        and(
+          eq(guestAiHandoffReplyAttachments.handoffId, handoffId),
+          sql`${guestAiHandoffReplyAttachments.uploadStatus} <> 'deleted'`,
+          or(
+            isNull(guestAiHandoffs.organizationId),
+            eq(guestAiHandoffs.organizationId, organizationId),
+          ),
+        ),
+      )
+      .orderBy(asc(guestAiHandoffReplyAttachments.createdAt))
+  ).map((r) => r.att);
   return Promise.all(
     rows.map(async (r) => {
       let signedUrl: string | null = null;
@@ -219,6 +235,12 @@ export async function preflightAttachment(args: {
   /** Visibility the caller is requesting; ignored for guest uploads
    *  (always `guest_visible`). */
   visibility?: AttachmentVisibility;
+  /** TENANCY: when set (staff path), the resolved handoff must belong to
+   *  this org. guest_ai_handoffs.organization_id is a nullable 0154 anchor —
+   *  NULL = pre-threading (allowed), set-but-mismatched = cross-org (rejected
+   *  as reply_not_in_handoff). The guest path leaves this undefined and relies
+   *  on its own token ownership check at the caller. */
+  orgId?: string;
 }): Promise<AttachmentPreflightOk | AttachmentPreflightError> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
@@ -252,7 +274,17 @@ export async function preflightAttachment(args: {
   const [handoff] = await db
     .select()
     .from(guestAiHandoffs)
-    .where(eq(guestAiHandoffs.id, reply.handoffId))
+    .where(
+      args.orgId
+        ? and(
+            eq(guestAiHandoffs.id, reply.handoffId),
+            or(
+              isNull(guestAiHandoffs.organizationId),
+              eq(guestAiHandoffs.organizationId, args.orgId),
+            ),
+          )
+        : eq(guestAiHandoffs.id, reply.handoffId),
+    )
     .limit(1);
   if (!handoff) return { ok: false, reason: "reply_not_in_handoff" };
 

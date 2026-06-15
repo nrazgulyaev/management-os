@@ -47,14 +47,22 @@ export async function runDevOsProjectCycleAdvisory(
   );
 
   // Active projects with their completion estimates.
+  // TODO tenancy: this read (and the cash/capacity/payroll reads above/below)
+  // is platform-wide — it aggregates across every org's projects into a single
+  // recommendation. Making the cron produce ONE recommendation PER org is a
+  // separate follow-up; for now we at least stamp the insert (below) with a
+  // derived org so the row is visible under the org-scoped reader instead of
+  // landing org=NULL.
   const projectsRows = await db.execute<{
     id: string;
+    organization_id: string | null;
     expected_completion: string | null;
     progress_pct: string;
     monthly_burn: string;
   }>(sql`
     SELECT
       p.id::text,
+      p.organization_id::text AS organization_id,
       p.expected_handover::text AS expected_completion,
       p.construction_progress_pct::text AS progress_pct,
       0::text AS monthly_burn
@@ -65,10 +73,19 @@ export async function runDevOsProjectCycleAdvisory(
   const projectRows =
     rowsOf<{
         id: string;
+        organization_id: string | null;
         expected_completion: string | null;
         progress_pct: string;
         monthly_burn: string;
       }>(projectsRows);
+
+  // Derive the org to stamp on the recommendation from the project rows being
+  // processed (projects.organization_id is NOT NULL). The same bug fixed in
+  // generateCycleRecommendation: an unstamped (NULL-org) row is written but
+  // invisible under the org-scoped project-cycle reader.
+  const recommendationOrgId = projectRows.find(
+    (r) => r.organization_id,
+  )?.organization_id ?? null;
 
   const now = new Date();
   const oneYearFromNow = new Date(
@@ -145,6 +162,7 @@ export async function runDevOsProjectCycleAdvisory(
   const code = `PCR-${year}-${seq}`;
 
   await db.insert(projectCycleRecommendations).values({
+    organizationId: recommendationOrgId,
     recommendationCode: code,
     generatedForDate: now.toISOString().slice(0, 10),
     generatedByAgent: "project_cycle_intelligence_cron",

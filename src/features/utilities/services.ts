@@ -125,7 +125,10 @@ export async function listUtilityReadings(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: utility_readings.organization_id is NOT NULL — always scope so the
+  // list pages cannot enumerate every tenant's meter readings.
+  const organizationId = await requireOrgId();
+  const filters = [eq(utilityReadings.organizationId, organizationId)];
   if (opts?.utilityAccountId)
     filters.push(eq(utilityReadings.utilityAccountId, opts.utilityAccountId));
   const rows = await db
@@ -137,7 +140,7 @@ export async function listUtilityReadings(opts?: {
     .from(utilityReadings)
     .leftJoin(villas, eq(villas.id, utilityReadings.villaId))
     .leftJoin(utilityAccounts, eq(utilityAccounts.id, utilityReadings.utilityAccountId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(utilityReadings.readingAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({
@@ -158,6 +161,9 @@ export async function listUtilityReadings(opts?: {
 
 export async function getLatestReadingForAccount(
   utilityAccountId: string,
+  // TENANCY: optional override for job/agent callers; defaults to the caller's
+  // org. utility_readings.organization_id is NOT NULL.
+  organizationId?: string,
 ): Promise<{
   readingAt: string;
   balanceMinor: number | null;
@@ -165,10 +171,16 @@ export async function getLatestReadingForAccount(
 } | null> {
   const db = getDb();
   if (!db) return null;
+  const orgId = organizationId ?? (await requireOrgId());
   const [r] = await db
     .select()
     .from(utilityReadings)
-    .where(eq(utilityReadings.utilityAccountId, utilityAccountId))
+    .where(
+      and(
+        eq(utilityReadings.utilityAccountId, utilityAccountId),
+        eq(utilityReadings.organizationId, orgId),
+      ),
+    )
     .orderBy(desc(utilityReadings.readingAt))
     .limit(1);
   if (!r) return null;
@@ -280,7 +292,10 @@ export async function listUtilityPaymentReminders(opts?: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: utility_payment_reminders.organization_id is NOT NULL — always
+  // scope so the payments pages stop showing every tenant's bills.
+  const organizationId = await requireOrgId();
+  const filters = [eq(utilityPaymentReminders.organizationId, organizationId)];
   if (opts?.status) {
     if (Array.isArray(opts.status))
       filters.push(inArray(utilityPaymentReminders.status, opts.status));
@@ -302,7 +317,7 @@ export async function listUtilityPaymentReminders(opts?: {
       utilityAccounts,
       eq(utilityAccounts.id, utilityPaymentReminders.utilityAccountId),
     )
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(asc(utilityPaymentReminders.dueDate))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({

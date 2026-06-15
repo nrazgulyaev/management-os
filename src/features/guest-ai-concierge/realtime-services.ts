@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gt, sql } from "drizzle-orm";
+import { and, asc, eq, gt, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestAiHandoffReplies,
@@ -61,6 +61,9 @@ export interface SourceResult {
 
 export async function seedGuestCursor(
   handoffId: string,
+  /** Defense-in-depth tenancy filter. The admin stream route passes its
+   *  verified org; the guest route omits it (already token-pre-scoped). */
+  organizationId?: string,
 ): Promise<StreamCursor> {
   const cursor = emptyCursor(handoffId);
   const db = getDb();
@@ -85,7 +88,17 @@ export async function seedGuestCursor(
       guestAiHandoffs,
       eq(guestAiHandoffs.id, guestAiHandoffReplies.handoffId),
     )
-    .where(eq(guestAiHandoffReplies.handoffId, handoffId));
+    .where(
+      and(
+        eq(guestAiHandoffReplies.handoffId, handoffId),
+        organizationId
+          ? or(
+              isNull(guestAiHandoffs.organizationId),
+              eq(guestAiHandoffs.organizationId, organizationId),
+            )
+          : undefined,
+      ),
+    );
   cursor.lastReplyAt = agg?.lastReplyAt ?? null;
   cursor.lastAttachmentChangeAt = agg?.lastAttachmentChangeAt ?? null;
   cursor.lastReceiptAt = agg?.lastReceiptAt ?? null;
@@ -283,6 +296,8 @@ export interface AdminPollOptions {
    *  reads out of `reply_read` events (no point telling them they
    *  read it themselves). */
   appUserId: string | null;
+  /** Defense-in-depth tenancy filter from the admin stream route. */
+  organizationId?: string;
 }
 
 export async function pollAdminEvents(
@@ -457,7 +472,7 @@ export async function pollAdminEvents(
   }
 
   // Handoff status + unread counters.
-  const handoff = await loadHandoff(cursor.handoffId);
+  const handoff = await loadHandoff(cursor.handoffId, opts.organizationId);
   if (handoff && hasHandoffChanged(handoff, cursor)) {
     events.push({
       type: "handoff_status_changed",
@@ -505,6 +520,7 @@ interface MinimalHandoff {
 
 async function loadHandoff(
   handoffId: string,
+  organizationId?: string,
 ): Promise<MinimalHandoff | null> {
   const db = getDb();
   if (!db) return null;
@@ -520,7 +536,17 @@ async function loadHandoff(
       staffUnreadCount: guestAiHandoffs.staffUnreadCount,
     })
     .from(guestAiHandoffs)
-    .where(eq(guestAiHandoffs.id, handoffId))
+    .where(
+      and(
+        eq(guestAiHandoffs.id, handoffId),
+        organizationId
+          ? or(
+              isNull(guestAiHandoffs.organizationId),
+              eq(guestAiHandoffs.organizationId, organizationId),
+            )
+          : undefined,
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

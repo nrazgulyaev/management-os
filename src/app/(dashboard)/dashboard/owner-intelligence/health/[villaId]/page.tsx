@@ -37,7 +37,12 @@ export default async function HealthDetailPage({
   const periodStart = formatISODate(
     new Date(today.getFullYear(), today.getMonth(), 1),
   );
-  const computed = await computeVillaHealth(villaId, periodStart, periodEnd);
+  const computed = await computeVillaHealth(
+    villaId,
+    periodStart,
+    periodEnd,
+    await requireOrgId(),
+  );
   if (!computed) notFound();
   return (
     <div className="flex flex-col gap-10">

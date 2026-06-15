@@ -75,8 +75,13 @@ export async function reconcilePendingDirectBookingsAction(
   ActionResult & { posted?: number; skipped?: number; failed?: number }
 > {
   await requirePermission("direct_booking.reconcile.write");
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  const out = await reconcileDirectBookingsBatch(50, me?.id ?? null);
+  const out = await reconcileDirectBookingsBatch(
+    50,
+    me?.id ?? null,
+    organizationId,
+  );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "direct_booking.reconcile.batch",
@@ -95,8 +100,15 @@ export async function expireDepositNowAction(
   await requirePermission("direct_booking.deposit.expire");
   const parsed = depositIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  const out = await expireDeposit(parsed.data.id, me?.id ?? null);
+  // TENANCY: a foreign/other-org deposit reads as not_found before any flip.
+  const out = await expireDeposit(
+    parsed.data.id,
+    me?.id ?? null,
+    new Date(),
+    organizationId,
+  );
   if (!out.ok) return { ok: false, error: out.reason ?? "expire_failed" };
   revalidatePath("/dashboard/direct-bookings/deposits");
   revalidatePath(`/dashboard/direct-bookings/deposits/${parsed.data.id}`);

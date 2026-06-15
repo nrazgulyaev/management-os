@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, eq, gt, inArray, lt, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   maintenanceTemplates,
   maintenanceWindowSuggestions,
@@ -47,6 +48,10 @@ export async function suggestMaintenanceWindows(
   const db = getDb();
   if (!db) return { planId, suggestions: [] };
 
+  // TENANCY: the planId is client-supplied through suggestMaintenanceWindowsAction.
+  // Scope the lookup so a foreign-org plan reads as "not found" before any
+  // villa-block/project read, suggestion DELETE, or suggestion INSERT runs.
+  const organizationId = await requireOrgId();
   const [plan] = await db
     .select({
       p: villaMaintenancePlans,
@@ -57,7 +62,10 @@ export async function suggestMaintenanceWindows(
       maintenanceTemplates,
       eq(maintenanceTemplates.id, villaMaintenancePlans.templateId),
     )
-    .where(eq(villaMaintenancePlans.id, planId))
+    .where(and(
+      eq(villaMaintenancePlans.id, planId),
+      eq(villaMaintenancePlans.organizationId, organizationId),
+    ))
     .limit(1);
   if (!plan) return { planId, suggestions: [] };
 

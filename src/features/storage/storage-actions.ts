@@ -70,14 +70,14 @@ export async function getDocumentSignedUrlAction(
 ): Promise<ActionResult> {
   const user = await getCurrentAppUser();
   if (!user) return { ok: false, error: "Sign in required" };
-  const result = await getDocumentSignedUrl(documentId);
+  const result = await getDocumentSignedUrl(documentId, user.organizationId);
   return result;
 }
 
 export async function deleteDocumentAction(documentId: string): Promise<ActionResult> {
   const user = await getCurrentAppUser();
   if (!user) return { ok: false, error: "Sign in required" };
-  const result = await deleteDocument(documentId);
+  const result = await deleteDocument(documentId, user.organizationId);
   if (result.ok) {
     revalidatePath("/dashboard");
     revalidatePath("/owner");

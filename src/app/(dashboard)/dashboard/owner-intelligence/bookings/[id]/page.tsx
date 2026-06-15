@@ -16,6 +16,7 @@ import {
   RebuildDirectRequestProjectionButton,
 } from "@/components/owner-bookings/projection-buttons";
 import { formatMoneyMinor } from "@/lib/money";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Owner booking projection — detail" };
 export const dynamic = "force-dynamic";
@@ -43,7 +44,9 @@ export default async function AdminOwnerBookingDetail({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const s = await getOwnerBookingSummaryById(id);
+  const s = await getOwnerBookingSummaryById(id, {
+    organizationId: await requireOrgId(),
+  });
   if (!s) notFound();
   const breakdowns = await listOwnerBookingBreakdowns(s.id);
   const visible = breakdowns.filter((b) => b.ownerVisible);

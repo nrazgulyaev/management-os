@@ -130,6 +130,12 @@ export async function generateCycleRecommendation(input: {
   generatedByAgent?: string;
 }) {
   await requireInternalUser();
+  // TENANCY — stamp the caller's org on the insert. listCycleRecommendations
+  // (and the rest of the project-cycle reads) hard-scope by organization_id,
+  // so an unstamped (NULL-org) row would be written but never visible. The
+  // recommendationCode sequence below stays platform-wide to respect the
+  // global UNIQUE(recommendation_code) constraint.
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const advisory: ProjectCycleOutput = computeProjectCycleAdvisory(input.context);
@@ -145,6 +151,7 @@ export async function generateCycleRecommendation(input: {
   const [row] = await db
     .insert(projectCycleRecommendations)
     .values({
+      organizationId,
       recommendationCode,
       generatedForDate: new Date().toISOString().slice(0, 10),
       generatedByAgent: input.generatedByAgent ?? "project_cycle_intelligence",

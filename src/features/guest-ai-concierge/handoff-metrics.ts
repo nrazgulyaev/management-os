@@ -1,7 +1,8 @@
 import "server-only";
 
-import { desc, eq, sql } from "drizzle-orm";
+import { desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestAiHandoffReplyAttachments,
   guestAiHandoffs,
@@ -77,6 +78,7 @@ export async function getHandoffMetricsView(opts?: {
       medianFirstStaffReadSec: null,
     };
 
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       h: guestAiHandoffs,
@@ -86,6 +88,14 @@ export async function getHandoffMetricsView(opts?: {
     .from(guestAiHandoffs)
     .leftJoin(bookings, eq(bookings.id, guestAiHandoffs.bookingId))
     .leftJoin(villas, eq(villas.id, bookings.villaId))
+    // Tenancy: guest_ai_handoffs.organization_id is a nullable 0154 backfill
+    // anchor — NULL = pre-threading (shared); set-but-mismatched excluded.
+    .where(
+      or(
+        isNull(guestAiHandoffs.organizationId),
+        eq(guestAiHandoffs.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(guestAiHandoffs.createdAt))
     .limit(opts?.limit ?? 1000);
 

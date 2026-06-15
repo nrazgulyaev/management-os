@@ -1,6 +1,7 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { getDb } from "@/lib/db/client";
 import {
   isProduction,
@@ -14,8 +15,10 @@ import {
   looksLikeCiphertext,
 } from "./wifi-crypto-pure";
 import { villaWifiCredentials } from "@/lib/db/schema/villa-guides";
+import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
 import { wifiEncryptionKeys } from "@/lib/db/schema/guest-stay-security";
 import { recordSecurityEvent } from "@/features/guest-stays/security";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Server-only wrapper around the pure crypto helpers. Resolves the
@@ -135,7 +138,37 @@ export async function migratePlaintextWifiPasswords(opts?: {
   const db = getDb();
   if (!db)
     return { scanned: 0, migrated: 0, skipped: 0, failed: 0 };
-  const rows = await db.select().from(villaWifiCredentials);
+  // TENANCY: villa_wifi_credentials has no org column. Scope the sweep to the
+  // caller's org via projects on either the project-scoped path (projectId) or
+  // the villa-scoped path (villaId → villas.projectId) so we only ever encrypt
+  // / clear this org's rows. The per-row update is keyed by id, and every id
+  // here is already filtered to this org, so it stays org-safe.
+  const organizationId = await requireOrgId();
+  const sweepVillaProject = alias(projectsTable, "sweep_villa_project");
+  const rows = await db
+    .select({
+      id: villaWifiCredentials.id,
+      villaId: villaWifiCredentials.villaId,
+      projectId: villaWifiCredentials.projectId,
+      passwordCiphertext: villaWifiCredentials.passwordCiphertext,
+      displayPassword: villaWifiCredentials.displayPassword,
+    })
+    .from(villaWifiCredentials)
+    .leftJoin(
+      projectsTable,
+      eq(projectsTable.id, villaWifiCredentials.projectId),
+    )
+    .leftJoin(villas, eq(villas.id, villaWifiCredentials.villaId))
+    .leftJoin(
+      sweepVillaProject,
+      eq(sweepVillaProject.id, villas.projectId),
+    )
+    .where(
+      or(
+        eq(projectsTable.organizationId, organizationId),
+        eq(sweepVillaProject.organizationId, organizationId),
+      ),
+    );
   let migrated = 0;
   let skipped = 0;
   let failed = 0;
