@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { requireDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devOsInventoryItems,
   devOsInventoryLocations,
@@ -14,7 +15,10 @@ export async function listInventoryItems(filters?: {
   activeOnly?: boolean;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(devOsInventoryItems.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.activeOnly !== false) {
     conditions.push(eq(devOsInventoryItems.isActive, true));
   }
@@ -24,16 +28,22 @@ export async function listInventoryItems(filters?: {
   return db
     .select()
     .from(devOsInventoryItems)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(asc(devOsInventoryItems.sku));
 }
 
 export async function getInventoryItemBySku(sku: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [item] = await db
     .select()
     .from(devOsInventoryItems)
-    .where(eq(devOsInventoryItems.sku, sku))
+    .where(
+      and(
+        eq(devOsInventoryItems.sku, sku),
+        eq(devOsInventoryItems.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!item) return null;
   const balances = await db
@@ -52,16 +62,27 @@ export async function getInventoryItemBySku(sku: string) {
       devOsInventoryLocations,
       eq(devOsInventoryLocations.id, devOsInventoryStockBalances.locationId),
     )
-    .where(eq(devOsInventoryStockBalances.itemId, item.id));
+    .where(
+      and(
+        eq(devOsInventoryStockBalances.itemId, item.id),
+        eq(devOsInventoryStockBalances.organizationId, organizationId),
+      ),
+    );
   return { item, balances };
 }
 
 export async function listInventoryLocations() {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(devOsInventoryLocations)
-    .where(eq(devOsInventoryLocations.isActive, true))
+    .where(
+      and(
+        eq(devOsInventoryLocations.isActive, true),
+        eq(devOsInventoryLocations.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(devOsInventoryLocations.locationCode));
 }
 
@@ -74,7 +95,10 @@ export async function listInventoryMovements(filters?: {
   limit?: number;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(devOsInventoryMovements.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.itemId) {
     conditions.push(eq(devOsInventoryMovements.itemId, filters.itemId));
   }
@@ -97,7 +121,7 @@ export async function listInventoryMovements(filters?: {
   return db
     .select()
     .from(devOsInventoryMovements)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(devOsInventoryMovements.movementDate))
     .limit(filters?.limit ?? 100);
 }
@@ -107,6 +131,7 @@ export async function listInventoryMovements(filters?: {
  */
 export async function listLowStockItems() {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const result = await db.execute<{
     item_id: string;
     sku: string;
@@ -128,6 +153,8 @@ export async function listLowStockItems() {
     JOIN dev_os_inventory_stock_balances b ON b.item_id = i.id
     JOIN dev_os_inventory_locations l ON l.id = b.location_id
     WHERE i.is_active = TRUE
+      AND i.organization_id = ${organizationId}
+      AND b.organization_id = ${organizationId}
       AND i.reorder_point IS NOT NULL
       AND b.quantity_on_hand <= i.reorder_point
     ORDER BY i.sku, l.location_code

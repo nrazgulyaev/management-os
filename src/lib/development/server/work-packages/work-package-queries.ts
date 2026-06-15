@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { workPackages } from "@/lib/db/schema/work-packages";
 
 export async function listWorkPackages(filters?: {
@@ -25,10 +26,16 @@ export async function listWorkPackages(filters?: {
 
 export async function getWorkPackageByCode(packageCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(workPackages)
-    .where(eq(workPackages.packageCode, packageCode))
+    .where(
+      and(
+        eq(workPackages.packageCode, packageCode),
+        eq(workPackages.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

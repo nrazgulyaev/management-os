@@ -1,9 +1,11 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { safetyIncidents } from "@/lib/db/schema/site-operations";
+import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   SAFETY_CATEGORIES,
   SAFETY_SEVERITIES,
@@ -36,6 +38,33 @@ const incidentCreateSchema = z.object({
 });
 
 /**
+ * safety_incidents has no organization_id; it anchors org through its
+ * project. Verify the incident exists AND its project belongs to the
+ * caller's org before any mutation, so a client cannot flip / resolve
+ * another tenant's incident by posting its raw id. Throws on mismatch.
+ */
+async function assertIncidentInOrg(
+  db: ReturnType<typeof requireDb>,
+  incidentId: string,
+  organizationId: string,
+): Promise<void> {
+  const [hit] = await db
+    .select({ id: safetyIncidents.id })
+    .from(safetyIncidents)
+    .innerJoin(projects, eq(projects.id, safetyIncidents.projectId))
+    .where(
+      and(
+        eq(safetyIncidents.id, incidentId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!hit) {
+    throw new Error("Safety incident not found in your organization");
+  }
+}
+
+/**
  * Records a safety incident. The cron job
  * `runOpenSafetyIncidentEscalation` watches for `severe` / `fatal`
  * incidents and escalates after 24h if still open. We don't fire any
@@ -47,6 +76,22 @@ export async function recordSafetyIncident(
 ): Promise<{ id: string; incidentCode: string }> {
   const parsed = incidentCreateSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
+  // safety_incidents has no org column; anchor via the project. Reject a
+  // client-supplied projectId that is not in the caller's org.
+  const [proj] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, parsed.projectId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!proj) {
+    throw new Error("recordSafetyIncident: project not found in your organization");
+  }
   const [row] = await db
     .insert(safetyIncidents)
     .values({
@@ -78,6 +123,8 @@ export async function setSafetyIncidentStatus(
 ): Promise<void> {
   const parsed = z.enum(SAFETY_STATUSES).parse(status);
   const db = requireDb();
+  const organizationId = await requireOrgId();
+  await assertIncidentInOrg(db, id, organizationId);
   const updates: Record<string, unknown> = {
     status: parsed,
     updatedAt: new Date(),
@@ -96,6 +143,8 @@ export async function resolveSafetyIncident(
     throw new Error("resolveSafetyIncident: resolutionNotes required (≥3 chars)");
   }
   const db = requireDb();
+  const organizationId = await requireOrgId();
+  await assertIncidentInOrg(db, id, organizationId);
   await db
     .update(safetyIncidents)
     .set({

@@ -1,7 +1,8 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { siteReportPhotos } from "@/lib/db/schema/site-operations";
 import { documents } from "@/lib/db/schema/documents";
 import { getSiteReportPhotoUrl } from "@/lib/development/server/photo-upload-actions";
@@ -31,6 +32,7 @@ export async function loadSiteReportPhotos(
   const db = getDb();
   if (!db) return [];
 
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       id: siteReportPhotos.id,
@@ -40,7 +42,12 @@ export async function loadSiteReportPhotos(
     })
     .from(siteReportPhotos)
     .innerJoin(documents, eq(documents.id, siteReportPhotos.documentId))
-    .where(eq(siteReportPhotos.siteReportId, siteReportId))
+    .where(
+      and(
+        eq(siteReportPhotos.siteReportId, siteReportId),
+        eq(siteReportPhotos.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(siteReportPhotos.photoTakenAt));
 
   if (rows.length === 0) return [];

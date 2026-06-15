@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { projectDecisions } from "@/lib/db/schema/project-memory";
 
 export async function listProjectDecisions(filters?: {
@@ -29,10 +30,16 @@ export async function listProjectDecisions(filters?: {
 
 export async function getProjectDecisionByCode(decisionCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(projectDecisions)
-    .where(eq(projectDecisions.decisionCode, decisionCode))
+    .where(
+      and(
+        eq(projectDecisions.decisionCode, decisionCode),
+        eq(projectDecisions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

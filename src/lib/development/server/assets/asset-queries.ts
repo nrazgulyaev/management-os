@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, or, sql } from "drizzle-orm";
 import { requireDb, rowsOf } from "@/lib/db/client";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * List assets (the multi-asset table is named `villas` for FK
@@ -17,7 +18,13 @@ export async function listAssets(filters?: {
   category?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const orgId = await requireOrgId();
+  // villas anchors org via projects.organizationId — always-on org filter
+  // so client-supplied projectId/typeKey/category cannot list another
+  // tenant's units.
+  const conditions: Array<ReturnType<typeof eq>> = [
+    eq(projects.organizationId, orgId),
+  ];
   if (filters?.projectId) {
     conditions.push(eq(villas.projectId, filters.projectId));
   }
@@ -46,7 +53,8 @@ export async function listAssets(filters?: {
     })
     .from(villas)
     .innerJoin(assetTypes, eq(assetTypes.id, villas.assetTypeId))
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(and(...conditions))
     .orderBy(asc(villas.unitCode));
 }
 
@@ -87,14 +95,25 @@ export async function getAssetByCode(unitCode: string) {
 
 export async function listAssetTypes(filters?: { activeOnly?: boolean }) {
   const db = requireDb();
+  const orgId = await requireOrgId();
+  // org column is nullable — include shared/seed (null-org) catalog rows
+  // while excluding other tenants' types.
+  const orgPredicate = or(
+    eq(assetTypes.organizationId, orgId),
+    isNull(assetTypes.organizationId),
+  );
   if (filters?.activeOnly !== false) {
     return db
       .select()
       .from(assetTypes)
-      .where(eq(assetTypes.isActive, true))
+      .where(and(eq(assetTypes.isActive, true), orgPredicate))
       .orderBy(asc(assetTypes.displayOrder));
   }
-  return db.select().from(assetTypes).orderBy(asc(assetTypes.displayOrder));
+  return db
+    .select()
+    .from(assetTypes)
+    .where(orgPredicate)
+    .orderBy(asc(assetTypes.displayOrder));
 }
 
 /**

@@ -1,8 +1,9 @@
 import "server-only";
 
-import { and, desc, eq, gte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { aiAgentBudgets, aiAssistantRuns } from "@/lib/db/schema/ai";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Server queries for the AI cost dashboard.
@@ -30,6 +31,7 @@ export async function getAiUsageByAssistant(opts?: {
 }): Promise<AssistantUsageRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const since = new Date(
     Date.now() - (opts?.windowDays ?? 30) * 24 * 60 * 60 * 1000,
   );
@@ -46,7 +48,15 @@ export async function getAiUsageByAssistant(opts?: {
       totalCostUsd: sql<string>`coalesce(sum(${aiAssistantRuns.totalCostUsd}), 0)`,
     })
     .from(aiAssistantRuns)
-    .where(gte(aiAssistantRuns.createdAt, since))
+    .where(
+      and(
+        gte(aiAssistantRuns.createdAt, since),
+        or(
+          eq(aiAssistantRuns.organizationId, orgId),
+          isNull(aiAssistantRuns.organizationId),
+        ),
+      ),
+    )
     .groupBy(aiAssistantRuns.assistantKey)
     .orderBy(desc(sql`count(*)`));
 
@@ -77,7 +87,13 @@ export async function getRecentAiRuns(opts?: {
 }): Promise<RecentAiRunRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const limit = opts?.limit ?? 100;
+
+  const orgPredicate = or(
+    eq(aiAssistantRuns.organizationId, orgId),
+    isNull(aiAssistantRuns.organizationId),
+  );
 
   const rows = await db
     .select({
@@ -97,8 +113,8 @@ export async function getRecentAiRuns(opts?: {
     .from(aiAssistantRuns)
     .where(
       opts?.assistantKey
-        ? eq(aiAssistantRuns.assistantKey, opts.assistantKey)
-        : sql`true`,
+        ? and(eq(aiAssistantRuns.assistantKey, opts.assistantKey), orgPredicate)
+        : orgPredicate,
     )
     .orderBy(desc(aiAssistantRuns.createdAt))
     .limit(limit);
@@ -128,6 +144,12 @@ export async function getAiSpendWindows(
 ): Promise<{ todayUsd: number; monthUsd: number }> {
   const db = getDb();
   if (!db) return { todayUsd: 0, monthUsd: 0 };
+  const orgId = await requireOrgId();
+
+  const orgPredicate = or(
+    eq(aiAssistantRuns.organizationId, orgId),
+    isNull(aiAssistantRuns.organizationId),
+  );
 
   const now = new Date();
   const startOfDay = new Date(now);
@@ -145,6 +167,7 @@ export async function getAiSpendWindows(
       and(
         eq(aiAssistantRuns.assistantKey, assistantKey),
         gte(aiAssistantRuns.createdAt, startOfDay),
+        orgPredicate,
       ),
     );
   const [{ monthUsd }] = await db
@@ -156,6 +179,7 @@ export async function getAiSpendWindows(
       and(
         eq(aiAssistantRuns.assistantKey, assistantKey),
         gte(aiAssistantRuns.createdAt, startOfMonth),
+        orgPredicate,
       ),
     );
 

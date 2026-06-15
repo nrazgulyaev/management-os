@@ -2,6 +2,7 @@ import "server-only";
 
 import { eq, desc, and, gte, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   resourcePools,
   taskResourceAssignments,
@@ -10,20 +11,29 @@ import {
 export async function listResourcePools() {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(resourcePools)
+    .where(eq(resourcePools.organizationId, organizationId))
     .orderBy(desc(resourcePools.isActive), resourcePools.displayName);
 }
 
 export async function getResourcePoolByCode(code: string) {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(resourcePools)
-    .where(eq(resourcePools.resourceCode, code))
+    .where(
+      and(
+        eq(resourcePools.resourceCode, code),
+        eq(resourcePools.organizationId, organizationId),
+      ),
+    )
     .limit(1);
+  // Cross-org code → null so the page notFound()s.
   return rows[0] ?? null;
 }
 
@@ -34,12 +44,14 @@ export async function listResourceAssignmentsForResource(
 ) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(taskResourceAssignments)
     .where(
       and(
         eq(taskResourceAssignments.resourceId, resourceId),
+        eq(taskResourceAssignments.organizationId, organizationId),
         lte(taskResourceAssignments.allocationStart, windowEnd.toISOString().slice(0, 10)),
         gte(taskResourceAssignments.allocationEnd, windowStart.toISOString().slice(0, 10)),
       ),

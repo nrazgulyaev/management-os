@@ -1,7 +1,8 @@
 import "server-only";
 
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devOsPurchaseRequests,
   procurementQuotations,
@@ -47,6 +48,7 @@ export async function loadQuotationMatrix(): Promise<QuotationMatrixData> {
   if (!db) {
     return { lines: [], vendors: [], cellsByPrAndVendor: {} };
   }
+  const organizationId = await requireOrgId();
 
   // Pull all quotations across open PRs. We treat any PR that has at
   // least one received/under_review quotation as a matrix row.
@@ -58,7 +60,8 @@ export async function loadQuotationMatrix(): Promise<QuotationMatrixData> {
       totalAmountMinor: procurementQuotations.totalAmountMinor,
       status: procurementQuotations.status,
     })
-    .from(procurementQuotations);
+    .from(procurementQuotations)
+    .where(eq(procurementQuotations.organizationId, organizationId));
 
   if (allQuotations.length === 0) {
     return { lines: [], vendors: [], cellsByPrAndVendor: {} };
@@ -80,7 +83,12 @@ export async function loadQuotationMatrix(): Promise<QuotationMatrixData> {
         requiredByDate: devOsPurchaseRequests.requiredByDate,
       })
       .from(devOsPurchaseRequests)
-      .where(inArray(devOsPurchaseRequests.id, prIds)),
+      .where(
+        and(
+          inArray(devOsPurchaseRequests.id, prIds),
+          eq(devOsPurchaseRequests.organizationId, organizationId),
+        ),
+      ),
     db
       .select({
         id: vendors.id,

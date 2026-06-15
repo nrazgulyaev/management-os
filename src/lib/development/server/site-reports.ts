@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, sql, desc } from "drizzle-orm";
+import { and, eq, sql, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   siteReports,
   siteReportZones,
@@ -42,10 +43,16 @@ export interface SiteZoneListItem {
 export async function getSiteZones(projectId: string): Promise<SiteZoneListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(siteZones)
-    .where(eq(siteZones.projectId, projectId))
+    .where(
+      and(
+        eq(siteZones.projectId, projectId),
+        eq(siteZones.organizationId, organizationId),
+      ),
+    )
     .orderBy(siteZones.displayOrder, siteZones.zoneCode);
   return rows.map((z) => ({
     id: z.id,
@@ -133,7 +140,11 @@ export async function getSiteReports(
   const db = getDb();
   if (!db) return [];
 
+  const organizationId = await requireOrgId();
   const conditions: ReturnType<typeof sql>[] = [];
+  // TENANT: site_reports.organization_id is NOT NULL — always scope,
+  // including the no-projectId list branch which was previously global.
+  conditions.push(sql`r.organization_id = ${organizationId}`);
   if (filters.projectId)
     conditions.push(sql`r.project_id = ${filters.projectId}`);
   if (filters.status) conditions.push(sql`r.status = ${filters.status}`);
@@ -245,16 +256,27 @@ export async function getSiteReport(id: string): Promise<SiteReportDetail | null
   const db = getDb();
   if (!db) return null;
 
-  const list = await getSiteReports({});
-  const summary = list.find((r) => r.id === id);
-  if (!summary) return null;
+  const organizationId = await requireOrgId();
 
+  // Org-scoped base SELECT — a cross-tenant id resolves to no row, so the
+  // page notFound()s rather than leaking another org's report.
   const [base] = await db
     .select()
     .from(siteReports)
-    .where(eq(siteReports.id, id))
+    .where(
+      and(
+        eq(siteReports.id, id),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!base) return null;
+
+  // Derive the list-shaped summary from an org+project-scoped query (not
+  // the unfiltered global list) so the aggregate counts are tenant-safe.
+  const list = await getSiteReports({ projectId: base.projectId });
+  const summary = list.find((r) => r.id === id);
+  if (!summary) return null;
 
   const zoneRows = await db
     .select({

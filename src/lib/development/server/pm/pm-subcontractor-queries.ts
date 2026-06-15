@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { workPackages } from "@/lib/db/schema/work-packages";
 import { projects as projectsTable } from "@/lib/db/schema/projects";
 import { vendors } from "@/lib/db/schema/site-operations";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint MD-4 Phase 1 — Active-subcontractor aggregator for the
@@ -68,15 +69,19 @@ export async function loadActiveSubcontractors(
   const db = getDb();
   if (!db) return [];
 
+  const organizationId = await requireOrgId();
+
   const ACTIVE_STATUSES = ["ready_to_start", "in_progress", "on_hold"];
 
   const baseFilters = projectIds && projectIds.length > 0
     ? and(
+        eq(workPackages.organizationId, organizationId),
         inArray(workPackages.projectId, projectIds),
         inArray(workPackages.status, ACTIVE_STATUSES),
         sql`${workPackages.primaryVendorId} IS NOT NULL`,
       )
     : and(
+        eq(workPackages.organizationId, organizationId),
         inArray(workPackages.status, ACTIVE_STATUSES),
         sql`${workPackages.primaryVendorId} IS NOT NULL`,
       );
@@ -163,10 +168,9 @@ export async function loadProjectCompletion(
   const db = getDb();
   if (!db) return [];
 
-  const filter = projectIds && projectIds.length > 0
-    ? eq(workPackages.projectId, projectIds[0])
-    : undefined;
-  const where = projectIds && projectIds.length > 0
+  const organizationId = await requireOrgId();
+
+  const projectFilter = projectIds && projectIds.length > 0
     ? inArray(workPackages.projectId, projectIds)
     : undefined;
 
@@ -182,7 +186,11 @@ export async function loadProjectCompletion(
       projectsTable,
       eq(projectsTable.id, workPackages.projectId),
     )
-    .where(where ?? filter);
+    .where(
+      projectFilter
+        ? and(eq(workPackages.organizationId, organizationId), projectFilter)
+        : eq(workPackages.organizationId, organizationId),
+    );
 
   // Sum progress across packages per project.
   const byProject = new Map<

@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { organizations } from "@/lib/db/schema/saas";
+import { requireSuperAdmin } from "@/features/auth/require-super-admin";
 
 const createSchema = z.object({
   organizationCode: z
@@ -31,6 +32,7 @@ const createSchema = z.object({
 });
 
 export async function createOrganization(input: z.input<typeof createSchema>) {
+  await requireSuperAdmin();
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
@@ -62,6 +64,7 @@ const updateBrandingSchema = z.object({
 export async function updateOrganizationBranding(
   input: z.input<typeof updateBrandingSchema>,
 ) {
+  await requireSuperAdmin();
   const parsed = updateBrandingSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
@@ -83,6 +86,7 @@ const updateModulesSchema = z.object({
 export async function updateOrganizationModules(
   input: z.input<typeof updateModulesSchema>,
 ) {
+  await requireSuperAdmin();
   const parsed = updateModulesSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
@@ -100,6 +104,7 @@ export async function archiveOrganization(args: {
   organizationCode: string;
   reason: string;
 }) {
+  await requireSuperAdmin();
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
   await db
