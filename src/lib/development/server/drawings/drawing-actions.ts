@@ -8,6 +8,7 @@ import {
   drawingRevisions,
   drawingDistributionLog,
 } from "@/lib/db/schema/drawings";
+import { vendors } from "@/lib/db/schema/site-operations";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 
@@ -110,6 +111,25 @@ export async function addDrawingRevision(
   const organizationId = await requireOrgId();
   const parsed = addRevisionSchema.parse(input);
   const db = requireDb();
+
+  // TENANCY — the drawingId comes from the client. Confirm the parent
+  // drawing belongs to the caller's org before attaching a revision to it,
+  // otherwise a forged drawingId would let one tenant write revisions onto
+  // another tenant's drawing.
+  const [parentDrawing] = await db
+    .select({ id: drawings.id })
+    .from(drawings)
+    .where(
+      and(
+        eq(drawings.id, parsed.drawingId),
+        eq(drawings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!parentDrawing) {
+    throw new Error("drawing not found");
+  }
+
   const [row] = await db
     .insert(drawingRevisions)
     .values({
@@ -242,6 +262,41 @@ export async function logDrawingDistribution(
     throw new Error("logDrawingDistribution: requires authenticated app user");
   }
   const db = requireDb();
+
+  // TENANCY — both revisionId and vendorId arrive from the client. Confirm
+  // each belongs to the caller's org before logging the pairing, otherwise a
+  // tenant could pair its distribution log with another tenant's revision or
+  // vendor (cross-tenant data linkage / IDOR).
+  const [revision] = await db
+    .select({ id: drawingRevisions.id })
+    .from(drawingRevisions)
+    .innerJoin(drawings, eq(drawings.id, drawingRevisions.drawingId))
+    .where(
+      and(
+        eq(drawingRevisions.id, parsed.revisionId),
+        eq(drawingRevisions.organizationId, organizationId),
+        eq(drawings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!revision) {
+    throw new Error("drawing revision not found");
+  }
+
+  const [vendor] = await db
+    .select({ id: vendors.id })
+    .from(vendors)
+    .where(
+      and(
+        eq(vendors.id, parsed.vendorId),
+        eq(vendors.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!vendor) {
+    throw new Error("vendor not found");
+  }
+
   const [row] = await db
     .insert(drawingDistributionLog)
     .values({

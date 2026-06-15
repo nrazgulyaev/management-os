@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { listCurrentAllocations } from "@/lib/development/server/profitability/profitability-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { RecomputeButton } from "./_recompute-button";
+import { AllocationOverrideButton } from "./_override-control";
 
 export const metadata: Metadata = {
   title: "Unit profitability · Development OS",
@@ -153,6 +154,7 @@ export default async function ProfitabilityPage() {
                 <th className="num">Margin</th>
                 <th>Margin %</th>
                 <th>Computed</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -189,6 +191,12 @@ export default async function ProfitabilityPage() {
                     </td>
                     <td className="text-[var(--ink-3)]">
                       {new Date(r.computedAt).toISOString().slice(0, 10)}
+                    </td>
+                    <td>
+                      <AllocationOverrideButton
+                        allocationId={r.id}
+                        unitCode={r.unitCode}
+                      />
                     </td>
                   </tr>
                 );

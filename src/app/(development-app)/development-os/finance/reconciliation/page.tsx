@@ -17,8 +17,12 @@ import { getDb } from "@/lib/db/client";
 import {
   getReconciliationStats,
   listBankTransactionsForUi,
+  listOpenInvoicesForMatch,
 } from "@/lib/banking/queries";
-import { runReconciliationAction } from "@/lib/banking/bookkeeper-actions";
+import {
+  runReconciliationAction,
+  matchInvoiceAction,
+} from "@/lib/banking/bookkeeper-actions";
 
 export const metadata: Metadata = { title: "Reconciliation · Finance" };
 export const dynamic = "force-dynamic";
@@ -40,12 +44,13 @@ export default async function ReconciliationPage() {
       </DevelopmentShell>
     );
   }
-  const [stats, partial] = await Promise.all([
+  const [stats, partial, openInvoices] = await Promise.all([
     getReconciliationStats(),
     listBankTransactionsForUi({
       matchStatus: "partial_match",
       limit: 100,
     }),
+    listOpenInvoicesForMatch(),
   ]);
   const total = stats.matched + stats.partial + stats.unmatched;
   const matchRate = total === 0 ? 0 : Math.round((stats.matched / total) * 100);
@@ -109,6 +114,7 @@ export default async function ReconciliationPage() {
                 <TH className="text-right">Amount</TH>
                 <TH>Match status</TH>
                 <TH className="text-right">Conf.</TH>
+                <TH>Match invoice</TH>
               </TR>
             </THead>
             <TBody>
@@ -125,6 +131,34 @@ export default async function ReconciliationPage() {
                   </TD>
                   <TD className="text-right tabular-nums text-xs">
                     {t.matchConfidence ?? "—"}
+                  </TD>
+                  <TD>
+                    <form
+                      action={matchInvoiceAction}
+                      className="flex items-center gap-1.5"
+                    >
+                      <input
+                        type="hidden"
+                        name="bankTransactionId"
+                        value={t.id}
+                      />
+                      <select
+                        name="invoiceId"
+                        defaultValue={t.matchedInvoiceId ?? ""}
+                        className="rounded-md border border-line-soft bg-surface px-2 py-1.5 text-xs max-w-[200px]"
+                      >
+                        <option value="">Reject / unmatched</option>
+                        {openInvoices.map((inv) => (
+                          <option key={inv.id} value={inv.id}>
+                            {inv.invoiceNumber} ·{" "}
+                            {formatAmount(inv.amountUsdMinor, inv.currency)}
+                          </option>
+                        ))}
+                      </select>
+                      <button type="submit" className="btn btn-accent btn-sm">
+                        Match
+                      </button>
+                    </form>
                   </TD>
                 </TR>
               ))}

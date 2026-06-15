@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { qaQcIssues, qaQcIssuePhotos } from "@/lib/db/schema/qa-qc";
@@ -218,6 +218,9 @@ export async function deleteQaQcPhoto(
 ): Promise<{ deleted: boolean; storageRemoved: boolean }> {
   const parsed = deleteSchema.parse(input);
   await requireInternalUser();
+  // TENANCY: scope the photo SELECT + DELETE by organization_id so a photo
+  // belonging to another tenant can never be resolved or deleted (prior IDOR).
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const result = await db.transaction(async (tx) => {
@@ -227,7 +230,12 @@ export async function deleteQaQcPhoto(
         documentId: qaQcIssuePhotos.documentId,
       })
       .from(qaQcIssuePhotos)
-      .where(eq(qaQcIssuePhotos.id, parsed.photoId))
+      .where(
+        and(
+          eq(qaQcIssuePhotos.id, parsed.photoId),
+          eq(qaQcIssuePhotos.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!photo) throw new Error("Photo not found");
 
@@ -240,7 +248,14 @@ export async function deleteQaQcPhoto(
       .where(eq(documents.id, photo.documentId))
       .limit(1);
 
-    await tx.delete(qaQcIssuePhotos).where(eq(qaQcIssuePhotos.id, photo.id));
+    await tx
+      .delete(qaQcIssuePhotos)
+      .where(
+        and(
+          eq(qaQcIssuePhotos.id, photo.id),
+          eq(qaQcIssuePhotos.organizationId, organizationId),
+        ),
+      );
     await tx.delete(documents).where(eq(documents.id, photo.documentId));
 
     return {
@@ -278,6 +293,9 @@ export async function getQaQcPhotoUrl(
   photoId: string,
 ): Promise<{ url: string | null; dryRun: boolean }> {
   await requireInternalUser();
+  // TENANCY: scope the photo lookup by organization_id so the gallery can't
+  // mint a signed URL for another tenant's photo bytes via a forged photoId.
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .select({
@@ -286,7 +304,12 @@ export async function getQaQcPhotoUrl(
     })
     .from(qaQcIssuePhotos)
     .innerJoin(documents, eq(documents.id, qaQcIssuePhotos.documentId))
-    .where(eq(qaQcIssuePhotos.id, photoId))
+    .where(
+      and(
+        eq(qaQcIssuePhotos.id, photoId),
+        eq(qaQcIssuePhotos.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return { url: null, dryRun: false };
   if (row.bucket === "dry_run") return { url: null, dryRun: true };

@@ -415,10 +415,19 @@ export default async function NewSiteReportPage({
           <div className="label mb-2.5">Step 3 · Zones</div>
           <Card padding="default">
           {zones.length === 0 ? (
-            <EmptyState
-              title="No zones for this project"
-              description="Create zones first via the createSiteZone action — the project's structure / finishing / mep / etc breakdown."
-            />
+            <div className="space-y-3">
+              <EmptyState
+                title="No zones for this project"
+                description="Define the project's structure / finishing / MEP / etc breakdown before capturing per-zone activity. You can still save a report-level summary without zones."
+              />
+              <Button asChild variant="secondary">
+                <Link
+                  href={`/development-os/site-reports/zones${selectedProjectId ? `?projectId=${selectedProjectId}` : ""}`}
+                >
+                  Create zone
+                </Link>
+              </Button>
+            </div>
           ) : (
             <div className="space-y-3">
               {zones.map((z) => (

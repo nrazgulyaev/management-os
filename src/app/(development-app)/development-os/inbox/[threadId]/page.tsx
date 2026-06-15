@@ -13,7 +13,9 @@ import {
 import {
   updateThreadStatusAction,
   markThreadReadAction,
+  assignThreadAction,
 } from "@/lib/messaging/inbox-actions";
+import { listAppUsers } from "@/features/auth/users-service";
 import type { MessagingChannel } from "@/lib/db/schema/messaging";
 import { InboxAiComposer } from "./inbox-ai-composer";
 
@@ -54,7 +56,16 @@ export default async function ThreadDetailPage({
   }
   const thread = await getThreadById(threadId);
   if (!thread) notFound();
-  const messages = await listThreadMessages(threadId, { limit: 200 });
+  const [messages, assignableUsers] = await Promise.all([
+    listThreadMessages(threadId, { limit: 200 }),
+    listAppUsers(),
+  ]);
+
+  const currentAssigneeId = thread.assignedToUserId ?? null;
+  const currentAssigneeName =
+    currentAssigneeId
+      ? assignableUsers.find((u) => u.id === currentAssigneeId)?.fullName ?? null
+      : null;
 
   const externalIdentifiers =
     (thread.externalIdentifiers as Record<string, string> | null) ?? {};
@@ -218,6 +229,40 @@ export default async function ThreadDetailPage({
           <button type="submit" className="btn btn-secondary btn-sm">
             Update status
           </button>
+        </form>
+
+        <form
+          action={async (fd: FormData) => {
+            "use server";
+            const raw = (fd.get("assignedToUserId") ?? "").toString();
+            await assignThreadAction(threadId, raw === "" ? null : raw);
+          }}
+          className="mt-3 flex items-center gap-2 text-sm"
+        >
+          <label htmlFor="assignedToUserId" className="text-ink-secondary">
+            Assign to
+          </label>
+          <select
+            id="assignedToUserId"
+            name="assignedToUserId"
+            defaultValue={currentAssigneeId ?? ""}
+            className="rounded-md border border-line-soft bg-surface px-3 py-2"
+          >
+            <option value="">Unassigned</option>
+            {assignableUsers.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.fullName}
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="btn btn-secondary btn-sm">
+            Save assignee
+          </button>
+          {currentAssigneeName && (
+            <span className="text-ink-tertiary">
+              Currently: {currentAssigneeName}
+            </span>
+          )}
         </form>
       </div>
     </DevelopmentShell>

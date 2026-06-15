@@ -13,7 +13,9 @@ import {
   listTeamCapacityTracking,
 } from "@/lib/development/server/project-cycle/cycle-queries";
 import { formatMoneyMinor } from "@/lib/money";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { CycleReviewActions } from "./_review-actions";
+import { ProjectCycleInputForms } from "./_input-forms";
 import { safeQuery } from "@/lib/development/safe-query";
 
 /**
@@ -65,7 +67,7 @@ export default async function ProjectCyclePage() {
     );
   }
 
-  const [recs, payroll, capacity] = await Promise.all([
+  const [recs, payroll, capacity, projectList] = await Promise.all([
     safeQuery(
       "listCycleRecommendations",
       listCycleRecommendations({ limit: 20 }),
@@ -79,7 +81,13 @@ export default async function ProjectCyclePage() {
       [],
       4000,
     ),
+    safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000),
   ]);
+
+  const projectOptions = projectList.map((p) => ({
+    id: p.realProjectId,
+    name: p.name,
+  }));
 
   const unreviewedCount = recs.filter(
     (r) => r.operatorStatus === "unreviewed",
@@ -124,10 +132,13 @@ export default async function ProjectCyclePage() {
         }
         subtitle="AI recommendations need operator review before any action. The cycle orchestrator is pure and runtime-tested; capacity + payroll commitments anchor the call."
         actions={
-          <span className="chip">
-            <Pulse />
-            AI advisory · operator review
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="chip">
+              <Pulse />
+              AI advisory · operator review
+            </span>
+            <ProjectCycleInputForms projects={projectOptions} />
+          </div>
         }
       />
 
@@ -237,7 +248,7 @@ export default async function ProjectCyclePage() {
           {capacityRows.length === 0 ? (
             <EmptyState
               title="No capacity records"
-              description="Use the trackTeamCapacity action to seed utilisation."
+              description="Use 'Record capacity' above to log team utilisation per role and project."
             />
           ) : (
             <div className="flex flex-col gap-[11px]">
@@ -287,7 +298,7 @@ export default async function ProjectCyclePage() {
         {payroll.length === 0 ? (
           <EmptyState
             title="No payroll periods"
-            description="Seed via scripts/seed-dev-os.mjs."
+            description="Use 'New payroll period' above to record a payroll commitment and its per-project allocation."
           />
         ) : (
           <table className="data">

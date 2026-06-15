@@ -6,6 +6,8 @@ import { requireDb } from "@/lib/db/client";
 import { unitCostAllocations } from "@/lib/db/schema/profitability-cashflow";
 import { projects } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 import {
   computeUnitCostBasis,
   computeMarginPercentage,
@@ -177,7 +179,11 @@ const overrideSchema = z.object({
 export async function overrideUnitAllocation(
   input: z.input<typeof overrideSchema>,
 ) {
-  await requireInternalUser();
+  const ctx = await requireInternalUser();
+  // TENANCY: scope the override to the caller's org so an operator in org A
+  // cannot overwrite GENERATED money columns on org B's allocation. The id is
+  // client-supplied; the org predicate on the UPDATE is the authorization gate.
+  const organizationId = await requireOrgId();
   const parsed = overrideSchema.parse(input);
   const db = requireDb();
   const updates: Record<string, unknown> = {
@@ -190,7 +196,36 @@ export async function overrideUnitAllocation(
   const [row] = await db
     .update(unitCostAllocations)
     .set(updates)
-    .where(eq(unitCostAllocations.id, parsed.allocationId))
+    .where(
+      and(
+        eq(unitCostAllocations.id, parsed.allocationId),
+        eq(unitCostAllocations.organizationId, organizationId),
+      ),
+    )
     .returning();
-  return row;
+  if (!row) {
+    // 0 rows affected: the allocation does not exist or is not in the caller's
+    // org. Don't silently no-op — surface the rejection.
+    return {
+      ok: false as const,
+      error: "Allocation not found in your organization",
+    };
+  }
+  await recordAuditEvent({
+    organizationId,
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "unit_cost_allocation.override",
+    entityType: "unit_cost_allocation",
+    entityId: row.id,
+    after: {
+      computationMethod: "manual_override",
+      notes: parsed.notes,
+      overrides: Object.fromEntries(
+        Object.entries(parsed.overrides)
+          .filter(([, v]) => v !== undefined)
+          .map(([k, v]) => [k, typeof v === "bigint" ? v.toString() : v]),
+      ),
+    },
+  });
+  return { ok: true as const, row };
 }

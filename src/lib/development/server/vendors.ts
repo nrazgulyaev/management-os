@@ -7,6 +7,7 @@ import {
   vendorEngagements,
 } from "@/lib/db/schema/site-operations";
 import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import type {
   EngagementStatus,
   VendorStatus,
@@ -48,7 +49,14 @@ export async function getVendors(
   const db = getDb();
   if (!db) return [];
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  // TENANCY — scope to the caller's org. `vendors.organization_id` exists;
+  // without this filter getVendors() leaked every tenant's vendors to the
+  // /vendors, /materials, schedule, and drawings-distribution pickers.
+  const organizationId = await requireOrgId();
+
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`v.organization_id = ${organizationId}`,
+  ];
   if (filters.status) conditions.push(sql`v.status = ${filters.status}`);
   if (filters.type) conditions.push(sql`v.vendor_type = ${filters.type}`);
   if (filters.projectId) {

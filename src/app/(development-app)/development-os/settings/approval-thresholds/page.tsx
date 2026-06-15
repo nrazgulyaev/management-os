@@ -6,8 +6,14 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
+import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isRoleSufficient } from "@/lib/development/server/procurement/approval-helpers";
 import { listApprovalThresholds } from "@/lib/development/server/procurement/procurement-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  ApprovalMatrixEditor,
+  type ThresholdRow,
+} from "./_matrix-editor";
 
 export const metadata: Metadata = {
   title: "Approval thresholds · Development OS",
@@ -48,14 +54,30 @@ export default async function ApprovalThresholdsPage() {
       </DevelopmentShell>
     );
   }
-  const thresholds = await safeQuery(
-    "listApprovalThresholds",
-    listApprovalThresholds(),
-    [],
-    4000,
-  );
 
-  // Group by threshold_type.
+  const [thresholds, ctx] = await Promise.all([
+    safeQuery("listApprovalThresholds", listApprovalThresholds(), [], 4000),
+    getCurrentUserContext(),
+  ]);
+
+  // Director-or-higher gate for the editor controls. The CRUD actions enforce
+  // this server-side regardless; this only governs UI visibility. In demo mode
+  // there are no role keys, so editing stays hidden and the matrix is read-only.
+  const isDirector = ctx.roles.some((r) => isRoleSufficient(r, "director"));
+
+  // Serialize bigints → strings for the client island.
+  const rows: ThresholdRow[] = thresholds.map((t) => ({
+    id: t.id,
+    thresholdType: t.thresholdType,
+    amountMinorMin: String(t.amountMinorMin),
+    amountMinorMax: t.amountMinorMax == null ? null : String(t.amountMinorMax),
+    currency: t.currency,
+    requiredRole: t.requiredRole,
+    requiredApproverCount: t.requiredApproverCount,
+    notes: t.notes ?? null,
+  }));
+
+  // Group by threshold_type for the read-only view.
   const byType = new Map<string, typeof thresholds>();
   for (const t of thresholds) {
     const arr = byType.get(t.thresholdType) ?? [];
@@ -87,17 +109,19 @@ export default async function ApprovalThresholdsPage() {
         </div>
       </div>
 
-      {thresholds.length === 0 ? (
+      {isDirector ? (
+        <ApprovalMatrixEditor rows={rows} />
+      ) : thresholds.length === 0 ? (
         <EmptyState
           title="No thresholds configured"
-          description="Approval thresholds are missing. Contact support to restore the default configuration."
+          description="Approval thresholds are missing. A director can add tiers from this page."
         />
       ) : (
-        Array.from(byType.entries()).map(([type, rows]) => (
+        Array.from(byType.entries()).map(([type, typeRows]) => (
           <div key={type}>
             <div className="label mb-2.5">{type}</div>
             <p className="text-[13px] text-ink-3 mb-2.5">
-              {rows.length} tier{rows.length === 1 ? "" : "s"}
+              {typeRows.length} tier{typeRows.length === 1 ? "" : "s"}
             </p>
             <Table>
               <THead>
@@ -111,7 +135,7 @@ export default async function ApprovalThresholdsPage() {
                 </TR>
               </THead>
               <TBody>
-                {rows.map((r) => (
+                {typeRows.map((r) => (
                   <TR key={r.id}>
                     <TDNum>{fmtUsd(r.amountMinorMin)}</TDNum>
                     <TDNum>{fmtUsd(r.amountMinorMax)}</TDNum>

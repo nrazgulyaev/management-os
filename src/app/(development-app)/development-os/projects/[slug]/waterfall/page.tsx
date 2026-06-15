@@ -11,6 +11,10 @@ import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { listWaterfallRules } from "@/lib/development/server/waterfall/waterfall-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  NewWaterfallRuleButton,
+  WaterfallRuleRowControls,
+} from "./_controls";
 
 export const metadata: Metadata = { title: "Waterfall rules · Development OS" };
 export const dynamic = "force-dynamic";
@@ -65,6 +69,7 @@ export default async function ProjectWaterfallRulesPage({
         </div>
         <div className="actions">
           <div className="flex gap-2">
+            <NewWaterfallRuleButton slug={slug} projectId={project.realProjectId} />
             <Button asChild variant="secondary">
               <Link href={`/development-os/projects/${slug}/waterfall/simulator`}>
                 Simulator
@@ -96,6 +101,7 @@ export default async function ProjectWaterfallRulesPage({
                 <TH>Scope</TH>
                 <TH>Effective from</TH>
                 <TH>Active</TH>
+                <TH>Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -111,6 +117,14 @@ export default async function ProjectWaterfallRulesPage({
                     ) : (
                       <HandoffBadge tone="soft">historical</HandoffBadge>
                     )}
+                  </TD>
+                  <TD>
+                    <WaterfallRuleRowControls
+                      slug={slug}
+                      id={r.id}
+                      isActive={r.isActive}
+                      ruleParameters={r.ruleParameters}
+                    />
                   </TD>
                 </TR>
               ))}

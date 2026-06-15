@@ -7,6 +7,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getSpecificationByCode } from "@/lib/development/server/specifications/specification-queries";
+import { SpecificationLifecycleActions } from "./_spec-actions";
 
 export const metadata: Metadata = {
   title: "Specification · Development OS",
@@ -79,6 +80,18 @@ export default async function SpecificationDetailPage({
             ) : (
               <HandoffBadge tone="soft">inactive</HandoffBadge>
             )}
+            {spec.supersededBy && (
+              <span className="ml-2 text-xs text-ink-tertiary">
+                superseded · replaced by a newer spec
+              </span>
+            )}
+          </div>
+          <div className="mt-3">
+            <SpecificationLifecycleActions
+              specId={spec.id}
+              isActive={spec.isActive}
+              defaultCategory={spec.specCategory}
+            />
           </div>
         </Card>
       </div>

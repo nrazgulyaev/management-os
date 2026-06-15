@@ -6,6 +6,7 @@ import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { GenerateRfqFromBoqButton } from "@/components/development/boq/generate-rfq-button";
+import { BoqStatusControls } from "./_status-controls";
 import { getDb } from "@/lib/db/client";
 import {
   getBoqDocumentByCode,
@@ -123,6 +124,11 @@ export default async function BoqDetailPage({
             Export CSV
           </Link>
           <GenerateRfqFromBoqButton boqItemIds={allItemIds} />
+          <BoqStatusControls
+            boqDocumentId={document.id}
+            boqCode={document.boqCode}
+            status={document.status}
+          />
         </div>
       </header>
 

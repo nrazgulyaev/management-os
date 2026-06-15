@@ -206,6 +206,7 @@ export default async function QaQcDetailPage({
         <Card padding="default">
           <div className="space-y-4">
             <QaQcPhotoGallery
+              issueCode={issue.issueCode}
               photos={photos.map((p) => ({
                 id: p.id,
                 documentId: p.documentId,

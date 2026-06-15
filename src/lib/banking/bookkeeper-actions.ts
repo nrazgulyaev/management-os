@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { bankTransactions, reconciliationRules } from "@/lib/db/schema/banking";
 import { contractGroups, invoices } from "@/lib/db/schema/sales";
+import { devCostCategories } from "@/lib/db/schema/dev-finance";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
@@ -68,6 +69,27 @@ export async function assignCategoryAction(
   const orgId = await resolveActiveOrgId();
   const user = await getCurrentAppUser();
   const db = requireDb();
+
+  // Validate the target category belongs to the caller's org before writing it
+  // onto the transaction — mirrors matchInvoiceAction's invoice re-validation.
+  // dev_cost_categories.organization_id is NOT NULL.
+  if (parsed.data.categoryId) {
+    const [cat] = await db
+      .select({ id: devCostCategories.id })
+      .from(devCostCategories)
+      .where(
+        and(
+          eq(devCostCategories.id, parsed.data.categoryId),
+          eq(devCostCategories.organizationId, orgId),
+        ),
+      )
+      .limit(1);
+    if (!cat) {
+      console.error("assignCategoryAction: category not found in org");
+      return;
+    }
+  }
+
   await db
     .update(bankTransactions)
     .set({

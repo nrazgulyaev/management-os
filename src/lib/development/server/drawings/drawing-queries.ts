@@ -8,6 +8,7 @@ import {
   drawingDistributionLog,
 } from "@/lib/db/schema/drawings";
 import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export interface RecentDrawingRevision {
   revisionId: string;
@@ -88,16 +89,30 @@ export async function listDrawings(filters?: {
 
 export async function getDrawingByCode(code: string) {
   const db = requireDb();
+  // TENANCY — drawingCode is globally unique; without the org filter a tenant
+  // could open another tenant's drawing detail page by code. Org mismatch
+  // returns null so the page notFound()s.
+  const organizationId = await requireOrgId();
   const [d] = await db
     .select()
     .from(drawings)
-    .where(eq(drawings.drawingCode, code))
+    .where(
+      and(
+        eq(drawings.drawingCode, code),
+        eq(drawings.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!d) return null;
   const revisions = await db
     .select()
     .from(drawingRevisions)
-    .where(eq(drawingRevisions.drawingId, d.id))
+    .where(
+      and(
+        eq(drawingRevisions.drawingId, d.id),
+        eq(drawingRevisions.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(drawingRevisions.revisionDate));
   return { drawing: d, revisions };
 }
@@ -128,6 +143,10 @@ export async function getDrawingRevision(input: {
 
 export async function listDistributionForDrawing(drawingId: string) {
   const db = requireDb();
+  // TENANCY — scope the distribution log to the caller's org so one tenant
+  // can't read another tenant's distribution records by passing a foreign
+  // drawingId.
+  const organizationId = await requireOrgId();
   return db
     .select({
       id: drawingDistributionLog.id,
@@ -143,6 +162,11 @@ export async function listDistributionForDrawing(drawingId: string) {
       drawingRevisions,
       eq(drawingRevisions.id, drawingDistributionLog.revisionId),
     )
-    .where(eq(drawingRevisions.drawingId, drawingId))
+    .where(
+      and(
+        eq(drawingRevisions.drawingId, drawingId),
+        eq(drawingDistributionLog.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(drawingDistributionLog.distributedAt));
 }

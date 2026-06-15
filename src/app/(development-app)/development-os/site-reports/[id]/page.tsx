@@ -28,6 +28,16 @@ import {
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { and, eq } from "drizzle-orm";
+import {
+  materialPoLines,
+  materialPurchaseOrders,
+} from "@/lib/db/schema/site-operations";
+import { requireOrgId } from "@/features/auth/require-org";
+import {
+  RecordMaterialConsumptionForm,
+  type ConsumptionPoLineOption,
+} from "./_material-consumption";
 
 export const metadata: Metadata = { title: "Site report · Development OS" };
 export const dynamic = "force-dynamic";
@@ -67,6 +77,47 @@ export default async function SiteReportDetailPage({
     () => null,
   );
   const evidencePhotos = await loadSiteReportPhotos(report.id).catch(() => []);
+
+  // Org-scoped PO lines for this project — powers the material-consumption
+  // form. Scope by org (material_po_lines has its own organization_id) AND by
+  // the report's project (join to material_purchase_orders). getDb() is
+  // guarded above, so db is non-null here.
+  const orgId = await requireOrgId();
+  const poLineRows = await db
+    .select({
+      id: materialPoLines.id,
+      poCode: materialPurchaseOrders.poCode,
+      lineNumber: materialPoLines.lineNumber,
+      materialName: materialPoLines.materialName,
+      unitOfMeasure: materialPoLines.unitOfMeasure,
+      quantityOrdered: materialPoLines.quantityOrdered,
+      quantityDelivered: materialPoLines.quantityDelivered,
+      quantityConsumed: materialPoLines.quantityConsumed,
+    })
+    .from(materialPoLines)
+    .innerJoin(
+      materialPurchaseOrders,
+      eq(materialPoLines.poId, materialPurchaseOrders.id),
+    )
+    .where(
+      and(
+        eq(materialPoLines.organizationId, orgId),
+        eq(materialPurchaseOrders.projectId, report.projectId),
+      ),
+    )
+    .orderBy(materialPurchaseOrders.poCode, materialPoLines.lineNumber)
+    .catch(() => []);
+
+  const consumptionPoLines: ConsumptionPoLineOption[] = poLineRows.map((r) => ({
+    id: r.id,
+    poCode: r.poCode,
+    lineNumber: r.lineNumber,
+    materialName: r.materialName,
+    unitOfMeasure: r.unitOfMeasure,
+    quantityOrdered: Number(r.quantityOrdered),
+    quantityDelivered: Number(r.quantityDelivered),
+    quantityConsumed: Number(r.quantityConsumed),
+  }));
 
   async function handleSubmit() {
     "use server";
@@ -219,6 +270,27 @@ export default async function SiteReportDetailPage({
             ))}
           </div>
         )}
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Materials · Record consumption</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Log material drawn down per zone against a delivered PO line. Each
+          entry bumps the PO line&rsquo;s consumed quantity atomically so the
+          procurement utilization always reconciles (feeds the site &rarr;
+          material-usage &rarr; finance bridge).
+        </p>
+        <Card padding="default">
+          <RecordMaterialConsumptionForm
+            reportId={report.id}
+            zones={zones.map((z) => ({
+              id: z.id,
+              zoneCode: z.zoneCode,
+              zoneName: z.zoneName,
+            }))}
+            poLines={consumptionPoLines}
+          />
+        </Card>
       </div>
 
       <div>

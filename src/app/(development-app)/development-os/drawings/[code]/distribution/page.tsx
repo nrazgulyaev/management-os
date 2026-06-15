@@ -11,6 +11,8 @@ import {
   getDrawingByCode,
   listDistributionForDrawing,
 } from "@/lib/development/server/drawings/drawing-queries";
+import { getVendors } from "@/lib/development/server/vendors";
+import { LogDistributionButton } from "./_log-distribution-button";
 
 export const metadata: Metadata = {
   title: "Drawing distribution · Development OS",
@@ -38,8 +40,21 @@ export default async function DrawingDistributionPage({
   }
   const data = await getDrawingByCode(decodeURIComponent(code));
   if (!data) notFound();
-  const { drawing } = data;
-  const dist = await listDistributionForDrawing(drawing.id);
+  const { drawing, revisions } = data;
+  const [dist, vendors] = await Promise.all([
+    listDistributionForDrawing(drawing.id),
+    getVendors(),
+  ]);
+
+  const revisionOptions = revisions.map((r) => ({
+    id: r.id,
+    revisionLabel: r.revisionLabel,
+    status: r.status,
+  }));
+  const vendorOptions = vendors.map((v) => ({
+    id: v.id,
+    label: `${v.vendorCode} · ${v.legalName}`,
+  }));
 
   return (
     <DevelopmentShell>
@@ -62,6 +77,10 @@ export default async function DrawingDistributionPage({
           </p>
         </div>
         <div className="actions">
+          <LogDistributionButton
+            revisions={revisionOptions}
+            vendors={vendorOptions}
+          />
           <Link
             href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}`}
             className="btn btn-secondary btn-sm"
