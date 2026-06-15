@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Kpi } from "@/components/dashboard/primitives";
@@ -63,7 +62,11 @@ export default async function CapitalAccountPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Capital account" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Capital account</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -94,28 +97,34 @@ export default async function CapitalAccountPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investors", href: "/development-os/investors" },
-          {
-            label: investor.investorCode,
-            href: `/development-os/investors/${investor.investorCode}`,
-          },
-          { label: "Capital account" },
-        ]}
-        eyebrow={`${account.wallets.length} wallet${account.wallets.length === 1 ? "" : "s"}`}
-        title="Capital account"
-        description="Aggregated balance buckets across this investor's wallets. Economic balance = cash + reinvestment + pending distribution + residual inventory value (recomputed nightly by dev_os_wallet_recompute)."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/investors">Investors</Link> /{" "}
+            <Link href={`/development-os/investors/${investor.investorCode}`}>
+              {investor.investorCode}
+            </Link>{" "}
+            / <span>Capital account</span>
+          </div>
+          <div className="label">{`${account.wallets.length} wallet${account.wallets.length === 1 ? "" : "s"}`}</div>
+          <h1>Capital account</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Aggregated balance buckets across this investor&apos;s wallets.
+            Economic balance = cash + reinvestment + pending distribution +
+            residual inventory value (recomputed nightly by
+            dev_os_wallet_recompute).
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/investors/${investor.investorCode}`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Investor
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       <SectionRule>Buckets · aggregated balances (USD)</SectionRule>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3">

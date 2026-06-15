@@ -5,7 +5,6 @@ import { getDb } from "@/lib/db/client";
 import { payrollRuns } from "@/lib/db/schema/payroll";
 import { requireOrgId } from "@/features/auth/require-org";
 import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
-import { PageHeader } from "@/components/ui/page-header";
 import { listRunExpenseLines, listRunPayslips } from "@/features/payroll/services";
 
 export const metadata = { title: "Payroll run · payslips" };
@@ -55,15 +54,20 @@ export default async function PayrollRunPage({ params }: { params: Promise<{ id:
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Payroll", href: "/dashboard/payroll" },
-          { label: run.label },
-        ]}
-        title={`Payroll · ${run.label}`}
-        description="The expense lines this run posted into finance, plus the BPJS / PPh21 payslip breakdown for staff with statutory enabled."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/payroll">Payroll</Link> /{" "}
+            <span>{run.label}</span>
+          </div>
+          <h1>Payroll · {run.label}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            The expense lines this run posted into finance, plus the BPJS / PPh21
+            payslip breakdown for staff with statutory enabled.
+          </p>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Total posted" value={fmtMoney(run.totalMinor, currency)} sub="cost borne by owner / management" tone="accent" />

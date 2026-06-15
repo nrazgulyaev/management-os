@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { NumKpi } from "@/components/projects/num-kpi";
@@ -46,26 +45,29 @@ export default async function BoqLineDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: slug, href: `/development-os/projects/${slug}` },
-          { label: "BOQ", href: `/development-os/projects/${slug}/boq` },
-          { label: lineId },
-        ]}
-        eyebrow="Line detail"
-        title={`Line ${lineId}`}
-        description="Planned baseline + rolled-up actuals + the POs that contributed."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{slug}</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/boq`}>BOQ</Link> /{" "}
+            <span>{lineId}</span>
+          </div>
+          <h1>Line {lineId}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Planned baseline + rolled-up actuals + the POs that contributed.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/projects/${slug}/boq`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Back to BOQ
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       <div className="cfo-detail-kpis" style={{ marginBottom: 18 }}>
         <NumKpi label="Planned qty" value={`${planned.qty} m²`} />

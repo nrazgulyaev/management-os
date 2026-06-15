@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Mail, Phone, Globe } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi } from "@/components/dashboard/primitives";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getInvestor } from "@/lib/development/server/investors";
@@ -41,18 +38,20 @@ export default async function InvestorDetailPage({
     if (!db) {
       return (
         <DevelopmentShell>
-          <PageHeader
-            breadcrumbs={[
-              { label: "Development OS", href: "/development-os" },
-              { label: "Investors", href: "/development-os/investors" },
-              { label: "Detail" },
-            ]}
-            title="Investor detail"
-          />
+          <div className="page-header">
+            <div className="left">
+              <div className="crumb">
+                <Link href="/development-os">Development OS</Link> /{" "}
+                <Link href="/development-os/investors">Investors</Link> /{" "}
+                <span>Detail</span>
+              </div>
+              <h1>Investor detail</h1>
+            </div>
+          </div>
           <EmptyState
             title="Database not configured"
             description="Set DATABASE_URL to view investor details."
-            action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+            action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
           />
         </DevelopmentShell>
       );
@@ -65,16 +64,22 @@ export default async function InvestorDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investors", href: "/development-os/investors" },
-          { label: investor.legalName },
-        ]}
-        eyebrow={`${investor.investorCode} · ${INVESTOR_TYPE_LABEL[investor.investorType]}`}
-        title={investor.legalName}
-        description={investor.notes ?? undefined}
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/investors">Investors</Link> /{" "}
+            <span>{investor.legalName}</span>
+          </div>
+          <div className="label">{`${investor.investorCode} · ${INVESTOR_TYPE_LABEL[investor.investorType]}`}</div>
+          <h1>{investor.legalName}</h1>
+          {investor.notes ? (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {investor.notes}
+            </p>
+          ) : null}
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <Button asChild>
               <Link
@@ -90,47 +95,51 @@ export default async function InvestorDetailPage({
               </Link>
             </Button>
           </div>
-        }
-      />
-
-      <Section eyebrow="Profile" title="Contact & preferences">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-          <ProfileField
-            icon={<Mail className="w-3.5 h-3.5" />}
-            label="Email"
-            value={investor.contactEmail ?? "—"}
-          />
-          <ProfileField
-            icon={<Phone className="w-3.5 h-3.5" />}
-            label="Phone"
-            value={investor.contactPhone ?? "—"}
-          />
-          <ProfileField
-            icon={<Globe className="w-3.5 h-3.5" />}
-            label="Tax residency"
-            value={investor.taxResidency ?? "—"}
-          />
-          <ProfileField
-            label="Reporting"
-            value={`${CURRENCY_LABEL[investor.primaryCurrency]} · ${REPORTING_LANGUAGE_LABEL[investor.reportingLanguage]}`}
-          />
         </div>
-        <div className="mt-3">
-          <Badge
-            tone={
-              investor.status === "active"
-                ? "success"
-                : investor.status === "exited"
-                  ? "neutral"
-                  : "warning"
-            }
-          >
-            {INVESTOR_STATUS_LABEL[investor.status]}
-          </Badge>
-        </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Capital" title="At a glance">
+      <div>
+        <div className="label mb-2.5">Profile</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <ProfileField
+              icon={<Mail className="w-3.5 h-3.5" />}
+              label="Email"
+              value={investor.contactEmail ?? "—"}
+            />
+            <ProfileField
+              icon={<Phone className="w-3.5 h-3.5" />}
+              label="Phone"
+              value={investor.contactPhone ?? "—"}
+            />
+            <ProfileField
+              icon={<Globe className="w-3.5 h-3.5" />}
+              label="Tax residency"
+              value={investor.taxResidency ?? "—"}
+            />
+            <ProfileField
+              label="Reporting"
+              value={`${CURRENCY_LABEL[investor.primaryCurrency]} · ${REPORTING_LANGUAGE_LABEL[investor.reportingLanguage]}`}
+            />
+          </div>
+          <div className="mt-3">
+            <HandoffBadge
+              tone={
+                investor.status === "active"
+                  ? "ok"
+                  : investor.status === "exited"
+                    ? "soft"
+                    : "warn"
+              }
+            >
+              {INVESTOR_STATUS_LABEL[investor.status]}
+            </HandoffBadge>
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Capital</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <Kpi
             label="Committed"
@@ -155,9 +164,10 @@ export default async function InvestorDetailPage({
             sub="Available to withdraw"
           />
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Commitments" title="All commitments">
+      <div>
+        <div className="label mb-2.5">Commitments</div>
         {investor.commitments.length === 0 ? (
           <EmptyState
             title="No commitments yet"
@@ -226,19 +236,19 @@ export default async function InvestorDetailPage({
                         {formatUsdMinor(BigInt(c.walletAvailableUsdMinor))}
                       </td>
                       <td>
-                        <Badge
+                        <HandoffBadge
                           tone={
                             c.status === "active"
-                              ? "success"
+                              ? "ok"
                               : c.status === "fully_called"
                                 ? "info"
                                 : c.status === "closed"
-                                  ? "neutral"
-                                  : "warning"
+                                  ? "soft"
+                                  : "warn"
                           }
                         >
                           {COMMITMENT_STATUS_LABEL[c.status]}
-                        </Badge>
+                        </HandoffBadge>
                       </td>
                     </tr>
                   ))}
@@ -247,13 +257,15 @@ export default async function InvestorDetailPage({
             </div>
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="AI"
-        title="Investor relations Q&A"
-        description="Paste an incoming question; the agent drafts a response using this investor's actual data. HITL: every draft must be approved (and optionally edited) before it's marked sent."
-      >
+      <div>
+        <div className="label mb-2.5">AI</div>
+        <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+          Paste an incoming question; the agent drafts a response using this
+          investor&apos;s actual data. HITL: every draft must be approved (and
+          optionally edited) before it&apos;s marked sent.
+        </p>
         <InvestorQaPanel
           investorId={investor.id}
           investorReportingLanguage={investor.reportingLanguage}
@@ -275,7 +287,7 @@ export default async function InvestorDetailPage({
             generatedAt: d.generatedAt,
           }))}
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

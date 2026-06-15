@@ -1,7 +1,5 @@
 import Link from "next/link";
-import { Kpi } from "@/components/dashboard/primitives";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   listArrivals,
   listDepartures,
@@ -405,11 +403,14 @@ export default async function FrontOfficeTodayPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
         <div className="lg:col-span-2">
-          <Section
-            eyebrow="Desk tools"
-            title="Boards & queues"
-            description="Deeper views for readiness, the request inbox, and ops."
-          >
+          <div>
+            <div className="label mb-2.5">Desk tools</div>
+            <h2 className="display text-[26px] font-normal m-0">
+              Boards & queues
+            </h2>
+            <p className="text-[13px] text-ink-3 mt-1 mb-4">
+              Deeper views for readiness, the request inbox, and ops.
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <BoardCard
                 href="/dashboard/front-office/readiness"
@@ -436,11 +437,15 @@ export default async function FrontOfficeTodayPage() {
                 detail="Cross-team daily picture"
               />
             </div>
-          </Section>
+          </div>
         </div>
 
         <aside>
-          <Section eyebrow="AI" title="Front-office copilot">
+          <div>
+            <div className="label mb-2.5">AI</div>
+            <h2 className="display text-[26px] font-normal m-0 mb-4">
+              Front-office copilot
+            </h2>
             {!copilotEnabled ? (
               <Link
                 href="/dashboard/settings/ai-agents/front_office_copilot"
@@ -453,9 +458,9 @@ export default async function FrontOfficeTodayPage() {
                   The front-office-copilot agent ships dry-run by default. Wire a
                   provider key to flip it live; outputs surface here.
                 </p>
-                <Badge tone="outline" className="self-start">
-                  Configure provider →
-                </Badge>
+                <span className="self-start">
+                  <HandoffBadge tone="soft">Configure provider →</HandoffBadge>
+                </span>
               </Link>
             ) : copilotOutputs.length === 0 ? (
               <Link
@@ -469,9 +474,9 @@ export default async function FrontOfficeTodayPage() {
                   Trigger the copilot to surface today&rsquo;s exception list across
                   arrivals, in-house guests, and open requests.
                 </p>
-                <Badge tone="outline" className="self-start">
-                  Run copilot →
-                </Badge>
+                <span className="self-start">
+                  <HandoffBadge tone="soft">Run copilot →</HandoffBadge>
+                </span>
               </Link>
             ) : (
               <div className="flex flex-col gap-3">
@@ -497,7 +502,7 @@ export default async function FrontOfficeTodayPage() {
                 ))}
               </div>
             )}
-          </Section>
+          </div>
         </aside>
       </div>
     </>

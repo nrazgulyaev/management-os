@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Layers } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi } from "@/components/dashboard/primitives";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjects } from "@/lib/development/server/projects";
@@ -33,11 +30,15 @@ export default async function CoordinationPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          eyebrow="Coordination"
-          title="Coordination"
-          description="RFIs, submittals, and punch-list pinned to a drawing."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="label">Coordination</div>
+            <h1>Coordination</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              RFIs, submittals, and punch-list pinned to a drawing.
+            </p>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -60,43 +61,51 @@ export default async function CoordinationPage({
   if (!selected) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Coordination" },
-          ]}
-          eyebrow="Drawing-pinned coordination"
-          title="Coordination"
-          description="Pin RFIs, submittals, and punch-list defects directly onto a drawing revision. Pick a project to open its coordination board."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Coordination</span>
+            </div>
+            <div className="label">Drawing-pinned coordination</div>
+            <h1>Coordination</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Pin RFIs, submittals, and punch-list defects directly onto a
+              drawing revision. Pick a project to open its coordination board.
+            </p>
+          </div>
+        </div>
         {dbProjects.length === 0 ? (
           <EmptyState
             title="No projects yet"
             description="Create a development project first, then upload a drawing revision to start pinning coordination items."
           />
         ) : (
-          <Section eyebrow="Projects" title="Choose a project">
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              {dbProjects.map((p) => (
-                <li key={p.realProjectId}>
-                  <Link
-                    href={`/development-os/coordination?project=${p.realProjectId}`}
-                    className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface hover:bg-muted transition-colors px-4 py-3"
-                  >
-                    <Layers className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-ink truncate">
-                        {p.name}
+          <div>
+            <div className="label mb-2.5">Projects</div>
+            <Card padding="default">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {dbProjects.map((p) => (
+                  <li key={p.realProjectId}>
+                    <Link
+                      href={`/development-os/coordination?project=${p.realProjectId}`}
+                      className="flex items-center gap-3 rounded-lg border border-line-soft bg-surface hover:bg-muted transition-colors px-4 py-3"
+                    >
+                      <Layers className="w-4 h-4 text-ink-tertiary" strokeWidth={1.75} />
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink truncate">
+                          {p.name}
+                        </div>
+                        <div className="text-xs text-ink-tertiary truncate">
+                          {p.location ?? p.slug}
+                        </div>
                       </div>
-                      <div className="text-xs text-ink-tertiary truncate">
-                        {p.location ?? p.slug}
-                      </div>
-                    </div>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Section>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
         )}
       </DevelopmentShell>
     );
@@ -125,16 +134,21 @@ export default async function CoordinationPage({
     drawingOptions.find((o) => o.revisionId === activeRevisionId) ?? null;
 
   const header = (
-    <PageHeader
-      breadcrumbs={[
-        { label: "Development OS", href: "/development-os" },
-        { label: "Coordination", href: "/development-os/coordination" },
-        { label: selected.name },
-      ]}
-      eyebrow="Drawing-pinned coordination"
-      title={`${selected.name} — Coordination`}
-      description="Click the plan to drop a pin, then link an RFI / Submittal / Defect. Open any item for its reply thread + approve/close."
-    />
+    <div className="page-header">
+      <div className="left">
+        <div className="crumb">
+          <Link href="/development-os">Development OS</Link> /{" "}
+          <Link href="/development-os/coordination">Coordination</Link> /{" "}
+          <span>{selected.name}</span>
+        </div>
+        <div className="label">Drawing-pinned coordination</div>
+        <h1>{`${selected.name} — Coordination`}</h1>
+        <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+          Click the plan to drop a pin, then link an RFI / Submittal / Defect.
+          Open any item for its reply thread + approve/close.
+        </p>
+      </div>
+    </div>
   );
 
   if (!activeOption) {
@@ -221,23 +235,26 @@ export default async function CoordinationPage({
       </div>
 
       {/* Drawing selector */}
-      <Section eyebrow="Drawing" title="Pin against revision">
-        <div className="flex items-center gap-2 flex-wrap">
-          {drawingOptions.map((o) => (
-            <Link
-              key={o.revisionId}
-              href={`/development-os/coordination?project=${selected.realProjectId}&revision=${o.revisionId}`}
-            >
-              <Badge tone={o.revisionId === activeOption.revisionId ? "accent" : "outline"}>
-                {o.drawingCode} · {o.revisionLabel}
-              </Badge>
-            </Link>
-          ))}
-          <span className="text-xs text-ink-tertiary ml-2">
-            {totalItems} coordination item{totalItems === 1 ? "" : "s"}
-          </span>
-        </div>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Drawing</div>
+        <Card padding="default">
+          <div className="flex items-center gap-2 flex-wrap">
+            {drawingOptions.map((o) => (
+              <Link
+                key={o.revisionId}
+                href={`/development-os/coordination?project=${selected.realProjectId}&revision=${o.revisionId}`}
+              >
+                <HandoffBadge tone={o.revisionId === activeOption.revisionId ? "info" : "soft"}>
+                  {o.drawingCode} · {o.revisionLabel}
+                </HandoffBadge>
+              </Link>
+            ))}
+            <span className="text-xs text-ink-tertiary ml-2">
+              {totalItems} coordination item{totalItems === 1 ? "" : "s"}
+            </span>
+          </div>
+        </Card>
+      </div>
 
       <CoordinationBoard
         projectId={selected.realProjectId}

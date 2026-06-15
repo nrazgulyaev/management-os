@@ -1,29 +1,33 @@
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi } from "@/components/dashboard/primitives";
 import type { OperationsMetrics } from "@/features/operations/services";
+
+function mapAccent(accent: boolean): "danger" | undefined {
+  return accent ? "danger" : undefined;
+}
 
 export function OperationsMetricsGrid({ metrics }: { metrics: OperationsMetrics }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      <MetricCard label="Open" value={String(metrics.open + metrics.inProgress)} hint="open + active" />
-      <MetricCard label="Due today" value={String(metrics.dueToday)} accent={metrics.dueToday > 0} />
-      <MetricCard
+      <Kpi label="Open" value={String(metrics.open + metrics.inProgress)} sub="open + active" />
+      <Kpi label="Due today" value={String(metrics.dueToday)} tone={mapAccent(metrics.dueToday > 0)} />
+      <Kpi
         label="Urgent"
         value={String(metrics.urgent)}
-        accent={metrics.urgent > 0}
-        hint={metrics.urgent > 0 ? "needs eyes" : undefined}
+        tone={mapAccent(metrics.urgent > 0)}
+        sub={metrics.urgent > 0 ? "needs eyes" : undefined}
       />
-      <MetricCard label="Needs review" value={String(metrics.needsReview)} />
-      <MetricCard label="Housekeeping" value={String(metrics.housekeeping)} />
-      <MetricCard label="Maintenance" value={String(metrics.maintenance)} />
-      <MetricCard
+      <Kpi label="Needs review" value={String(metrics.needsReview)} />
+      <Kpi label="Housekeeping" value={String(metrics.housekeeping)} />
+      <Kpi label="Maintenance" value={String(metrics.maintenance)} />
+      <Kpi
         label="Maintenance tickets"
         value={String(metrics.pendingMaintenanceTickets)}
-        hint="pending"
+        sub="pending"
       />
-      <MetricCard
+      <Kpi
         label="Service requests"
         value={String(metrics.newServiceRequests)}
-        hint="new"
+        sub="new"
       />
     </div>
   );

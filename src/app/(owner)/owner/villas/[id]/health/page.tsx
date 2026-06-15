@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { SectionHeading } from "@/components/dashboard/primitives";
-import { MetricCard } from "@/components/ui/metric-card";
+import { SectionHeading, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
 import {
@@ -76,39 +75,41 @@ export default async function OwnerVillaHealthPage({
         <ArrowLeft className="w-3.5 h-3.5" /> Calendar
       </Link>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <Kpi
           label="Health score"
           value={score !== null ? `${Math.round(score)} / 100` : "—"}
-          accent={
+          tone={
             classifyVillaHealthStatus(score) === "attention" ||
             classifyVillaHealthStatus(score) === "watch"
+              ? "danger"
+              : undefined
           }
         />
-        <MetricCard
+        <Kpi
           label="Booked nights"
           value={String(inputs?.bookedNights ?? snapshot?.bookedNights ?? 0)}
-          hint={
+          sub={
             inputs?.availableNights
               ? `of ${inputs.availableNights} available`
               : undefined
           }
         />
-        <MetricCard
+        <Kpi
           label="Owner stay nights"
           value={String(inputs?.ownerStayNights ?? snapshot?.ownerStayNights ?? 0)}
         />
-        <MetricCard
+        <Kpi
           label="Maintenance / hold"
           value={String(
             inputs?.maintenanceBlockedNights ??
               snapshot?.maintenanceBlockedNights ??
               0,
           )}
-          hint="nights blocked"
+          sub="nights blocked"
         />
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <MetricCard
+        <Kpi
           label="Open maintenance"
           value={String(
             inputs?.maintenanceTicketsOpen ??
@@ -116,7 +117,7 @@ export default async function OwnerVillaHealthPage({
               0,
           )}
         />
-        <MetricCard
+        <Kpi
           label="Completed maintenance"
           value={String(
             inputs?.maintenanceTicketsCompleted ??
@@ -124,7 +125,7 @@ export default async function OwnerVillaHealthPage({
               0,
           )}
         />
-        <MetricCard
+        <Kpi
           label="Housekeeping completed"
           value={String(
             inputs?.housekeepingTasksCompleted ??
@@ -132,7 +133,7 @@ export default async function OwnerVillaHealthPage({
               0,
           )}
         />
-        <MetricCard
+        <Kpi
           label="Utility risks"
           value={String(
             inputs?.utilityRiskCount ?? snapshot?.utilityRiskCount ?? 0,

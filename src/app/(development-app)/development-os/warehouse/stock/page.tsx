@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi } from "@/components/dashboard/primitives";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -20,8 +17,8 @@ export const metadata: Metadata = { title: "Stock · Warehouse" };
 export const dynamic = "force-dynamic";
 
 const HEALTH_TONE = {
-  ok: "success",
-  warn: "warning",
+  ok: "ok",
+  warn: "warn",
   danger: "danger",
 } as const;
 
@@ -54,14 +51,16 @@ export default async function WarehouseStockPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Warehouse", href: "/development-os/warehouse" },
-            { label: "Stock" },
-          ]}
-          title="Stock"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/warehouse">Warehouse</Link> /{" "}
+              <span>Stock</span>
+            </div>
+            <h1>Stock</h1>
+          </div>
+        </div>
         <EmptyState
           variant="error"
           title="Database not configured"
@@ -110,24 +109,29 @@ export default async function WarehouseStockPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Warehouse", href: "/development-os/warehouse" },
-          { label: "Stock" },
-        ]}
-        eyebrow={`${data.totalSkuCount} SKU${data.totalSkuCount === 1 ? "" : "s"} tracked`}
-        title="Stock"
-        description="Full SKU stock list aggregated across warehouse locations. Run a cycle count to reconcile the system against a physical count — each adjustment posts an audited inventory movement."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/warehouse">Warehouse</Link> /{" "}
+            <span>Stock</span>
+          </div>
+          <h1>Stock</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Full SKU stock list aggregated across warehouse locations. Run a
+            cycle count to reconcile the system against a physical count — each
+            adjustment posts an audited inventory movement.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/warehouse">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Warehouse
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi
@@ -159,11 +163,8 @@ export default async function WarehouseStockPage({
         />
       </div>
 
-      <Section
-        eyebrow="Reconcile"
-        title="Cycle count"
-        description="Pick a SKU, enter the physical count, submit. The variance posts as an inventory movement and re-syncs on-hand."
-      >
+      <div>
+        <div className="label mb-2.5">Reconcile</div>
         <StockCountPanel
           items={data.rows.map((r) => ({
             itemId: r.itemId,
@@ -174,13 +175,10 @@ export default async function WarehouseStockPage({
           }))}
           location={data.defaultLocation}
         />
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Catalog"
-        title="SKU stock list"
-        description="On-hand, reserved, and available per SKU. Health classifies each against its reorder point. Search by SKU, name, or category; filter to low / out-of-stock."
-      >
+      <div>
+        <div className="label mb-2.5">Catalog</div>
         <form method="get" className="flex flex-wrap items-end gap-3 mb-4">
           <label className="field">
             <span className="field-label">Search</span>
@@ -273,9 +271,9 @@ export default async function WarehouseStockPage({
                         {r.reorderPoint != null ? r.reorderPoint.toFixed(2) : "—"}
                       </TDNum>
                       <TD>
-                        <Badge tone={HEALTH_TONE[r.health]}>
+                        <HandoffBadge tone={HEALTH_TONE[r.health]}>
                           {HEALTH_LABEL[r.health]}
-                        </Badge>
+                        </HandoffBadge>
                       </TD>
                     </TR>
                   ))}
@@ -284,7 +282,7 @@ export default async function WarehouseStockPage({
             </div>
           </div>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

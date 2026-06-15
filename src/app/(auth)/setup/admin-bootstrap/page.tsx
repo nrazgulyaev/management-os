@@ -6,7 +6,6 @@ import {
   resolveAuthPlatform,
   resolveTokenProduct,
 } from "@/components/auth/auth-copy";
-import { Badge } from "@/components/ui/badge";
 import { isDbConfigured, isSupabaseAuthConfigured } from "@/lib/env";
 import { getBootstrapState } from "@/features/auth/bootstrap";
 import { getCurrentAuthUser } from "@/lib/supabase/server";
@@ -129,9 +128,9 @@ export default async function AdminBootstrapPage({
                 : "ADMIN_BOOTSTRAP_SECRET is required to grant additional super-admin roles."}
             </span>
             {auth ? (
-              <Badge tone="success">Signed in</Badge>
+              <span className="badge badge-ok">Signed in</span>
             ) : (
-              <Badge tone="warning">No session</Badge>
+              <span className="badge badge-warn">No session</span>
             )}
           </div>
 

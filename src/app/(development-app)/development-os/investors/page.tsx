@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Briefcase, Waves } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Kpi } from "@/components/dashboard/primitives";
@@ -92,19 +91,25 @@ export default async function InvestorsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investors" },
-        ]}
-        eyebrow={
-          db
-            ? `${metrics.totalInvestors} investors · ${formatUsdMinor(committed)} committed · ${deployedPct}% deployed`
-            : "Database not configured"
-        }
-        title="Fund, investors & distributions"
-        description="Pre-handover capital partners. Each investor can hold one or more commitments across projects with negotiated profit-share and capital-return priority."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Investors</span>
+          </div>
+          <div className="label">
+            {db
+              ? `${metrics.totalInvestors} investors · ${formatUsdMinor(committed)} committed · ${deployedPct}% deployed`
+              : "Database not configured"}
+          </div>
+          <h1>Fund, investors &amp; distributions</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Pre-handover capital partners. Each investor can hold one or more
+            commitments across projects with negotiated profit-share and
+            capital-return priority.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <InvestorModalForm />
             <ExportButton entity="investors" />
@@ -121,8 +126,8 @@ export default async function InvestorsPage() {
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {!db && (
         <EmptyState

@@ -1,5 +1,9 @@
-import { MetricCard } from "@/components/ui/metric-card";
+import { Kpi } from "@/components/dashboard/primitives";
 import { portfolioMetrics, revenueByChannel, monthlyRevenueStrip } from "@/lib/mock/metrics";
+
+function fmtDelta(value: number, label: string): string {
+  return `${value > 0 ? "+" : ""}${value.toFixed(1)}% ${label}`;
+}
 
 const dataToneClass: Record<string, string> = {
   emerald: "bg-data-emerald",
@@ -13,26 +17,25 @@ export function PortfolioOverview() {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard
+        <Kpi
           label="Occupancy YTD"
-          value={portfolioMetrics.occupancyYTD.value.toFixed(1)}
-          unit="%"
-          delta={{ value: portfolioMetrics.occupancyYTD.deltaYoY, label: "YoY" }}
+          value={`${portfolioMetrics.occupancyYTD.value.toFixed(1)} %`}
+          sub={fmtDelta(portfolioMetrics.occupancyYTD.deltaYoY, "YoY")}
         />
-        <MetricCard
+        <Kpi
           label="ADR"
           value={`Rp ${(portfolioMetrics.adr.value / 100_000_000).toFixed(1)}M`}
-          delta={{ value: portfolioMetrics.adr.deltaYoY, label: "YoY" }}
+          sub={fmtDelta(portfolioMetrics.adr.deltaYoY, "YoY")}
         />
-        <MetricCard
+        <Kpi
           label="RevPAR"
           value={`Rp ${(portfolioMetrics.revpar.value / 100_000_000).toFixed(1)}M`}
-          delta={{ value: portfolioMetrics.revpar.deltaYoY, label: "YoY" }}
+          sub={fmtDelta(portfolioMetrics.revpar.deltaYoY, "YoY")}
         />
-        <MetricCard
+        <Kpi
           label="Gross revenue MTD"
           value={`Rp ${(portfolioMetrics.grossRevenueMTD.value / 100_000_000_000).toFixed(1)}B`}
-          delta={{ value: portfolioMetrics.grossRevenueMTD.deltaYoY, label: "YoY" }}
+          sub={fmtDelta(portfolioMetrics.grossRevenueMTD.deltaYoY, "YoY")}
         />
       </div>
 
