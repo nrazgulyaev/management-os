@@ -80,7 +80,6 @@ export default async function ProjectDetailPage({
         <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
           Live status pulled from the operations layer.
         </p>
-        <Card style={{ padding: 0, overflow: "hidden" }}>
         <Table>
           <THead>
             <TR>
@@ -121,7 +120,6 @@ export default async function ProjectDetailPage({
             )}
           </TBody>
         </Table>
-        </Card>
       </section>
     </div>
   );

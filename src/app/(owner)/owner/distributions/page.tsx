@@ -52,8 +52,7 @@ export default async function OwnerDistributionsPage() {
           </p>
         </Card>
       ) : (
-        <Card style={{ padding: 0, overflow: "hidden" }}>
-          <Table>
+        <Table>
             <THead>
               <TR>
                 <TH>Period</TH>
@@ -94,8 +93,7 @@ export default async function OwnerDistributionsPage() {
                 </TR>
               ))}
             </TBody>
-          </Table>
-        </Card>
+        </Table>
       )}
 
       {data.rows.length > 0 && (
