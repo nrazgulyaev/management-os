@@ -50,7 +50,11 @@ export async function runDevOsBulkImportProcessor(
   );
 
   const dueJobs = await db
-    .select({ id: bulkImportJobs.id, status: bulkImportJobs.status })
+    .select({
+      id: bulkImportJobs.id,
+      status: bulkImportJobs.status,
+      organizationId: bulkImportJobs.organizationId,
+    })
     .from(bulkImportJobs)
     .where(
       and(
@@ -63,10 +67,10 @@ export async function runDevOsBulkImportProcessor(
     )
     .limit(MAX_JOBS_PER_RUN * 4); // overfetch + filter to stay simple
 
-  const eligible: { id: string }[] = [];
+  const eligible: { id: string; organizationId: string }[] = [];
   for (const j of dueJobs) {
     if (j.status === "ready") {
-      eligible.push({ id: j.id });
+      eligible.push({ id: j.id, organizationId: j.organizationId });
     } else if (j.status === "processing") {
       // Refetch to check the updatedAt stale-ness
       const fresh = await db
@@ -75,7 +79,7 @@ export async function runDevOsBulkImportProcessor(
         .where(eq(bulkImportJobs.id, j.id))
         .limit(1);
       if (fresh[0] && fresh[0].updatedAt < stuckThreshold) {
-        eligible.push({ id: j.id });
+        eligible.push({ id: j.id, organizationId: j.organizationId });
       }
     }
     if (eligible.length >= MAX_JOBS_PER_RUN) break;
@@ -93,7 +97,12 @@ export async function runDevOsBulkImportProcessor(
   let failed = 0;
   let stillProcessing = 0;
   for (const j of eligible) {
-    const result = await processBulkImportJob({ jobId: j.id });
+    // Trusted cron path: pass the job's own org so the action scopes its
+    // SELECT/UPDATE to that tenant without a request session.
+    const result = await processBulkImportJob(
+      { jobId: j.id },
+      j.organizationId,
+    );
     if (!result.ok) {
       failed += 1;
       continue;

@@ -1,10 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const CATEGORIES = [
   "residential",
@@ -33,11 +34,13 @@ export async function createAssetType(
   input: z.input<typeof createTypeSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createTypeSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(assetTypes)
     .values({
+      organizationId,
       typeKey: parsed.typeKey,
       displayName: parsed.displayName,
       description: parsed.description ?? null,
@@ -69,6 +72,7 @@ const updateTypeSchema = z.object({
 
 export async function updateAssetType(input: z.input<typeof updateTypeSchema>) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateTypeSchema.parse(input);
   const db = requireDb();
   const { id, ...rest } = parsed;
@@ -81,18 +85,29 @@ export async function updateAssetType(input: z.input<typeof updateTypeSchema>) {
   const [row] = await db
     .update(assetTypes)
     .set(updates as never)
-    .where(eq(assetTypes.id, id))
+    .where(
+      and(
+        eq(assetTypes.id, id),
+        eq(assetTypes.organizationId, organizationId),
+      ),
+    )
     .returning();
-  return row;
+  return row ?? null;
 }
 
 export async function deactivateAssetType(input: { id: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(assetTypes)
     .set({ isActive: false })
-    .where(eq(assetTypes.id, input.id))
+    .where(
+      and(
+        eq(assetTypes.id, input.id),
+        eq(assetTypes.organizationId, organizationId),
+      ),
+    )
     .returning();
-  return row;
+  return row ?? null;
 }

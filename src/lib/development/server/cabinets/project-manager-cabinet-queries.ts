@@ -539,6 +539,9 @@ export async function getSevenDaySchedule(): Promise<ScheduleDayBucket[]> {
 export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANT-1: scope to the caller's org so the digest is the org's latest,
+  // not the global latest across all tenants.
+  const orgId = await requireOrgId();
   const rows = await db.execute<{
     output_code: string;
     title: string;
@@ -548,6 +551,7 @@ export async function getLatestDailyDigest(): Promise<DailyDigestRow | null> {
     SELECT output_code, title, summary, created_at::text
       FROM agent_outputs
      WHERE agent_key = 'daily_digest'
+       AND organization_id = ${orgId}
      ORDER BY created_at DESC LIMIT 1
   `);
   const r = rowsOf<{

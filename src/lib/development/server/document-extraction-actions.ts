@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
@@ -8,6 +8,7 @@ import { aiDocumentExtractions } from "@/lib/db/schema/ai-development";
 import { documents } from "@/lib/db/schema/documents";
 import {} from "@/lib/db/schema/dev-finance";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   extractFromDocument,
   type ExtractDocumentResult,
@@ -91,12 +92,18 @@ export async function approveExtractionAsTransaction(
   const parsed = approveTxnSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const [ext] = await db
     .select()
     .from(aiDocumentExtractions)
-    .where(eq(aiDocumentExtractions.id, parsed.extractionId))
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, parsed.extractionId),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!ext) throw new Error("Extraction not found");
   if (ext.status !== "pending_review") {
@@ -140,7 +147,12 @@ export async function approveExtractionAsTransaction(
       createdTransactionId: created.id,
       updatedAt: new Date(),
     })
-    .where(eq(aiDocumentExtractions.id, ext.id));
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, ext.id),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    );
 
   revalidatePath(`/development-os/finance/document-extractions`);
   revalidatePath(`/development-os/finance/document-extractions/${ext.id}`);
@@ -158,6 +170,7 @@ export async function rejectExtraction(
   const parsed = rejectSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [ext] = await db
     .select({
@@ -165,7 +178,12 @@ export async function rejectExtraction(
       status: aiDocumentExtractions.status,
     })
     .from(aiDocumentExtractions)
-    .where(eq(aiDocumentExtractions.id, parsed.extractionId))
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, parsed.extractionId),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!ext) throw new Error("Extraction not found");
   if (ext.status !== "pending_review") {
@@ -180,7 +198,12 @@ export async function rejectExtraction(
       reviewedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiDocumentExtractions.id, ext.id));
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, ext.id),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`/development-os/finance/document-extractions`);
   return { ok: true };
 }
@@ -196,6 +219,7 @@ export async function markExtractionDuplicate(
   const parsed = dupeSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(aiDocumentExtractions)
@@ -206,7 +230,12 @@ export async function markExtractionDuplicate(
       reviewedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiDocumentExtractions.id, parsed.extractionId));
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, parsed.extractionId),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`/development-os/finance/document-extractions`);
   return { ok: true };
 }
@@ -221,6 +250,7 @@ export async function regenerateExtraction(
   const parsed = idSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [ext] = await db
     .select({
@@ -230,7 +260,12 @@ export async function regenerateExtraction(
       status: aiDocumentExtractions.status,
     })
     .from(aiDocumentExtractions)
-    .where(eq(aiDocumentExtractions.id, parsed.extractionId))
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, parsed.extractionId),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!ext) throw new Error("Extraction not found");
   if (ext.status === "pending_review") {
@@ -242,7 +277,12 @@ export async function regenerateExtraction(
         reviewedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(aiDocumentExtractions.id, ext.id));
+      .where(
+        and(
+          eq(aiDocumentExtractions.id, ext.id),
+          eq(aiDocumentExtractions.organizationId, organizationId),
+        ),
+      );
   }
   const out = await extractFromDocument({
     documentId: ext.documentId,
@@ -261,8 +301,11 @@ export async function getDocumentExtractions(opts?: {
   documentType?: string;
   limit?: number;
 }) {
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  const conditions = [];
+  const conditions = [
+    eq(aiDocumentExtractions.organizationId, organizationId),
+  ];
   if (opts?.status) {
     conditions.push(eq(aiDocumentExtractions.status, opts.status));
   }
@@ -271,7 +314,7 @@ export async function getDocumentExtractions(opts?: {
       eq(aiDocumentExtractions.documentType, opts.documentType),
     );
   }
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = and(...conditions);
   const rows = await db
     .select({
       id: aiDocumentExtractions.id,
@@ -288,18 +331,24 @@ export async function getDocumentExtractions(opts?: {
     })
     .from(aiDocumentExtractions)
     .innerJoin(documents, eq(documents.id, aiDocumentExtractions.documentId))
-    .where(where ?? sql`true`)
+    .where(where)
     .orderBy(desc(aiDocumentExtractions.generatedAt))
     .limit(opts?.limit ?? 100);
   return rows;
 }
 
 export async function getDocumentExtraction(extractionId: string) {
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .select()
     .from(aiDocumentExtractions)
-    .where(eq(aiDocumentExtractions.id, extractionId))
+    .where(
+      and(
+        eq(aiDocumentExtractions.id, extractionId),
+        eq(aiDocumentExtractions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

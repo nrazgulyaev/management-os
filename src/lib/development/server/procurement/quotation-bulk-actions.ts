@@ -81,10 +81,17 @@ export async function bulkInsertQuotationLines(
   const db = requireDb();
 
   // Pre-load PR + vendor catalogue.
+  // SECURITY: scope the PR load to the caller org so a foreign PR id cannot get
+  // quotations + lines (stamped with the caller's org) attached onto it.
   const [pr] = await db
     .select()
     .from(devOsPurchaseRequests)
-    .where(eq(devOsPurchaseRequests.id, parsed.prId))
+    .where(
+      and(
+        eq(devOsPurchaseRequests.id, parsed.prId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!pr) {
     return {
@@ -106,7 +113,10 @@ export async function bulkInsertQuotationLines(
       legalName: vendors.legalName,
       vendorCode: vendors.vendorCode,
     })
-    .from(vendors);
+    .from(vendors)
+    // SECURITY: only resolve vendor names against the caller's own catalogue so
+    // a SKU/name cannot bind to another org's vendor id.
+    .where(eq(vendors.organizationId, organizationId));
   const vendorByName = new Map<string, string>();
   for (const v of vendorRows) {
     vendorByName.set(v.legalName.trim().toLowerCase(), v.id);
@@ -191,6 +201,7 @@ export async function bulkInsertQuotationLines(
           and(
             eq(procurementQuotations.purchaseRequestId, parsed.prId),
             eq(procurementQuotations.vendorId, group.vendorId),
+            eq(procurementQuotations.organizationId, organizationId),
           ),
         )
         .limit(1);

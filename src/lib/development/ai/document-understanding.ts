@@ -106,6 +106,7 @@ export async function extractFromDocument(input: {
   const [doc] = await db
     .select({
       id: documents.id,
+      organizationId: documents.organizationId,
       bucket: documents.storageBucket,
       path: documents.storagePath,
       mime: documents.mimeType,
@@ -286,6 +287,11 @@ export async function extractFromDocument(input: {
     .insert(aiDocumentExtractions)
     .values({
       documentId: doc.id,
+      // TENANCY: stamp org from the parent document so the new extraction
+      // is owned by the right tenant (cron-safe — derived from the
+      // document, not requireOrgId). documents.organization_id is nullable;
+      // a residual-null document leaves this null rather than throwing.
+      organizationId: doc.organizationId ?? null,
       documentType: input.documentType,
       detectedLanguage: parsed.detected_language ?? null,
       detectedQuality,

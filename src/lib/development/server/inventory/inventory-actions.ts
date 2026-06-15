@@ -138,6 +138,41 @@ export async function recordInventoryMovement(
     throw new Error("recordInventoryMovement: requires authenticated app user");
   }
 
+  // TENANCY — verify the client-supplied item + location FKs belong to the
+  // caller's org BEFORE recording. The movement/balance rows are stamped with
+  // the caller's org, so without these checks a foreign item/location id would
+  // be mis-associated under this org (and the stock pre-check below would leak
+  // another tenant's quantity_on_hand into the error string).
+  const [item] = await db
+    .select({ id: devOsInventoryItems.id })
+    .from(devOsInventoryItems)
+    .where(
+      and(
+        eq(devOsInventoryItems.id, parsed.itemId),
+        eq(devOsInventoryItems.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!item) {
+    throw new Error("recordInventoryMovement: item not found");
+  }
+  for (const locationId of [parsed.fromLocationId, parsed.toLocationId]) {
+    if (!locationId) continue;
+    const [loc] = await db
+      .select({ id: devOsInventoryLocations.id })
+      .from(devOsInventoryLocations)
+      .where(
+        and(
+          eq(devOsInventoryLocations.id, locationId),
+          eq(devOsInventoryLocations.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!loc) {
+      throw new Error("recordInventoryMovement: location not found");
+    }
+  }
+
   const delta = applyMovementToBalance({
     movementType: parsed.movementType as InventoryMovementType,
     quantity: parsed.quantity,
@@ -198,6 +233,7 @@ export async function recordInventoryMovement(
               devOsInventoryStockBalances.locationId,
               delta.debitLocationId,
             ),
+            eq(devOsInventoryStockBalances.organizationId, organizationId),
           ),
         )
         .limit(1);
@@ -238,6 +274,7 @@ export async function recordInventoryMovement(
               devOsInventoryStockBalances.locationId,
               delta.creditLocationId,
             ),
+            eq(devOsInventoryStockBalances.organizationId, organizationId),
           ),
         )
         .limit(1);

@@ -1,13 +1,15 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
   residualInventoryUnits,
   residualUnitOwnershipShares,
 } from "@/lib/db/schema/residual-inventory";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeOwnershipBySettlementMethod,
   type SettlementMethod,
@@ -46,12 +48,34 @@ export async function markUnitAsResidual(
   input: z.input<typeof markResidualSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = markResidualSchema.parse(input);
   const db = requireDb();
+
+  // SCOPE: verify the supplied projectId belongs to the caller's org and the
+  // unit (villa) belongs to that same project before inserting. villas has no
+  // org column — it anchors org via villas.projectId → projects.organizationId.
+  const [scope] = await db
+    .select({ projectId: projects.id })
+    .from(projects)
+    .innerJoin(villas, eq(villas.id, parsed.unitId))
+    .where(
+      and(
+        eq(projects.id, parsed.projectId),
+        eq(projects.organizationId, organizationId),
+        eq(villas.projectId, projects.id),
+      ),
+    )
+    .limit(1);
+  if (!scope) {
+    throw new Error(`project ${parsed.projectId} or unit ${parsed.unitId} not found`);
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const [row] = await db
     .insert(residualInventoryUnits)
     .values({
+      organizationId,
       unitId: parsed.unitId,
       projectId: parsed.projectId,
       becameResidualAt: parsed.becameResidualAt ?? today,
@@ -118,14 +142,22 @@ export async function allocateResidualOwnership(
   input: z.input<typeof allocateOwnershipSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = allocateOwnershipSchema.parse(input);
   const db = requireDb();
 
   return db.transaction(async (tx) => {
+    // SCOPE: only resolve the unit if it belongs to the caller's org, so a
+    // foreign residualUnitId cannot have its ownership shares rewritten.
     const [unit] = await tx
       .select()
       .from(residualInventoryUnits)
-      .where(eq(residualInventoryUnits.id, parsed.residualUnitId))
+      .where(
+        and(
+          eq(residualInventoryUnits.id, parsed.residualUnitId),
+          eq(residualInventoryUnits.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!unit) throw new Error(`residual unit ${parsed.residualUnitId} not found`);
 
@@ -154,6 +186,7 @@ export async function allocateResidualOwnership(
       }
       await tx.insert(residualUnitOwnershipShares).values(
         parsed.manualShares.map((s) => ({
+          organizationId,
           residualUnitId: parsed.residualUnitId,
           arconiqueShare: s.arconiqueShare,
           investorId: s.arconiqueShare ? null : s.investorId,
@@ -194,6 +227,7 @@ export async function allocateResidualOwnership(
     const arcPct = result.arconiqueOwnership.percentage;
     if (arcPct > 0) {
       await tx.insert(residualUnitOwnershipShares).values({
+        organizationId,
         residualUnitId: parsed.residualUnitId,
         arconiqueShare: true,
         investorId: null,
@@ -229,6 +263,7 @@ export async function allocateResidualOwnership(
           : Math.round(investorPoolClaim * share);
         if (pct > 0) {
           await tx.insert(residualUnitOwnershipShares).values({
+            organizationId,
             residualUnitId: parsed.residualUnitId,
             arconiqueShare: false,
             investorId: inv.investorId,
@@ -261,6 +296,7 @@ export async function transferResidualUnitToManagement(input: {
   residualUnitId: string;
 }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(residualInventoryUnits)
@@ -268,8 +304,16 @@ export async function transferResidualUnitToManagement(input: {
       status: "transferred_to_management",
       transferredToManagementAt: new Date(),
     })
-    .where(eq(residualInventoryUnits.id, input.residualUnitId))
+    .where(
+      and(
+        eq(residualInventoryUnits.id, input.residualUnitId),
+        eq(residualInventoryUnits.organizationId, organizationId),
+      ),
+    )
     .returning();
+  if (!row) {
+    throw new Error(`residual unit ${input.residualUnitId} not found`);
+  }
   return row;
 }
 
@@ -278,6 +322,7 @@ export async function recordResidualUnitSold(input: {
   soldPriceMinor: bigint;
 }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const [row] = await db
     .update(residualInventoryUnits)
@@ -286,7 +331,15 @@ export async function recordResidualUnitSold(input: {
       soldAt: new Date(),
       soldPriceMinor: input.soldPriceMinor,
     })
-    .where(eq(residualInventoryUnits.id, input.residualUnitId))
+    .where(
+      and(
+        eq(residualInventoryUnits.id, input.residualUnitId),
+        eq(residualInventoryUnits.organizationId, organizationId),
+      ),
+    )
     .returning();
+  if (!row) {
+    throw new Error(`residual unit ${input.residualUnitId} not found`);
+  }
   return row;
 }

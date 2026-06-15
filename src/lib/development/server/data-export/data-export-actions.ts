@@ -6,15 +6,19 @@ import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { dataExportRequests } from "@/lib/db/schema/saas";
+import { requireOrgId } from "@/features/auth/require-org";
+import { requireInternalUser } from "@/features/auth/permissions";
 import {
   formatExport,
   type ExportFormat,
   type ExportTable,
 } from "./export-helpers";
 
+// SECURITY: organizationId and requestedBy are NEVER trusted from the client —
+// the export cron faithfully dumps req.organizationId's full dataset, so a
+// client-supplied org would exfiltrate another tenant's data. Both are derived
+// server-side below.
 const requestSchema = z.object({
-  organizationId: z.string().uuid(),
-  requestedBy: z.string().uuid(),
   exportScope: z.enum([
     "full_organization",
     "projects_only",
@@ -33,13 +37,18 @@ export async function requestDataExport(input: z.input<typeof requestSchema>) {
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
   }
+  // Derive org + requester server-side; do not trust client input.
+  const ctx = await requireInternalUser();
+  const requestedBy = ctx.appUser?.id;
+  if (!requestedBy) return { ok: false as const, error: "Not authorized" };
+  const organizationId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
   const inserted = await db
     .insert(dataExportRequests)
     .values({
-      organizationId: parsed.data.organizationId,
-      requestedBy: parsed.data.requestedBy,
+      organizationId,
+      requestedBy,
       exportScope: parsed.data.exportScope,
       customTables: parsed.data.customTables ?? null,
       exportFormat: parsed.data.exportFormat,

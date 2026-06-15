@@ -26,6 +26,7 @@ import { oauthConnections } from "@/lib/db/schema/bulk-import";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   encryptCredentials,
   type EncryptedCredentialsBlob,
@@ -37,7 +38,10 @@ import {
 } from "@/lib/whatsapp/org-credentials";
 
 const credentialsSchema = z.object({
-  organizationId: z.string().uuid(),
+  // TENANCY — organizationId is NEVER accepted from the client; this is a
+  // direct-RPC "use server" action, so the target org is derived server-side
+  // from requireOrgId(). A client-supplied org would let an admin write
+  // Twilio creds onto another tenant's connection row.
   twilioAccountSid: z.string().regex(/^AC[a-f0-9]{32}$/, "Twilio Account SID format: AC + 32 hex chars"),
   twilioAuthToken: z.string().min(20),
   whatsappFromNumber: z.string().regex(/^whatsapp:\+\d{8,16}$/, "Format: whatsapp:+<digits>"),
@@ -54,6 +58,7 @@ export async function saveWhatsappCredentialsAction(
   input: WhatsappCredentialsInput,
 ): Promise<{ ok: true; connectionId: string } | { ok: false; error: string }> {
   await requirePermission("whatsapp.admin");
+  const organizationId = await requireOrgId();
   const parsed = credentialsSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -89,7 +94,7 @@ export async function saveWhatsappCredentialsAction(
     .from(oauthConnections)
     .where(
       and(
-        eq(oauthConnections.organizationId, parsed.data.organizationId),
+        eq(oauthConnections.organizationId, organizationId),
         eq(oauthConnections.userId, me.id),
         eq(oauthConnections.provider, "twilio_whatsapp"),
       ),
@@ -115,7 +120,7 @@ export async function saveWhatsappCredentialsAction(
     const [row] = await db
       .insert(oauthConnections)
       .values({
-        organizationId: parsed.data.organizationId,
+        organizationId,
         userId: me.id,
         provider: "twilio_whatsapp",
         accountEmail: null,
@@ -146,7 +151,8 @@ export async function saveWhatsappCredentialsAction(
 }
 
 const testMessageSchema = z.object({
-  organizationId: z.string().uuid(),
+  // TENANCY — org is derived server-side (requireOrgId), never from input.
+  // Otherwise an admin could load + SEND with another org's saved Twilio creds.
   toPhoneNumber: z
     .string()
     .regex(/^whatsapp:\+\d{8,16}$/, "Format: whatsapp:+<digits>"),
@@ -160,6 +166,7 @@ export async function sendWhatsappTestMessageAction(
   | { ok: false; error: string }
 > {
   await requirePermission("whatsapp.admin");
+  const organizationId = await requireOrgId();
   const parsed = testMessageSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -169,9 +176,10 @@ export async function sendWhatsappTestMessageAction(
   }
   // Use the SAVED per-org credentials (the whole point of the form). The
   // factory falls back to the env provider when nothing is saved; the
-  // from-number comes from the saved creds, else env.
-  const saved = await loadOrgWhatsAppCredentials(parsed.data.organizationId);
-  const provider = await getWhatsAppProviderForOrg(parsed.data.organizationId);
+  // from-number comes from the saved creds, else env. Org is server-derived
+  // so a client cannot load/send with another tenant's Twilio creds.
+  const saved = await loadOrgWhatsAppCredentials(organizationId);
+  const provider = await getWhatsAppProviderForOrg(organizationId);
   const fromPhone =
     saved?.fromNumber ?? process.env.TWILIO_WHATSAPP_FROM_NUMBER ?? "";
   if (!fromPhone) {
@@ -207,12 +215,14 @@ export async function sendWhatsappTestMessageAction(
  * send, and the operator UI shows "not connected" — a real, honest
  * disconnect to pair with the connect form.
  */
-export async function disconnectWhatsappCredentialsAction(input: {
-  organizationId: string;
-}): Promise<{ ok: true } | { ok: false; error: string }> {
+export async function disconnectWhatsappCredentialsAction(
+  _input?: { organizationId?: string },
+): Promise<{ ok: true } | { ok: false; error: string }> {
   await requirePermission("whatsapp.admin");
-  const orgId = z.string().uuid().safeParse(input.organizationId);
-  if (!orgId.success) return { ok: false, error: "Invalid organization." };
+  // TENANCY — org is derived server-side, never from input. As written before,
+  // an admin of org A could deactivate org B's active twilio_whatsapp
+  // connection(s) by passing B's id — cross-tenant disconnect/DoS.
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
@@ -222,7 +232,7 @@ export async function disconnectWhatsappCredentialsAction(input: {
     .from(oauthConnections)
     .where(
       and(
-        eq(oauthConnections.organizationId, orgId.data),
+        eq(oauthConnections.organizationId, organizationId),
         eq(oauthConnections.provider, "twilio_whatsapp"),
         eq(oauthConnections.isActive, true),
       ),
@@ -236,7 +246,7 @@ export async function disconnectWhatsappCredentialsAction(input: {
     .set({ isActive: false, updatedAt: new Date() })
     .where(
       and(
-        eq(oauthConnections.organizationId, orgId.data),
+        eq(oauthConnections.organizationId, organizationId),
         eq(oauthConnections.provider, "twilio_whatsapp"),
         eq(oauthConnections.isActive, true),
       ),

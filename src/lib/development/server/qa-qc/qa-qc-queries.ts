@@ -27,7 +27,14 @@ export async function listQaQcIssues(filters?: {
   assignedTo?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  // TENANCY — qaQcIssues.organizationId is NOT NULL. Always scope by the
+  // caller's org so the SELECT can never span tenants (this also closes the
+  // unscoped bulk-import export path that calls listQaQcIssues() with no
+  // filters under only requireInternalUser()).
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(qaQcIssues.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.projectId) {
     conditions.push(eq(qaQcIssues.projectId, filters.projectId));
   }
@@ -46,7 +53,7 @@ export async function listQaQcIssues(filters?: {
   return db
     .select()
     .from(qaQcIssues)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(qaQcIssues.reportedAt))
     .limit(200);
 }
@@ -99,6 +106,9 @@ export async function getQaQcIssueByCode(issueCode: string) {
  */
 export async function getProjectQaQcHeatmapData(projectId: string) {
   const db = requireDb();
+  // TENANCY — scope by org so a forged cross-tenant projectId cannot return
+  // another org's villa/severity/status rows.
+  const organizationId = await requireOrgId();
   return db
     .select({
       villaId: qaQcIssues.villaId,
@@ -106,17 +116,26 @@ export async function getProjectQaQcHeatmapData(projectId: string) {
       status: qaQcIssues.status,
     })
     .from(qaQcIssues)
-    .where(eq(qaQcIssues.projectId, projectId));
+    .where(
+      and(
+        eq(qaQcIssues.projectId, projectId),
+        eq(qaQcIssues.organizationId, organizationId),
+      ),
+    );
 }
 
 export async function countOpenIssuesByProject(projectId: string) {
   const db = requireDb();
+  // TENANCY — scope the count by org so a cross-tenant projectId cannot count
+  // another org's open issues.
+  const organizationId = await requireOrgId();
   const [{ c }] = await db
     .select({ c: sql<string>`COUNT(*)::text` })
     .from(qaQcIssues)
     .where(
       and(
         eq(qaQcIssues.projectId, projectId),
+        eq(qaQcIssues.organizationId, organizationId),
         sql`${qaQcIssues.status} NOT IN ('accepted', 'closed')`,
       ),
     );

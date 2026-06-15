@@ -303,12 +303,20 @@ export async function removeCoordinationPin(
   input: z.input<typeof removePinSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = removePinSchema.parse(input);
   const db = requireDb();
 
+  // SECURITY: scope the DELETE by caller org so a foreign pinId cannot be
+  // deleted (coordination_pins.organization_id is NOT NULL).
   const [deleted] = await db
     .delete(coordinationPins)
-    .where(eq(coordinationPins.id, parsed.pinId))
+    .where(
+      and(
+        eq(coordinationPins.id, parsed.pinId),
+        eq(coordinationPins.organizationId, organizationId),
+      ),
+    )
     .returning({ id: coordinationPins.id, revisionId: coordinationPins.revisionId });
   if (!deleted) return null;
 
@@ -612,8 +620,11 @@ export async function fetchCoordinationAnnotations(input: {
   revisionId: string;
 }): Promise<CoordinationAnnotationState> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = z.object({ revisionId: z.string().uuid() }).parse(input);
   const db = requireDb();
+  // SECURITY: scope by caller org so a foreign revisionId returns no markup
+  // (coordination_annotations.organization_id is NOT NULL).
   const [row] = await db
     .select({
       strokes: coordinationAnnotations.strokes,
@@ -621,7 +632,12 @@ export async function fetchCoordinationAnnotations(input: {
       scaleMeters: coordinationAnnotations.scaleMeters,
     })
     .from(coordinationAnnotations)
-    .where(eq(coordinationAnnotations.revisionId, parsed.revisionId))
+    .where(
+      and(
+        eq(coordinationAnnotations.revisionId, parsed.revisionId),
+        eq(coordinationAnnotations.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return {
     strokes: (row?.strokes as AnnotationStroke[] | undefined) ?? [],
@@ -649,13 +665,21 @@ export async function fetchGatedRequests(input: {
   submittalId: string;
 }): Promise<GatedRequestSummary[]> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = z.object({ submittalId: z.string().uuid() }).parse(input);
   const db = requireDb();
 
+  // SECURITY: scope both reads by caller org so a foreign submittal/PR id is
+  // not disclosed (both tables carry organization_id).
   const [sub] = await db
     .select({ status: submittals.status })
     .from(submittals)
-    .where(eq(submittals.id, parsed.submittalId))
+    .where(
+      and(
+        eq(submittals.id, parsed.submittalId),
+        eq(submittals.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   const open = sub ? isSubmittalApproved(sub.status as SubmittalStatus) : false;
 
@@ -667,7 +691,12 @@ export async function fetchGatedRequests(input: {
       status: devOsPurchaseRequests.status,
     })
     .from(devOsPurchaseRequests)
-    .where(eq(devOsPurchaseRequests.gatingSubmittalId, parsed.submittalId));
+    .where(
+      and(
+        eq(devOsPurchaseRequests.gatingSubmittalId, parsed.submittalId),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    );
 
   return rows.map((r) => ({ ...r, unblocked: open }));
 }
@@ -690,11 +719,17 @@ export async function linkSubmittalGate(
   const parsed = linkGateSchema.parse(input);
   const db = requireDb();
 
-  // Verify both belong to the same project (cross-cabinet integrity).
+  // Verify both belong to the same project (cross-cabinet integrity) AND to
+  // the caller's org so a foreign submittal's projectId/ref cannot be read.
   const [sub] = await db
     .select({ projectId: submittals.projectId, ref: submittals.ref })
     .from(submittals)
-    .where(eq(submittals.id, parsed.submittalId))
+    .where(
+      and(
+        eq(submittals.id, parsed.submittalId),
+        eq(submittals.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!sub) throw new Error("Submittal not found");
   const [pr] = await db

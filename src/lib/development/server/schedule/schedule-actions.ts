@@ -89,17 +89,31 @@ export async function setTaskDependency(
 
   return db.transaction(async (tx) => {
     // Pull all tasks + existing deps for the project containing these tasks.
+    // TENANCY — scope every lookup to the caller's org so a foreign
+    // predecessorId / work package cannot be wired into a dependency edge.
     const [pred] = await tx
       .select({ workPackageId: projectTasks.workPackageId })
       .from(projectTasks)
-      .where(eq(projectTasks.id, parsed.predecessorId))
+      .where(
+        and(
+          eq(projectTasks.id, parsed.predecessorId),
+          eq(projectTasks.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!pred) throw new Error("predecessor task not found");
-    const [{ projectId }] = await tx
+    const [wp] = await tx
       .select({ projectId: workPackages.projectId })
       .from(workPackages)
-      .where(eq(workPackages.id, pred.workPackageId))
+      .where(
+        and(
+          eq(workPackages.id, pred.workPackageId),
+          eq(workPackages.organizationId, organizationId),
+        ),
+      )
       .limit(1);
+    if (!wp) throw new Error("predecessor task not found");
+    const { projectId } = wp;
 
     const allTasks = await tx
       .select({ id: projectTasks.id })
@@ -108,7 +122,12 @@ export async function setTaskDependency(
         workPackages,
         eq(workPackages.id, projectTasks.workPackageId),
       )
-      .where(eq(workPackages.projectId, projectId));
+      .where(
+        and(
+          eq(workPackages.projectId, projectId),
+          eq(projectTasks.organizationId, organizationId),
+        ),
+      );
     const taskIds = allTasks.map((t) => t.id);
 
     const existingDeps = await tx

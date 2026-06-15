@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import {} from "next/cache";
 import { requireDb } from "@/lib/db/client";
@@ -315,28 +315,34 @@ export async function getRecentWhatsappMessages(opts?: {
   status?: string;
 }) {
   const db = requireDb();
-  const conditions = [];
+  const orgId = await requireOrgId();
+  const conditions = [eq(whatsappMessages.organizationId, orgId)];
   if (opts?.direction) {
     conditions.push(eq(whatsappMessages.direction, opts.direction));
   }
   if (opts?.status) {
     conditions.push(eq(whatsappMessages.status, opts.status));
   }
-  const where = conditions.length > 0 ? and(...conditions) : sql`true`;
   return await db
     .select()
     .from(whatsappMessages)
-    .where(where)
+    .where(and(...conditions))
     .orderBy(desc(whatsappMessages.occurredAt))
     .limit(opts?.limit ?? 50);
 }
 
 export async function getWhatsappMessage(messageId: string) {
   const db = requireDb();
+  const orgId = await requireOrgId();
   const [row] = await db
     .select()
     .from(whatsappMessages)
-    .where(eq(whatsappMessages.id, messageId))
+    .where(
+      and(
+        eq(whatsappMessages.id, messageId),
+        eq(whatsappMessages.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -346,22 +352,24 @@ export async function getWhatsappPhoneNumbers(opts?: {
   isActive?: boolean;
 }) {
   const db = requireDb();
-  const conditions = [];
+  const orgId = await requireOrgId();
+  const conditions = [eq(whatsappPhoneNumbers.organizationId, orgId)];
   if (opts?.type) conditions.push(eq(whatsappPhoneNumbers.numberType, opts.type));
   if (opts?.isActive !== undefined)
     conditions.push(eq(whatsappPhoneNumbers.isActive, opts.isActive));
-  const where = conditions.length > 0 ? and(...conditions) : sql`true`;
   return await db
     .select()
     .from(whatsappPhoneNumbers)
-    .where(where)
+    .where(and(...conditions))
     .orderBy(desc(whatsappPhoneNumbers.lastMessageAt));
 }
 
 export async function getWhatsappTemplates() {
   const db = requireDb();
+  const orgId = await requireOrgId();
   return await db
     .select()
     .from(whatsappMessageTemplates)
+    .where(eq(whatsappMessageTemplates.organizationId, orgId))
     .orderBy(whatsappMessageTemplates.templateKey);
 }

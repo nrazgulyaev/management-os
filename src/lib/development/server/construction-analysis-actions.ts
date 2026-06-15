@@ -12,6 +12,7 @@ import {
   analyzeSiteReport,
   type SupervisorOutcome,
 } from "@/lib/development/ai/construction-supervisor";
+import { getSiteReport } from "@/lib/development/server/site-reports";
 
 /**
  * HITL actions for `ai_construction_analyses`. Every action gates on
@@ -35,6 +36,12 @@ export async function generateAnalysisForReport(
 ): Promise<SupervisorOutcome> {
   const parsed = reportIdSchema.parse(input);
   await requireInternalUser();
+  // TENANCY: verify the report belongs to the caller's org before analyzing
+  // (analyzeSiteReport's root SELECT is org-less). getSiteReport is
+  // org-scoped and returns null cross-tenant.
+  await requireOrgId();
+  const report = await getSiteReport(parsed.reportId);
+  if (!report) throw new Error("Site report not found");
   const out = await analyzeSiteReport(parsed.reportId);
   revalidatePath(`/development-os/site-reports/${parsed.reportId}`);
   return out;
@@ -51,6 +58,11 @@ export async function regenerateAnalysisForReport(
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
   const db = requireDb();
+  // TENANCY: verify report ownership (getSiteReport is org-scoped) before
+  // superseding any draft or re-running the org-less analyzer.
+  const organizationId = await requireOrgId();
+  const report = await getSiteReport(parsed.reportId);
+  if (!report) throw new Error("Site report not found");
 
   await db
     .update(aiConstructionAnalyses)
@@ -64,6 +76,7 @@ export async function regenerateAnalysisForReport(
       and(
         eq(aiConstructionAnalyses.siteReportId, parsed.reportId),
         eq(aiConstructionAnalyses.status, "draft"),
+        eq(aiConstructionAnalyses.organizationId, organizationId),
       ),
     );
 
@@ -96,7 +109,12 @@ export async function approveAnalysis(
         status: aiConstructionAnalyses.status,
       })
       .from(aiConstructionAnalyses)
-      .where(eq(aiConstructionAnalyses.id, parsed.analysisId))
+      .where(
+        and(
+          eq(aiConstructionAnalyses.id, parsed.analysisId),
+          eq(aiConstructionAnalyses.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!a) throw new Error("Analysis not found");
     if (a.status !== "draft") {
@@ -111,7 +129,12 @@ export async function approveAnalysis(
         reviewedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(aiConstructionAnalyses.id, a.id));
+      .where(
+        and(
+          eq(aiConstructionAnalyses.id, a.id),
+          eq(aiConstructionAnalyses.organizationId, organizationId),
+        ),
+      );
 
     // Merge AI translations into the report (operator wins).
     const aiTranslations =
@@ -173,6 +196,9 @@ export async function editAndApproveAnalysis(
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
   const db = requireDb();
+  // TENANCY: scope the load + content overwrite to the caller's org so a
+  // foreign analysisId cannot be edited/approved.
+  const organizationId = await requireOrgId();
 
   await db.transaction(async (tx) => {
     const [a] = await tx
@@ -183,7 +209,12 @@ export async function editAndApproveAnalysis(
         currentSafety: aiConstructionAnalyses.safetyStatus,
       })
       .from(aiConstructionAnalyses)
-      .where(eq(aiConstructionAnalyses.id, parsed.analysisId))
+      .where(
+        and(
+          eq(aiConstructionAnalyses.id, parsed.analysisId),
+          eq(aiConstructionAnalyses.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!a) throw new Error("Analysis not found");
     if (a.status !== "draft") {
@@ -211,7 +242,12 @@ export async function editAndApproveAnalysis(
         reviewedAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(aiConstructionAnalyses.id, a.id));
+      .where(
+        and(
+          eq(aiConstructionAnalyses.id, a.id),
+          eq(aiConstructionAnalyses.organizationId, organizationId),
+        ),
+      );
   });
 
   revalidatePath(
@@ -232,6 +268,9 @@ export async function rejectAnalysis(
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
   const db = requireDb();
+  // TENANCY: scope the reject UPDATE to the caller's org so a foreign
+  // analysisId cannot be rejected/stamped with a rejectionReason.
+  const organizationId = await requireOrgId();
 
   await db
     .update(aiConstructionAnalyses)
@@ -246,6 +285,7 @@ export async function rejectAnalysis(
       and(
         eq(aiConstructionAnalyses.id, parsed.analysisId),
         eq(aiConstructionAnalyses.status, "draft"),
+        eq(aiConstructionAnalyses.organizationId, organizationId),
       ),
     );
 

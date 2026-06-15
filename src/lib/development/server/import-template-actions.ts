@@ -190,6 +190,9 @@ export async function recordImportTemplateUse(
 ): Promise<void> {
   const parsed = useSchema.parse(input);
   const db = requireDb();
+  // TENANCY — scope the use-count bump to the caller's org so a forged
+  // template id can't touch another tenant's row.
+  const orgId = await requireOrgId();
   await db
     .update(importTemplates)
     .set({
@@ -197,7 +200,12 @@ export async function recordImportTemplateUse(
       useCount: sql`${importTemplates.useCount} + 1`,
       updatedAt: new Date(),
     })
-    .where(eq(importTemplates.id, parsed.id));
+    .where(
+      and(
+        eq(importTemplates.id, parsed.id),
+        eq(importTemplates.organizationId, orgId),
+      ),
+    );
 }
 
 /**
@@ -209,10 +217,18 @@ export async function deactivateImportTemplate(
 ): Promise<void> {
   const parsed = useSchema.parse(input);
   const db = requireDb();
+  // TENANCY — scope the soft-delete to the caller's org so a forged template
+  // id can't deactivate another tenant's template.
+  const orgId = await requireOrgId();
   await db
     .update(importTemplates)
     .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(importTemplates.id, parsed.id));
+    .where(
+      and(
+        eq(importTemplates.id, parsed.id),
+        eq(importTemplates.organizationId, orgId),
+      ),
+    );
 }
 
 // Re-export for the wizard client component (importing from a

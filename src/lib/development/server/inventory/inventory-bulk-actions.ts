@@ -1,8 +1,10 @@
 "use server";
 
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devOsInventoryItems,
   devOsInventoryLocations,
@@ -91,11 +93,13 @@ export async function bulkInsertMovements(
   input: z.input<typeof bulkInputSchema>,
 ): Promise<BulkMovementResult> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = bulkInputSchema.parse(input);
   const db = requireDb();
 
   // Pre-load item + location catalogues so the loop never hits DB
-  // for resolution.
+  // for resolution. TENANCY — scope both catalogues to the caller's org so a
+  // SKU/name cannot resolve to another tenant's item/location id.
   const items = await db
     .select({
       id: devOsInventoryItems.id,
@@ -103,7 +107,8 @@ export async function bulkInsertMovements(
       displayName: devOsInventoryItems.displayName,
       isActive: devOsInventoryItems.isActive,
     })
-    .from(devOsInventoryItems);
+    .from(devOsInventoryItems)
+    .where(eq(devOsInventoryItems.organizationId, organizationId));
   const itemBySku = new Map<string, string>();
   for (const it of items) {
     if (!it.isActive) continue;
@@ -117,7 +122,8 @@ export async function bulkInsertMovements(
       locationCode: devOsInventoryLocations.locationCode,
       displayName: devOsInventoryLocations.displayName,
     })
-    .from(devOsInventoryLocations);
+    .from(devOsInventoryLocations)
+    .where(eq(devOsInventoryLocations.organizationId, organizationId));
   const locByCode = new Map<string, string>();
   for (const l of locations) {
     locByCode.set(l.locationCode.trim().toLowerCase(), l.id);
