@@ -13,18 +13,26 @@
  */
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import {
   TurnoverBoard,
+  type CleanerOption,
   type TurnoverCard,
   type TurnoverStatus,
 } from "./turnover-board";
-import { updateTurnoverStatusAction } from "@/features/operations/turnover-actions";
+import {
+  assignTurnoverAction,
+  updateTurnoverStatusAction,
+} from "@/features/operations/turnover-actions";
 
 export interface TurnoverBoardClientProps {
   turnovers: TurnoverCard[];
+  /** Cleaner roster (housekeepers) + today's load for the per-card picker. */
+  cleaners?: CleanerOption[];
 }
 
-export function TurnoverBoardClient({ turnovers }: TurnoverBoardClientProps) {
+export function TurnoverBoardClient({ turnovers, cleaners }: TurnoverBoardClientProps) {
+  const router = useRouter();
   const [, startTransition] = React.useTransition();
   const [error, setError] = React.useState<string | null>(null);
 
@@ -38,6 +46,19 @@ export function TurnoverBoardClient({ turnovers }: TurnoverBoardClientProps) {
     });
   }
 
+  function onAssign(id: string, assigneeUserId: string | null) {
+    setError(null);
+    startTransition(async () => {
+      const res = await assignTurnoverAction({ id, assigneeUserId: assigneeUserId ?? "" });
+      if (!res.ok) {
+        setError(res.error ?? "Could not assign that cleaner. Refresh and try again.");
+        return;
+      }
+      // Refresh so the picker reflects the persisted assignee + workload.
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-3">
       {error && (
@@ -45,7 +66,12 @@ export function TurnoverBoardClient({ turnovers }: TurnoverBoardClientProps) {
           {error}
         </div>
       )}
-      <TurnoverBoard turnovers={turnovers} onMove={onMove} />
+      <TurnoverBoard
+        turnovers={turnovers}
+        onMove={onMove}
+        cleaners={cleaners}
+        onAssign={cleaners ? onAssign : undefined}
+      />
     </div>
   );
 }

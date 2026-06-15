@@ -103,6 +103,16 @@ export const createPurchaseOrderSchema = z.object({
 
 export const purchaseOrderIdSchema = z.object({ id: z.string().uuid() });
 
+export const purchaseOrderLineSchema = z.object({
+  purchaseOrderId: z.string().uuid(),
+  itemId: optionalUuid,
+  description: z.string().min(2).max(500),
+  quantityOrdered: z.coerce.number().positive(),
+  unit: z.string().min(1).max(20).default("pcs"),
+  unitCostMinor: z.coerce.bigint().optional(),
+  currency: currency3.optional().or(z.literal("")),
+});
+
 export const receivePurchaseOrderLineSchema = z.object({
   purchaseOrderId: z.string().uuid(),
   lineId: z.string().uuid(),

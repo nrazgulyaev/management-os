@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { TurnoverBoardClient } from "@/components/operations/turnover-board-client";
-import { getTodaysTurnovers, toTurnoverCards } from "@/features/operations/turnover-queries";
+import {
+  getCleanerWorkloads,
+  getTodaysTurnovers,
+  toTurnoverCards,
+} from "@/features/operations/turnover-queries";
 
 /**
  * Phase 2.2 mgmt-04 — Full housekeeping turnover board.
@@ -21,7 +25,10 @@ export const metadata: Metadata = { title: "Turnovers · Operations" };
 export const dynamic = "force-dynamic";
 
 export default async function TurnoversPage() {
-  const rows = await getTodaysTurnovers();
+  const [rows, cleaners] = await Promise.all([
+    getTodaysTurnovers(),
+    getCleanerWorkloads(),
+  ]);
   const cards = toTurnoverCards(rows);
 
   return (
@@ -51,7 +58,7 @@ export default async function TurnoversPage() {
           </Link>
         </div>
       </div>
-      <TurnoverBoardClient turnovers={cards} />
+      <TurnoverBoardClient turnovers={cards} cleaners={cleaners} />
     </div>
   );
 }

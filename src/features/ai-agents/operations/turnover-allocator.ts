@@ -43,7 +43,7 @@ export interface TurnoverAllocatorOutput {
   unassignable: { turnoverId: string; reason: string }[];
 }
 
-export async function run(_input: TurnoverAllocatorInput): Promise<TurnoverAllocatorOutput> {
+export async function run(input: TurnoverAllocatorInput): Promise<TurnoverAllocatorOutput> {
   const db = getDb();
   if (!db) return { assigned: [], unassignable: [] };
 
@@ -60,8 +60,10 @@ export async function run(_input: TurnoverAllocatorInput): Promise<TurnoverAlloc
 
   if (pending.length === 0) return { assigned: [], unassignable: [] };
 
-  // 2) Cleaner roster + load-to-date (reused from the read layer).
-  const workloads = await getCleanerWorkloads();
+  // 2) Cleaner roster + load-to-date (reused from the read layer). This is a
+  //    cron path with no request context, so pass the agent's explicit org
+  //    (getCleanerWorkloads defaults to requireOrgId only for the page path).
+  const workloads = await getCleanerWorkloads(input.organizationId);
 
   const cleaners: AllocCleaner[] = workloads.map((w) => ({
     id: w.id,

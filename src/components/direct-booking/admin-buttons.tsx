@@ -82,26 +82,60 @@ export function RejectRequestForm({ id }: { id: string }) {
   );
 }
 
-export function ConvertToBookingButton({ id }: { id: string }) {
+export function ConvertToBookingButton({
+  id,
+  canOverride = false,
+}: {
+  id: string;
+  /**
+   * When true (director / super_admin / booking_manager — i.e. the holder
+   * of `direct_booking.manage`), expose the "convert without paid deposit"
+   * override. The action forces `finalStatus` to `tentative` on that path.
+   */
+  canOverride?: boolean;
+}) {
   const [state, dispatch] = useActionState(
     convertDirectBookingRequestToBookingAction,
     null,
   );
   return (
-    <form action={dispatch} className="inline-flex items-center gap-2">
+    <form action={dispatch} className="flex flex-col gap-2">
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="finalStatus" value="confirmed" />
-      <button
-        type="submit"
-        className="h-9 px-4 rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90"
-      >
-        Convert to booking
-      </button>
-      {state?.ok && state.bookingCode && (
-        <span className="text-xs text-success font-mono">{state.bookingCode}</span>
-      )}
-      {state && !state.ok && (
-        <span className="text-xs text-danger">{state.error}</span>
+      <div className="inline-flex items-center gap-2">
+        <button
+          type="submit"
+          className="h-9 px-4 rounded-full bg-ink text-ink-inverse text-xs font-medium hover:bg-ink/90"
+        >
+          Convert to booking
+        </button>
+        {state?.ok && state.bookingCode && (
+          <span className="text-xs text-success font-mono">
+            {state.bookingCode}
+          </span>
+        )}
+        {state && !state.ok && (
+          <span className="text-xs text-danger">{state.error}</span>
+        )}
+      </div>
+      {canOverride && (
+        <div className="flex flex-col gap-1.5 rounded-md border border-line-soft bg-canvas p-2.5">
+          <label className="flex items-center gap-2 text-[11px] text-ink-secondary">
+            <input
+              type="checkbox"
+              name="convertWithoutDeposit"
+              value="true"
+              className="h-3.5 w-3.5"
+            />
+            Convert without paid deposit (lands as tentative)
+          </label>
+          <input
+            name="overrideReason"
+            placeholder="Override reason (optional)"
+            maxLength={500}
+            className="h-7 px-2 rounded-md border border-line-soft bg-surface text-[11px]"
+          />
+        </div>
       )}
     </form>
   );

@@ -19,6 +19,10 @@ import {
 } from "@/components/direct-booking/deposit-buttons";
 import { PostRevenueButton } from "@/components/direct-booking/reconcile-buttons";
 import {
+  getCurrentUserContext,
+  hasPermission,
+} from "@/features/auth/permissions";
+import {
   calculateBalanceDue,
   directBookingFinanceStatusLabel,
 } from "@/features/direct-booking/finance-pure";
@@ -66,6 +70,10 @@ export default async function DirectBookingRequestDetailPage({
   const { id } = await params;
   const detail = await getRequestDetailById(id);
   if (!detail) notFound();
+  // Director / super_admin / booking_manager (holders of `direct_booking.manage`)
+  // may convert without a paid deposit. Same flag the action re-checks.
+  const ctx = await getCurrentUserContext();
+  const canOverrideConvert = hasPermission(ctx, "direct_booking.manage");
   const { request: r, hold, villaCode, events, booking } = detail;
   const deposit = await getDepositForRequest(r.id);
   const db = getDb();
@@ -212,7 +220,10 @@ export default async function DirectBookingRequestDetailPage({
                   </>
                 )}
                 {(r.status === "approved" || r.status === "submitted" || r.status === "under_review") && (
-                  <ConvertToBookingButton id={r.id} />
+                  <ConvertToBookingButton
+                    id={r.id}
+                    canOverride={canOverrideConvert}
+                  />
                 )}
               </div>
             </Card>

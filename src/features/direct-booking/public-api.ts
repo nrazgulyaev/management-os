@@ -55,6 +55,7 @@ import {
 } from "./finance-pure";
 import { directBookingDepositEvents } from "@/lib/db/schema/payments";
 import { syncGuestStatusForChain } from "./guest-status-lifecycle";
+import { recordConversion } from "@/lib/marketing/service";
 
 // =============================================================================
 // POST /api/v1/holds
@@ -529,6 +530,33 @@ export async function handleSubmitHold(args: {
     });
   }
   await syncGuestStatusForChain({ holdId: hold.id, requestId: request.id, token: args.token });
+
+  // ATTRIBUTION (Stage 6.P4) — a submitted direct-booking request is a real
+  // funnel conversion (inquiry_submitted). Org comes from the hold (resolved
+  // from the villa→project chain on hold creation), NEVER from the request
+  // body — no cross-org. The guest lives in `guests`, not `contacts`, so we do
+  // not set contactId (it FKs contacts.id). Best-effort: never block submit.
+  const conversionOrgId = request.organizationId ?? hold.organizationId ?? null;
+  if (conversionOrgId) {
+    try {
+      await recordConversion({
+        organizationId: conversionOrgId,
+        conversionType: "inquiry_submitted",
+        conversionValueMinor: hold.totalMinor,
+        conversionCurrency: hold.currency,
+        convertedAt: new Date(),
+        metadata: {
+          via: "direct_booking.submit",
+          requestId: request.id,
+          requestCode,
+          holdId: hold.id,
+          villaId: hold.villaId,
+        },
+      });
+    } catch (err) {
+      console.warn("[direct-booking] recordConversion(inquiry_submitted) failed", err);
+    }
+  }
 
   return {
     status: 200,

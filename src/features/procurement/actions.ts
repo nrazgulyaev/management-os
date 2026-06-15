@@ -22,7 +22,9 @@ import {
   createPurchaseOrderSchema,
   createPurchaseRequestSchema,
   purchaseOrderIdSchema,
+  purchaseOrderLineSchema,
   purchaseRequestIdSchema,
+  purchaseRequestLineSchema,
   receivePurchaseOrderLineSchema,
 } from "./schema";
 import {
@@ -159,6 +161,92 @@ export async function cancelPurchaseRequestAction(
   formData: FormData,
 ): Promise<ActionResult> {
   return transitionPurchaseRequest(formData, "cancelled", "procurement.write");
+}
+
+/**
+ * Append a line item to an existing purchase request and refresh the parent's
+ * `total_estimated_minor` (sum of line qty × est. unit cost). The line + the
+ * recomputed total are stamped with the caller's verified org.
+ */
+export async function addPurchaseRequestLineAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("procurement.write");
+  const parsed = purchaseRequestLineSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the line.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  const d = parsed.data;
+
+  const [pr] = await db
+    .select()
+    .from(purchaseRequests)
+    .where(eq(purchaseRequests.id, d.requestId))
+    .limit(1);
+  // Tenant scope: a foreign PR id reads as not-found. NULL org = legacy, allowed.
+  if (!pr || (pr.organizationId && pr.organizationId !== organizationId)) {
+    return { ok: false, error: "Purchase request not found." };
+  }
+  if (["ordered", "cancelled", "rejected"].includes(pr.status)) {
+    return { ok: false, error: `Cannot add lines to a "${pr.status}" request.` };
+  }
+
+  const lineOrgId = pr.organizationId ?? organizationId;
+  const [line] = await db
+    .insert(purchaseRequestLines)
+    .values({
+      organizationId: lineOrgId,
+      requestId: pr.id,
+      itemId: d.itemId ?? null,
+      description: d.description,
+      quantity: String(d.quantity),
+      unit: d.unit,
+      estimatedUnitCostMinor: d.estimatedUnitCostMinor ?? null,
+      currency: d.currency && d.currency !== "" ? d.currency : pr.currency,
+      notes: d.notes && d.notes !== "" ? d.notes : null,
+    })
+    .returning({ id: purchaseRequestLines.id });
+
+  // Recompute the parent estimate from all of its lines (qty × est unit cost).
+  const lines = await db
+    .select()
+    .from(purchaseRequestLines)
+    .where(eq(purchaseRequestLines.requestId, pr.id));
+  const totalEstimatedMinor = lines.reduce((sum, l) => {
+    if (l.estimatedUnitCostMinor === null) return sum;
+    return sum + BigInt(Math.round(parseFloat(l.quantity))) * l.estimatedUnitCostMinor;
+  }, 0n);
+
+  await db
+    .update(purchaseRequests)
+    .set({ totalEstimatedMinor, updatedAt: new Date() })
+    .where(eq(purchaseRequests.id, pr.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "procurement.request.add_line",
+    entityType: "purchase_request_line",
+    entityId: line.id,
+    after: {
+      requestId: pr.id,
+      description: d.description,
+      quantity: d.quantity,
+      totalEstimatedMinor: totalEstimatedMinor.toString(),
+    },
+  });
+
+  revalidatePath("/dashboard/procurement/requests");
+  revalidatePath(`/dashboard/procurement/requests/${pr.id}`);
+  return { ok: true };
 }
 
 // -----------------------------------------------------------------------------
@@ -514,5 +602,91 @@ export async function markPurchaseOrderReceivedAction(
 
   revalidatePath("/dashboard/procurement/orders");
   revalidatePath(`/dashboard/procurement/orders/${parsed.data.id}`);
+  return { ok: true };
+}
+
+/**
+ * Append a line item to an existing purchase order and refresh the parent's
+ * `total_minor` (sum of ordered qty × unit cost). The line + the recomputed
+ * total are stamped with the caller's verified org.
+ */
+export async function addPurchaseOrderLineAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("procurement.write");
+  const parsed = purchaseOrderLineSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the line.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  const d = parsed.data;
+
+  const [po] = await db
+    .select()
+    .from(purchaseOrders)
+    .where(eq(purchaseOrders.id, d.purchaseOrderId))
+    .limit(1);
+  // Tenant scope: a foreign PO id reads as not-found. NULL org = legacy, allowed.
+  if (!po || (po.organizationId && po.organizationId !== organizationId)) {
+    return { ok: false, error: "PO not found." };
+  }
+  if (["received", "cancelled"].includes(po.status)) {
+    return { ok: false, error: `Cannot add lines to a "${po.status}" order.` };
+  }
+
+  const lineOrgId = po.organizationId ?? organizationId;
+  const [line] = await db
+    .insert(purchaseOrderLines)
+    .values({
+      organizationId: lineOrgId,
+      purchaseOrderId: po.id,
+      itemId: d.itemId ?? null,
+      description: d.description,
+      quantityOrdered: String(d.quantityOrdered),
+      quantityReceived: "0",
+      unit: d.unit,
+      unitCostMinor: d.unitCostMinor ?? null,
+      currency: d.currency && d.currency !== "" ? d.currency : po.currency,
+    })
+    .returning({ id: purchaseOrderLines.id });
+
+  // Recompute the order total from all of its lines (ordered qty × unit cost).
+  const lines = await db
+    .select()
+    .from(purchaseOrderLines)
+    .where(eq(purchaseOrderLines.purchaseOrderId, po.id));
+  const totalMinor = lines.reduce((sum, l) => {
+    if (l.unitCostMinor === null) return sum;
+    return sum + BigInt(Math.round(parseFloat(l.quantityOrdered))) * l.unitCostMinor;
+  }, 0n);
+
+  await db
+    .update(purchaseOrders)
+    .set({ totalMinor, updatedAt: new Date() })
+    .where(eq(purchaseOrders.id, po.id));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "procurement.order.add_line",
+    entityType: "purchase_order_line",
+    entityId: line.id,
+    after: {
+      purchaseOrderId: po.id,
+      description: d.description,
+      quantityOrdered: d.quantityOrdered,
+      totalMinor: totalMinor.toString(),
+    },
+  });
+
+  revalidatePath("/dashboard/procurement/orders");
+  revalidatePath(`/dashboard/procurement/orders/${po.id}`);
   return { ok: true };
 }

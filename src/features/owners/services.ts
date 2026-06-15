@@ -25,6 +25,12 @@ export interface OwnerListItem {
   nationality: string | null;
   taxResidency: string | null;
   status: "active" | "onboarding" | "archived";
+  /**
+   * Relationship manager (migration 0178): the internal app_user assigned to
+   * this owner, or null when unassigned. Persisted by bulkOwnerAssignAction;
+   * surfaced as the owners-list "Owner manager" column.
+   */
+  assignedAppUserId: string | null;
 }
 
 export interface OwnerDetail extends OwnerListItem {
@@ -65,6 +71,7 @@ function fromMockOwners(): WithSource<OwnerListItem>[] {
     nationality: o.country,
     taxResidency: o.country,
     status: "active",
+    assignedAppUserId: null,
   }));
 }
 
@@ -92,6 +99,7 @@ export async function listOwners(): Promise<WithSource<OwnerListItem>[]> {
     nationality: r.nationality,
     taxResidency: r.taxResidency,
     status: r.status as OwnerListItem["status"],
+    assignedAppUserId: r.assignedAppUserId,
   }));
 }
 
@@ -129,6 +137,7 @@ export async function getOwnerById(id: string): Promise<WithSource<OwnerDetail> 
     nationality: r.nationality,
     taxResidency: r.taxResidency,
     status: r.status as OwnerDetail["status"],
+    assignedAppUserId: r.assignedAppUserId,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
     // commission_pct is stored as a fraction in [0,1]; surface as a percent.

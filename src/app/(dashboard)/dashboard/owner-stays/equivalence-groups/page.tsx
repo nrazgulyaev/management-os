@@ -8,6 +8,7 @@ import { AddEquivalenceMemberForm } from "@/components/owner-stays/add-member-fo
 import { OwnersRowActions } from "@/components/dashboard/owners/owners-row-actions";
 import { AddEquivalenceGroupButton } from "@/components/dashboard/owners/owners-add-buttons";
 import { NoItemsYet } from "@/components/ui/primitives";
+import { removeEquivalenceMemberAction } from "@/features/owner-stays/actions";
 import Link from "next/link";
 
 export const metadata = { title: "Equivalence groups" };
@@ -78,6 +79,7 @@ export default async function EquivalenceGroupsPage() {
                     <th scope="col" className="num">Quality rank</th>
                     <th scope="col">Status</th>
                     <th scope="col">Notes</th>
+                    <th scope="col" className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -91,6 +93,26 @@ export default async function EquivalenceGroupsPage() {
                         </HandoffBadge>
                       </td>
                       <td className="text-ink-3 text-xs">{m.notes ?? "—"}</td>
+                      <td className="text-right">
+                        {m.status === "archived" ? (
+                          <span className="text-ink-3 text-xs">Removed</span>
+                        ) : (
+                          <form
+                            action={async (fd: FormData) => {
+                              "use server";
+                              await removeEquivalenceMemberAction(fd);
+                            }}
+                          >
+                            <input type="hidden" name="id" value={m.id} />
+                            <button
+                              type="submit"
+                              className="text-xs text-red-600 hover:underline"
+                            >
+                              Remove
+                            </button>
+                          </form>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

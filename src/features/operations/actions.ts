@@ -37,9 +37,13 @@ import {
   createOperationTaskSchema,
   createPreventiveScheduleSchema,
   createServiceRequestSchema,
+  deleteChecklistTemplateSchema,
+  editChecklistTemplateSchema,
+  type EditChecklistTemplateInput,
   editDamageReportSchema,
   editMaintenanceTicketSchema,
   editOperationTaskSchema,
+  resolveDamageReportSchema,
   serviceRequestIdSchema,
   updateChecklistItemSchema,
   updateMaintenanceTicketStatusSchema,
@@ -53,6 +57,7 @@ import {
 import { evaluateChecklistReadiness, templateItemRequiresPhoto } from "./checklists";
 import { countUploadedAttachmentsForChecklistItems } from "@/features/attachments/services";
 import {
+  DAMAGE_REPORT_TRANSITIONS,
   MAINTENANCE_TRANSITIONS,
   SERVICE_REQUEST_TRANSITIONS,
   TASK_TRANSITIONS,
@@ -911,6 +916,13 @@ export async function completeServiceRequestAction(
   return transitionServiceRequest(formData, "completed");
 }
 
+export async function cancelServiceRequestAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  return transitionServiceRequest(formData, "cancelled");
+}
+
 async function transitionServiceRequest(
   formData: FormData,
   to: "accepted" | "completed" | "cancelled",
@@ -1439,6 +1451,89 @@ export async function archiveDamageReportAction(
   return { ok: true, redirectTo: `/dashboard/operations/damage-reports` };
 }
 
+/**
+ * Resolve / close a damage report. Closes the open → under_review →
+ * {repaired|charged|waived|closed} lifecycle that previously dead-ended at
+ * "open", recording the actual repair/charge cost. The transition is guarded
+ * by DAMAGE_REPORT_TRANSITIONS (same `canTransition` helper as tasks /
+ * maintenance) so an operator can't skip the review flow. Org-scoped via the
+ * same transitive resolver (villa→project / booking / task) used by the edit
+ * + archive damage actions.
+ */
+export async function resolveDamageReportAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = resolveDamageReportSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Please review the form.",
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(damageReports)
+    .where(eq(damageReports.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Report not found." };
+  if (!(await damageReportBelongsToOrg(db, before, organizationId))) {
+    return { ok: false, error: "Report not found." };
+  }
+  if (before.status === "archived") {
+    return { ok: false, error: "Cannot resolve an archived report." };
+  }
+  if (!canTransition(DAMAGE_REPORT_TRANSITIONS, before.status, d.status)) {
+    return {
+      ok: false,
+      error: `Cannot move damage report from "${before.status}" to "${d.status}".`,
+    };
+  }
+
+  await db
+    .update(damageReports)
+    .set({
+      status: d.status,
+      // Only overwrite the recorded cost when the operator supplies one —
+      // a status-only move keeps the prior actual cost intact.
+      actualCostMinor:
+        d.actualCostMinor !== undefined ? d.actualCostMinor : before.actualCostMinor,
+      updatedAt: new Date(),
+    })
+    .where(eq(damageReports.id, d.id));
+
+  const finalCost =
+    d.actualCostMinor !== undefined ? d.actualCostMinor : before.actualCostMinor;
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.damage.resolve",
+    entityType: "damage_report",
+    entityId: d.id,
+    // bigint isn't JSON-serializable — stringify for the JSONB audit payload.
+    before: {
+      status: before.status,
+      actualCostMinor:
+        before.actualCostMinor != null ? before.actualCostMinor.toString() : null,
+    },
+    after: {
+      status: d.status,
+      actualCostMinor: finalCost != null ? finalCost.toString() : null,
+    },
+  });
+
+  revalidatePath("/dashboard/operations/damage-reports");
+  return { ok: true };
+}
+
 // -----------------------------------------------------------------------------
 // Stage 7.F.A.2 — Maintenance ticket staff assignment.
 //
@@ -1806,4 +1901,145 @@ export async function createChecklistTemplateAction(
     }
     return { ok: false, error: msg };
   }
+}
+
+/**
+ * Edit a checklist template — update the header (name / category /
+ * description / villaType) AND fully replace its item set. The unique `key`
+ * is intentionally immutable (it anchors preventive-schedule references), so
+ * it's omitted from the edit schema. Items are replaced wholesale: delete the
+ * old template-item rows, re-insert the new ones. Existing task_checklists
+ * already snapshot their items at instantiation time, so replacing the
+ * template's items never mutates in-flight runs.
+ */
+export async function editChecklistTemplateAction(
+  input: EditChecklistTemplateInput,
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = editChecklistTemplateSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const d = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(checklistTemplates)
+    .where(eq(checklistTemplates.id, d.id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Template not found." };
+  if (before.status === "archived") {
+    return { ok: false, error: "Cannot edit an archived template." };
+  }
+
+  await db
+    .update(checklistTemplates)
+    .set({
+      name: d.name,
+      category: d.category,
+      description: d.description ?? null,
+      villaType: d.villaType ?? null,
+      updatedAt: new Date(),
+    })
+    .where(eq(checklistTemplates.id, d.id));
+
+  // Replace the item set wholesale.
+  await db
+    .delete(checklistTemplateItems)
+    .where(eq(checklistTemplateItems.templateId, d.id));
+  await db.insert(checklistTemplateItems).values(
+    d.items.map((it, i) => ({
+      templateId: d.id,
+      section: it.section,
+      label: it.label,
+      itemType: it.itemType,
+      isRequired: it.isRequired,
+      sortOrder: i,
+    })),
+  );
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.checklist_template.edit",
+    entityType: "checklist_template",
+    entityId: d.id,
+    before: { name: before.name, category: before.category },
+    after: { name: d.name, category: d.category, items: d.items.length },
+  });
+
+  revalidatePath("/dashboard/operations/checklists");
+  return { ok: true };
+}
+
+/**
+ * Delete a checklist template. Hard delete is blocked if ANY task_checklist
+ * run was instantiated from it (those runs keep `template_id`); in that case
+ * the template is soft-archived (status → "archived") so it drops out of the
+ * active library without orphaning history. With zero runs it's safe to hard
+ * delete (its template-items cascade away).
+ */
+export async function deleteChecklistTemplateAction(
+  input: { id: string },
+): Promise<ActionResult> {
+  await requirePermission("operations.write");
+  const parsed = deleteChecklistTemplateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "Invalid request." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const { id } = parsed.data;
+
+  const [before] = await db
+    .select()
+    .from(checklistTemplates)
+    .where(eq(checklistTemplates.id, id))
+    .limit(1);
+  if (!before) return { ok: false, error: "Template not found." };
+
+  const [run] = await db
+    .select({ id: taskChecklists.id })
+    .from(taskChecklists)
+    .where(eq(taskChecklists.templateId, id))
+    .limit(1);
+
+  if (run) {
+    // Runs exist — soft-archive instead of hard delete to preserve history.
+    if (before.status === "archived") {
+      return { ok: false, error: "Template is already archived." };
+    }
+    await db
+      .update(checklistTemplates)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(eq(checklistTemplates.id, id));
+    await recordAuditEvent({
+      actorUserId: me?.id ?? null,
+      action: "operations.checklist_template.archive",
+      entityType: "checklist_template",
+      entityId: id,
+      before: { status: before.status },
+      after: { status: "archived" },
+    });
+    revalidatePath("/dashboard/operations/checklists");
+    return { ok: true };
+  }
+
+  // No runs — safe hard delete (template_items cascade via FK).
+  await db.delete(checklistTemplates).where(eq(checklistTemplates.id, id));
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "operations.checklist_template.delete",
+    entityType: "checklist_template",
+    entityId: id,
+    before: { key: before.key, name: before.name },
+    after: null,
+  });
+  revalidatePath("/dashboard/operations/checklists");
+  return { ok: true };
 }

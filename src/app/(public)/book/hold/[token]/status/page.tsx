@@ -15,6 +15,7 @@ import {
   type PublicGuestStage,
 } from "@/features/direct-booking/guest-status-pure";
 import { GuestMessageComposer } from "@/components/direct-booking/guest-message-composer";
+import { GuestNotificationDismissButton } from "@/components/direct-booking/guest-notification-dismiss-button";
 
 export const metadata = { title: "Booking status" };
 export const dynamic = "force-dynamic";
@@ -224,6 +225,10 @@ export default async function HoldStatusPage({
                       {n.publicActionLabel} →
                     </Link>
                   )}
+                  <GuestNotificationDismissButton
+                    token={token}
+                    notificationId={n.id}
+                  />
                 </li>
               ))}
             </ul>

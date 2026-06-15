@@ -135,18 +135,3 @@ export async function applyRelocationCandidateAction(
   revalidatePath("/dashboard/availability");
   return { ok: true, bookingId: out.bookingId };
 }
-
-/**
- * Admin-driven safe relocation — used to relocate a single booking when
- * needed outside the owner-stay flow (e.g. emergency maintenance). For
- * v9B this is a thin wrapper around the candidate apply path: caller
- * must first approve a candidate row.
- */
-export async function safeRelocateBookingAction(
-  _prev: ActionResult | null,
-  formData: FormData,
-): Promise<ActionResult> {
-  // We require caller to use the candidate-driven flow. This action just
-  // re-exposes apply for completeness so the spec checklist is covered.
-  return applyRelocationCandidateAction(_prev, formData);
-}

@@ -21,6 +21,9 @@ import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
+import { appUsers } from "@/lib/db/schema/identity";
+import { crmTagAssignments } from "@/lib/db/schema/crm-custom-fields";
+import { createTagAction } from "@/features/crm-custom-fields/actions";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { canManageEntity } from "@/features/auth/permissions";
@@ -83,8 +86,12 @@ const bulkTagSchema = z.object({
 });
 
 /**
- * Bulk-tag the selected owners. Audit-only until a dedicated owner-tags
- * table lands — captures the director's intent as a reviewable event.
+ * Bulk-tag the selected owners via the shared CRM tag layer. Resolve (or
+ * create) the org tag once from the free-text label — createTagAction is
+ * idempotent on slug, so re-using an existing tag is a no-op — then insert a
+ * crm_tag_assignments row (subjectType 'owner') for each owner that belongs to
+ * the caller's org. The insert mirrors assignTagAction: org-stamped + onConflict
+ * idempotent (unique tag/subject index → re-tagging is a no-op).
  */
 export async function bulkOwnerTagAction(
   input: z.infer<typeof bulkTagSchema>,
@@ -99,16 +106,51 @@ export async function bulkOwnerTagAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY: scope the selection to the caller's org so any foreign ids are
+  // silently dropped before we persist anything against them.
+  const organizationId = await requireOrgId();
+  const ownerRows = await db
+    .select({ id: owners.id })
+    .from(owners)
+    .where(and(inArray(owners.id, ids), eq(owners.organizationId, organizationId)));
+  const ownerIds = ownerRows.map((r) => r.id);
+  if (ownerIds.length === 0) return { ok: true, affected: 0 };
+
+  // Resolve/create the tag once (idempotent on slug, org-scoped + audit-logged
+  // inside createTagAction). May throw if the label has no slug-able chars.
+  let resolved: { id: string; label: string; color: string };
+  try {
+    resolved = await createTagAction({ label: tag });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Invalid tag." };
+  }
+
   const me = await getCurrentAppUser();
+  // One idempotent insert per owner (unique (tag, subject_type, subject_id)
+  // index → onConflictDoNothing skips already-tagged owners).
+  await db
+    .insert(crmTagAssignments)
+    .values(
+      ownerIds.map((ownerId) => ({
+        organizationId,
+        tagId: resolved.id,
+        subjectType: "owner" as const,
+        subjectId: ownerId,
+        assignedBy: me?.id ?? null,
+      })),
+    )
+    .onConflictDoNothing();
+
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner.bulk_tag",
     entityType: "owner",
     entityId: null,
-    after: { tag, ownerIds: ids, count: ids.length },
+    after: { tag, tagId: resolved.id, ownerIds, count: ownerIds.length },
+    metadata: { organizationId },
   });
   revalidatePath("/dashboard/owners");
-  return { ok: true, affected: ids.length };
+  return { ok: true, affected: ownerIds.length };
 }
 
 const bulkAssignSchema = z.object({
@@ -117,8 +159,14 @@ const bulkAssignSchema = z.object({
 });
 
 /**
- * Bulk-assign the selected owners to a relationship manager. Audit-only
- * until an owner-assignment column / table lands.
+ * Bulk-assign the selected owners to a relationship manager. Persists the
+ * assignee on owners.assigned_app_user_id (migration 0178): a real column
+ * write, no longer audit-only.
+ *
+ * The UPDATE is doubly org-scoped — the assignee must be an app_user in the
+ * caller's org (else any foreign assigneeId is rejected) AND each owner row is
+ * AND-scoped on organization_id, so foreign ids in the selection are silently
+ * filtered out. The TRUE affected count is read back from the returned rows.
  */
 export async function bulkOwnerAssignAction(
   input: z.infer<typeof bulkAssignSchema>,
@@ -133,14 +181,41 @@ export async function bulkOwnerAssignAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY: scope to the caller's org on BOTH sides of the relationship.
+  const organizationId = await requireOrgId();
+
+  // 1) The relationship manager must be an app_user in this org — block
+  //    cross-tenant assignment before we touch any owner row.
+  const [assignee] = await db
+    .select({ id: appUsers.id })
+    .from(appUsers)
+    .where(
+      and(
+        eq(appUsers.id, assigneeAppUserId),
+        eq(appUsers.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!assignee) return { ok: false, error: "Assignee not found in this organization." };
+
+  // 2) Org-scoped UPDATE — foreign owner ids in the selection are dropped by
+  //    the organization_id predicate; report the TRUE affected count.
   const me = await getCurrentAppUser();
+  const updated = await db
+    .update(owners)
+    .set({ assignedAppUserId: assigneeAppUserId, updatedAt: new Date() })
+    .where(and(inArray(owners.id, ids), eq(owners.organizationId, organizationId)))
+    .returning({ id: owners.id });
+  const updatedIds = updated.map((r) => r.id);
+
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner.bulk_assign",
     entityType: "owner",
     entityId: null,
-    after: { assigneeAppUserId, ownerIds: ids, count: ids.length },
+    after: { assigneeAppUserId, ownerIds: updatedIds, count: updatedIds.length },
+    metadata: { organizationId },
   });
   revalidatePath("/dashboard/owners");
-  return { ok: true, affected: ids.length };
+  return { ok: true, affected: updatedIds.length };
 }

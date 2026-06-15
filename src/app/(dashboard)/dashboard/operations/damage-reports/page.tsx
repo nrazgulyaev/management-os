@@ -5,6 +5,7 @@ import { listDamageReports } from "@/features/operations/services";
 import { listVillas } from "@/features/villas/services";
 import { formatMoneyMinor } from "@/lib/money";
 import { DamageAddButton } from "@/components/operations/damage-add-button";
+import { DamageStatusActions } from "@/components/operations/damage-status-actions";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -58,16 +59,25 @@ export default async function DamageReportsPage() {
                   <div className="text-xs text-ink-tertiary mt-0.5">
                     {r.villaCode ?? "—"} · {r.createdAt.slice(0, 10)}
                   </div>
+                  <div className="mt-3">
+                    <DamageStatusActions
+                      id={r.id}
+                      status={r.status}
+                      currency={r.currency}
+                    />
+                  </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
                     <div className="text-[10px] uppercase tracking-widest text-ink-tertiary">
-                      Estimated
+                      {r.actualCostMinor !== null ? "Actual" : "Estimated"}
                     </div>
                     <div className="font-mono tabular-nums text-sm text-ink">
-                      {r.estimatedCostMinor !== null && r.currency
-                        ? formatMoneyMinor(r.estimatedCostMinor, r.currency)
-                        : "—"}
+                      {r.actualCostMinor !== null && r.currency
+                        ? formatMoneyMinor(r.actualCostMinor, r.currency)
+                        : r.estimatedCostMinor !== null && r.currency
+                          ? formatMoneyMinor(r.estimatedCostMinor, r.currency)
+                          : "—"}
                     </div>
                   </div>
                   <OperationsRowActions

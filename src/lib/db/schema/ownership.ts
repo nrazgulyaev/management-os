@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { projects, villas } from "./projects";
 import { organizations } from "./saas";
+import { appUsers } from "./identity";
 
 export const owners = pgTable(
   "owners",
@@ -39,12 +40,23 @@ export const owners = pgTable(
      * so the statement engines can read it directly. Migration 0169.
      */
     commissionPct: numeric("commission_pct", { precision: 6, scale: 4 }),
+    /**
+     * Relationship manager (migration 0178): the internal app_user who owns
+     * this account relationship. Nullable — an owner may be unassigned. FK with
+     * ON DELETE SET NULL so removing a staff user falls the owner back to
+     * "Unassigned" rather than blocking the delete. Persisted by the owners-list
+     * bulk "Assign to relationship manager" action (was previously audit-only).
+     */
+    assignedAppUserId: uuid("assigned_app_user_id").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("owners_status_idx").on(t.status),
     index("owners_organization_idx").on(t.organizationId),
+    index("owners_org_assigned_idx").on(t.organizationId, t.assignedAppUserId),
   ],
 );
 
