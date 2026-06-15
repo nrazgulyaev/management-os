@@ -3,6 +3,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { DevelopmentAppShell } from "@/components/development/development-app-shell";
 import { ServiceWorkerRegister } from "@/components/development/pwa/service-worker-register";
 import { enforceProductAccess } from "@/features/auth/products-access";
+import { enforceMfaChallengeCleared } from "@/features/security-baseline/mfa-gate";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
 
 export const metadata: Metadata = {
@@ -30,6 +31,9 @@ export default async function DevelopmentAppLayout({
   children: React.ReactNode;
 }) {
   try {
+    // MFA-ENFORCE-1 — a pending second-factor challenge takes priority
+    // over every other gate. No-op for users without a verified factor.
+    await enforceMfaChallengeCleared();
     await enforceProductAccess("dev");
   } catch (err) {
     if (isRedirectError(err)) throw err; // intentional redirect — preserve
