@@ -1,8 +1,9 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devBankAccounts,
   devCostCategories,
@@ -94,13 +95,21 @@ export async function bulkRecordTransactions(
 ): Promise<BulkRecordResult> {
   const parsed = bulkInputSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
 
   // Pre-load bank account so we can fail fast on bad ID + use the
-  // account currency for the default fx rate.
+  // account currency for the default fx rate. Scoped by org so a
+  // client-supplied bankAccountId can never reach another tenant's
+  // account.
   const [account] = await db
     .select()
     .from(devBankAccounts)
-    .where(eq(devBankAccounts.id, parsed.bankAccountId))
+    .where(
+      and(
+        eq(devBankAccounts.id, parsed.bankAccountId),
+        eq(devBankAccounts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!account) {
     return {
@@ -123,14 +132,16 @@ export async function bulkRecordTransactions(
       displayName: devCostCategories.displayName,
       categoryCode: devCostCategories.categoryCode,
     })
-    .from(devCostCategories);
+    .from(devCostCategories)
+    .where(eq(devCostCategories.organizationId, organizationId));
   const catalogueProjects = await db
     .select({
       id: projects.id,
       slug: projects.slug,
       name: projects.name,
     })
-    .from(projects);
+    .from(projects)
+    .where(eq(projects.organizationId, organizationId));
 
   // Look up by case-insensitive displayName OR categoryCode.
   const categoryByName = new Map<string, string>();

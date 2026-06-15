@@ -3,7 +3,7 @@ import "server-only";
 import { sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
-import { devCorporateEvents } from "@/lib/db/schema/dev-finance";
+import { requireOrgId } from "@/features/auth/require-org";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
 
 const recordSchema = z.object({
@@ -58,6 +58,7 @@ export async function recordCorporateEvent(
 ): Promise<{ id: string; eventCode: string }> {
   const parsed = recordSchema.parse(input);
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const amount = toBig(parsed.amountOriginalMinor);
   if (amount <= 0n) throw new Error("amountOriginalMinor must be > 0");
   const fx = Number(parsed.fxRate);
@@ -76,6 +77,7 @@ export async function recordCorporateEvent(
           AS repaid
       FROM dev_corporate_events
       WHERE related_contact_id = ${parsed.relatedContactId}
+        AND organization_id = ${organizationId}
     `);
     const r2 = (r ?? {}) as Record<string, unknown>;
     const loaned = BigInt(String(r2.loaned ?? "0"));
@@ -87,25 +89,26 @@ export async function recordCorporateEvent(
     }
   }
 
-  const [row] = await db
-    .insert(devCorporateEvents)
-    .values({
-      eventCode: parsed.eventCode,
-      eventType: parsed.eventType,
-      relatedContactId: parsed.relatedContactId ?? null,
-      amountUsdMinor: usdAmount,
-      amountCurrency: parsed.amountCurrency,
-      amountOriginalMinor: amount,
-      fxRate: parsed.fxRate,
-      eventDate: parsed.eventDate,
-      description: parsed.description,
-      relatedTransactionId: parsed.relatedTransactionId ?? null,
-      documentId: parsed.documentId ?? null,
-      notes: parsed.notes ?? null,
-    })
-    .returning({
-      id: devCorporateEvents.id,
-      eventCode: devCorporateEvents.eventCode,
-    });
-  return row;
+  // Stamp organization_id (NOT NULL, added by migration 0072 but not yet on
+  // the Drizzle schema) on insert via raw SQL so the row is owned by the
+  // caller's tenant. amount/usdAmount are bigint — cast to string for the
+  // parameter binding.
+  const inserted = await db.execute(sql`
+    INSERT INTO dev_corporate_events (
+      organization_id, event_code, event_type, related_contact_id,
+      amount_usd_minor, amount_currency, amount_original_minor, fx_rate,
+      event_date, description, related_transaction_id, document_id, notes
+    ) VALUES (
+      ${organizationId}, ${parsed.eventCode}, ${parsed.eventType},
+      ${parsed.relatedContactId ?? null},
+      ${usdAmount.toString()}, ${parsed.amountCurrency}, ${amount.toString()},
+      ${parsed.fxRate}, ${parsed.eventDate}, ${parsed.description},
+      ${parsed.relatedTransactionId ?? null}, ${parsed.documentId ?? null},
+      ${parsed.notes ?? null}
+    )
+    RETURNING id, event_code AS "eventCode"
+  `);
+  const row = (inserted as Array<Record<string, unknown>>)[0];
+  if (!row) throw new Error("Insert returned no row");
+  return { id: String(row.id), eventCode: String(row.eventCode) };
 }

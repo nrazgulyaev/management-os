@@ -1,9 +1,10 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { devBankAccounts } from "@/lib/db/schema/dev-finance";
 import type { SupportedCurrency } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const toStr = (v: unknown): string =>
   v === null || v === undefined ? "0" : String(v);
@@ -59,10 +60,16 @@ function toItem(
 export async function getBankAccounts(): Promise<BankAccountListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const rows = await db
     .select()
     .from(devBankAccounts)
-    .where(eq(devBankAccounts.isActive, true))
+    .where(
+      and(
+        eq(devBankAccounts.isActive, true),
+        eq(devBankAccounts.organizationId, orgId),
+      ),
+    )
     .orderBy(devBankAccounts.accountCode);
   return rows.map(toItem);
 }
@@ -72,10 +79,16 @@ export async function getBankAccount(
 ): Promise<BankAccountListItem | null> {
   const db = getDb();
   if (!db) return null;
+  const orgId = await requireOrgId();
   const [r] = await db
     .select()
     .from(devBankAccounts)
-    .where(eq(devBankAccounts.id, id))
+    .where(
+      and(
+        eq(devBankAccounts.id, id),
+        eq(devBankAccounts.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return r ? toItem(r) : null;
 }
@@ -89,10 +102,12 @@ export async function getBankAccount(
 export async function getCompanyTotalUSDBalance(): Promise<bigint> {
   const db = getDb();
   if (!db) return 0n;
+  const orgId = await requireOrgId();
   const [r] = await db.execute(sql`
     SELECT coalesce(sum(current_balance_usd_minor), 0)::bigint AS total
     FROM dev_bank_accounts
     WHERE is_active = true AND is_company_account = true
+      AND organization_id = ${orgId}
   `);
   return BigInt(((r ?? {}) as { total?: string }).total ?? 0);
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { contacts } from "@/lib/db/schema/contacts";
 import {
   contractMilestones,
@@ -65,7 +66,9 @@ export async function getInvoices(
 ): Promise<InvoiceListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [];
+  const organizationId = await requireOrgId();
+  // invoices has no org column — anchor tenancy via the joined contact.
+  const conds = [eq(contacts.organizationId, organizationId)];
   if (filters.contactId) conds.push(eq(invoices.contactId, filters.contactId));
   if (filters.status) conds.push(eq(invoices.status, filters.status));
   if (filters.contractGroupId)
@@ -84,7 +87,7 @@ export async function getInvoices(
       contractMilestones,
       eq(contractMilestones.id, invoices.contractMilestoneId),
     )
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(invoices.issuedAt));
   return rows.map(rowToListItem);
 }
@@ -98,6 +101,7 @@ export async function getInvoicesByContract(
 export async function getInvoiceById(id: string): Promise<InvoiceDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       invoice: invoices,
@@ -111,7 +115,12 @@ export async function getInvoiceById(id: string): Promise<InvoiceDetail | null> 
       contractMilestones,
       eq(contractMilestones.id, invoices.contractMilestoneId),
     )
-    .where(eq(invoices.id, id))
+    .where(
+      and(
+        eq(invoices.id, id),
+        eq(contacts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   return {

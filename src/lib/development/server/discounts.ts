@@ -3,7 +3,8 @@ import "server-only";
 import { and, asc, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contacts } from "@/lib/db/schema/contacts";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   discountAuthorizations,
   unitDiscounts,
@@ -80,7 +81,8 @@ export async function getDiscounts(
 ): Promise<UnitDiscountListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [];
+  const organizationId = await requireOrgId();
+  const conds = [eq(projects.organizationId, organizationId)];
   if (filters.status) conds.push(eq(unitDiscounts.status, filters.status));
   if (filters.contactId)
     conds.push(eq(unitDiscounts.contactId, filters.contactId));
@@ -93,8 +95,9 @@ export async function getDiscounts(
     })
     .from(unitDiscounts)
     .innerJoin(villas, eq(villas.id, unitDiscounts.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .innerJoin(contacts, eq(contacts.id, unitDiscounts.contactId))
-    .where(conds.length ? and(...conds) : undefined)
+    .where(and(...conds))
     .orderBy(desc(unitDiscounts.proposedAt));
   return rows.map(rowToItem);
 }
@@ -108,6 +111,7 @@ export async function getDiscountById(
 ): Promise<UnitDiscountListItem | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       discount: unitDiscounts,
@@ -116,8 +120,14 @@ export async function getDiscountById(
     })
     .from(unitDiscounts)
     .innerJoin(villas, eq(villas.id, unitDiscounts.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .innerJoin(contacts, eq(contacts.id, unitDiscounts.contactId))
-    .where(eq(unitDiscounts.id, id))
+    .where(
+      and(
+        eq(unitDiscounts.id, id),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ? rowToItem(row) : null;
 }

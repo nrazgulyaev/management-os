@@ -121,6 +121,7 @@ export async function suggestDistribution(input: {
       id: projects.id,
       name: projects.name,
       slug: projects.slug,
+      organizationId: projects.organizationId,
     })
     .from(projects)
     .where(eq(projects.id, input.projectId))
@@ -252,11 +253,15 @@ export async function suggestDistribution(input: {
     clamped.suggestedAmountUsdMinor > 0n &&
     clamped.suggestedDistributionType !== "none"
   ) {
-    const result = await previewDistribution({
-      projectId: proj.id,
-      totalAmountUsdMinor: clamped.suggestedAmountUsdMinor,
-      distributionType: clamped.suggestedDistributionType,
-    }).catch(() => ({ allocations: [], totalAllocatedUsdMinor: 0n, unallocatedUsdMinor: 0n }));
+    const result = await previewDistribution(
+      {
+        projectId: proj.id,
+        totalAmountUsdMinor: clamped.suggestedAmountUsdMinor,
+        distributionType: clamped.suggestedDistributionType,
+      },
+      // Cron/AI path: scope to the project's own org (no request session).
+      proj.organizationId,
+    ).catch(() => ({ allocations: [], totalAllocatedUsdMinor: 0n, unallocatedUsdMinor: 0n }));
     allocationPreview = result.allocations.map((a) => ({
       commitmentId: a.commitmentId,
       commitmentCode: a.commitmentCode,

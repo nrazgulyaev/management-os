@@ -3,6 +3,8 @@ import "server-only";
 import { eq, sql, and, isNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { devBudgetLines } from "@/lib/db/schema/dev-finance";
+import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const toStr = (v: unknown): string =>
   v === null || v === undefined ? "0" : String(v);
@@ -32,11 +34,24 @@ export async function getBudgetVsActual(
   const db = getDb();
   if (!db) return [];
 
+  const organizationId = await requireOrgId();
+
+  // Verify the project belongs to the caller's org before running any
+  // aggregate. dev_budget_lines has no organization_id column, so the bud
+  // CTE is anchored solely via project_id — an org-foreign projectId must
+  // produce nothing.
+  const [proj] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.organizationId, organizationId)))
+    .limit(1);
+  if (!proj) return [];
+
   const rows = await db.execute(sql`
     WITH cats AS (
       SELECT id, category_code, display_name, category_type
       FROM dev_cost_categories
-      WHERE is_active = true
+      WHERE is_active = true AND organization_id = ${organizationId}
     ),
     bud AS (
       SELECT category_id,
@@ -50,7 +65,7 @@ export async function getBudgetVsActual(
              coalesce(sum(amount_usd_minor) FILTER (WHERE status IN ('open','partially_paid')), 0)::bigint
                AS committed
       FROM dev_commitments_ledger
-      WHERE project_id = ${projectId}
+      WHERE project_id = ${projectId} AND organization_id = ${organizationId}
       GROUP BY category_id
     ),
     act AS (
@@ -58,7 +73,7 @@ export async function getBudgetVsActual(
              coalesce(sum(amount_usd_minor) FILTER (WHERE direction='outflow'), 0)::bigint
                AS actual
       FROM dev_transactions
-      WHERE project_id = ${projectId}
+      WHERE project_id = ${projectId} AND organization_id = ${organizationId}
       GROUP BY category_id
     )
     SELECT
@@ -106,12 +121,21 @@ export async function getBudgetLine(
 ): Promise<typeof devBudgetLines.$inferSelect | null> {
   const db = getDb();
   if (!db) return null;
-  const [r] = await db
-    .select()
+  const organizationId = await requireOrgId();
+  // dev_budget_lines has no organization_id; anchor org via project_id →
+  // projects. Return null (page notFound) when the line is org-foreign.
+  const [row] = await db
+    .select({ line: devBudgetLines })
     .from(devBudgetLines)
-    .where(eq(devBudgetLines.id, id))
+    .innerJoin(projects, eq(projects.id, devBudgetLines.projectId))
+    .where(
+      and(
+        eq(devBudgetLines.id, id),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
-  return r ?? null;
+  return row?.line ?? null;
 }
 
 export async function getBudgetHistory(
@@ -121,20 +145,25 @@ export async function getBudgetHistory(
 ): Promise<(typeof devBudgetLines.$inferSelect)[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const conditions = [
     eq(devBudgetLines.projectId, projectId),
     eq(devBudgetLines.categoryId, categoryId),
+    // dev_budget_lines has no organization_id; anchor org via projects.
+    eq(projects.organizationId, organizationId),
   ];
   if (unitId) {
     conditions.push(eq(devBudgetLines.unitId, unitId));
   } else if (unitId === null) {
     conditions.push(isNull(devBudgetLines.unitId));
   }
-  return await db
-    .select()
+  const rows = await db
+    .select({ line: devBudgetLines })
     .from(devBudgetLines)
+    .innerJoin(projects, eq(projects.id, devBudgetLines.projectId))
     .where(and(...conditions))
     .orderBy(devBudgetLines.budgetVersion);
+  return rows.map((r) => r.line);
 }
 
 export interface ProjectFinancialSummary {

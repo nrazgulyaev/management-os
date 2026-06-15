@@ -9,6 +9,8 @@ import {
   investorWallets,
   walletTransactions,
 } from "@/lib/db/schema/investor-capital";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   DRAWDOWN_PAYMENT_METHODS,
   DRAWDOWN_TRIGGER_REASONS,
@@ -65,6 +67,8 @@ function computeUsdFromMinor(
 export async function requestDrawdown(
   input: RequestDrawdownInput,
 ): Promise<{ id: string; drawdownNumber: number }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = requestDrawdownSchema.parse(input);
   const db = requireDb();
 
@@ -84,7 +88,12 @@ export async function requestDrawdown(
         status: capitalCommitments.status,
       })
       .from(capitalCommitments)
-      .where(eq(capitalCommitments.id, parsed.commitmentId))
+      .where(
+        and(
+          eq(capitalCommitments.id, parsed.commitmentId),
+          eq(capitalCommitments.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!commitment) throw new Error("Commitment not found");
     if (commitment.status === "cancelled" || commitment.status === "closed") {
@@ -155,16 +164,31 @@ export async function confirmDrawdownReceipt(
   walletTransactionId: string;
   newAvailableBalanceUsdMinor: string;
 }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = confirmDrawdownSchema.parse(input);
   const db = requireDb();
   const receivedAt = parsed.receivedAt ? new Date(parsed.receivedAt) : new Date();
 
   return await db.transaction(async (tx) => {
+    // Resolve the drawdown's org via its commitment and reject cross-org
+    // ids BEFORE crediting any wallet balance (the drawdown org column is
+    // nullable, so anchor on the commitment which is authoritative).
     const [drawdown] = await tx
-      .select()
+      .select({ drawdown: capitalDrawdowns })
       .from(capitalDrawdowns)
-      .where(eq(capitalDrawdowns.id, parsed.drawdownId))
-      .limit(1);
+      .innerJoin(
+        capitalCommitments,
+        eq(capitalCommitments.id, capitalDrawdowns.commitmentId),
+      )
+      .where(
+        and(
+          eq(capitalDrawdowns.id, parsed.drawdownId),
+          eq(capitalCommitments.organizationId, organizationId),
+        ),
+      )
+      .limit(1)
+      .then((rows) => rows.map((r) => r.drawdown));
     if (!drawdown) throw new Error("Drawdown not found");
     if (drawdown.status === "received") {
       throw new Error("Drawdown already marked received (idempotency violation)");
@@ -263,13 +287,25 @@ export async function cancelDrawdown(
   if (!reason || reason.trim().length < 3) {
     throw new Error("cancelDrawdown: reason is required (min 3 chars)");
   }
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   await db.transaction(async (tx) => {
+    // Resolve the drawdown's org via its commitment and reject cross-org ids.
     const [d] = await tx
       .select({ status: capitalDrawdowns.status })
       .from(capitalDrawdowns)
-      .where(eq(capitalDrawdowns.id, id))
+      .innerJoin(
+        capitalCommitments,
+        eq(capitalCommitments.id, capitalDrawdowns.commitmentId),
+      )
+      .where(
+        and(
+          eq(capitalDrawdowns.id, id),
+          eq(capitalCommitments.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!d) throw new Error("Drawdown not found");
     if (d.status === "received") {

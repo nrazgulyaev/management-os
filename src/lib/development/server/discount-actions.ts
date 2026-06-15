@@ -2,14 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { roles, userRoles } from "@/lib/db/schema/identity";
 import {
   contractGroups,
   unitDiscounts,
 } from "@/lib/db/schema/sales";
+import { contacts } from "@/lib/db/schema/contacts";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { unitDevelopmentMeta } from "@/lib/db/schema/development";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import {
   evaluateDiscountProposal,
@@ -59,6 +63,8 @@ export type ProposeDiscountResult =
 export async function proposeDiscount(
   formData: FormData,
 ): Promise<ProposeDiscountResult> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = proposeSchema.safeParse({
     villaId: formData.get("villaId"),
     contactId: formData.get("contactId"),
@@ -95,6 +101,37 @@ export async function proposeDiscount(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // Verify the villa (via project) and contact belong to the caller's org
+  // before writing — unit_discounts has no org column, so org is anchored
+  // through the villa->project chain and the contact.
+  const [villaOwn] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, data.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villaOwn) {
+    return { ok: false, error: "Villa not found." };
+  }
+  const [contactOwn] = await db
+    .select({ id: contacts.id })
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.id, data.contactId),
+        eq(contacts.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!contactOwn) {
+    return { ok: false, error: "Contact not found." };
+  }
 
   // Compute absolute amount + percent in both terms.
   let percent = data.discountPercent ?? 0;
@@ -174,6 +211,8 @@ const approveSchema = z.object({
 export async function approveDiscount(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = approveSchema.safeParse({
     discountId: formData.get("discountId"),
     approverUserId: formData.get("approverUserId"),
@@ -182,12 +221,20 @@ export async function approveDiscount(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  const [discount] = await db
-    .select()
+  const [discountRow] = await db
+    .select({ discount: unitDiscounts })
     .from(unitDiscounts)
-    .where(eq(unitDiscounts.id, parsed.data.discountId))
+    .innerJoin(villas, eq(villas.id, unitDiscounts.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(unitDiscounts.id, parsed.data.discountId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
-  if (!discount) return { ok: false, error: "Discount not found." };
+  if (!discountRow) return { ok: false, error: "Discount not found." };
+  const discount = discountRow.discount;
   if (discount.status !== "pending_approval" && discount.status !== "proposed") {
     return {
       ok: false,
@@ -256,6 +303,8 @@ const rejectSchema = z.object({
 export async function rejectDiscount(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = rejectSchema.safeParse({
     discountId: formData.get("discountId"),
     approverUserId: formData.get("approverUserId"),
@@ -264,6 +313,23 @@ export async function rejectDiscount(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // Resolve the discount's org via villa->project and reject cross-org ids
+  // BEFORE the UPDATE (was previously a blind UPDATE by id).
+  const [discountRow] = await db
+    .select({ id: unitDiscounts.id })
+    .from(unitDiscounts)
+    .innerJoin(villas, eq(villas.id, unitDiscounts.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(unitDiscounts.id, parsed.data.discountId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!discountRow) return { ok: false, error: "Discount not found." };
+
   const now = new Date();
   await db
     .update(unitDiscounts)
@@ -274,7 +340,7 @@ export async function rejectDiscount(
       rejectedReason: parsed.data.reason,
       updatedAt: now,
     })
-    .where(eq(unitDiscounts.id, parsed.data.discountId));
+    .where(eq(unitDiscounts.id, discountRow.id));
   revalidatePath(`${DEVELOPMENT_APP_PATH}/discounts`);
   return { ok: true };
 }
@@ -293,6 +359,8 @@ const applySchema = z.object({
 export async function applyDiscountToContract(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = applySchema.safeParse({
     discountId: formData.get("discountId"),
     contractGroupId: formData.get("contractGroupId"),
@@ -302,12 +370,21 @@ export async function applyDiscountToContract(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  const [discount] = await db
-    .select()
+  // Verify the discount belongs to the caller's org via villa->project.
+  const [discountRow] = await db
+    .select({ discount: unitDiscounts })
     .from(unitDiscounts)
-    .where(eq(unitDiscounts.id, parsed.data.discountId))
+    .innerJoin(villas, eq(villas.id, unitDiscounts.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(unitDiscounts.id, parsed.data.discountId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
-  if (!discount) return { ok: false, error: "Discount not found." };
+  if (!discountRow) return { ok: false, error: "Discount not found." };
+  const discount = discountRow.discount;
   if (discount.status !== "approved") {
     return { ok: false, error: `Discount must be approved (currently ${discount.status}).` };
   }
@@ -315,7 +392,12 @@ export async function applyDiscountToContract(
   const [group] = await db
     .select()
     .from(contractGroups)
-    .where(eq(contractGroups.id, parsed.data.contractGroupId))
+    .where(
+      and(
+        eq(contractGroups.id, parsed.data.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!group) return { ok: false, error: "Contract group not found." };
 

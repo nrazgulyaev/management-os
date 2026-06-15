@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   contactRoles,
   contacts,
@@ -54,6 +55,7 @@ export async function findOrCreateContact(
       "Database is not configured. findOrCreateContact requires DATABASE_URL.",
     );
   }
+  const organizationId = await requireOrgId();
   const email = norm(input.email);
   const phone = input.phone?.trim() ?? null;
 
@@ -62,7 +64,12 @@ export async function findOrCreateContact(
     const rows = await db
       .select()
       .from(contacts)
-      .where(sql`lower(${contacts.email}) = ${email}`)
+      .where(
+        and(
+          sql`lower(${contacts.email}) = ${email}`,
+          eq(contacts.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     existing = rows[0];
   }
@@ -70,7 +77,12 @@ export async function findOrCreateContact(
     const rows = await db
       .select()
       .from(contacts)
-      .where(eq(contacts.phone, phone))
+      .where(
+        and(
+          eq(contacts.phone, phone),
+          eq(contacts.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     existing = rows[0];
   }
@@ -91,7 +103,12 @@ export async function findOrCreateContact(
       await db
         .update(contacts)
         .set({ ...patch, updatedAt: new Date() })
-        .where(eq(contacts.id, existing.id));
+        .where(
+          and(
+            eq(contacts.id, existing.id),
+            eq(contacts.organizationId, organizationId),
+          ),
+        );
     }
     return { contact: { ...existing, ...patch }, created: false };
   }
@@ -99,6 +116,7 @@ export async function findOrCreateContact(
   const inserted = await db
     .insert(contacts)
     .values({
+      organizationId,
       fullName: input.fullName,
       email: input.email ?? null,
       phone: input.phone ?? null,
@@ -122,7 +140,14 @@ export async function findOrCreateContact(
 export async function getContactById(id: string): Promise<Contact | null> {
   const db = getDb();
   if (!db) return null;
-  const rows = await db.select().from(contacts).where(eq(contacts.id, id)).limit(1);
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select()
+    .from(contacts)
+    .where(
+      and(eq(contacts.id, id), eq(contacts.organizationId, organizationId)),
+    )
+    .limit(1);
   return rows[0] ?? null;
 }
 
@@ -180,6 +205,7 @@ export async function getActiveLeadRole(
 ): Promise<ContactRole | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(contactRoles)
@@ -189,6 +215,7 @@ export async function getActiveLeadRole(
         eq(contactRoles.role, "lead"),
         eq(contactRoles.scopeProjectId, projectId),
         isNull(contactRoles.endedAt),
+        eq(contactRoles.organizationId, organizationId),
       ),
     )
     .limit(1);

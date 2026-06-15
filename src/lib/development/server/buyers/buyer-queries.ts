@@ -7,26 +7,36 @@ import {
   buyerUnitAssignments,
   buyerProgressReports,
 } from "@/lib/db/schema/buyers";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listBuyers(filters?: { kycStatus?: string }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [eq(buyers.organizationId, organizationId)] as Array<
+    ReturnType<typeof eq>
+  >;
   if (filters?.kycStatus) {
     conditions.push(eq(buyers.kycStatus, filters.kycStatus));
   }
   return db
     .select()
     .from(buyers)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(buyers.createdAt));
 }
 
 export async function getBuyerByCode(buyerCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [buyer] = await db
     .select()
     .from(buyers)
-    .where(eq(buyers.buyerCode, buyerCode))
+    .where(
+      and(
+        eq(buyers.buyerCode, buyerCode),
+        eq(buyers.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!buyer) return null;
   const assignments = await db
@@ -43,7 +53,10 @@ export async function listBuyerProgressReports(filters: {
   status?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(buyerProgressReports.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters.projectId) {
     conditions.push(eq(buyerProgressReports.projectId, filters.projectId));
   }
@@ -56,16 +69,22 @@ export async function listBuyerProgressReports(filters: {
   return db
     .select()
     .from(buyerProgressReports)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(buyerProgressReports.reportingPeriodEnd));
 }
 
 export async function getBuyerProgressReport(id: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [report] = await db
     .select()
     .from(buyerProgressReports)
-    .where(eq(buyerProgressReports.id, id))
+    .where(
+      and(
+        eq(buyerProgressReports.id, id),
+        eq(buyerProgressReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return report ?? null;
 }

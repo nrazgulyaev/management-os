@@ -1,12 +1,13 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   capitalCommitments,
   capitalDrawdowns,
   investorWallets,
 } from "@/lib/db/schema/investor-capital";
+import { requireOrgId } from "@/features/auth/require-org";
 import type {
   CommitmentDetail,
   DrawdownListItem,
@@ -23,6 +24,8 @@ export async function getCommitment(id: string): Promise<CommitmentDetail | null
   const db = getDb();
   if (!db) return null;
 
+  const organizationId = await requireOrgId();
+
   const list = await getCommitmentsList({});
   const summary = list.find((c) => c.id === id);
   if (!summary) return null;
@@ -36,13 +39,26 @@ export async function getCommitment(id: string): Promise<CommitmentDetail | null
       createdAt: capitalCommitments.createdAt,
     })
     .from(capitalCommitments)
-    .where(eq(capitalCommitments.id, id))
+    .where(
+      and(
+        eq(capitalCommitments.id, id),
+        eq(capitalCommitments.organizationId, organizationId),
+      ),
+    )
     .limit(1);
+  // Cross-org guard: if the commitment is not in the caller's org the
+  // base row is absent — return null so the page notFound()s.
+  if (!base) return null;
 
   const [wallet] = await db
     .select({ id: investorWallets.id })
     .from(investorWallets)
-    .where(eq(investorWallets.commitmentId, id))
+    .where(
+      and(
+        eq(investorWallets.commitmentId, id),
+        eq(investorWallets.organizationId, organizationId),
+      ),
+    )
     .limit(1);
 
   const drawdownRows = await db
@@ -62,7 +78,12 @@ export async function getCommitment(id: string): Promise<CommitmentDetail | null
       paymentReference: capitalDrawdowns.paymentReference,
     })
     .from(capitalDrawdowns)
-    .where(eq(capitalDrawdowns.commitmentId, id))
+    .where(
+      and(
+        eq(capitalDrawdowns.commitmentId, id),
+        eq(capitalDrawdowns.organizationId, organizationId),
+      ),
+    )
     .orderBy(capitalDrawdowns.drawdownNumber);
 
   const drawdowns: DrawdownListItem[] = drawdownRows.map((d) => ({
@@ -125,6 +146,7 @@ export async function getCommitmentDrawdownProgress(
       overdueDrawdownsCount: 0,
     };
   }
+  const organizationId = await requireOrgId();
   const [row] = await db.execute(sql`
     SELECT
       cc.committed_amount_usd_minor,
@@ -135,6 +157,7 @@ export async function getCommitmentDrawdownProgress(
     FROM capital_commitments cc
     LEFT JOIN capital_drawdowns d ON d.commitment_id = cc.id
     WHERE cc.id = ${id}
+      AND cc.organization_id = ${organizationId}
     GROUP BY cc.committed_amount_usd_minor
   `);
   const r = (row ?? {}) as Record<string, unknown>;

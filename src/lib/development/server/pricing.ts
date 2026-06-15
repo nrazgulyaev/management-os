@@ -1,14 +1,15 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   pricingRules,
   unitPriceSnapshots,
   type NewUnitPriceSnapshot,
   type PricingRule,
 } from "@/lib/db/schema/sales";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { unitDevelopmentMeta } from "@/lib/db/schema/development";
 import type {
   PriceSnapshotRow,
@@ -109,6 +110,7 @@ export async function calculateCurrentPrice(
   const db = getDb();
   if (!db) return null;
   const now = args.asOf ?? new Date();
+  const organizationId = await requireOrgId();
 
   const [villaRow] = await db
     .select({
@@ -118,11 +120,17 @@ export async function calculateCurrentPrice(
       progress: unitDevelopmentMeta.constructionProgressPercent,
     })
     .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .leftJoin(
       unitDevelopmentMeta,
       eq(unitDevelopmentMeta.villaId, villas.id),
     )
-    .where(eq(villas.id, args.villaId))
+    .where(
+      and(
+        eq(villas.id, args.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
 
   if (!villaRow) return null;
@@ -171,6 +179,24 @@ export async function createPriceSnapshot(
   const db = getDb();
   if (!db) {
     throw new Error("Database is not configured.");
+  }
+  // Tenancy guard: the snapshot is keyed to a villa, which anchors its org
+  // via projects. Reject writing a price/money record against a villa that
+  // belongs to another tenant.
+  const organizationId = await requireOrgId();
+  const [villaRow] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, input.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villaRow) {
+    throw new Error("Villa not found in your organization.");
   }
   const insertVal: NewUnitPriceSnapshot = {
     villaId: input.villaId,

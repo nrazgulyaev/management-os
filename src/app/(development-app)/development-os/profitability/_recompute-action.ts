@@ -1,6 +1,7 @@
 "use server";
 
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { recordAuditEvent } from "@/features/audit/services";
 import { recomputeAllProfitability } from "@/lib/development/server/profitability/profitability-aggregation";
 
@@ -17,8 +18,13 @@ export async function recomputeProfitabilityAction(): Promise<{
   allocationsWritten: number;
 }> {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
 
-  const run = await recomputeAllProfitability(undefined, ctx.appUser?.id ?? null);
+  const run = await recomputeAllProfitability(
+    undefined,
+    ctx.appUser?.id ?? null,
+    organizationId,
+  );
 
   await recordAuditEvent({
     action: "profitability.recompute",

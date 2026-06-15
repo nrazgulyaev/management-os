@@ -69,7 +69,10 @@ export async function declareDistribution(
   // Compute allocations OUTSIDE the transaction (pure read of a snapshot
   // that's stable on the order of ms — re-reading inside the tx would
   // require holding row locks which postgres-js doesn't expose cleanly).
-  const snapshots = await _internals.loadCommitmentSnapshots(parsed.projectId);
+  const snapshots = await _internals.loadCommitmentSnapshots(
+    parsed.projectId,
+    organizationId,
+  );
   if (snapshots.length === 0) {
     throw new Error(
       "No active commitments found for this project — cannot allocate distribution",

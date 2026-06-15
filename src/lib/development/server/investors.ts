@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { investors } from "@/lib/db/schema/investor-capital";
 import type {
   InvestorListItem,
@@ -41,7 +42,10 @@ export async function getInvestors(
   const db = getDb();
   if (!db) return [];
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  const organizationId = await requireOrgId();
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`i.organization_id = ${organizationId}`,
+  ];
   if (filters.status) conditions.push(sql`i.status = ${filters.status}`);
   if (filters.type) conditions.push(sql`i.investor_type = ${filters.type}`);
   if (filters.projectId)
@@ -126,6 +130,10 @@ export async function getInvestor(idOrCode: string): Promise<InvestorDetail | nu
   const db = getDb();
   if (!db) return null;
 
+  // getInvestors() is org-scoped (requireOrgId), so the resolved investor is
+  // already guaranteed to belong to the caller's org — a cross-org id/code
+  // simply won't be found and returns null (page notFound()s).
+  const organizationId = await requireOrgId();
   const list = await getInvestors();
   const investor = list.find(
     (i) => i.id === idOrCode || i.investorCode === idOrCode,
@@ -135,10 +143,15 @@ export async function getInvestor(idOrCode: string): Promise<InvestorDetail | nu
   const [base] = await db
     .select({ contactId: investors.contactId, notes: investors.notes })
     .from(investors)
-    .where(eq(investors.id, investor.id))
+    .where(
+      and(
+        eq(investors.id, investor.id),
+        eq(investors.organizationId, organizationId),
+      ),
+    )
     .limit(1);
 
-  const commitments = await getCommitmentsByInvestor(investor.id);
+  const commitments = await getCommitmentsByInvestor(investor.id, organizationId);
 
   return {
     ...investor,
@@ -167,6 +180,8 @@ export async function getInvestorMetrics(): Promise<InvestorMetrics> {
     };
   }
 
+  const organizationId = await requireOrgId();
+
   const [row] = await db.execute(sql`
     SELECT
       count(*)::int AS total_investors,
@@ -178,6 +193,7 @@ export async function getInvestorMetrics(): Promise<InvestorMetrics> {
       count(*) FILTER (WHERE status='inactive')::int AS status_inactive,
       count(*) FILTER (WHERE status='exited')::int AS status_exited
     FROM investors
+    WHERE organization_id = ${organizationId}
   `);
 
   const [aggRow] = await db.execute(sql`
@@ -189,6 +205,7 @@ export async function getInvestorMetrics(): Promise<InvestorMetrics> {
       coalesce(sum(w.available_balance_usd_minor), 0)::bigint AS total_wallet_available
     FROM capital_commitments c
     LEFT JOIN investor_wallets w ON w.commitment_id = c.id
+    WHERE c.organization_id = ${organizationId}
   `);
 
   const r = (row ?? {}) as Record<string, unknown>;
@@ -221,10 +238,11 @@ export async function getInvestorMetrics(): Promise<InvestorMetrics> {
 
 async function getCommitmentsByInvestor(
   investorId: string,
+  organizationId?: string,
 ): Promise<CommitmentListItem[]> {
   const db = getDb();
   if (!db) return [];
-  return getCommitmentsRaw({ investorId });
+  return getCommitmentsRaw({ investorId }, organizationId);
 }
 
 export interface CommitmentFilters {
@@ -241,11 +259,15 @@ export async function getCommitments(
 
 async function getCommitmentsRaw(
   filters: CommitmentFilters,
+  organizationId?: string,
 ): Promise<CommitmentListItem[]> {
   const db = getDb();
   if (!db) return [];
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  const orgId = organizationId ?? (await requireOrgId());
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`cc.organization_id = ${orgId}`,
+  ];
   if (filters.investorId)
     conditions.push(sql`cc.investor_id = ${filters.investorId}`);
   if (filters.projectId) conditions.push(sql`cc.project_id = ${filters.projectId}`);

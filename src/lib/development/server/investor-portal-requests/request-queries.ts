@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { investorPortalRequests } from "@/lib/db/schema/investor-portal-requests";
 
 export async function listInvestorPortalRequests(filters?: {
@@ -10,7 +11,10 @@ export async function listInvestorPortalRequests(filters?: {
   requestType?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(investorPortalRequests.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.investorId) {
     conditions.push(eq(investorPortalRequests.investorId, filters.investorId));
   }
@@ -25,26 +29,38 @@ export async function listInvestorPortalRequests(filters?: {
   return db
     .select()
     .from(investorPortalRequests)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(investorPortalRequests.submittedAt));
 }
 
 export async function getInvestorPortalRequestByCode(requestCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(investorPortalRequests)
-    .where(eq(investorPortalRequests.requestCode, requestCode))
+    .where(
+      and(
+        eq(investorPortalRequests.requestCode, requestCode),
+        eq(investorPortalRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
 
 export async function getInvestorPortalRequest(id: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(investorPortalRequests)
-    .where(eq(investorPortalRequests.id, id))
+    .where(
+      and(
+        eq(investorPortalRequests.id, id),
+        eq(investorPortalRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

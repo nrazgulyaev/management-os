@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, isNull, lt } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { contacts } from "@/lib/db/schema/contacts";
 import { projects, villas } from "@/lib/db/schema/projects";
 import {
@@ -79,7 +80,8 @@ export async function getReservations(
   const db = getDb();
   if (!db) return [];
 
-  const conditions = [];
+  const organizationId = await requireOrgId();
+  const conditions = [eq(projects.organizationId, organizationId)];
   if (filters.projectId)
     conditions.push(eq(reservations.projectId, filters.projectId));
   if (filters.status) conditions.push(eq(reservations.status, filters.status));
