@@ -5,6 +5,9 @@ import {
   getRatePlanById,
   listSeasonsForPlan,
 } from "@/features/pricing/services";
+import { listVillas } from "@/features/villas/services";
+import { listProjects } from "@/features/projects/services";
+import { RatePlanEditButton } from "@/components/pricing/rate-plan-edit-button";
 
 export const metadata = { title: "Rate plan" };
 export const dynamic = "force-dynamic";
@@ -21,7 +24,11 @@ export default async function RatePlanDetailPage({
   const { id } = await params;
   const plan = await getRatePlanById(id);
   if (!plan) notFound();
-  const seasons = await listSeasonsForPlan(id);
+  const [seasons, villas, projects] = await Promise.all([
+    listSeasonsForPlan(id),
+    listVillas(),
+    listProjects(),
+  ]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -38,6 +45,23 @@ export default async function RatePlanDetailPage({
           </p>
         </div>
         <div className="actions">
+          <RatePlanEditButton
+            plan={{
+              id: plan.id,
+              name: plan.name,
+              projectId: plan.projectId,
+              villaId: plan.villaId,
+              baseCurrency: plan.baseCurrency,
+              baseNightlyRateMinor: plan.baseNightlyRateMinor,
+              managementFeePercent: plan.managementFeePercent,
+              status: plan.status,
+            }}
+            villas={villas.map((v) => ({
+              id: v.id,
+              label: `${v.unitCode} · ${v.projectName}`,
+            }))}
+            projects={projects.map((p) => ({ id: p.id, label: p.name }))}
+          />
           <Link
             href={`/dashboard/bookings/rates/${id}/seasons`}
             className="btn btn-secondary btn-sm"

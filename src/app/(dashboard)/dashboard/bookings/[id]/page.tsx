@@ -32,6 +32,8 @@ import {
   type BookingMetaRow,
 } from "@/features/bookings/booking-detail-queries";
 import { listDocuments, type DocumentRow } from "@/features/documents/services";
+import { listVillas } from "@/features/villas/services";
+import { MoveToVillaControl } from "@/components/bookings/move-to-villa-control";
 import {
   listBookingAutomationRuns,
   type AutomationRunRow,
@@ -576,6 +578,14 @@ export default async function BookingDetailPage({
     ] as const, 4);
   const docs = docsRaw.filter((d) => d.status !== "archived");
 
+  // Org-scoped villa list (same source as the edit form) for the safe
+  // "Move to villa" control in the rail. listVillas() filters by org.
+  const villaOptions = await listVillas()
+    .then((rows) =>
+      rows.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName}` })),
+    )
+    .catch(() => [] as { id: string; label: string }[]);
+
   const m = makeMoney(b.currency);
   const pax = (b.adults ?? 0) + (b.children ?? 0);
   const hasPax = b.adults !== null || b.children !== null;
@@ -604,6 +614,30 @@ export default async function BookingDetailPage({
 
   /* -------- side rail -------- */
   const sideCards: SideCard[] = [
+    {
+      id: "villa",
+      eyebrow: "Villa",
+      title: b.villaName ?? b.villaCode ?? "Villa",
+      body: (
+        <div className="flex flex-col gap-1">
+          <span className="text-ink-secondary">
+            {b.villaCode ?? "—"}
+            {b.projectName ? ` · ${b.projectName}` : ""}
+          </span>
+          <span className="text-[11px] text-ink-tertiary">
+            Recommended way to change villa — checks availability before moving.
+          </span>
+        </div>
+      ),
+      footer:
+        villaOptions.length > 0 ? (
+          <MoveToVillaControl
+            bookingId={b.id}
+            currentVillaId={b.villaId}
+            villas={villaOptions}
+          />
+        ) : null,
+    },
     {
       id: "guest",
       eyebrow: "Primary guest",

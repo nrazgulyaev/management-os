@@ -343,3 +343,49 @@ export async function regenerateStatement(
     return { ok: false, error: (e as Error).message };
   }
 }
+
+// -----------------------------------------------------------------------------
+// FormData-shaped UI wrappers
+// -----------------------------------------------------------------------------
+// `regenerateStatement` / `requestStatementChanges` take positional args and
+// are called by other server modules. The statement detail page needs plain
+// FormData-shaped `(prev, formData)` actions for its inline <form>s, so these
+// thin wrappers re-load the statement org-scoped (TENANT-1) and call through.
+// They add no new authority — `loadStatementForOrg` returns null for a foreign
+// id, and the underlying functions enforce org scope again.
+
+export async function regenerateStatementAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const statementId = String(formData.get("statementId") ?? "");
+  if (!statementId) return { ok: false, error: "Missing statement id" };
+  const statement = await loadStatementForOrg(statementId);
+  if (!statement) return { ok: false, error: "Statement not found" };
+  // Guard: only a not-yet-approved draft may be regenerated, so approved/sent
+  // statements are never clobbered.
+  if (statement.status !== "draft" && statement.status !== "draft_revised") {
+    return {
+      ok: false,
+      error: `Cannot regenerate a statement in '${statement.status}' state`,
+    };
+  }
+  if (!statement.ownerId || !statement.villaId || !statement.periodMonth) {
+    return {
+      ok: false,
+      error: "Statement is missing owner / villa / period — cannot regenerate",
+    };
+  }
+  return regenerateStatement(statement.ownerId, statement.villaId, statement.periodMonth);
+}
+
+export async function requestStatementChangesAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const statementId = String(formData.get("statementId") ?? "");
+  const notes = String(formData.get("notes") ?? "").trim();
+  if (!statementId) return { ok: false, error: "Missing statement id" };
+  if (!notes) return { ok: false, error: "Please describe the changes needed." };
+  return requestStatementChanges(statementId, notes);
+}

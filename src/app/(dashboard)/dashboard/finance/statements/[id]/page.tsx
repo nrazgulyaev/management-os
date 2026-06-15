@@ -8,6 +8,7 @@ import {
   listStatementLines,
 } from "@/features/finance/services";
 import { StatementDetail } from "@/components/finance/statement-detail";
+import { StatementWorkflowButtons } from "@/components/finance/statement-workflow-buttons";
 import { setStatementStatusAction } from "@/features/finance/actions";
 import { resolveDisputeAndReissue } from "@/features/finance/statement-actions";
 import {
@@ -194,6 +195,7 @@ export default async function StatementDetailPage({
                 </Button>
               </form>
             )}
+            <StatementWorkflowButtons statementId={id} status={statement.status} />
           </div>
         }
       />

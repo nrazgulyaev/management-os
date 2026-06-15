@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listGuestServiceRatings } from "@/features/service-fulfilment/services";
-import { HideRatingButton } from "@/components/service-fulfilment/buttons";
+import {
+  FlagRatingButton,
+  HideRatingButton,
+} from "@/components/service-fulfilment/buttons";
 
 export const metadata = { title: "Guest service ratings" };
 export const dynamic = "force-dynamic";
@@ -69,7 +72,16 @@ export default async function RatingsPage() {
                     </HandoffBadge>
                   </td>
                   <td className="px-4 py-3">
-                    {r.status === "published" && <HideRatingButton id={r.id} />}
+                    {r.status !== "hidden" && (
+                      <div className="flex items-center gap-3">
+                        {r.status === "published" && (
+                          <HideRatingButton id={r.id} />
+                        )}
+                        {r.status !== "flagged" && (
+                          <FlagRatingButton id={r.id} />
+                        )}
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -1,6 +1,20 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ModalFirstAddButton } from "@/components/ui/primitives/modal-first-add-button";
+import {
+  AssignVendorForm,
+  type VendorOption,
+} from "@/components/service-fulfilment/assign-vendor-form";
+import {
+  AssignStaffForm,
+  type StaffOption,
+} from "@/components/service-fulfilment/assign-staff-form";
+import {
+  AttachVendorServiceForm,
+  type AttachServiceOption,
+} from "@/components/service-fulfilment/attach-vendor-service-form";
 import {
   approveVendorInvoiceAction,
   archiveServiceVendorAction,
@@ -10,10 +24,12 @@ import {
   completeFulfilmentAction,
   createFulfilmentForOrderAction,
   failFulfilmentAction,
+  flagGuestServiceRatingAction,
   hideGuestServiceRatingAction,
   issueVendorTokenAction,
   markVendorInvoicePaidAction,
   pauseServiceVendorAction,
+  pauseVendorServiceAction,
   rejectVendorInvoiceAction,
   requestGuestConfirmationAction,
   reverseFulfilmentFinanceBridgeAction,
@@ -22,6 +38,7 @@ import {
   updateFulfilmentEtaAction,
   updateFulfilmentScheduleAction,
 } from "@/features/service-fulfilment/actions";
+import type { ActionResult } from "@/features/projects/actions";
 
 export function CreateFulfilmentForOrderButton({ orderId }: { orderId: string }) {
   const [state, dispatch] = useActionState(
@@ -333,6 +350,139 @@ export function HideRatingButton({ id }: { id: string }) {
       >
         Hide
       </button>
+    </form>
+  );
+}
+
+export function FlagRatingButton({ id }: { id: string }) {
+  const [state, dispatch] = useActionState<ActionResult | null, FormData>(
+    flagGuestServiceRatingAction,
+    null,
+  );
+  const router = useRouter();
+  useEffect(() => {
+    if (state?.ok) router.refresh();
+  }, [state, router]);
+  return (
+    <form action={dispatch} className="inline-flex items-center gap-2">
+      <input type="hidden" name="id" value={id} />
+      <input
+        name="reason"
+        placeholder="reason"
+        className="h-8 px-2 rounded-md border border-line-soft bg-canvas text-xs"
+      />
+      <button
+        type="submit"
+        className="text-[11px] text-ink-tertiary hover:text-warn underline-offset-4 hover:underline"
+      >
+        Flag
+      </button>
+      {state && !state.ok && (
+        <span className="text-[10px] text-danger ml-1">{state.error}</span>
+      )}
+    </form>
+  );
+}
+
+/** Modal-first trigger to assign a vendor to a fulfilment. */
+export function AssignVendorButton({
+  fulfilmentId,
+  vendors,
+}: {
+  fulfilmentId: string;
+  vendors: VendorOption[];
+}) {
+  return (
+    <ModalFirstAddButton
+      label="Assign vendor"
+      modalTitle="Assign vendor"
+      modalDescription="Dispatch this fulfilment to an external vendor."
+      formComponent={AssignVendorForm}
+      formProps={{ fulfilmentId, vendors }}
+      variant="secondary"
+      size="lg"
+      hideIcon
+      testId="assign-vendor-trigger"
+    />
+  );
+}
+
+/** Modal-first trigger to assign internal staff to a fulfilment. */
+export function AssignStaffButton({
+  fulfilmentId,
+  staff,
+}: {
+  fulfilmentId: string;
+  staff: StaffOption[];
+}) {
+  return (
+    <ModalFirstAddButton
+      label="Assign staff"
+      modalTitle="Assign staff"
+      modalDescription="Assign an internal team member to handle this fulfilment."
+      formComponent={AssignStaffForm}
+      formProps={{ fulfilmentId, staff }}
+      variant="secondary"
+      size="md"
+      hideIcon
+      testId="assign-staff-trigger"
+    />
+  );
+}
+
+/** Modal-first trigger to map a guest service into a vendor's catalogue. */
+export function AttachVendorServiceButton({
+  vendorId,
+  services,
+  defaultCurrency,
+}: {
+  vendorId: string;
+  services: AttachServiceOption[];
+  defaultCurrency?: string;
+}) {
+  return (
+    <ModalFirstAddButton
+      label="Map service"
+      modalTitle="Map service to vendor"
+      modalDescription="Add a guest service to this vendor's catalogue with cost + lead-time."
+      formComponent={AttachVendorServiceForm}
+      formProps={{ vendorId, services, defaultCurrency }}
+      variant="secondary"
+      size="lg"
+      testId="attach-vendor-service-trigger"
+    />
+  );
+}
+
+/** Inline pause control for an active vendor↔service catalogue mapping. */
+export function PauseVendorServiceButton({
+  vendorId,
+  serviceId,
+}: {
+  vendorId: string;
+  serviceId: string;
+}) {
+  const [state, dispatch] = useActionState<ActionResult | null, FormData>(
+    pauseVendorServiceAction,
+    null,
+  );
+  const router = useRouter();
+  useEffect(() => {
+    if (state?.ok) router.refresh();
+  }, [state, router]);
+  return (
+    <form action={dispatch} className="inline-flex">
+      <input type="hidden" name="vendorId" value={vendorId} />
+      <input type="hidden" name="serviceId" value={serviceId} />
+      <button
+        type="submit"
+        className="text-[11px] text-ink-tertiary hover:text-warn underline-offset-4 hover:underline"
+      >
+        Pause
+      </button>
+      {state && !state.ok && (
+        <span className="text-[10px] text-danger ml-1">{state.error}</span>
+      )}
     </form>
   );
 }

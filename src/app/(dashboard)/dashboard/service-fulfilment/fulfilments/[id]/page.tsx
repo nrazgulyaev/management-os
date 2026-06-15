@@ -1,7 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
-import { getGuestServiceFulfilmentById } from "@/features/service-fulfilment/services";
+import {
+  getGuestServiceFulfilmentById,
+  listServiceVendors,
+} from "@/features/service-fulfilment/services";
+import { listAppUsers } from "@/features/auth/users-service";
 import { requireOrgId } from "@/features/auth/require-org";
 import {
   formatFulfilmentAmountForAdmin,
@@ -12,6 +16,8 @@ import {
   type FulfilmentStatus,
 } from "@/features/service-fulfilment/status-pure";
 import {
+  AssignStaffButton,
+  AssignVendorButton,
   BridgeFulfilmentButton,
   CancelFulfilmentButton,
   CompleteFulfilmentInline,
@@ -38,6 +44,33 @@ export default async function FulfilmentDetailPage({
     detail;
   const guest = guestFacingFulfilmentStatus(f.status as FulfilmentStatus);
   const vendorView = vendorFacingFulfilmentStatus(f.status as FulfilmentStatus);
+
+  // Pre-vendor statuses: a vendor has not yet been dispatched / confirmed, so
+  // the dispatcher can still (re)assign one. The action re-flips the row to
+  // awaiting_vendor and re-validates org scope + permission server-side.
+  const preVendor = ["new", "triage", "awaiting_vendor"].includes(f.status);
+  const canAssignStaff =
+    (f.fulfilmentType === "internal" || f.fulfilmentType === "hybrid") &&
+    !["completed", "cancelled", "failed", "no_show"].includes(f.status);
+  const [vendorOptions, staffOptions] = await Promise.all([
+    preVendor
+      ? listServiceVendors({ status: "active", limit: 200 }).then((rows) =>
+          rows.map((v) => ({
+            id: v.id,
+            label: `${v.displayName} · ${v.vendorType}`,
+            defaultCurrency: v.defaultCurrency,
+          })),
+        )
+      : Promise.resolve([]),
+    canAssignStaff
+      ? listAppUsers().then((rows) =>
+          rows.map((u) => ({
+            id: u.id,
+            label: u.fullName ? `${u.fullName} · ${u.email}` : u.email,
+          })),
+        )
+      : Promise.resolve([]),
+  ]);
 
   return (
     <div className="flex flex-col gap-10">
@@ -199,7 +232,16 @@ export default async function FulfilmentDetailPage({
               <div className="text-xs text-ink-tertiary">
                 {vendor?.vendorType ?? "—"} · {vendor?.serviceArea ?? "—"}
               </div>
-              <div className="mt-2 flex flex-col gap-2">
+              <div className="mt-3 flex flex-col items-start gap-2">
+                {preVendor && vendorOptions.length > 0 && (
+                  <AssignVendorButton
+                    fulfilmentId={f.id}
+                    vendors={vendorOptions}
+                  />
+                )}
+                {canAssignStaff && staffOptions.length > 0 && (
+                  <AssignStaffButton fulfilmentId={f.id} staff={staffOptions} />
+                )}
                 <IssueVendorTokenButton fulfilmentId={f.id} />
                 {f.requiresGuestConfirmation && !f.guestConfirmedAt && (
                   <RequestGuestConfirmationButton fulfilmentId={f.id} />

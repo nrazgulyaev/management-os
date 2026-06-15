@@ -1,7 +1,13 @@
 import Link from "next/link";
 import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listCheckinCheckoutRequests } from "@/features/front-office/services";
+import { listBookings } from "@/features/bookings/services";
 import { CheckinCheckoutRequestRowActions } from "@/components/front-office/request-row-actions";
+import { ModalFirstAddButton } from "@/components/ui/primitives/modal-first-add-button";
+import {
+  CheckinCheckoutRequestForm,
+  type CheckinCheckoutRequestBookingOption,
+} from "@/components/front-office/checkin-checkout-request-form";
 
 export const metadata = { title: "Check-in / check-out requests" };
 export const dynamic = "force-dynamic";
@@ -23,10 +29,23 @@ export default async function RequestsPage({
   searchParams: Promise<{ status?: string }>;
 }) {
   const sp = await searchParams;
-  const rows = await listCheckinCheckoutRequests({
-    status: sp.status || undefined,
-    limit: 200,
-  });
+  const [rows, bookings] = await Promise.all([
+    listCheckinCheckoutRequests({
+      status: sp.status || undefined,
+      limit: 200,
+    }),
+    listBookings(),
+  ]);
+
+  // Booking options for the "New request" form — org-scoped via listBookings().
+  // The villaId travels with the selection so the request row joins cleanly.
+  const bookingOptions: CheckinCheckoutRequestBookingOption[] = bookings.map(
+    (b) => ({
+      id: b.id,
+      label: `${b.bookingCode} — ${b.villaCode}`,
+      villaId: b.villaId,
+    }),
+  );
 
   // KPI roll-ups — derived from the rows in view (respects ?status= filter).
   const awaiting = rows.filter(
@@ -43,6 +62,15 @@ export default async function RequestsPage({
             <Link href="/dashboard/front-office">Front office</Link> / <span>Requests</span>
           </div>
           <h1>Check-in / check-out requests</h1>
+        </div>
+        <div className="actions">
+          <ModalFirstAddButton
+            label="New request"
+            modalTitle="New check-in / check-out request"
+            modalDescription="Log an early check-in, late check-out, expected-checkout update, or early-checkout notice."
+            formComponent={CheckinCheckoutRequestForm}
+            formProps={{ bookings: bookingOptions }}
+          />
         </div>
       </div>
 
