@@ -29,6 +29,9 @@ export async function listRecentDrawingRevisions(
   limit = 8,
 ): Promise<RecentDrawingRevision[]> {
   const db = requireDb();
+  // TENANCY — scope the revisions roll-up to the caller's org so one tenant
+  // can't read another tenant's recent drawing revisions.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       revisionId: drawingRevisions.id,
@@ -43,7 +46,12 @@ export async function listRecentDrawingRevisions(
     .from(drawingRevisions)
     .innerJoin(drawings, eq(drawings.id, drawingRevisions.drawingId))
     .leftJoin(projects, eq(projects.id, drawings.projectId))
-    .where(eq(drawings.isArchived, false))
+    .where(
+      and(
+        eq(drawings.isArchived, false),
+        eq(drawingRevisions.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(drawingRevisions.createdAt))
     .limit(limit);
   return rows.map((r) => ({
@@ -66,7 +74,11 @@ export async function listDrawings(filters?: {
   archivedOnly?: boolean;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  // TENANCY — scope the drawings list to the caller's org.
+  const organizationId = await requireOrgId();
+  const conditions = [eq(drawings.organizationId, organizationId)] as Array<
+    ReturnType<typeof eq>
+  >;
   if (filters?.projectId) {
     conditions.push(eq(drawings.projectId, filters.projectId));
   }
@@ -122,6 +134,9 @@ export async function getDrawingRevision(input: {
   revisionLabel: string;
 }) {
   const db = requireDb();
+  // TENANCY — scope the revision + its distribution log to the caller's org so
+  // a forged drawingId can't open another tenant's revision detail.
+  const organizationId = await requireOrgId();
   const [rev] = await db
     .select()
     .from(drawingRevisions)
@@ -129,6 +144,7 @@ export async function getDrawingRevision(input: {
       and(
         eq(drawingRevisions.drawingId, input.drawingId),
         eq(drawingRevisions.revisionLabel, input.revisionLabel),
+        eq(drawingRevisions.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -136,7 +152,12 @@ export async function getDrawingRevision(input: {
   const distribution = await db
     .select()
     .from(drawingDistributionLog)
-    .where(eq(drawingDistributionLog.revisionId, rev.id))
+    .where(
+      and(
+        eq(drawingDistributionLog.revisionId, rev.id),
+        eq(drawingDistributionLog.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(drawingDistributionLog.distributedAt));
   return { revision: rev, distribution };
 }

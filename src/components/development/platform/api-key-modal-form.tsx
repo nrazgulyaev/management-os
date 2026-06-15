@@ -31,13 +31,7 @@ const COMMON_SCOPES = [
   { value: "*", label: "* (all scopes — sparingly)" },
 ] as const;
 
-export function ApiKeyModalForm({
-  organizationId,
-  currentUserId,
-}: {
-  organizationId: string;
-  currentUserId: string;
-}) {
+export function ApiKeyModalForm() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -60,8 +54,6 @@ export function ApiKeyModalForm({
     startTransition(async () => {
       try {
         const result = await createApiKey({
-          organizationId,
-          createdBy: currentUserId,
           keyLabel,
           keyType: keyType as "live" | "test",
           scopes: scopesRaw,

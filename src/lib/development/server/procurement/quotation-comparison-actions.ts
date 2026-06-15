@@ -1,9 +1,10 @@
 "use server";
 
-import { inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   procurementQuotations,
 } from "@/lib/db/schema/procurement";
@@ -52,6 +53,7 @@ export async function createPoFromQuotationComparison(
   input: z.input<typeof inputSchema>,
 ): Promise<AwardSplitResult> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = inputSchema.parse(input);
   const db = requireDb();
 
@@ -76,7 +78,14 @@ export async function createPoFromQuotationComparison(
       status: procurementQuotations.status,
     })
     .from(procurementQuotations)
-    .where(inArray(procurementQuotations.purchaseRequestId, prIds));
+    // SECURITY: scope the pre-load to the caller org so foreign PR ids in the
+    // supplierChoices map cannot reveal other orgs' quotation ids/vendors.
+    .where(
+      and(
+        inArray(procurementQuotations.purchaseRequestId, prIds),
+        eq(procurementQuotations.organizationId, organizationId),
+      ),
+    );
 
   const quotationByPrAndVendor = new Map<string, (typeof quotationRows)[number]>();
   for (const q of quotationRows) {

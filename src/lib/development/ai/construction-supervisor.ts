@@ -186,7 +186,11 @@ export async function analyzeSiteReport(
     vendorRows,
   ] = await Promise.all([
     db
-      .select({ name: projects.name, slug: projects.slug })
+      .select({
+        name: projects.name,
+        slug: projects.slug,
+        organizationId: projects.organizationId,
+      })
       .from(projects)
       .where(eq(projects.id, report.projectId))
       .limit(1),
@@ -318,6 +322,11 @@ export async function analyzeSiteReport(
     .insert(aiConstructionAnalyses)
     .values({
       siteReportId: reportId,
+      // TENANCY: stamp org from the report's project so the new row is
+      // owned by the right tenant (cron-safe — derived from the report,
+      // not requireOrgId). Leaves null only if the project somehow has
+      // no org (shouldn't happen — projects.organization_id is NOT NULL).
+      organizationId: projectRow?.organizationId ?? null,
       draftSummary: parsed.draft_summary,
       draftSummaryTranslations:
         parsed.draft_summary_translations as typeof aiConstructionAnalyses.$inferInsert["draftSummaryTranslations"],

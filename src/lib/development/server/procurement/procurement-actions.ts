@@ -720,10 +720,16 @@ export async function generatePurchaseRequestsFromBoqAction(
     .innerJoin(boqSections, eq(boqSections.id, boqItems.sectionId))
     .innerJoin(boqDocuments, eq(boqDocuments.id, boqSections.boqDocumentId))
     .where(
-      sql`${boqItems.id} IN (${sql.join(
-        parsed.data.boqItemIds.map((id) => sql`${id}`),
-        sql`, `,
-      )})`,
+      and(
+        // SECURITY: scope BOQ items to the caller org so a foreign boqItemId
+        // cannot be copied into a new PR stamped with the caller's org.
+        eq(boqItems.organizationId, organizationId),
+        eq(boqDocuments.organizationId, organizationId),
+        sql`${boqItems.id} IN (${sql.join(
+          parsed.data.boqItemIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      ),
     );
 
   if (rows.length === 0) {

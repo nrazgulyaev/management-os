@@ -1,21 +1,21 @@
 "use server";
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { apiKeys } from "@/lib/db/schema/saas";
+import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { generateApiKey } from "./api-key-helpers";
 
 const createSchema = z.object({
-  organizationId: z.string().uuid(),
   keyLabel: z.string().min(2).max(120),
   keyType: z.enum(["live", "test"]).default("live"),
   scopes: z.array(z.string()).default([]),
   rateLimitPerMinute: z.number().int().nonnegative().default(60),
   rateLimitPerHour: z.number().int().nonnegative().default(1000),
   rateLimitPerDay: z.number().int().nonnegative().default(10000),
-  createdBy: z.string().uuid(),
   expiresAt: z.date().optional(),
 });
 
@@ -25,6 +25,11 @@ const createSchema = z.object({
  * gets persisted; the prefix + last4 are stored for UI display.
  */
 export async function createApiKey(input: z.input<typeof createSchema>) {
+  const ctx = await requireInternalUser();
+  if (!ctx.appUser) {
+    return { ok: false as const, error: "Authenticated user required" };
+  }
+  const organizationId = await requireOrgId();
   const parsed = createSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
@@ -36,7 +41,7 @@ export async function createApiKey(input: z.input<typeof createSchema>) {
   const inserted = await db
     .insert(apiKeys)
     .values({
-      organizationId: parsed.data.organizationId,
+      organizationId,
       keyLabel: parsed.data.keyLabel,
       keyType: parsed.data.keyType,
       keyPrefix: parts.prefix,
@@ -46,7 +51,7 @@ export async function createApiKey(input: z.input<typeof createSchema>) {
       rateLimitPerMinute: parsed.data.rateLimitPerMinute,
       rateLimitPerHour: parsed.data.rateLimitPerHour,
       rateLimitPerDay: parsed.data.rateLimitPerDay,
-      createdBy: parsed.data.createdBy,
+      createdBy: ctx.appUser.id,
       expiresAt: parsed.data.expiresAt ?? null,
     })
     .returning({ id: apiKeys.id });
@@ -60,20 +65,28 @@ export async function createApiKey(input: z.input<typeof createSchema>) {
 
 export async function revokeApiKey(args: {
   keyId: string;
-  revokedBy: string;
+  revokedBy?: string;
   reason?: string;
 }) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
-  await db
+  const updated = await db
     .update(apiKeys)
     .set({
       isActive: false,
       revokedAt: new Date(),
-      revokedBy: args.revokedBy,
+      revokedBy: ctx.appUser?.id ?? null,
       revocationReason: args.reason ?? null,
     })
-    .where(eq(apiKeys.id, args.keyId));
+    .where(
+      and(eq(apiKeys.id, args.keyId), eq(apiKeys.organizationId, organizationId)),
+    )
+    .returning({ id: apiKeys.id });
+  if (updated.length === 0) {
+    return { ok: false as const, error: "API key not found" };
+  }
   return { ok: true as const };
 }
 
@@ -87,22 +100,32 @@ export async function revokeApiKey(args: {
  */
 const rotateSchema = z.object({
   keyId: z.string().uuid(),
-  rotatedBy: z.string().uuid(),
   reason: z.string().max(200).optional(),
 });
 
 export async function rotateApiKey(input: z.input<typeof rotateSchema>) {
+  const ctx = await requireInternalUser();
+  if (!ctx.appUser) {
+    return { ok: false as const, error: "Authenticated user required" };
+  }
+  const organizationId = await requireOrgId();
   const parsed = rotateSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false as const, error: parsed.error.issues[0]?.message };
   }
   const db = getDb();
   if (!db) return { ok: false as const, error: "DB not configured" };
+  const rotatedBy = ctx.appUser.id;
 
   const [existing] = await db
     .select()
     .from(apiKeys)
-    .where(eq(apiKeys.id, parsed.data.keyId))
+    .where(
+      and(
+        eq(apiKeys.id, parsed.data.keyId),
+        eq(apiKeys.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!existing) {
     return { ok: false as const, error: "API key not found" };
@@ -124,17 +147,22 @@ export async function rotateApiKey(input: z.input<typeof rotateSchema>) {
       .set({
         isActive: false,
         revokedAt: new Date(),
-        revokedBy: parsed.data.rotatedBy,
+        revokedBy: rotatedBy,
         revocationReason:
           parsed.data.reason && parsed.data.reason !== ""
             ? `[rotation] ${parsed.data.reason}`
             : "[rotation] superseded",
       })
-      .where(eq(apiKeys.id, parsed.data.keyId));
+      .where(
+        and(
+          eq(apiKeys.id, parsed.data.keyId),
+          eq(apiKeys.organizationId, organizationId),
+        ),
+      );
     return await tx
       .insert(apiKeys)
       .values({
-        organizationId: existing.organizationId,
+        organizationId,
         keyLabel: existing.keyLabel,
         keyType: existing.keyType,
         keyPrefix: parts.prefix,
@@ -144,7 +172,7 @@ export async function rotateApiKey(input: z.input<typeof rotateSchema>) {
         rateLimitPerMinute: existing.rateLimitPerMinute,
         rateLimitPerHour: existing.rateLimitPerHour,
         rateLimitPerDay: existing.rateLimitPerDay,
-        createdBy: parsed.data.rotatedBy,
+        createdBy: rotatedBy,
         expiresAt: existing.expiresAt,
         notes: existing.notes
           ? `${existing.notes}\n[rotated from ${existing.id}]`

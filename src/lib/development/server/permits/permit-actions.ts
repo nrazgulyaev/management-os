@@ -9,6 +9,7 @@ import {
   projectPermitDocuments,
 } from "@/lib/db/schema/permits";
 import { projects } from "@/lib/db/schema/projects";
+import { documents } from "@/lib/db/schema/documents";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 
@@ -104,6 +105,7 @@ export async function transitionPermitStatus(
 ): Promise<{ ok: true }> {
   const parsed = transitionSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(projectPermits)
@@ -114,7 +116,12 @@ export async function transitionPermitStatus(
       rejectionReason: parsed.rejectionReason ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(projectPermits.id, parsed.permitId));
+    .where(
+      and(
+        eq(projectPermits.id, parsed.permitId),
+        eq(projectPermits.organizationId, organizationId),
+      ),
+    );
   return { ok: true };
 }
 
@@ -129,7 +136,36 @@ export async function attachPermitDocument(
 ): Promise<{ ok: true }> {
   const parsed = attachDocSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
+
+  // TENANCY — the join table has no org column, so isolation is enforced on
+  // BOTH foreign keys: the permit and the document must each belong to the
+  // caller's org before linking them.
+  const [permit] = await db
+    .select({ id: projectPermits.id })
+    .from(projectPermits)
+    .where(
+      and(
+        eq(projectPermits.id, parsed.permitId),
+        eq(projectPermits.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!permit) throw new Error("Permit not found");
+
+  const [doc] = await db
+    .select({ id: documents.id })
+    .from(documents)
+    .where(
+      and(
+        eq(documents.id, parsed.documentId),
+        eq(documents.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!doc) throw new Error("Document not found");
+
   await db
     .insert(projectPermitDocuments)
     .values({
@@ -163,12 +199,17 @@ export async function listPermitsByProject(projectId: string) {
 
 export async function listExpiringPermits(daysAhead: number) {
   const db = requireDb();
+  // TENANCY — scope to the caller's org so it cannot list every org's
+  // expiring permits. No cron/job caller exists today; all callers are tenant
+  // request paths, so a hard requireOrgId() is correct.
+  const organizationId = await requireOrgId();
   const cutoff = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
   return await db
     .select()
     .from(projectPermits)
     .where(
       and(
+        eq(projectPermits.organizationId, organizationId),
         sql`${projectPermits.expiresAt} IS NOT NULL`,
         lte(projectPermits.expiresAt, cutoff.toISOString().slice(0, 10)),
         sql`${projectPermits.status} NOT IN ('rejected','cancelled','expired')`,

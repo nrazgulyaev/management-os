@@ -35,7 +35,6 @@ export function WhatsappCredentialForm({
     setSuccess(null);
     startTransition(async () => {
       const result = await saveWhatsappCredentialsAction({
-        organizationId,
         twilioAccountSid: (formData.get("twilioAccountSid") ?? "").toString().trim(),
         twilioAuthToken: (formData.get("twilioAuthToken") ?? "").toString().trim(),
         whatsappFromNumber: (formData.get("whatsappFromNumber") ?? "").toString().trim(),
@@ -59,7 +58,6 @@ export function WhatsappCredentialForm({
     setSuccess(null);
     startTransition(async () => {
       const result = await sendWhatsappTestMessageAction({
-        organizationId,
         toPhoneNumber: (formData.get("toPhoneNumber") ?? "").toString().trim(),
         message: (formData.get("message") ?? "").toString().trim(),
       });
@@ -79,9 +77,7 @@ export function WhatsappCredentialForm({
     setError(null);
     setSuccess(null);
     startTransition(async () => {
-      const result = await disconnectWhatsappCredentialsAction({
-        organizationId,
-      });
+      const result = await disconnectWhatsappCredentialsAction();
       if (!result.ok) {
         setError(result.error);
         return;

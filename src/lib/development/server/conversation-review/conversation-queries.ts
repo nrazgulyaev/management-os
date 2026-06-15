@@ -40,13 +40,17 @@ export async function getThreadByCode(code: string) {
 export async function listManagerPerformance(opts: { managerId?: string; limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
-  const q = db
+  const organizationId = await requireOrgId();
+  const where = opts.managerId
+    ? and(
+        eq(managerPerformanceMetrics.organizationId, organizationId),
+        eq(managerPerformanceMetrics.managerId, opts.managerId),
+      )
+    : eq(managerPerformanceMetrics.organizationId, organizationId);
+  return db
     .select()
     .from(managerPerformanceMetrics)
+    .where(where)
     .orderBy(desc(managerPerformanceMetrics.periodStart))
     .limit(opts.limit ?? 100);
-  if (opts.managerId) {
-    return q.where(eq(managerPerformanceMetrics.managerId, opts.managerId));
-  }
-  return q;
 }

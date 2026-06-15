@@ -292,6 +292,9 @@ export async function listThreadMessages(input: {
   id: string;
 }): Promise<CoordinationThreadMessage[]> {
   const db = requireDb();
+  // TENANCY: scope by caller org so a foreign rfi/submittal/defect id returns
+  // no thread (coordination_messages.organization_id is NOT NULL).
+  const organizationId = await requireOrgId();
   const col =
     input.kind === "rfi"
       ? coordinationMessages.rfiId
@@ -306,7 +309,12 @@ export async function listThreadMessages(input: {
       createdAt: coordinationMessages.createdAt,
     })
     .from(coordinationMessages)
-    .where(eq(col, input.id))
+    .where(
+      and(
+        eq(col, input.id),
+        eq(coordinationMessages.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(coordinationMessages.createdAt));
   return rows;
 }
@@ -318,6 +326,8 @@ export async function pinExistsForRevision(input: {
 }): Promise<Set<string>> {
   if (input.ids.length === 0) return new Set();
   const db = requireDb();
+  // TENANCY: scope by caller org (coordination_pins.organization_id NOT NULL).
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({ id: coordinationPins.id })
     .from(coordinationPins)
@@ -325,6 +335,7 @@ export async function pinExistsForRevision(input: {
       and(
         eq(coordinationPins.revisionId, input.revisionId),
         inArray(coordinationPins.id, input.ids),
+        eq(coordinationPins.organizationId, organizationId),
       ),
     );
   return new Set(rows.map((r) => r.id));

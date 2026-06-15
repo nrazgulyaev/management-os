@@ -220,11 +220,17 @@ export async function validateBulkImportJob(input: {
   jobId: string;
 }): Promise<ValidateBulkImportJobResult> {
   await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const jobs = await db
     .select()
     .from(bulkImportJobs)
-    .where(eq(bulkImportJobs.id, input.jobId))
+    .where(
+      and(
+        eq(bulkImportJobs.id, input.jobId),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    )
     .limit(1);
   const job = jobs[0];
   if (!job) return { ok: false, jobId: input.jobId, error: "Job not found" };
@@ -232,7 +238,12 @@ export async function validateBulkImportJob(input: {
   await db
     .update(bulkImportJobs)
     .set({ status: "validating", updatedAt: new Date() })
-    .where(eq(bulkImportJobs.id, job.id));
+    .where(
+      and(
+        eq(bulkImportJobs.id, job.id),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    );
 
   if (!job.sourceContent) {
     await db
@@ -242,7 +253,12 @@ export async function validateBulkImportJob(input: {
         errorLog: [{ row: -1, message: "No source_content stored on job row" }] as never,
         updatedAt: new Date(),
       })
-      .where(eq(bulkImportJobs.id, job.id));
+      .where(
+        and(
+          eq(bulkImportJobs.id, job.id),
+          eq(bulkImportJobs.organizationId, orgId),
+        ),
+      );
     return {
       ok: false,
       jobId: job.id,
@@ -260,7 +276,12 @@ export async function validateBulkImportJob(input: {
         errorLog: parsedSource.parseErrors as never,
         updatedAt: new Date(),
       })
-      .where(eq(bulkImportJobs.id, job.id));
+      .where(
+        and(
+          eq(bulkImportJobs.id, job.id),
+          eq(bulkImportJobs.organizationId, orgId),
+        ),
+      );
     return {
       ok: false,
       jobId: job.id,
@@ -296,7 +317,12 @@ export async function validateBulkImportJob(input: {
       validatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(bulkImportJobs.id, job.id));
+    .where(
+      and(
+        eq(bulkImportJobs.id, job.id),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    );
 
   return {
     ok: true,
@@ -337,14 +363,37 @@ const PROCESS_BATCH_SIZE = 1000;
  * `created_entity_ids`. Status transitions to `completed` only if zero
  * rows failed; otherwise `failed` once all batches are processed.
  */
-export async function processBulkImportJob(input: {
-  jobId: string;
-}): Promise<ProcessBulkImportJobResult> {
+export async function processBulkImportJob(
+  input: {
+    jobId: string;
+  },
+  /**
+   * Cron caveat: the bulk-import processor cron (cron/bulk-import-processor-job.ts)
+   * runs across ALL orgs and passes each due job's own organization_id here as a
+   * TRUSTED server-side value. Request/UI callers (the wizard) omit this; we then
+   * gate on requireInternalUser() and derive the org from the caller's session.
+   */
+  organizationId: string | null = null,
+): Promise<ProcessBulkImportJobResult> {
+  let orgId: string;
+  if (organizationId !== null) {
+    // Trusted cron path: org supplied by the background job for its own job row.
+    orgId = organizationId;
+  } else {
+    // Request/UI path: authenticate and scope to the caller's active org.
+    await requireInternalUser();
+    orgId = await resolveActiveOrgId();
+  }
   const db = requireDb();
   const jobs = await db
     .select()
     .from(bulkImportJobs)
-    .where(eq(bulkImportJobs.id, input.jobId))
+    .where(
+      and(
+        eq(bulkImportJobs.id, input.jobId),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    )
     .limit(1);
   const job = jobs[0];
   if (!job) return { ok: false, jobId: input.jobId, error: "Job not found" };
@@ -364,7 +413,12 @@ export async function processBulkImportJob(input: {
       startedAt: job.startedAt ?? new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(bulkImportJobs.id, job.id));
+    .where(
+      and(
+        eq(bulkImportJobs.id, job.id),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    );
 
   const parsedSource = parseSource(job.sourceType as BulkImportSourceType, job.sourceContent);
   const mapping = job.fieldMapping as FieldMapping;
@@ -460,7 +514,12 @@ export async function processBulkImportJob(input: {
       completedAt: isDone ? new Date() : null,
       updatedAt: new Date(),
     })
-    .where(eq(bulkImportJobs.id, job.id));
+    .where(
+      and(
+        eq(bulkImportJobs.id, job.id),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    );
 
   // Audit-log emit on terminal transition. Cron path has no request
   // context — pass explicit ip/userAgent nulls so recordAuditEvent
@@ -508,11 +567,17 @@ export async function cancelBulkImportJob(input: {
   reason?: string;
 }): Promise<{ ok: boolean; status?: BulkImportJobStatus; error?: string }> {
   await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const jobs = await db
     .select()
     .from(bulkImportJobs)
-    .where(eq(bulkImportJobs.id, input.jobId))
+    .where(
+      and(
+        eq(bulkImportJobs.id, input.jobId),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    )
     .limit(1);
   const job = jobs[0];
   if (!job) return { ok: false, error: "Job not found" };
@@ -526,7 +591,12 @@ export async function cancelBulkImportJob(input: {
       completedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(bulkImportJobs.id, input.jobId));
+    .where(
+      and(
+        eq(bulkImportJobs.id, input.jobId),
+        eq(bulkImportJobs.organizationId, orgId),
+      ),
+    );
   return { ok: true, status: "cancelled" };
 }
 

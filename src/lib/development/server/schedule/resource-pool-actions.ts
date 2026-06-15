@@ -1,7 +1,7 @@
 "use server";
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import {
@@ -201,10 +201,22 @@ export async function editWorkingCalendar(
     patch.isDefault = parsed.data.isDefault;
   if (parsed.data.notes !== undefined) patch.notes = parsed.data.notes;
 
+  // TENANCY — scope the UPDATE to the caller's org. NULL-org rows are intended
+  // shared reference calendars (matching the addHoliday/calendar-queries
+  // pattern), so they remain editable; another org's calendar does not.
+  const organizationId = await requireOrgId();
   await db
     .update(workingCalendars)
     .set(patch)
-    .where(eq(workingCalendars.id, parsed.data.id));
+    .where(
+      and(
+        eq(workingCalendars.id, parsed.data.id),
+        or(
+          eq(workingCalendars.organizationId, organizationId),
+          isNull(workingCalendars.organizationId),
+        ),
+      ),
+    );
   return { ok: true as const };
 }
 
@@ -213,9 +225,20 @@ export async function archiveWorkingCalendar(args: {
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  // TENANCY — scope the archive UPDATE to the caller's org (NULL-org shared
+  // reference calendars stay archivable; another org's calendar does not).
+  const organizationId = await requireOrgId();
   await db
     .update(workingCalendars)
     .set({ isActive: false, updatedAt: new Date() })
-    .where(eq(workingCalendars.id, args.id));
+    .where(
+      and(
+        eq(workingCalendars.id, args.id),
+        or(
+          eq(workingCalendars.organizationId, organizationId),
+          isNull(workingCalendars.organizationId),
+        ),
+      ),
+    );
   return { ok: true };
 }

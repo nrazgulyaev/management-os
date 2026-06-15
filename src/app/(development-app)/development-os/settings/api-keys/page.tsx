@@ -37,7 +37,7 @@ export default async function ApiKeysPage() {
         </div>
         {me ? (
           <div className="actions">
-            <ApiKeyModalForm organizationId={orgId} currentUserId={me.id} />
+            <ApiKeyModalForm />
           </div>
         ) : null}
       </div>

@@ -11,7 +11,9 @@ export async function listSpecifications(filters?: {
   activeOnly?: boolean;
 }) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const conditions = [] as Array<ReturnType<typeof eq>>;
+  conditions.push(eq(specifications.organizationId, organizationId));
   if (filters?.activeOnly !== false) {
     conditions.push(eq(specifications.isActive, true));
   }

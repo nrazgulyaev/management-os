@@ -135,6 +135,10 @@ export async function getVendorMetrics(): Promise<VendorMetrics> {
       avgQualityRating: null,
     };
   }
+  // TENANCY — scope KPI aggregates to the caller's org; without this the
+  // vendor cards (total vendors, by-status counts, commitment value, avg
+  // on-time/quality) were platform-wide across every tenant.
+  const organizationId = await requireOrgId();
   const [r] = await db.execute(sql`
     SELECT
       count(*)::int AS total,
@@ -145,6 +149,7 @@ export async function getVendorMetrics(): Promise<VendorMetrics> {
       avg(on_time_delivery_rate) AS avg_ontime,
       avg(quality_rating) AS avg_quality
     FROM vendors
+    WHERE organization_id = ${organizationId}
   `);
   const row = (r ?? {}) as Record<string, unknown>;
   return {
@@ -192,11 +197,15 @@ export async function getVendorEngagements(
 ): Promise<VendorEngagementListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conditions = [];
+  // TENANCY — always-present base predicate so engagements never span
+  // tenants regardless of the optional filters (the query is otherwise
+  // unconditionally cross-org; getVendorEngagement() calls it unfiltered).
+  const organizationId = await requireOrgId();
+  const conditions = [eq(vendorEngagements.organizationId, organizationId)];
   if (filters.vendorId) conditions.push(eq(vendorEngagements.vendorId, filters.vendorId));
   if (filters.projectId) conditions.push(eq(vendorEngagements.projectId, filters.projectId));
   if (filters.status) conditions.push(eq(vendorEngagements.status, filters.status));
-  const where = conditions.length ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const rows = await db
     .select({

@@ -188,7 +188,23 @@ export async function recordMaterialDelivery(
   const organizationId = await requireOrgId();
 
   return await db.transaction(async (tx) => {
-    // Verify all PO lines belong to the PO.
+    // TENANCY — verify the parent PO belongs to the caller's org before
+    // attaching deliveries to it. A foreign poId (even with a matching line)
+    // must be rejected so no caller-org delivery rows graft onto another
+    // tenant's purchase order.
+    const [parentPo] = await tx
+      .select({ id: materialPurchaseOrders.id })
+      .from(materialPurchaseOrders)
+      .where(
+        and(
+          eq(materialPurchaseOrders.id, parsed.poId),
+          eq(materialPurchaseOrders.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!parentPo) throw new Error(`PO ${parsed.poId} not found`);
+
+    // Verify all PO lines belong to the PO AND the caller's org.
     const poLineIds = parsed.lines.map((l) => l.poLineId);
     const validLines = await tx
       .select({
@@ -199,7 +215,10 @@ export async function recordMaterialDelivery(
       })
       .from(materialPoLines)
       .where(
-        sql`${materialPoLines.id} = ANY(${sql.raw(`ARRAY[${poLineIds.map((id) => `'${id}'::uuid`).join(",")}]`)})`,
+        and(
+          sql`${materialPoLines.id} = ANY(${sql.raw(`ARRAY[${poLineIds.map((id) => `'${id}'::uuid`).join(",")}]`)})`,
+          eq(materialPoLines.organizationId, organizationId),
+        ),
       );
     const lineById = new Map(validLines.map((l) => [l.id, l]));
     for (const l of parsed.lines) {

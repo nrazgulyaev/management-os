@@ -1,9 +1,10 @@
 "use server";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { boqDocuments, boqSections } from "@/lib/db/schema/boq";
 import { devCostCategories } from "@/lib/db/schema/dev-finance";
 import { addBoqItem } from "./boq-actions";
@@ -77,6 +78,7 @@ export async function bulkInsertBoqLines(
   input: z.input<typeof bulkInputSchema>,
 ): Promise<BulkBoqResult> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = bulkInputSchema.parse(input);
   const db = requireDb();
 
@@ -84,7 +86,12 @@ export async function bulkInsertBoqLines(
   const [doc] = await db
     .select()
     .from(boqDocuments)
-    .where(eq(boqDocuments.id, parsed.boqDocumentId))
+    .where(
+      and(
+        eq(boqDocuments.id, parsed.boqDocumentId),
+        eq(boqDocuments.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!doc) {
     return {
@@ -107,7 +114,12 @@ export async function bulkInsertBoqLines(
       sectionName: boqSections.sectionName,
     })
     .from(boqSections)
-    .where(eq(boqSections.boqDocumentId, parsed.boqDocumentId))
+    .where(
+      and(
+        eq(boqSections.boqDocumentId, parsed.boqDocumentId),
+        eq(boqSections.organizationId, organizationId),
+      ),
+    )
     .orderBy(asc(boqSections.displayOrder));
   const sectionByCode = new Map<string, string>();
   for (const s of sections) {
@@ -122,7 +134,8 @@ export async function bulkInsertBoqLines(
       displayName: devCostCategories.displayName,
       categoryCode: devCostCategories.categoryCode,
     })
-    .from(devCostCategories);
+    .from(devCostCategories)
+    .where(eq(devCostCategories.organizationId, organizationId));
   const categoryByName = new Map<string, string>();
   for (const c of categories) {
     categoryByName.set(c.displayName.trim().toLowerCase(), c.id);

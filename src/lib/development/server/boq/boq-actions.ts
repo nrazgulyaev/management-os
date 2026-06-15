@@ -310,11 +310,17 @@ export async function importBoqFromCsv(
 /** Build a CSV string for download. */
 export async function exportBoqAsCsv(input: { boqDocumentId: string }) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const sections = await db
     .select()
     .from(boqSections)
-    .where(eq(boqSections.boqDocumentId, input.boqDocumentId));
+    .where(
+      and(
+        eq(boqSections.boqDocumentId, input.boqDocumentId),
+        eq(boqSections.organizationId, organizationId),
+      ),
+    );
   const sectionIds = sections.map((s) => s.id);
   const items =
     sectionIds.length === 0
@@ -322,7 +328,12 @@ export async function exportBoqAsCsv(input: { boqDocumentId: string }) {
       : await db
           .select()
           .from(boqItems)
-          .where(inArray(boqItems.sectionId, sectionIds));
+          .where(
+            and(
+              inArray(boqItems.sectionId, sectionIds),
+              eq(boqItems.organizationId, organizationId),
+            ),
+          );
   const sectionCodeById = new Map(sections.map((s) => [s.id, s.sectionCode]));
   const csvSections: CsvBoqSection[] = sections.map((s) => ({
     sectionCode: s.sectionCode,

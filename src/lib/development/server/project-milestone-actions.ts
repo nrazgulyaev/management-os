@@ -174,6 +174,7 @@ export async function updateMilestone(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const ctx = await requirePermission("projects.write");
+  const orgId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
@@ -182,7 +183,12 @@ export async function updateMilestone(
   const [current] = await db
     .select()
     .from(milestones)
-    .where(eq(milestones.id, data.milestoneId))
+    .where(
+      and(
+        eq(milestones.id, data.milestoneId),
+        eq(milestones.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!current) return { ok: false, error: "Milestone not found." };
 
@@ -234,7 +240,12 @@ export async function updateMilestone(
   const [row] = await db
     .update(milestones)
     .set(updates)
-    .where(eq(milestones.id, data.milestoneId))
+    .where(
+      and(
+        eq(milestones.id, data.milestoneId),
+        eq(milestones.organizationId, orgId),
+      ),
+    )
     .returning();
   if (!row) return { ok: false, error: "Failed to update milestone." };
 
@@ -279,17 +290,30 @@ export async function deleteMilestone(
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input." };
   }
   const ctx = await requirePermission("projects.write");
+  const orgId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
   const [current] = await db
     .select()
     .from(milestones)
-    .where(eq(milestones.id, parsed.data.milestoneId))
+    .where(
+      and(
+        eq(milestones.id, parsed.data.milestoneId),
+        eq(milestones.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!current) return { ok: false, error: "Milestone not found." };
 
-  await db.delete(milestones).where(eq(milestones.id, parsed.data.milestoneId));
+  await db
+    .delete(milestones)
+    .where(
+      and(
+        eq(milestones.id, parsed.data.milestoneId),
+        eq(milestones.organizationId, orgId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: ctx.appUser?.id ?? null,

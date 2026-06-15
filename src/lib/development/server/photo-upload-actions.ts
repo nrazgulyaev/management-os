@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -103,7 +103,12 @@ export async function uploadSiteReportPhoto(
       projectId: siteReports.projectId,
     })
     .from(siteReports)
-    .where(eq(siteReports.id, parsed.reportId))
+    .where(
+      and(
+        eq(siteReports.id, parsed.reportId),
+        eq(siteReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!report) throw new Error("Site report not found");
   if (report.status !== "draft" && report.status !== "submitted") {
@@ -125,7 +130,12 @@ export async function uploadSiteReportPhoto(
     const [zone] = await db
       .select({ projectId: siteZones.projectId })
       .from(siteZones)
-      .where(eq(siteZones.id, parsed.zoneId))
+      .where(
+        and(
+          eq(siteZones.id, parsed.zoneId),
+          eq(siteZones.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!zone || zone.projectId !== report.projectId) {
       throw new Error(
@@ -233,6 +243,7 @@ export async function deleteSiteReportPhoto(
 ): Promise<{ deleted: boolean; storageRemoved: boolean }> {
   const parsed = deleteSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
 
   const result = await db.transaction(async (tx) => {
@@ -242,7 +253,12 @@ export async function deleteSiteReportPhoto(
         documentId: siteReportPhotos.documentId,
       })
       .from(siteReportPhotos)
-      .where(eq(siteReportPhotos.id, parsed.photoId))
+      .where(
+        and(
+          eq(siteReportPhotos.id, parsed.photoId),
+          eq(siteReportPhotos.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!photo) throw new Error("Photo not found");
 
