@@ -7,6 +7,7 @@ import { requireDb } from "@/lib/db/client";
 import { aiDistributionSuggestions } from "@/lib/db/schema/ai-development";
 import { projects } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   suggestDistribution,
   type SuggestDistributionResult,
@@ -34,6 +35,17 @@ export async function requestDistributionSuggestion(
 ): Promise<SuggestDistributionResult> {
   const parsed = reqSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
+  // SECURITY: verify the client projectId belongs to the caller's org before
+  // generating a suggestion against it (and its financials).
+  const [proj] = await requireDb()
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(eq(projects.id, parsed.projectId), eq(projects.organizationId, organizationId)),
+    )
+    .limit(1);
+  if (!proj) throw new Error("Project not found");
   const out = await suggestDistribution({
     projectId: parsed.projectId,
     triggeredBy: parsed.triggeredBy ?? "manual_request",
@@ -48,15 +60,24 @@ export async function regenerateSuggestion(
   const parsed = idSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  // Mark the current draft as superseded, then regenerate.
+  // SECURITY: aiDistributionSuggestions.organization_id is unthreaded (NULL on
+  // every row), so anchor org via the parent project (projects.organization_id)
+  // — a foreign suggestion id resolves to no row.
   const [existing] = await db
     .select({
       projectId: aiDistributionSuggestions.projectId,
       status: aiDistributionSuggestions.status,
     })
     .from(aiDistributionSuggestions)
-    .where(eq(aiDistributionSuggestions.id, parsed.suggestionId))
+    .innerJoin(projects, eq(projects.id, aiDistributionSuggestions.projectId))
+    .where(
+      and(
+        eq(aiDistributionSuggestions.id, parsed.suggestionId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!existing) throw new Error("Suggestion not found");
 
@@ -110,7 +131,24 @@ export async function approveDistributionSuggestion(
   const parsed = approveSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
+
+  // SECURITY: anchor org via the parent project (the suggestion's own
+  // organization_id is unthreaded/NULL). Reject a foreign suggestion id before
+  // declaring a real distribution against another tenant's project.
+  const [owned] = await db
+    .select({ id: aiDistributionSuggestions.id })
+    .from(aiDistributionSuggestions)
+    .innerJoin(projects, eq(projects.id, aiDistributionSuggestions.projectId))
+    .where(
+      and(
+        eq(aiDistributionSuggestions.id, parsed.suggestionId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) throw new Error("Suggestion not found");
 
   const [s] = await db
     .select()
@@ -206,7 +244,9 @@ export async function rejectDistributionSuggestion(
   const parsed = rejectSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
+  // SECURITY: anchor org via the parent project (suggestion org is unthreaded).
   const [s] = await db
     .select({
       id: aiDistributionSuggestions.id,
@@ -214,7 +254,13 @@ export async function rejectDistributionSuggestion(
       status: aiDistributionSuggestions.status,
     })
     .from(aiDistributionSuggestions)
-    .where(eq(aiDistributionSuggestions.id, parsed.suggestionId))
+    .innerJoin(projects, eq(projects.id, aiDistributionSuggestions.projectId))
+    .where(
+      and(
+        eq(aiDistributionSuggestions.id, parsed.suggestionId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!s) throw new Error("Suggestion not found");
   if (s.status !== "draft" && s.status !== "reviewed") {

@@ -531,9 +531,27 @@ export async function cancelContractGroup(
     reason: formData.get("reason"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  // AUTH: internal-only status write (mirrors signContract). Scope the
+  // group to the caller's org so a foreign contractGroupId cannot be
+  // cancelled — contract_groups carries organization_id directly.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const now = new Date();
+
+  const [group] = await db
+    .select({ id: contractGroups.id })
+    .from(contractGroups)
+    .where(
+      and(
+        eq(contractGroups.id, parsed.data.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!group) return { ok: false, error: "Contract group not found." };
+
   await db
     .update(contractGroups)
     .set({
@@ -542,13 +560,18 @@ export async function cancelContractGroup(
       cancelledReason: parsed.data.reason,
       updatedAt: now,
     })
-    .where(eq(contractGroups.id, parsed.data.contractGroupId));
+    .where(
+      and(
+        eq(contractGroups.id, group.id),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    );
   await db
     .update(contracts)
     .set({ status: "cancelled", updatedAt: now })
     .where(
       and(
-        eq(contracts.contractGroupId, parsed.data.contractGroupId),
+        eq(contracts.contractGroupId, group.id),
         inArray(contracts.status, ["draft", "pending_signature"]),
       ),
     );

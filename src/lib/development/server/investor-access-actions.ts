@@ -73,6 +73,7 @@ export async function grantInvestorPortalAccess(
   // 1. Permission gate.
   const ctx = await requireInternalUser();
   const staffUserId = ctx.appUser?.id ?? null;
+  const callerOrgId = await requireOrgId();
 
   // 2. Validate input combo: password method requires non-empty password
   // with mixed case + at least one number.
@@ -117,6 +118,9 @@ export async function grantInvestorPortalAccess(
   }
 
   // 4. Resolve the investor + investor_viewer role.
+  // TENANCY — scope the investor lookup to the caller's org. This is a
+  // 'use server' export directly invocable with any raw investorId, so a
+  // foreign org's investor must not be provisionable.
   const [investor] = await db
     .select({
       id: investors.id,
@@ -124,7 +128,12 @@ export async function grantInvestorPortalAccess(
       reportingLanguage: investors.reportingLanguage,
     })
     .from(investors)
-    .where(eq(investors.id, parsed.investorId))
+    .where(
+      and(
+        eq(investors.id, parsed.investorId),
+        eq(investors.organizationId, callerOrgId),
+      ),
+    )
     .limit(1);
   if (!investor) throw new Error("Investor not found");
 
@@ -304,6 +313,28 @@ export async function revokeInvestorPortalAccess(
 
   const db = requireDb();
   const organizationId = await requireOrgId();
+
+  // TENANCY — verify the investor belongs to the caller's org before touching
+  // its portal user. Without this a foreign investor's portal access could be
+  // cleared and its Supabase auth user permanently banned cross-tenant.
+  const [investor] = await db
+    .select({ id: investors.id })
+    .from(investors)
+    .where(
+      and(
+        eq(investors.id, parsed.investorId),
+        eq(investors.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!investor) {
+    return {
+      revoked: false,
+      appUserId: null,
+      notes: "No portal user is linked to this investor.",
+    };
+  }
+
   const [user] = await db
     .select({
       id: appUsers.id,
@@ -311,7 +342,12 @@ export async function revokeInvestorPortalAccess(
       email: appUsers.email,
     })
     .from(appUsers)
-    .where(eq(appUsers.investorId, parsed.investorId))
+    .where(
+      and(
+        eq(appUsers.investorId, parsed.investorId),
+        eq(appUsers.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!user) {
     return {
@@ -344,7 +380,12 @@ export async function revokeInvestorPortalAccess(
       status: "suspended",
       updatedAt: new Date(),
     })
-    .where(eq(appUsers.id, user.id));
+    .where(
+      and(
+        eq(appUsers.id, user.id),
+        eq(appUsers.organizationId, organizationId),
+      ),
+    );
 
   await db.insert(devNotificationDeliveryLog).values({
     organizationId,

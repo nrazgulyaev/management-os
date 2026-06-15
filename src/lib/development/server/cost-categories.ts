@@ -51,6 +51,9 @@ export async function getCostCategoryUsage(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: dev_transactions carries organization_id — scope the usage
+  // aggregate to the caller's org so counts/amounts don't span tenants.
+  const orgId = await requireOrgId();
   const rows = await db
     .select({
       categoryId: devTransactions.categoryId,
@@ -60,7 +63,12 @@ export async function getCostCategoryUsage(): Promise<
       ),
     })
     .from(devTransactions)
-    .where(sql`${devTransactions.categoryId} IS NOT NULL`)
+    .where(
+      and(
+        sql`${devTransactions.categoryId} IS NOT NULL`,
+        eq(devTransactions.organizationId, orgId),
+      ),
+    )
     .groupBy(devTransactions.categoryId);
   return rows
     .filter((r): r is { categoryId: string; transactionCount: number; totalUsdMinor: string } =>

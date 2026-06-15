@@ -744,6 +744,13 @@ export type RegenerateDraftResult =
 export async function regenerateAIDraft(
   formData: FormData,
 ): Promise<RegenerateDraftResult> {
+  // AUTH + TENANCY: like its sibling reviewAIDraft, gate this HITL action and
+  // bind the draft to the caller's org (resolved via project → org with the
+  // interaction's own nullable org column as a fallback) so a cross-tenant
+  // draft id cannot be read or regenerated.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = regenerateSchema.safeParse({
     draftId: formData.get("draftId"),
     instruction: formData.get("instruction") || undefined,
@@ -753,15 +760,23 @@ export async function regenerateAIDraft(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  // Load original draft + contact context.
+  // Load original draft + contact context (org-resolved via project join).
   const drafts = await db
-    .select()
+    .select({
+      row: contactInteractions,
+      projectOrgId: projects.organizationId,
+    })
     .from(contactInteractions)
+    .leftJoin(projects, eq(projects.id, contactInteractions.projectId))
     .where(eq(contactInteractions.id, parsed.data.draftId))
     .limit(1);
-  const original = drafts[0];
+  const original = drafts[0]?.row;
   if (!original)
     return { ok: false, error: "Original draft not found." };
+  const resolvedOrg = drafts[0]?.projectOrgId ?? original.organizationId ?? null;
+  if (resolvedOrg !== null && resolvedOrg !== organizationId) {
+    return { ok: false, error: "Original draft not found." };
+  }
   if (original.interactionType !== "ai_draft") {
     return {
       ok: false,
@@ -773,7 +788,12 @@ export async function regenerateAIDraft(
     await db
       .select()
       .from(contacts)
-      .where(eq(contacts.id, original.contactId))
+      .where(
+        and(
+          eq(contacts.id, original.contactId),
+          eq(contacts.organizationId, organizationId),
+        ),
+      )
       .limit(1)
   )[0];
   if (!contactRow) return { ok: false, error: "Contact not found." };
@@ -782,6 +802,7 @@ export async function regenerateAIDraft(
   const [run] = await db
     .insert(aiAssistantRuns)
     .values({
+      organizationId,
       assistantKey: SALES_ASSISTANT_KEY,
       runType: "draft",
       status: "running",
@@ -839,6 +860,7 @@ export async function regenerateAIDraft(
   const inserted = await db
     .insert(contactInteractions)
     .values({
+      organizationId,
       contactId: original.contactId,
       projectId: original.projectId,
       interactionType: "ai_draft",

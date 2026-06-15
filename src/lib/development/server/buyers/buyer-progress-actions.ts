@@ -1,10 +1,12 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { buyerProgressReports } from "@/lib/db/schema/buyers";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const STATUSES = [
   "draft",
@@ -38,9 +40,41 @@ export async function createBuyerProgressReport(
   await requireInternalUser();
   const parsed = createReportSchema.parse(input);
   const db = requireDb();
+  // TENANCY: derive org server-side, then verify the client-supplied
+  // projectId (and unitId/villa) belong to the caller's org before insert.
+  const organizationId = await requireOrgId();
+
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, parsed.projectId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!project) throw new Error(`project ${parsed.projectId} not found`);
+
+  if (parsed.unitId != null) {
+    const [unit] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          eq(villas.id, parsed.unitId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!unit) throw new Error(`unit ${parsed.unitId} not found`);
+  }
+
   const [row] = await db
     .insert(buyerProgressReports)
     .values({
+      organizationId,
       unitId: parsed.unitId ?? null,
       projectId: parsed.projectId,
       reportingPeriodStart: parsed.reportingPeriodStart,
@@ -83,11 +117,19 @@ export async function transitionBuyerProgressReport(
   const ctx = await requireInternalUser();
   const parsed = transitionSchema.parse(input);
   const db = requireDb();
+  // TENANCY: scope the load + update to the caller's org so a foreign
+  // reportId resolves to no row (cannot transition another tenant's report).
+  const organizationId = await requireOrgId();
 
   const [current] = await db
     .select()
     .from(buyerProgressReports)
-    .where(eq(buyerProgressReports.id, parsed.reportId))
+    .where(
+      and(
+        eq(buyerProgressReports.id, parsed.reportId),
+        eq(buyerProgressReports.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!current) throw new Error(`report ${parsed.reportId} not found`);
 
@@ -115,7 +157,12 @@ export async function transitionBuyerProgressReport(
   const [row] = await db
     .update(buyerProgressReports)
     .set(updates)
-    .where(eq(buyerProgressReports.id, parsed.reportId))
+    .where(
+      and(
+        eq(buyerProgressReports.id, parsed.reportId),
+        eq(buyerProgressReports.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

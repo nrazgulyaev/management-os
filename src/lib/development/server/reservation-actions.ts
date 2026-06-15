@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contactRoles } from "@/lib/db/schema/contacts";
-import { projects } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import {
   contractGroups,
   contractTemplates,
@@ -58,6 +58,10 @@ export type CreateReservationResult =
 export async function createReservation(
   formData: FormData,
 ): Promise<CreateReservationResult> {
+  // AUTH: internal-only write. Throws for non-internal callers.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = createReservationSchema.safeParse({
     contactId: formData.get("contactId"),
     villaId: formData.get("villaId"),
@@ -86,6 +90,53 @@ export async function createReservation(
     };
   }
   const data = parsed.data;
+
+  // SCOPE: reservations carries no org column — the project is the tenancy
+  // anchor. Verify the supplied projectId belongs to the caller's org and the
+  // villa belongs to that same project before locking price / inserting,
+  // otherwise a forged projectId/villaId lets a tenant reserve another org's
+  // unit. (villas has no org column; it anchors org via villas.projectId.)
+  const [scope] = await db
+    .select({
+      projectId: projects.id,
+      villaProjectId: villas.projectId,
+    })
+    .from(projects)
+    .innerJoin(villas, eq(villas.id, data.villaId))
+    .where(
+      and(
+        eq(projects.id, data.projectId),
+        eq(projects.organizationId, organizationId),
+        eq(villas.projectId, projects.id),
+      ),
+    )
+    .limit(1);
+  if (!scope) {
+    return { ok: false, error: "Project or villa not found." };
+  }
+
+  // SCOPE: if a contactRoleId is supplied (the row that gets transitioned to
+  // 'reservation'), confirm it exists and is in-org. contactRoles.organizationId
+  // is a nullable backfilled column, so accept NULL-org (legacy) rows too.
+  if (data.contactRoleId) {
+    const [role] = await db
+      .select({ id: contactRoles.id, contactId: contactRoles.contactId })
+      .from(contactRoles)
+      .where(
+        and(
+          eq(contactRoles.id, data.contactRoleId),
+          eq(contactRoles.contactId, data.contactId),
+          or(
+            eq(contactRoles.organizationId, organizationId),
+            isNull(contactRoles.organizationId),
+          ),
+        ),
+      )
+      .limit(1);
+    if (!role) {
+      return { ok: false, error: "Contact role not found." };
+    }
+  }
 
   const calc = await calculateCurrentPrice({
     villaId: data.villaId,
@@ -141,7 +192,15 @@ export async function createReservation(
       await db
         .update(contactRoles)
         .set({ status: "reservation", updatedAt: new Date() })
-        .where(eq(contactRoles.id, data.contactRoleId));
+        .where(
+          and(
+            eq(contactRoles.id, data.contactRoleId),
+            or(
+              eq(contactRoles.organizationId, organizationId),
+              isNull(contactRoles.organizationId),
+            ),
+          ),
+        );
     }
 
     revalidatePath(`${DEVELOPMENT_APP_PATH}/reservations`);
@@ -169,6 +228,10 @@ const cancelReservationSchema = z.object({
 export async function cancelReservation(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AUTH: internal-only money/status write. Throws for non-internal callers.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = cancelReservationSchema.safeParse({
     reservationId: formData.get("reservationId"),
     reason: formData.get("reason"),
@@ -178,6 +241,22 @@ export async function cancelReservation(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // SCOPE: reservations carries no org column — load through its project to
+  // confirm the reservation belongs to the caller's org before the
+  // cancel/refund write (kills the cross-tenant IDOR).
+  const [row] = await db
+    .select({
+      id: reservations.id,
+      organizationId: projects.organizationId,
+    })
+    .from(reservations)
+    .innerJoin(projects, eq(projects.id, reservations.projectId))
+    .where(eq(reservations.id, parsed.data.reservationId))
+    .limit(1);
+  if (!row || row.organizationId !== organizationId) {
+    return { ok: false, error: "Reservation not found." };
+  }
 
   const now = new Date();
   await db
@@ -204,6 +283,10 @@ const extendReservationSchema = z.object({
 export async function extendReservationExpiry(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
+  // AUTH: internal-only status write. Throws for non-internal callers.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const parsed = extendReservationSchema.safeParse({
     reservationId: formData.get("reservationId"),
     newExpiryDate: formData.get("newExpiryDate"),
@@ -212,6 +295,21 @@ export async function extendReservationExpiry(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // SCOPE: reservations carries no org column — load through its project to
+  // confirm the reservation belongs to the caller's org before extending.
+  const [row] = await db
+    .select({
+      id: reservations.id,
+      organizationId: projects.organizationId,
+    })
+    .from(reservations)
+    .innerJoin(projects, eq(projects.id, reservations.projectId))
+    .where(eq(reservations.id, parsed.data.reservationId))
+    .limit(1);
+  if (!row || row.organizationId !== organizationId) {
+    return { ok: false, error: "Reservation not found." };
+  }
 
   await db
     .update(reservations)

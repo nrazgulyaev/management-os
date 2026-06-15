@@ -70,7 +70,12 @@ export async function proposeSharedCostAllocation(
       currency: devTransactions.currency,
     })
     .from(devTransactions)
-    .where(eq(devTransactions.id, parsed.sourceTransactionId))
+    .where(
+      and(
+        eq(devTransactions.id, parsed.sourceTransactionId),
+        eq(devTransactions.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!source) throw new Error("Source transaction not found");
   const sourceAmt = BigInt(source.amountUsdMinor);
@@ -256,23 +261,36 @@ export async function reverseSharedCostAllocation(
 
 export async function listSharedCostAllocations() {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   return await db
     .select()
     .from(sharedCostAllocations)
+    .where(eq(sharedCostAllocations.organizationId, organizationId))
     .orderBy(sql`${sharedCostAllocations.createdAt} desc`);
 }
 
 export async function getSharedCostAllocation(allocationId: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [alloc] = await db
     .select()
     .from(sharedCostAllocations)
-    .where(eq(sharedCostAllocations.id, allocationId))
+    .where(
+      and(
+        eq(sharedCostAllocations.id, allocationId),
+        eq(sharedCostAllocations.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!alloc) return null;
   const lines = await db
     .select()
     .from(sharedCostAllocationLines)
-    .where(eq(sharedCostAllocationLines.allocationId, allocationId));
+    .where(
+      and(
+        eq(sharedCostAllocationLines.allocationId, allocationId),
+        eq(sharedCostAllocationLines.organizationId, organizationId),
+      ),
+    );
   return { allocation: alloc, lines };
 }

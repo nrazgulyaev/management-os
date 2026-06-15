@@ -161,12 +161,34 @@ export async function markLandInstallmentPaid(
 ): Promise<{ ok: true; status: "paid" | "partial" }> {
   const parsed = markInstallmentPaidSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   return await db.transaction(async (tx) => {
+    // TENANCY — land_payment_installments has no org column; resolve org via
+    // installment → schedule → land_profile and reject cross-org as not-found
+    // before mutating money state.
     const [installment] = await tx
-      .select()
+      .select({
+        id: landPaymentInstallments.id,
+        status: landPaymentInstallments.status,
+        amountMinor: landPaymentInstallments.amountMinor,
+        organizationId: landProfiles.organizationId,
+      })
       .from(landPaymentInstallments)
-      .where(eq(landPaymentInstallments.id, parsed.installmentId))
+      .innerJoin(
+        landPaymentSchedules,
+        eq(landPaymentSchedules.id, landPaymentInstallments.scheduleId),
+      )
+      .innerJoin(
+        landProfiles,
+        eq(landProfiles.id, landPaymentSchedules.landProfileId),
+      )
+      .where(
+        and(
+          eq(landPaymentInstallments.id, parsed.installmentId),
+          eq(landProfiles.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!installment) throw new Error("Installment not found");
     if (installment.status === "cancelled") {

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   contractGroups,
@@ -10,6 +10,7 @@ import {
   invoices,
 } from "@/lib/db/schema/sales";
 import { documents } from "@/lib/db/schema/documents";
+import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import { renderInvoicePdfFromInvoice } from "@/lib/development/pdf/render-invoice-pdf";
@@ -74,20 +75,36 @@ export async function issueInvoiceForMilestone(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
 
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY — invoices has no org column; org is anchored on the parent
+  // milestone + contract group. Scope both lookups to the caller's org so a
+  // foreign milestoneId cannot seed an invoice.
   const [milestone] = await db
     .select()
     .from(contractMilestones)
-    .where(eq(contractMilestones.id, parsed.data.milestoneId))
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!milestone) return { ok: false, error: "Milestone not found." };
 
   const [group] = await db
     .select()
     .from(contractGroups)
-    .where(eq(contractGroups.id, milestone.contractGroupId))
+    .where(
+      and(
+        eq(contractGroups.id, milestone.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!group) return { ok: false, error: "Contract group not found." };
 
@@ -150,6 +167,9 @@ export async function generateInvoicePDF(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
 
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
@@ -159,6 +179,21 @@ export async function generateInvoicePDF(
     .where(eq(invoices.id, parsed.data.invoiceId))
     .limit(1);
   if (!invoiceRow) return { ok: false, error: "Invoice not found." };
+
+  // TENANCY — invoices has no org column; resolve org via its contract group
+  // and reject a cross-org invoiceId before rendering/indexing/mutating, so a
+  // foreign invoice cannot get a PDF (PII) rendered or its row mutated.
+  const [ownerGroup] = await db
+    .select({ id: contractGroups.id })
+    .from(contractGroups)
+    .where(
+      and(
+        eq(contractGroups.id, invoiceRow.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownerGroup) return { ok: false, error: "Invoice not found." };
 
   if (invoiceRow.documentId) {
     const [existing] = await db
@@ -182,8 +217,8 @@ export async function generateInvoicePDF(
   // Store metadata only (Checkpoint 2 — byte upload follows the same
   // Supabase Storage / R2 path Management OS uses; the buffer can be
   // streamed back via a download endpoint later in this checkpoint).
-  // TENANCY-FINANCE-DOCS — operator context; org from the session.
-  const organizationId = await requireOrgId();
+  // TENANCY-FINANCE-DOCS — operator context; org from the session (resolved
+  // and ownership-verified above).
   const [doc] = await db
     .insert(documents)
     .values({
@@ -229,6 +264,9 @@ export async function sendInvoice(
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
 
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
@@ -238,6 +276,21 @@ export async function sendInvoice(
     .where(eq(invoices.id, parsed.data.invoiceId))
     .limit(1);
   if (!invoiceRow) return { ok: false, error: "Invoice not found." };
+
+  // TENANCY — invoices has no org column; verify the invoice's org via its
+  // contract group BEFORE resolving the buyer contact or sending email, so a
+  // cross-org id cannot leak buyer PII or email another tenant's client.
+  const [ownerGroup] = await db
+    .select({ id: contractGroups.id })
+    .from(contractGroups)
+    .where(
+      and(
+        eq(contractGroups.id, invoiceRow.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownerGroup) return { ok: false, error: "Invoice not found." };
 
   // Resolve recipient email.
   let recipient = parsed.data.recipientEmail;
@@ -318,8 +371,35 @@ export async function voidInvoice(
     reason: formData.get("reason"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+
+  // TENANCY — invoices has no org column; load the invoice and resolve its org
+  // via the contract group, then void ONLY when it belongs to the caller's org.
+  // Previously this was an unconditional UPDATE by id with no auth/org check.
+  const [invoiceRow] = await db
+    .select({ id: invoices.id, contractGroupId: invoices.contractGroupId })
+    .from(invoices)
+    .where(eq(invoices.id, parsed.data.invoiceId))
+    .limit(1);
+  if (!invoiceRow) return { ok: false, error: "Invoice not found." };
+
+  const [ownerGroup] = await db
+    .select({ id: contractGroups.id })
+    .from(contractGroups)
+    .where(
+      and(
+        eq(contractGroups.id, invoiceRow.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownerGroup) return { ok: false, error: "Invoice not found." };
+
   const now = new Date();
   await db
     .update(invoices)
