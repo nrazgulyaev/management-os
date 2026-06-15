@@ -3,6 +3,8 @@ import "server-only";
 import { eq, sql, and, gte, lte, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { safetyIncidents } from "@/lib/db/schema/site-operations";
+import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import type {
   SafetyCategory,
   SafetySeverity,
@@ -42,7 +44,9 @@ export async function getSafetyIncidents(
 ): Promise<SafetyIncidentListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conditions = [];
+  // safety_incidents has no organization_id; anchor org via projects.
+  const organizationId = await requireOrgId();
+  const conditions = [eq(projects.organizationId, organizationId)];
   if (filters.projectId)
     conditions.push(eq(safetyIncidents.projectId, filters.projectId));
   if (filters.severity)
@@ -54,15 +58,15 @@ export async function getSafetyIncidents(
     conditions.push(gte(safetyIncidents.incidentDate, filters.fromDate));
   if (filters.toDate)
     conditions.push(lte(safetyIncidents.incidentDate, filters.toDate));
-  const where = conditions.length ? and(...conditions) : undefined;
 
   const rows = await db
     .select()
     .from(safetyIncidents)
-    .where(where)
+    .innerJoin(projects, eq(projects.id, safetyIncidents.projectId))
+    .where(and(...conditions))
     .orderBy(desc(safetyIncidents.incidentDate), desc(safetyIncidents.createdAt));
 
-  return rows.map((i) => ({
+  return rows.map(({ safety_incidents: i }) => ({
     id: i.id,
     incidentCode: i.incidentCode,
     projectId: i.projectId,
@@ -119,6 +123,8 @@ export async function getSafetyMetrics(
       affectedWorkersTotal: 0,
     };
   }
+  // safety_incidents has no organization_id; anchor org via projects.
+  const organizationId = await requireOrgId();
   const projClause = projectId ? sql`AND project_id = ${projectId}` : sql``;
   const fromClause = fromDate ? sql`AND incident_date >= ${fromDate}` : sql``;
   const toClause = toDate ? sql`AND incident_date <= ${toDate}` : sql``;
@@ -137,7 +143,9 @@ export async function getSafetyMetrics(
       count(*) FILTER (WHERE status='closed')::int AS st_closed,
       coalesce(sum(affected_workers_count), 0)::int AS affected_total
     FROM safety_incidents
-    WHERE 1=1 ${projClause} ${fromClause} ${toClause}
+    WHERE project_id IN (
+      SELECT id FROM projects WHERE organization_id = ${organizationId}
+    ) ${projClause} ${fromClause} ${toClause}
   `);
   const row = (r ?? {}) as Record<string, unknown>;
   return {

@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { devOsPurchaseRequests } from "@/lib/db/schema/procurement";
 import { procurementQuotations } from "@/lib/db/schema/procurement";
 import { vendors } from "@/lib/db/schema/site-operations";
@@ -49,6 +50,7 @@ export async function listQuotationComparisons(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   // 1. Per-PR aggregates straight off procurement_quotations.
   const aggRows = await db
@@ -64,6 +66,7 @@ export async function listQuotationComparisons(): Promise<
       earliestDelivery: sql<string | null>`MIN(${procurementQuotations.deliveryEstimatedDate})::text`,
     })
     .from(procurementQuotations)
+    .where(eq(procurementQuotations.organizationId, organizationId))
     .groupBy(procurementQuotations.purchaseRequestId);
 
   if (aggRows.length === 0) return [];
@@ -82,7 +85,12 @@ export async function listQuotationComparisons(): Promise<
       status: devOsPurchaseRequests.status,
     })
     .from(devOsPurchaseRequests)
-    .where(inArray(devOsPurchaseRequests.id, requestIds));
+    .where(
+      and(
+        inArray(devOsPurchaseRequests.id, requestIds),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    );
 
   // 3. Selected vendor name per PR (if any).
   const selectedVendorRows = await db
@@ -96,6 +104,7 @@ export async function listQuotationComparisons(): Promise<
       and(
         inArray(procurementQuotations.purchaseRequestId, requestIds),
         eq(procurementQuotations.status, "selected"),
+        eq(procurementQuotations.organizationId, organizationId),
       ),
     );
   const selectedVendorByPr = new Map(
@@ -164,11 +173,13 @@ export async function listPurchaseRequestsAwaitingQuotations(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   // PRs in 'submitted' or 'approved' status with NO quotations yet.
   const haveQuotes = await db
     .select({ requestId: procurementQuotations.purchaseRequestId })
     .from(procurementQuotations)
+    .where(eq(procurementQuotations.organizationId, organizationId))
     .groupBy(procurementQuotations.purchaseRequestId);
   const haveQuotesIds = new Set(haveQuotes.map((r) => r.requestId));
 
@@ -182,7 +193,12 @@ export async function listPurchaseRequestsAwaitingQuotations(): Promise<
       status: devOsPurchaseRequests.status,
     })
     .from(devOsPurchaseRequests)
-    .where(inArray(devOsPurchaseRequests.status, ["submitted", "approved"]))
+    .where(
+      and(
+        inArray(devOsPurchaseRequests.status, ["submitted", "approved"]),
+        eq(devOsPurchaseRequests.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(devOsPurchaseRequests.requiredByDate));
 
   return candidates

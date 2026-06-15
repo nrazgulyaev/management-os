@@ -6,6 +6,7 @@ import {
   projectCompanyStructures,
   companyStructureShareholders,
 } from "@/lib/db/schema/company-structures";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listCompanyStructures(filters?: {
   projectId?: string;
@@ -28,28 +29,41 @@ export async function listCompanyStructures(filters?: {
 
 export async function getCompanyStructure(id: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [structure] = await db
     .select()
     .from(projectCompanyStructures)
-    .where(eq(projectCompanyStructures.id, id))
+    .where(
+      and(
+        eq(projectCompanyStructures.id, id),
+        eq(projectCompanyStructures.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!structure) return null;
   const shareholders = await db
     .select()
     .from(companyStructureShareholders)
-    .where(eq(companyStructureShareholders.structureId, id))
+    .where(
+      and(
+        eq(companyStructureShareholders.structureId, id),
+        eq(companyStructureShareholders.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(companyStructureShareholders.ownershipPercentage));
   return { structure, shareholders };
 }
 
 export async function getActiveStructureForProject(projectId: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [structure] = await db
     .select()
     .from(projectCompanyStructures)
     .where(
       and(
         eq(projectCompanyStructures.projectId, projectId),
+        eq(projectCompanyStructures.organizationId, organizationId),
         eq(projectCompanyStructures.isActive, true),
       ),
     )

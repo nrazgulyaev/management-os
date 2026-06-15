@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { methodStatements } from "@/lib/db/schema/method-quality";
 
 export async function listMethodStatements(filters?: {
@@ -9,7 +10,10 @@ export async function listMethodStatements(filters?: {
   status?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(methodStatements.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.category) {
     conditions.push(eq(methodStatements.category, filters.category));
   }
@@ -19,16 +23,22 @@ export async function listMethodStatements(filters?: {
   return db
     .select()
     .from(methodStatements)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(asc(methodStatements.methodCode));
 }
 
 export async function getMethodStatementByCode(code: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(methodStatements)
-    .where(eq(methodStatements.methodCode, code))
+    .where(
+      and(
+        eq(methodStatements.methodCode, code),
+        eq(methodStatements.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { changeOrders } from "@/lib/db/schema/project-memory";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listChangeOrders(filters?: {
   projectId?: string;
@@ -29,10 +30,16 @@ export async function listChangeOrders(filters?: {
 
 export async function getChangeOrderByCode(changeOrderCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(changeOrders)
-    .where(eq(changeOrders.changeOrderCode, changeOrderCode))
+    .where(
+      and(
+        eq(changeOrders.changeOrderCode, changeOrderCode),
+        eq(changeOrders.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

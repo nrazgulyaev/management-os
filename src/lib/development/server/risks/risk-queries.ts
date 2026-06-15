@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { projectRisks } from "@/lib/db/schema/project-memory";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listProjectRisks(filters?: {
   projectId?: string;
@@ -10,7 +11,10 @@ export async function listProjectRisks(filters?: {
   category?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(projectRisks.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.projectId) {
     conditions.push(eq(projectRisks.projectId, filters.projectId));
   }
@@ -24,16 +28,23 @@ export async function listProjectRisks(filters?: {
   return db
     .select()
     .from(projectRisks)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(projectRisks.riskScore));
 }
 
 export async function getProjectRiskByCode(riskCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(projectRisks)
-    .where(eq(projectRisks.riskCode, riskCode))
+    .where(
+      and(
+        eq(projectRisks.riskCode, riskCode),
+        eq(projectRisks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
+  // Cross-org code → null so the page notFound()s.
   return row ?? null;
 }

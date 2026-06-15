@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, eq, inArray, or, sql } from "drizzle-orm";
 import { requireDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   projectTasks,
   taskDependencies,
@@ -13,6 +14,7 @@ export async function listProjectTasks(filters?: {
   projectId?: string;
 }) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   if (filters?.projectId) {
     // Filter via work_packages.project_id join.
     return db
@@ -43,38 +45,59 @@ export async function listProjectTasks(filters?: {
         workPackages,
         eq(workPackages.id, projectTasks.workPackageId),
       )
-      .where(eq(workPackages.projectId, filters.projectId))
+      .where(
+        and(
+          eq(projectTasks.organizationId, organizationId),
+          eq(workPackages.projectId, filters.projectId),
+        ),
+      )
       .orderBy(asc(projectTasks.plannedStart));
   }
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const conditions = [
+    eq(projectTasks.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.workPackageId) {
     conditions.push(eq(projectTasks.workPackageId, filters.workPackageId));
   }
   return db
     .select()
     .from(projectTasks)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(asc(projectTasks.plannedStart));
 }
 
 export async function getProjectTaskByCode(taskCode: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(projectTasks)
-    .where(eq(projectTasks.taskCode, taskCode))
+    .where(
+      and(
+        eq(projectTasks.taskCode, taskCode),
+        eq(projectTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
+  // Cross-org code → null so the page notFound()s.
   return row ?? null;
 }
 
 export async function listTaskDependenciesForTasks(taskIds: string[]) {
   if (taskIds.length === 0) return [];
   const db = requireDb();
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(taskDependencies)
     .where(
-      or(inArray(taskDependencies.predecessorId, taskIds), inArray(taskDependencies.successorId, taskIds)),
+      and(
+        eq(taskDependencies.organizationId, organizationId),
+        or(
+          inArray(taskDependencies.predecessorId, taskIds),
+          inArray(taskDependencies.successorId, taskIds),
+        ),
+      ),
     );
 }
 

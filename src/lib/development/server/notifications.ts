@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   devNotificationDeliveryLog,
   devNotificationRules,
@@ -90,12 +91,13 @@ export async function getNotificationRules(
 ): Promise<NotificationRuleData[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
+  const conds = [eq(devNotificationRules.organizationId, organizationId)];
+  if (filter.activeOnly) conds.push(eq(devNotificationRules.isActive, true));
   const rows = await db
     .select()
     .from(devNotificationRules)
-    .where(
-      filter.activeOnly ? eq(devNotificationRules.isActive, true) : undefined,
-    )
+    .where(and(...conds))
     .orderBy(desc(devNotificationRules.createdAt));
   return rows.map(ruleToData);
 }
@@ -122,22 +124,31 @@ export async function getNotificationTemplates(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(devNotificationTemplates)
+    .where(eq(devNotificationTemplates.organizationId, organizationId))
     .orderBy(devNotificationTemplates.templateName);
   return rows.map(templateToData);
 }
 
 export async function getNotificationTemplateByName(
   templateName: string,
+  organizationId: string | null = null,
 ): Promise<NotificationTemplateData | null> {
   const db = getDb();
   if (!db) return null;
+  const orgId = organizationId ?? (await requireOrgId());
   const rows = await db
     .select()
     .from(devNotificationTemplates)
-    .where(eq(devNotificationTemplates.templateName, templateName))
+    .where(
+      and(
+        eq(devNotificationTemplates.templateName, templateName),
+        eq(devNotificationTemplates.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return rows[0] ? templateToData(rows[0]) : null;
 }
@@ -155,7 +166,8 @@ export async function getNotificationDeliveryLog(
 ): Promise<NotificationDeliveryRecord[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [];
+  const organizationId = await requireOrgId();
+  const conds = [eq(devNotificationDeliveryLog.organizationId, organizationId)];
   if (filters.status) conds.push(eq(devNotificationDeliveryLog.status, filters.status));
   if (filters.channel) conds.push(eq(devNotificationDeliveryLog.channel, filters.channel));
   if (filters.triggerEntityType)

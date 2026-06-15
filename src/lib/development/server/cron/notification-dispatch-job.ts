@@ -207,8 +207,13 @@ async function dispatchOnce(
     .limit(1);
   if (recent) return { kind: "skipped" };
 
-  // Resolve template + recipient address.
-  const template = await getNotificationTemplateByName(args.rule.templateName);
+  // Resolve template + recipient address. Pass the rule's org explicitly
+  // (cron has no request session, so getNotificationTemplateByName cannot
+  // call requireOrgId() here).
+  const template = await getNotificationTemplateByName(
+    args.rule.templateName,
+    args.rule.organizationId,
+  );
   if (!template) {
     await args.handle.event("warning", "template_not_found", {
       ruleId: args.rule.id,

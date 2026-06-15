@@ -1,7 +1,8 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { materialReceivingHolds } from "@/lib/db/schema/material-receiving-holds";
 import {
   getMaterialPurchaseOrders,
@@ -56,6 +57,10 @@ export async function getReceivingQueue(): Promise<ReceivingQueueItem[]> {
   const db = getDb();
   if (!db) return [];
 
+  const organizationId = await requireOrgId();
+
+  // getMaterialPurchaseOrders is org-scoped at its source, so the open-PO
+  // list is already this-tenant-only.
   const pos = (await getMaterialPurchaseOrders()).filter((p) =>
     RECEIVING_OPEN_STATUSES.has(p.status),
   );
@@ -67,7 +72,8 @@ export async function getReceivingQueue(): Promise<ReceivingQueueItem[]> {
       poId: materialReceivingHolds.poId,
       status: materialReceivingHolds.status,
     })
-    .from(materialReceivingHolds);
+    .from(materialReceivingHolds)
+    .where(eq(materialReceivingHolds.organizationId, organizationId));
   const openHoldByPo = new Map<string, number>();
   for (const h of holdRows) {
     if (h.status === "open") {
@@ -143,6 +149,9 @@ export interface ReceivingPoDetail {
 export async function getReceivingPoDetail(
   idOrCode: string,
 ): Promise<ReceivingPoDetail | null> {
+  const organizationId = await requireOrgId();
+
+  // getMaterialPO is org-scoped at its source (returns null on cross-org PO).
   const po = await getMaterialPO(idOrCode);
   if (!po) return null;
 
@@ -154,7 +163,12 @@ export async function getReceivingPoDetail(
     const rows = await db
       .select()
       .from(materialReceivingHolds)
-      .where(eq(materialReceivingHolds.poId, po.id))
+      .where(
+        and(
+          eq(materialReceivingHolds.poId, po.id),
+          eq(materialReceivingHolds.organizationId, organizationId),
+        ),
+      )
       .orderBy(desc(materialReceivingHolds.createdAt));
     holds = rows.map((h) => ({
       id: h.id,

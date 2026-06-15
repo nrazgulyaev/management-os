@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   materialPurchaseOrders,
   materialPoLines,
@@ -48,8 +49,11 @@ export async function getMaterialPurchaseOrders(
 ): Promise<MaterialPoListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`po.organization_id = ${organizationId}`,
+  ];
   if (filters.projectId)
     conditions.push(sql`po.project_id = ${filters.projectId}`);
   if (filters.vendorId)
@@ -58,9 +62,7 @@ export async function getMaterialPurchaseOrders(
   if (filters.fromDate)
     conditions.push(sql`po.order_date >= ${filters.fromDate}`);
   if (filters.toDate) conditions.push(sql`po.order_date <= ${filters.toDate}`);
-  const where = conditions.length
-    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
-    : sql``;
+  const where = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
 
   const rows = await db.execute(sql`
     SELECT
@@ -133,6 +135,9 @@ export interface MaterialPoDetail extends MaterialPoListItem {
 export async function getMaterialPO(idOrCode: string): Promise<MaterialPoDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
+  // Source list is now org-scoped, so `summary` can only be one of the
+  // caller's own POs — this closes the cross-tenant IDOR.
   const list = await getMaterialPurchaseOrders();
   const summary = list.find((p) => p.id === idOrCode || p.poCode === idOrCode);
   if (!summary) return null;
@@ -140,13 +145,23 @@ export async function getMaterialPO(idOrCode: string): Promise<MaterialPoDetail 
   const [base] = await db
     .select({ notes: materialPurchaseOrders.notes })
     .from(materialPurchaseOrders)
-    .where(eq(materialPurchaseOrders.id, summary.id))
+    .where(
+      and(
+        eq(materialPurchaseOrders.id, summary.id),
+        eq(materialPurchaseOrders.organizationId, organizationId),
+      ),
+    )
     .limit(1);
 
   const lines = await db
     .select()
     .from(materialPoLines)
-    .where(eq(materialPoLines.poId, summary.id))
+    .where(
+      and(
+        eq(materialPoLines.poId, summary.id),
+        eq(materialPoLines.organizationId, organizationId),
+      ),
+    )
     .orderBy(materialPoLines.lineNumber);
 
   const deliveries = await db
@@ -157,7 +172,12 @@ export async function getMaterialPO(idOrCode: string): Promise<MaterialPoDetail 
       qualityCheckStatus: materialDeliveries.qualityCheckStatus,
     })
     .from(materialDeliveries)
-    .where(eq(materialDeliveries.poId, summary.id));
+    .where(
+      and(
+        eq(materialDeliveries.poId, summary.id),
+        eq(materialDeliveries.organizationId, organizationId),
+      ),
+    );
 
   return {
     ...summary,
@@ -209,8 +229,11 @@ export async function getMaterialDeliveries(
 ): Promise<MaterialDeliveryListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`d.organization_id = ${organizationId}`,
+  ];
   if (filters.projectId)
     conditions.push(sql`po.project_id = ${filters.projectId}`);
   if (filters.vendorId) conditions.push(sql`po.vendor_id = ${filters.vendorId}`);
@@ -219,9 +242,7 @@ export async function getMaterialDeliveries(
   if (filters.fromDate)
     conditions.push(sql`d.delivery_date >= ${filters.fromDate}`);
   if (filters.toDate) conditions.push(sql`d.delivery_date <= ${filters.toDate}`);
-  const where = conditions.length
-    ? sql`WHERE ${sql.join(conditions, sql` AND `)}`
-    : sql``;
+  const where = sql`WHERE ${sql.join(conditions, sql` AND `)}`;
 
   const rows = await db.execute(sql`
     SELECT
@@ -287,6 +308,7 @@ export async function getMaterialUtilization(
       outstandingQty: 0,
     };
   }
+  const organizationId = await requireOrgId();
   const [r] = await db.execute(sql`
     SELECT
       count(*)::int AS line_count,
@@ -295,6 +317,7 @@ export async function getMaterialUtilization(
       coalesce(sum(quantity_consumed), 0)::numeric AS qty_consumed
     FROM material_po_lines
     WHERE po_id = ${poId}
+      AND organization_id = ${organizationId}
   `);
   const row = (r ?? {}) as Record<string, unknown>;
   const ordered = Number(row.qty_ordered ?? 0);

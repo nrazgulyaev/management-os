@@ -7,6 +7,7 @@ import {
   boqSections,
   boqItems,
 } from "@/lib/db/schema/boq";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Flat list of BOQ sections across all documents in the org, for a
@@ -17,6 +18,7 @@ export async function listBoqSectionTargets(): Promise<
   Array<{ sectionId: string; label: string }>
 > {
   const db = requireDb();
+  const orgId = await requireOrgId();
   const rows = await db
     .select({
       sectionId: boqSections.id,
@@ -25,6 +27,12 @@ export async function listBoqSectionTargets(): Promise<
     })
     .from(boqSections)
     .innerJoin(boqDocuments, eq(boqDocuments.id, boqSections.boqDocumentId))
+    .where(
+      and(
+        eq(boqDocuments.organizationId, orgId),
+        eq(boqSections.organizationId, orgId),
+      ),
+    )
     .orderBy(asc(boqDocuments.title), asc(boqSections.displayOrder));
   return rows.map((r) => ({
     sectionId: r.sectionId,
@@ -38,7 +46,10 @@ export async function listBoqDocuments(filters?: {
   status?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const orgId = await requireOrgId();
+  const conditions: Array<ReturnType<typeof eq>> = [
+    eq(boqDocuments.organizationId, orgId),
+  ];
   if (filters?.projectId) {
     conditions.push(eq(boqDocuments.projectId, filters.projectId));
   }
@@ -51,22 +62,33 @@ export async function listBoqDocuments(filters?: {
   return db
     .select()
     .from(boqDocuments)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(boqDocuments.createdAt));
 }
 
 export async function getBoqDocumentByCode(code: string) {
   const db = requireDb();
+  const orgId = await requireOrgId();
   const [doc] = await db
     .select()
     .from(boqDocuments)
-    .where(eq(boqDocuments.boqCode, code))
+    .where(
+      and(
+        eq(boqDocuments.boqCode, code),
+        eq(boqDocuments.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!doc) return null;
   const sections = await db
     .select()
     .from(boqSections)
-    .where(eq(boqSections.boqDocumentId, doc.id))
+    .where(
+      and(
+        eq(boqSections.boqDocumentId, doc.id),
+        eq(boqSections.organizationId, orgId),
+      ),
+    )
     .orderBy(asc(boqSections.displayOrder), asc(boqSections.sectionCode));
   const sectionIds = sections.map((s) => s.id);
   const items =
@@ -76,7 +98,10 @@ export async function getBoqDocumentByCode(code: string) {
           .select()
           .from(boqItems)
           .where(
-            inArray(boqItems.sectionId, sectionIds),
+            and(
+              inArray(boqItems.sectionId, sectionIds),
+              eq(boqItems.organizationId, orgId),
+            ),
           )
           .orderBy(asc(boqItems.itemCode));
   return { document: doc, sections, items };
@@ -110,6 +135,7 @@ export async function getBoqActualsByLine(
 ): Promise<Map<string, BoqLineActual>> {
   const db = getDb();
   if (!db) return new Map();
+  const orgId = await requireOrgId();
   const rows = await db.execute<BoqLineActualRow>(sql`
     SELECT
       i.id::text                                   AS line_id,
@@ -120,6 +146,7 @@ export async function getBoqActualsByLine(
     JOIN boq_sections s ON s.id = i.section_id
     JOIN boq_actuals ba ON ba.line_id = i.id
     WHERE s.boq_document_id = ${boqDocumentId}
+      AND s.organization_id = ${orgId}
     GROUP BY i.id
     HAVING SUM(ba.qty_actual) > 0
   `);

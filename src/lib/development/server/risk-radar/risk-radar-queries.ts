@@ -3,6 +3,7 @@ import "server-only";
 import { and, desc, eq, inArray, gte, lte, ne, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { riskRadarAlerts } from "@/lib/db/schema/executive";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Alerts detected within `[start, end]` (inclusive), newest first.
@@ -12,11 +13,13 @@ import { riskRadarAlerts } from "@/lib/db/schema/executive";
 export async function listAlertsInRange(start: Date, end: Date) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(riskRadarAlerts)
     .where(
       and(
+        eq(riskRadarAlerts.organizationId, organizationId),
         gte(riskRadarAlerts.detectedAt, start),
         lte(riskRadarAlerts.detectedAt, end),
       ),
@@ -30,24 +33,34 @@ export async function listRecentAlerts(opts: {
 } = {}) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const where = opts.status
-    ? inArray(riskRadarAlerts.status, opts.status)
-    : undefined;
-  const q = db
+    ? and(
+        eq(riskRadarAlerts.organizationId, organizationId),
+        inArray(riskRadarAlerts.status, opts.status),
+      )
+    : eq(riskRadarAlerts.organizationId, organizationId);
+  return db
     .select()
     .from(riskRadarAlerts)
+    .where(where)
     .orderBy(desc(riskRadarAlerts.detectedAt))
     .limit(opts.limit ?? 100);
-  return where ? q.where(where) : q;
 }
 
 export async function getAlertByCode(code: string) {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(riskRadarAlerts)
-    .where(eq(riskRadarAlerts.alertCode, code))
+    .where(
+      and(
+        eq(riskRadarAlerts.alertCode, code),
+        eq(riskRadarAlerts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return rows[0] ?? null;
 }
@@ -94,6 +107,7 @@ export async function listSimilarAlerts(args: {
 }) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const matchers = [eq(riskRadarAlerts.alertCategory, args.alertCategory)];
   if (args.detectionMethod) {
     matchers.push(eq(riskRadarAlerts.detectionMethod, args.detectionMethod));
@@ -110,7 +124,13 @@ export async function listSimilarAlerts(args: {
       resolutionNotes: riskRadarAlerts.resolutionNotes,
     })
     .from(riskRadarAlerts)
-    .where(and(ne(riskRadarAlerts.id, args.alertId), or(...matchers)))
+    .where(
+      and(
+        eq(riskRadarAlerts.organizationId, organizationId),
+        ne(riskRadarAlerts.id, args.alertId),
+        or(...matchers),
+      ),
+    )
     .orderBy(desc(riskRadarAlerts.detectedAt))
     .limit(args.limit ?? 8);
 }
