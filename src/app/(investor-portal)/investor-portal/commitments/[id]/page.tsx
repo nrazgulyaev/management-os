@@ -10,8 +10,8 @@ import {
 } from "@/lib/investor-portal/queries";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Badge } from "@/components/ui/badge";
 import {
+  PortalBadge,
   PortalCard,
   PortalDetailHeader,
   PortalKpi,
@@ -67,7 +67,7 @@ export default async function CommitmentDetailPage({
           </span>
         }
         badge={
-          <Badge
+          <PortalBadge
             tone={
               commitment.status === "active"
                 ? "success"
@@ -79,7 +79,7 @@ export default async function CommitmentDetailPage({
             }
           >
             {commitment.status.replace(/_/g, " ")}
-          </Badge>
+          </PortalBadge>
         }
       />
 
@@ -150,7 +150,7 @@ export default async function CommitmentDetailPage({
                       : "—"}
                   </td>
                   <td className="px-4 py-3.5">
-                    <Badge
+                    <PortalBadge
                       tone={
                         d.status === "received"
                           ? "success"
@@ -160,7 +160,7 @@ export default async function CommitmentDetailPage({
                       }
                     >
                       {DRAWDOWN_STATUS_LABEL[d.status]}
-                    </Badge>
+                    </PortalBadge>
                   </td>
                 </tr>
               ))}

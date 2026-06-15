@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { SectionHeading, Card } from "@/components/dashboard/primitives";
-import { Badge } from "@/components/ui/badge";
+import { PortalBadge } from "@/components/investor-portal/portal-primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
 import { getConstructionProgress } from "@/features/investor-portal/investor-portal-queries";
@@ -51,7 +51,7 @@ export default async function ConstructionPage() {
                     <TD className="text-right tabular-nums">{r.siteReportsCount}</TD>
                     <TD className="text-right tabular-nums">{r.qaInspectionsCount}</TD>
                     <TD className="font-mono text-sm">
-                      {r.latestReportDate ?? <Badge tone="outline">no reports</Badge>}
+                      {r.latestReportDate ?? <PortalBadge tone="outline">no reports</PortalBadge>}
                     </TD>
                   </TR>
                 ))}

@@ -1,5 +1,5 @@
 import { Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { PortalBadge } from "@/components/investor-portal/portal-primitives";
 import {
   PORTAL_REQUEST_LIFECYCLE,
   PORTAL_REQUEST_STATUS_LABEL,
@@ -12,9 +12,9 @@ import {
 export function RequestStatusBadge({ status }: { status: string }) {
   const s = status as PortalRequestStatus;
   return (
-    <Badge tone={PORTAL_REQUEST_STATUS_TONE[s] ?? "neutral"}>
+    <PortalBadge tone={PORTAL_REQUEST_STATUS_TONE[s] ?? "neutral"}>
       {PORTAL_REQUEST_STATUS_LABEL[s] ?? status.replace(/_/g, " ")}
-    </Badge>
+    </PortalBadge>
   );
 }
 

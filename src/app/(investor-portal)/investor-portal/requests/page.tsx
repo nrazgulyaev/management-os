@@ -11,7 +11,6 @@ import {
   RequestStatusBadge,
 } from "@/components/investor-portal/request-lifecycle";
 import { CancelRequestButton } from "@/components/investor-portal/cancel-request-button";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { investorPortalRequests } from "@/lib/db/schema/investor-portal-requests";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
@@ -75,18 +74,20 @@ export default async function PortalRequestsPage() {
             </p>
           </div>
           <div className="hidden shrink-0 gap-2 sm:flex">
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/investor-portal/wallet/withdraw">
-                <ArrowDownToLine className="h-4 w-4" strokeWidth={1.75} />
-                Withdraw
-              </Link>
-            </Button>
-            <Button asChild variant="secondary" size="sm">
-              <Link href="/investor-portal/wallet/reinvest">
-                <Repeat className="h-4 w-4" strokeWidth={1.75} />
-                Reinvest
-              </Link>
-            </Button>
+            <Link
+              className="btn btn-secondary btn-sm"
+              href="/investor-portal/wallet/withdraw"
+            >
+              <ArrowDownToLine className="h-4 w-4" strokeWidth={1.75} />
+              Withdraw
+            </Link>
+            <Link
+              className="btn btn-secondary btn-sm"
+              href="/investor-portal/wallet/reinvest"
+            >
+              <Repeat className="h-4 w-4" strokeWidth={1.75} />
+              Reinvest
+            </Link>
           </div>
         </header>
 
@@ -111,14 +112,18 @@ export default async function PortalRequestsPage() {
               Wallet. The Arconique team reviews every request before execution.
             </p>
             <div className="mt-4 flex justify-center gap-2">
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/investor-portal/wallet/withdraw">
-                  Request a withdrawal
-                </Link>
-              </Button>
-              <Button asChild variant="secondary" size="sm">
-                <Link href="/investor-portal/wallet/reinvest">Reinvest cash</Link>
-              </Button>
+              <Link
+                className="btn btn-secondary btn-sm"
+                href="/investor-portal/wallet/withdraw"
+              >
+                Request a withdrawal
+              </Link>
+              <Link
+                className="btn btn-secondary btn-sm"
+                href="/investor-portal/wallet/reinvest"
+              >
+                Reinvest cash
+              </Link>
             </div>
           </div>
         ) : (

@@ -9,7 +9,6 @@ import {
 } from "@/lib/investor-portal/actions";
 import { getPortalStrings } from "@/lib/investor-portal/translations";
 import { PortalShell } from "@/components/investor-portal/portal-shell";
-import { Button } from "@/components/ui/button";
 import {
   CURRENCY_LABEL,
   INVESTOR_TYPE_LABEL,
@@ -166,9 +165,9 @@ export default async function PortalProfilePage({
                 </option>
               ))}
             </select>
-            <Button type="submit" size="sm">
+            <button type="submit" className="btn btn-amber btn-sm">
               Save
-            </Button>
+            </button>
           </form>
           <p className="mt-2.5 text-xs text-ink-tertiary">
             The portal UI will re-render in the chosen language on next page
@@ -211,9 +210,9 @@ export default async function PortalProfilePage({
               />
             </label>
             <div className="md:col-span-2">
-              <Button type="submit" size="sm">
+              <button type="submit" className="btn btn-amber btn-sm">
                 Update password
-              </Button>
+              </button>
             </div>
           </form>
           <p className="mt-2.5 text-xs text-ink-tertiary">

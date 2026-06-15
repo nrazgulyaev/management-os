@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { SectionHeading, Card } from "@/components/dashboard/primitives";
-import { Badge } from "@/components/ui/badge";
+import { PortalBadge } from "@/components/investor-portal/portal-primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
 import { getCapitalLedger } from "@/features/investor-portal/investor-portal-queries";
@@ -63,7 +63,7 @@ export default async function CapitalLedgerPage() {
                 <TR key={`${e.eventType}-${e.id}`}>
                   <TD className="font-mono text-sm">{e.date}</TD>
                   <TD>
-                    <Badge tone={EVENT_TONE[e.eventType]}>{e.eventType}</Badge>
+                    <PortalBadge tone={EVENT_TONE[e.eventType]}>{e.eventType}</PortalBadge>
                   </TD>
                   <TD className="text-sm">{e.projectName ?? "—"}</TD>
                   <TD className="text-sm text-ink-secondary">{e.narrative}</TD>

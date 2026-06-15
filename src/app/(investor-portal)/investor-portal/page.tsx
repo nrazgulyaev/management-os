@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowUpRight } from "lucide-react";
 import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { PortalBadge } from "@/components/investor-portal/portal-primitives";
 import { getCurrentInvestorContext } from "@/features/investor-portal/investor-context";
 import { mapPoolAll } from "@/lib/db/map-pool";
 import {
@@ -115,7 +115,7 @@ export default async function InvestorPortalHomePage() {
             <ul className="divide-y divide-line-soft">
               {ledger.map((e) => (
                 <li key={`${e.eventType}-${e.id}`} className="py-3 flex items-center gap-4">
-                  <Badge tone={EVENT_TONE[e.eventType]}>{e.eventType}</Badge>
+                  <PortalBadge tone={EVENT_TONE[e.eventType]}>{e.eventType}</PortalBadge>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-ink truncate">{e.narrative}</div>
                     <div className="text-[11px] text-ink-tertiary">
@@ -209,7 +209,7 @@ export default async function InvestorPortalHomePage() {
             {interest.map((p) => (
               <div key={p.projectId} className="rounded-lg border border-line-soft bg-surface p-5 flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <Badge tone="outline">{p.fundClass}</Badge>
+                  <PortalBadge tone="outline">{p.fundClass}</PortalBadge>
                   <span className="text-[10px] text-ink-tertiary tabular-nums">
                     {p.profitSharePct}% profit share
                   </span>
