@@ -1,104 +1,62 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
+/**
+ * Shared table primitives — now rendered as the handoff design-system
+ * `table.data` inside a `.card` shell. The visual styling (th/td padding,
+ * borders, hover, the `.num` numeric column, the `.row-title` serif primary
+ * cell) all comes from the product-scoped `table.data` CSS in
+ * `src/styles/components/primitives.css`, so a single component renders the
+ * mock-matched table under any `[data-product]` (mgmt / dev / …).
+ *
+ * The sub-components stay thin wrappers that pass `className` through, so the
+ * ~107 callsites keep their per-column overrides (e.g. `className="num"` or a
+ * width utility) without any JSX changes.
+ */
+
 export function Table({
   className,
   ...props
 }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="relative w-full overflow-auto rounded-md border border-line-soft">
-      <table
-        className={cn("w-full caption-bottom text-sm", className)}
-        {...props}
-      />
+    <div className="card p-0 overflow-x-auto">
+      <table className={cn("data w-full", className)} {...props} />
     </div>
   );
 }
 
-export function THead({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return (
-    <thead
-      className={cn(
-        "bg-muted/60 text-label [&_tr]:border-b border-line-soft",
-        className
-      )}
-      {...props}
-    />
-  );
+export function THead(props: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return <thead {...props} />;
 }
 
-export function TBody({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return (
-    <tbody
-      className={cn(
-        "[&_tr:last-child]:border-0 [&_tr]:border-b [&_tr]:border-line-soft",
-        className
-      )}
-      {...props}
-    />
-  );
+export function TBody(props: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return <tbody {...props} />;
 }
 
-export function TR({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLTableRowElement>) {
-  return (
-    <tr
-      className={cn(
-        "transition-colors hover:bg-muted/40 data-[state=selected]:bg-muted",
-        className
-      )}
-      {...props}
-    />
-  );
+export function TR(props: React.HTMLAttributes<HTMLTableRowElement>) {
+  return <tr {...props} />;
 }
 
 export function TH({
   className,
   ...props
 }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return (
-    <th
-      scope="col"
-      className={cn(
-        "h-10 px-4 text-left align-middle font-medium text-[11px] tracking-wide uppercase text-ink-tertiary whitespace-nowrap",
-        className
-      )}
-      {...props}
-    />
-  );
+  // `table.data th` CSS supplies the uppercase mono label + alignment; the
+  // `.num` class right-aligns numeric headers. className still passes through.
+  return <th scope="col" className={className} {...props} />;
 }
 
 export function TD({
   className,
   ...props
 }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return (
-    <td
-      className={cn(
-        "px-4 py-3 align-middle text-sm text-ink",
-        className
-      )}
-      {...props}
-    />
-  );
+  return <td className={className} {...props} />;
 }
 
 export function TDNum({
   className,
   ...props
 }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return (
-    <TD
-      className={cn("font-mono tabular-nums text-right", className)}
-      {...props}
-    />
-  );
+  // `.num` = the design-system numeric cell (tabular mono, right-aligned).
+  return <TD className={cn("num", className)} {...props} />;
 }

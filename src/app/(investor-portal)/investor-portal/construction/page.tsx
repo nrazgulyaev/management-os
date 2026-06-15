@@ -32,8 +32,7 @@ export default async function ConstructionPage() {
             </p>
           </Card>
         ) : (
-          <Card style={{ padding: 0, overflow: "hidden" }}>
-            <Table>
+          <Table>
               <THead>
                 <TR>
                   <TH>Project</TH>
@@ -57,7 +56,6 @@ export default async function ConstructionPage() {
                 ))}
               </TBody>
             </Table>
-          </Card>
         )}
         <p style={{ fontSize: 11, color: "var(--ink-3)", fontStyle: "italic", marginTop: 14 }}>
           Site photos and per-milestone narrative will appear here once the

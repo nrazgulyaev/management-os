@@ -47,8 +47,7 @@ export default async function CapitalLedgerPage() {
             <p style={{ fontSize: 14, color: "var(--ink-3)", fontStyle: "italic", margin: 0 }}>Empty ledger.</p>
           </Card>
         ) : (
-          <Card style={{ padding: 0, overflow: "hidden" }}>
-            <Table>
+          <Table>
             <THead>
               <TR>
                 <TH>Date</TH>
@@ -77,7 +76,6 @@ export default async function CapitalLedgerPage() {
               ))}
             </TBody>
           </Table>
-          </Card>
         )}
       </section>
     </div>
