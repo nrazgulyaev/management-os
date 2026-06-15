@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInvestorPortalRequests } from "@/lib/development/server/investor-portal-requests/request-queries";
@@ -17,13 +13,13 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  submitted: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  submitted: "warn",
   under_review: "info",
   approved: "info",
-  executed: "success",
+  executed: "ok",
   rejected: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function InvestorRequestsInboxPage() {
@@ -31,7 +27,11 @@ export default async function InvestorRequestsInboxPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Investor requests" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Investor requests</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -48,23 +48,24 @@ export default async function InvestorRequestsInboxPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investor requests" },
-        ]}
-        eyebrow={`${pending.length} pending · ${rows.length} total`}
-        title="Investor portal request inbox"
-        description="Withdrawal / reinvest / transfer / capital-call requests submitted by investors via the portal. Review → approve → execute (operator-driven only — no auto-execute)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Investor requests</span>
+          </div>
+          <h1>Investor portal request inbox</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Withdrawal / reinvest / transfer / capital-call requests submitted by investors via the portal. Review → approve → execute (operator-driven only — no auto-execute).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -72,50 +73,51 @@ export default async function InvestorRequestsInboxPage() {
           description="Investors submit requests via the portal at /investor-portal/wallet."
         />
       ) : (
-        <Section eyebrow="Inbox" title="All requests (most recent first)">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Code</TH>
-                <TH>Type</TH>
-                <TH>Investor</TH>
-                <TH>Amount</TH>
-                <TH>Status</TH>
-                <TH>Submitted</TH>
-              </TR>
-            </THead>
-            <TBody>
+        <div>
+          <div className="label mb-2.5">Inbox</div>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Type</th>
+                <th scope="col">Investor</th>
+                <th scope="col" className="num">Amount</th>
+                <th scope="col">Status</th>
+                <th scope="col">Submitted</th>
+              </tr>
+            </thead>
+            <tbody>
               {rows.map((r) => (
-                <TR key={r.id}>
-                  <TD className="font-mono text-xs">
+                <tr key={r.id}>
+                  <td className="mono text-xs">
                     <Link
                       href={`/development-os/investor-requests/${r.requestCode}`}
                       className="hover:underline"
                     >
                       {r.requestCode}
                     </Link>
-                  </TD>
-                  <TD className="text-xs">{r.requestType}</TD>
-                  <TD className="font-mono text-xs">
+                  </td>
+                  <td className="text-xs">{r.requestType}</td>
+                  <td className="mono text-xs">
                     {r.investorId.slice(0, 8)}
-                  </TD>
-                  <TDNum>
+                  </td>
+                  <td className="num">
                     ${(Number(r.requestedAmountMinor) / 100).toLocaleString()}{" "}
                     {r.currency}
-                  </TDNum>
-                  <TD>
-                    <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                  </td>
+                  <td>
+                    <HandoffBadge tone={STATUS_TONE[r.status] ?? "soft"}>
                       {r.status}
-                    </Badge>
-                  </TD>
-                  <TD className="text-xs">
+                    </HandoffBadge>
+                  </td>
+                  <td className="text-xs">
                     {new Date(r.submittedAt).toISOString().slice(0, 16).replace("T", " ")}
-                  </TD>
-                </TR>
+                  </td>
+                </tr>
               ))}
-            </TBody>
-          </Table>
-        </Section>
+            </tbody>
+          </table>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, FileSignature } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listRevenueStreams } from "@/lib/development/server/revenue-streams/revenue-stream-queries";
@@ -87,7 +82,15 @@ export default async function RevenueRecognitionPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Revenue recognition" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Revenue recognition</span>
+            </div>
+            <h1>Revenue recognition</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -115,216 +118,228 @@ export default async function RevenueRecognitionPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Revenue recognition" },
-        ]}
-        eyebrow={`${totals.contractsTransferred + totals.contractsPending} contracts · ${streams.length} stream logs`}
-        title="Revenue recognition"
-        description="Recognised vs deferred revenue across the portfolio. Sale revenue is recognised at the AJB (Akta Jual Beli — the notarial deed transferring title); cash collected before transfer is a deferred contract liability. Operating-stream revenue is recognised once each period has closed."
-        actions={
-          <div className="flex items-center gap-2">
-            <LogRevenueStreamForm assets={assetOpts} />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Revenue recognition</span>
           </div>
-        }
-      />
+          <h1>Revenue recognition</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Recognised vs deferred revenue across the portfolio. Sale revenue is
+            recognised at the AJB (Akta Jual Beli — the notarial deed transferring
+            title); cash collected before transfer is a deferred contract
+            liability. Operating-stream revenue is recognised once each period has
+            closed.
+          </p>
+        </div>
+        <div className="actions">
+          <LogRevenueStreamForm assets={assetOpts} />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {/* KPI strip — recognised vs deferred */}
-      <Section eyebrow="Snapshot" title="Recognised vs deferred">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+      <div>
+        <div className="label mb-2.5">Snapshot</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Kpi
             label="Sales recognised (at AJB)"
             value={formatUsdCompact(totals.salesRecognisedUsdMinor)}
-            hint={`${totals.contractsTransferred} contract${totals.contractsTransferred === 1 ? "" : "s"} transferred`}
-            accent
+            sub={`${totals.contractsTransferred} contract${totals.contractsTransferred === 1 ? "" : "s"} transferred`}
+            tone="accent"
           />
-          <MetricCard
+          <Kpi
             label="Sales deferred (pre-transfer)"
             value={formatUsdCompact(totals.salesDeferredUsdMinor)}
-            hint={`${totals.contractsPending} awaiting AJB`}
+            sub={`${totals.contractsPending} awaiting AJB`}
           />
-          <MetricCard
+          <Kpi
             label="Operating recognised"
             value={formatMoney(totals.streamRecognisedMinor, cur)}
-            hint="Closed periods"
+            sub="Closed periods"
           />
-          <MetricCard
+          <Kpi
             label="Operating deferred"
             value={formatMoney(totals.streamDeferredMinor, cur)}
-            hint="Future periods"
+            sub="Future periods"
           />
         </div>
-      </Section>
+      </div>
 
       {/* AJB framing / next unlock note */}
-      <Section
-        eyebrow="Recognition trigger"
-        title="AJB — notarial transfer of title"
-      >
-        <div className="rounded-lg border border-line-soft bg-surface p-5 flex flex-col gap-4">
-          <div className="flex items-start gap-3">
-            <span className="mt-0.5 rounded-md bg-accent-weak p-2 text-accent">
-              <FileSignature className="w-4 h-4" strokeWidth={1.75} />
-            </span>
-            <p className="text-sm text-ink-secondary leading-relaxed max-w-3xl">
-              Under the Indonesian leasehold/sale model, a contract&apos;s collected
-              cash sits as a <span className="font-medium text-ink">deferred liability</span>{" "}
-              (buyer deposit) until the <span className="font-medium text-ink">AJB</span>{" "}
-              is executed before a notary, transferring title. At that point the
-              accumulated cash is <span className="font-medium text-ink">recognised</span>{" "}
-              as revenue. {totals.contractsPending} contract
-              {totals.contractsPending === 1 ? "" : "s"} are currently pre-transfer.
-            </p>
-          </div>
-          {nextUnlock ? (
-            <div className="rounded-md border border-line-soft bg-muted/30 p-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col gap-0.5 min-w-0">
-                <span className="text-label">Next unlock</span>
-                <span className="text-sm font-medium text-ink truncate">
-                  {nextUnlock.projectName}
-                  {nextUnlock.villaUnitCode ? ` · ${nextUnlock.villaUnitCode}` : ""}
-                  {nextUnlock.contactName ? ` — ${nextUnlock.contactName}` : ""}
-                </span>
-                <span className="text-xs text-ink-tertiary">
-                  {formatUsdCompact(nextUnlock.collectedUsdMinor)} collected of{" "}
-                  {formatUsdCompact(nextUnlock.totalContractUsdMinor)} — recognises on AJB
-                </span>
-              </div>
-              <Badge tone="warning">{nextUnlock.status.replace(/_/g, " ")}</Badge>
+      <div>
+        <div className="label mb-2.5">Recognition trigger</div>
+        <Card padding="default">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 rounded-md bg-accent-weak p-2 text-accent">
+                <FileSignature className="w-4 h-4" strokeWidth={1.75} />
+              </span>
+              <p className="text-sm text-ink-secondary leading-relaxed max-w-3xl">
+                Under the Indonesian leasehold/sale model, a contract&apos;s collected
+                cash sits as a <span className="font-medium text-ink">deferred liability</span>{" "}
+                (buyer deposit) until the <span className="font-medium text-ink">AJB</span>{" "}
+                is executed before a notary, transferring title. At that point the
+                accumulated cash is <span className="font-medium text-ink">recognised</span>{" "}
+                as revenue. {totals.contractsPending} contract
+                {totals.contractsPending === 1 ? "" : "s"} are currently pre-transfer.
+              </p>
             </div>
-          ) : (
-            <p className="text-xs text-ink-tertiary">
-              No pre-transfer contracts — all collected sale cash is recognised.
-            </p>
-          )}
-        </div>
-      </Section>
+            {nextUnlock ? (
+              <div className="rounded-md border border-line-soft bg-muted/30 p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-0.5 min-w-0">
+                  <span className="text-label">Next unlock</span>
+                  <span className="text-sm font-medium text-ink truncate">
+                    {nextUnlock.projectName}
+                    {nextUnlock.villaUnitCode ? ` · ${nextUnlock.villaUnitCode}` : ""}
+                    {nextUnlock.contactName ? ` — ${nextUnlock.contactName}` : ""}
+                  </span>
+                  <span className="text-xs text-ink-tertiary">
+                    {formatUsdCompact(nextUnlock.collectedUsdMinor)} collected of{" "}
+                    {formatUsdCompact(nextUnlock.totalContractUsdMinor)} — recognises on AJB
+                  </span>
+                </div>
+                <HandoffBadge tone="warn">{nextUnlock.status.replace(/_/g, " ")}</HandoffBadge>
+              </div>
+            ) : (
+              <p className="text-xs text-ink-tertiary">
+                No pre-transfer contracts — all collected sale cash is recognised.
+              </p>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {/* Streams-by-project table with recognised + deferred columns */}
-      <Section eyebrow="By project" title="Recognised + deferred by project">
+      <div>
+        <div className="label mb-2.5">By project</div>
         {!hasData ? (
           <EmptyState
             title="No recognised or deferred revenue yet"
             description="Log operating streams below, or progress a sales contract to the AJB to recognise revenue. Seed via scripts/seed-dev-os.mjs."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Project</TH>
-                <TH className="text-right">Sales recognised</TH>
-                <TH className="text-right">Sales deferred</TH>
-                <TH className="text-right">Op. recognised</TH>
-                <TH className="text-right">Op. deferred</TH>
-                <TH>Sales mix</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {projects.map((p) => (
-                <TR key={p.projectId}>
-                  <TD>
-                    <Link
-                      href={`/development-os/projects/${p.projectSlug}`}
-                      className="font-medium text-ink hover:text-accent"
-                    >
-                      {p.projectName}
-                    </Link>
-                    <div className="text-[11px] text-ink-tertiary">
-                      {p.contractsTransferred} transferred · {p.contractsPending} pending
-                    </div>
-                  </TD>
-                  <TDNum className="text-accent">
-                    {formatUsdCompact(p.salesRecognisedUsdMinor)}
-                  </TDNum>
-                  <TDNum>{formatUsdCompact(p.salesDeferredUsdMinor)}</TDNum>
-                  <TDNum>
-                    {formatMoney(p.streamRecognisedMinor, p.streamCurrency)}
-                  </TDNum>
-                  <TDNum>
-                    {formatMoney(p.streamDeferredMinor, p.streamCurrency)}
-                  </TDNum>
-                  <TD>
-                    <MixBar
-                      recognised={p.salesRecognisedUsdMinor}
-                      deferred={p.salesDeferredUsdMinor}
-                    />
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Project</th>
+                  <th scope="col" className="num">Sales recognised</th>
+                  <th scope="col" className="num">Sales deferred</th>
+                  <th scope="col" className="num">Op. recognised</th>
+                  <th scope="col" className="num">Op. deferred</th>
+                  <th scope="col">Sales mix</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projects.map((p) => (
+                  <tr key={p.projectId}>
+                    <td>
+                      <Link
+                        href={`/development-os/projects/${p.projectSlug}`}
+                        className="font-medium text-ink hover:text-accent"
+                      >
+                        {p.projectName}
+                      </Link>
+                      <div className="text-[11px] text-ink-tertiary">
+                        {p.contractsTransferred} transferred · {p.contractsPending} pending
+                      </div>
+                    </td>
+                    <td className="num text-accent">
+                      {formatUsdCompact(p.salesRecognisedUsdMinor)}
+                    </td>
+                    <td className="num">{formatUsdCompact(p.salesDeferredUsdMinor)}</td>
+                    <td className="num">
+                      {formatMoney(p.streamRecognisedMinor, p.streamCurrency)}
+                    </td>
+                    <td className="num">
+                      {formatMoney(p.streamDeferredMinor, p.streamCurrency)}
+                    </td>
+                    <td>
+                      <MixBar
+                        recognised={p.salesRecognisedUsdMinor}
+                        deferred={p.salesDeferredUsdMinor}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
 
       {/* Recognition-mix progress bars */}
-      <Section eyebrow="Mix" title="Recognition mix">
+      <div>
+        <div className="label mb-2.5">Mix</div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div className="rounded-lg border border-line-soft bg-surface p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">Sales cash (USD)</span>
-              <span className="text-xs text-ink-tertiary tabular-nums">
-                {salesRecPct.toFixed(0)}% recognised
-              </span>
+          <Card padding="default">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">Sales cash (USD)</span>
+                <span className="text-xs text-ink-tertiary tabular-nums">
+                  {salesRecPct.toFixed(0)}% recognised
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex">
+                <div
+                  className="h-full bg-accent"
+                  style={{ width: `${salesRecPct}%` }}
+                  aria-hidden
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs text-ink-tertiary">
+                <span>
+                  <span className="text-accent font-medium">
+                    {formatUsdCompact(totals.salesRecognisedUsdMinor)}
+                  </span>{" "}
+                  recognised
+                </span>
+                <span>{formatUsdCompact(totals.salesDeferredUsdMinor)} deferred</span>
+              </div>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex">
-              <div
-                className="h-full bg-accent"
-                style={{ width: `${salesRecPct}%` }}
-                aria-hidden
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs text-ink-tertiary">
-              <span>
-                <span className="text-accent font-medium">
-                  {formatUsdCompact(totals.salesRecognisedUsdMinor)}
-                </span>{" "}
-                recognised
-              </span>
-              <span>{formatUsdCompact(totals.salesDeferredUsdMinor)} deferred</span>
-            </div>
-          </div>
+          </Card>
 
-          <div className="rounded-lg border border-line-soft bg-surface p-5 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">
-                Operating revenue ({cur})
-              </span>
-              <span className="text-xs text-ink-tertiary tabular-nums">
-                {pct(totals.streamRecognisedMinor, streamTotal).toFixed(0)}% recognised
-              </span>
+          <Card padding="default">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-ink">
+                  Operating revenue ({cur})
+                </span>
+                <span className="text-xs text-ink-tertiary tabular-nums">
+                  {pct(totals.streamRecognisedMinor, streamTotal).toFixed(0)}% recognised
+                </span>
+              </div>
+              <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex">
+                <div
+                  className="h-full bg-accent"
+                  style={{
+                    width: `${pct(totals.streamRecognisedMinor, streamTotal)}%`,
+                  }}
+                  aria-hidden
+                />
+              </div>
+              <div className="flex items-center justify-between text-xs text-ink-tertiary">
+                <span>
+                  <span className="text-accent font-medium">
+                    {formatMoney(totals.streamRecognisedMinor, cur)}
+                  </span>{" "}
+                  recognised
+                </span>
+                <span>{formatMoney(totals.streamDeferredMinor, cur)} deferred</span>
+              </div>
             </div>
-            <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden flex">
-              <div
-                className="h-full bg-accent"
-                style={{
-                  width: `${pct(totals.streamRecognisedMinor, streamTotal)}%`,
-                }}
-                aria-hidden
-              />
-            </div>
-            <div className="flex items-center justify-between text-xs text-ink-tertiary">
-              <span>
-                <span className="text-accent font-medium">
-                  {formatMoney(totals.streamRecognisedMinor, cur)}
-                </span>{" "}
-                recognised
-              </span>
-              <span>{formatMoney(totals.streamDeferredMinor, cur)} deferred</span>
-            </div>
-          </div>
+          </Card>
         </div>
         <p className="mt-3 text-[11px] text-ink-tertiary max-w-2xl">
           Operating figures are shown in {cur} and are not converted/summed across
           currencies. Sales figures are the contract ledger&apos;s USD reporting amounts.
         </p>
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

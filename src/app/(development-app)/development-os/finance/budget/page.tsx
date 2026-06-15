@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -30,13 +27,15 @@ export default async function BudgetPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Budget" },
-          ]}
-          title="Budget"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Budget</span>
+            </div>
+            <h1>Budget</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -81,24 +80,27 @@ export default async function BudgetPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Budget" },
-        ]}
-        eyebrow={selectedProject?.name ?? "Select a project"}
-        title="Budget vs actual"
-        description="Three-state cost ledger per category — Budgeted (planned), Committed (signed POs), Actual (cash out the door). Variance = Actual − Budgeted."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Budget</span>
+          </div>
+          <h1>Budget vs actual</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Three-state cost ledger per category — Budgeted (planned), Committed
+            (signed POs), Actual (cash out the door). Variance = Actual −
+            Budgeted.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+        </div>
+      </div>
 
       <form
         method="GET"
@@ -119,7 +121,9 @@ export default async function BudgetPage({
             </option>
           ))}
         </select>
-        <Button type="submit">Apply</Button>
+        <button type="submit" className="btn btn-accent">
+          Apply
+        </button>
         {selectedProject && (
           <Link
             href={`/development-os/finance/budget/${selectedProject.id}`}
@@ -132,24 +136,25 @@ export default async function BudgetPage({
 
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <Stat label="Total budget" value={formatUsdMinor(BigInt(summary.totalBudgetUsdMinor))} />
-          <Stat
+          <Kpi label="Total budget" value={formatUsdMinor(BigInt(summary.totalBudgetUsdMinor))} />
+          <Kpi
             label="Committed"
             value={formatUsdMinor(BigInt(summary.totalCommittedUsdMinor))}
           />
-          <Stat
+          <Kpi
             label="Actual"
             value={formatUsdMinor(BigInt(summary.totalActualUsdMinor))}
-            hint={`${summary.budgetConsumedPercent.toFixed(1)}% of budget`}
+            sub={`${summary.budgetConsumedPercent.toFixed(1)}% of budget`}
           />
-          <Stat
+          <Kpi
             label="Remaining"
             value={formatUsdMinor(BigInt(summary.remainingBudgetUsdMinor))}
           />
         </div>
       )}
 
-      <Section eyebrow="Per category" title="Three-state matrix">
+      <div>
+        <div className="label mb-2.5">Per category</div>
         {rows.length === 0 ? (
           <EmptyState
             title="No budget lines for this project"
@@ -175,8 +180,8 @@ export default async function BudgetPage({
                   pct > 0
                     ? "danger"
                     : Math.abs(pct) > 20
-                      ? "warning"
-                      : "success";
+                      ? "warn"
+                      : "ok";
                 return (
                   <TR key={r.categoryId}>
                     <TD className="text-sm">
@@ -204,9 +209,9 @@ export default async function BudgetPage({
                       </span>
                     </TDNum>
                     <TD>
-                      <Badge tone={tone}>
+                      <HandoffBadge tone={tone}>
                         {r.isOverBudget ? "Over" : "OK"}
-                      </Badge>
+                      </HandoffBadge>
                     </TD>
                   </TR>
                 );
@@ -214,27 +219,7 @@ export default async function BudgetPage({
             </TBody>
           </Table>
         )}
-      </Section>
-    </DevelopmentShell>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
-  return (
-    <div className="rounded-lg border border-line-soft bg-surface p-4">
-      <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-        {label}
       </div>
-      <div className="text-2xl font-medium tabular-nums">{value}</div>
-      {hint && <div className="text-[11px] text-ink-tertiary mt-1">{hint}</div>}
-    </div>
+    </DevelopmentShell>
   );
 }

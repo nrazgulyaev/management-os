@@ -3,10 +3,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { siteZones } from "@/lib/db/schema/site-operations";
@@ -29,7 +28,11 @@ export default async function NewDeliveryPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Record delivery" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Record delivery</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -105,24 +108,32 @@ export default async function NewDeliveryPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Materials", href: "/development-os/materials" },
-          { label: po.poCode, href: `/development-os/materials/${po.poCode}` },
-          { label: "Record delivery" },
-        ]}
-        title={`Record delivery — ${po.poCode}`}
-        description="Quantities can't exceed remaining (ordered minus already delivered). The action atomically updates po_lines and recomputes PO status."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/materials">Materials</Link> /{" "}
+            <Link href={`/development-os/materials/${po.poCode}`}>
+              {po.poCode}
+            </Link>{" "}
+            / <span>Record delivery</span>
+          </div>
+          <h1>{`Record delivery — ${po.poCode}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Quantities can&apos;t exceed remaining (ordered minus already
+            delivered). The action atomically updates po_lines and recomputes PO
+            status.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/materials/${po.poCode}`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               PO
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -131,7 +142,9 @@ export default async function NewDeliveryPage({
       )}
 
       <form action={handleSubmit} className="space-y-4 max-w-4xl">
-        <Section eyebrow="Header" title="Delivery details">
+        <div>
+          <div className="label mb-2.5">Header</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="Delivery code">
               <input
@@ -179,9 +192,12 @@ export default async function NewDeliveryPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Lines" title="Per-line received quantities">
+        <div>
+          <div className="label mb-2.5">Lines</div>
+          <Card padding="default">
           <div className="space-y-2">
             {po.lines.map((l) => {
               const remaining =
@@ -239,7 +255,8 @@ export default async function NewDeliveryPage({
               );
             })}
           </div>
-        </Section>
+          </Card>
+        </div>
 
         <div className="flex items-center justify-end">
           <Button type="submit">Record delivery</Button>

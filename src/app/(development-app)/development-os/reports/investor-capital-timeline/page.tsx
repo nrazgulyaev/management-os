@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { renderCapitalTimelineSvg } from "@/lib/development/server/visual-reports/capital-timeline-helpers";
 
@@ -22,21 +22,25 @@ export default async function InvestorCapitalTimelinePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Investor capital timeline"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Reports", href: "/development-os/reports" },
-          { label: "Investor capital timeline" },
-        ]}
-        description="Monthly stacked: contributions / drawdowns / distributions."
-      />
-      <Section title="Chart">
-        <div
-          className="rounded-md border border-line-soft bg-surface p-4 overflow-x-auto"
-          dangerouslySetInnerHTML={{ __html: svg }}
-        />
-      </Section>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/reports">Reports</Link> /{" "}
+            <span>Investor capital timeline</span>
+          </div>
+          <h1>Investor capital timeline</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Monthly stacked: contributions / drawdowns / distributions.
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Chart</div>
+        <Card padding="default" className="overflow-x-auto">
+          <div dangerouslySetInnerHTML={{ __html: svg }} />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

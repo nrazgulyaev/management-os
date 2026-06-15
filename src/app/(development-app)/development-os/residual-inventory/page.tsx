@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listResidualUnits } from "@/lib/development/server/residual-inventory/residual-queries";
@@ -15,12 +11,12 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Residual inventory · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  unsold: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
+  unsold: "warn",
   held: "info",
-  transferred_to_management: "success",
-  sold_later: "success",
-  reallocated: "neutral",
+  transferred_to_management: "ok",
+  sold_later: "ok",
+  reallocated: "soft",
 };
 
 function fmtUsd(b: bigint | string | number | null): string {
@@ -34,7 +30,11 @@ export default async function ResidualInventoryPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Residual inventory" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Residual inventory</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -43,23 +43,26 @@ export default async function ResidualInventoryPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Residual inventory" },
-        ]}
-        eyebrow={`${units.length} residual unit${units.length === 1 ? "" : "s"}`}
-        title="Residual inventory"
-        description="Villas that became residual after project completion. Ownership shares between Arconique and investors are computed via one of four settlement methods (sum-to-100% per unit enforced by DB trigger)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Residual inventory</span>
+          </div>
+          <h1>Residual inventory</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Villas that became residual after project completion. Ownership
+            shares between Arconique and investors are computed via one of four
+            settlement methods (sum-to-100% per unit enforced by DB trigger).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {units.length === 0 ? (
         <EmptyState
@@ -67,45 +70,48 @@ export default async function ResidualInventoryPage() {
           description="When a project completes without a full sellout, mark unsold villas as residual via the markUnitAsResidual server action."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All residual units">
-          <Table>
-            <THead>
-              <TR>
-                <TH>Unit</TH>
-                <TH>Project</TH>
-                <TH>Status</TH>
-                <TH>Active valuation</TH>
-                <TH>Method</TH>
-                <TH>Became residual</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {units.map((u) => (
-                <TR key={u.id}>
-                  <TD className="font-mono text-xs">
-                    <Link
-                      href={`/development-os/residual-inventory/${u.id}`}
-                      className="hover:underline"
-                    >
-                      {u.unitId.slice(0, 8)}
-                    </Link>
-                  </TD>
-                  <TD className="font-mono text-xs">
-                    {u.projectId.slice(0, 8)}
-                  </TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[u.status] ?? "neutral"}>
-                      {u.status}
-                    </Badge>
-                  </TD>
-                  <TDNum>{fmtUsd(u.activeValuationMinor)}</TDNum>
-                  <TD className="text-xs">{u.activeValuationMethod}</TD>
-                  <TD className="text-xs">{u.becameResidualAt}</TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Catalog</div>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Unit</th>
+                  <th scope="col">Project</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Active valuation</th>
+                  <th scope="col">Method</th>
+                  <th scope="col">Became residual</th>
+                </tr>
+              </thead>
+              <tbody>
+                {units.map((u) => (
+                  <tr key={u.id}>
+                    <td className="mono text-xs">
+                      <Link
+                        href={`/development-os/residual-inventory/${u.id}`}
+                        className="hover:underline"
+                      >
+                        {u.unitId.slice(0, 8)}
+                      </Link>
+                    </td>
+                    <td className="mono text-xs">
+                      {u.projectId.slice(0, 8)}
+                    </td>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONE[u.status] ?? "soft"}>
+                        {u.status}
+                      </HandoffBadge>
+                    </td>
+                    <td className="num">{fmtUsd(u.activeValuationMinor)}</td>
+                    <td className="text-xs">{u.activeValuationMethod}</td>
+                    <td className="text-xs">{u.becameResidualAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

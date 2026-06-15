@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { requireInternalUser, AuthorizationError } from "@/features/auth/permissions";
 import { AccessForbidden } from "@/components/auth/access-forbidden";
@@ -28,17 +25,29 @@ import { ReceivingDecisionPanel } from "@/components/development/inventory/recei
 export const metadata: Metadata = { title: "PO receiving · Development OS" };
 export const dynamic = "force-dynamic";
 
-const PO_STATUS_TONE: Record<MaterialPoStatus, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  draft: "neutral",
-  ordered: "info",
-  partially_delivered: "warning",
-  fully_delivered: "success",
-  cancelled: "neutral",
+type HandoffTone = "ok" | "warn" | "danger" | "gold" | "info" | "ink" | "soft" | "amber";
+
+/** Bridge the shared legacy-Badge tone vocabulary used by the imported
+ *  RECEIVING_* constant maps onto the handoff badge palette. */
+const LEGACY_TO_HANDOFF: Record<string, HandoffTone | undefined> = {
+  success: "ok",
+  warning: "warn",
+  danger: "danger",
+  info: "info",
+  neutral: "soft",
 };
 
-const QC_TONE: Record<MaterialQualityStatus, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  pending: "warning",
-  accepted: "success",
+const PO_STATUS_TONE: Record<MaterialPoStatus, HandoffTone> = {
+  draft: "soft",
+  ordered: "info",
+  partially_delivered: "warn",
+  fully_delivered: "ok",
+  cancelled: "soft",
+};
+
+const QC_TONE: Record<MaterialQualityStatus, HandoffTone> = {
+  pending: "warn",
+  accepted: "ok",
   partial_acceptance: "info",
   rejected: "danger",
 };
@@ -70,44 +79,52 @@ export default async function ReceivingPoDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Receiving", href: "/development-os/inventory/receiving" },
-          { label: po.poCode },
-        ]}
-        eyebrow={`${po.vendorLegalName}${po.projectName ? ` · ${po.projectName}` : ""}`}
-        title={`Receive ${po.poCode}`}
-        description="Run the QC chain line by line, then record the at-dock decision. Receiving is audit-logged; no stock or money writes happen here (delivery posting + payment stay in their own flows)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inventory/receiving">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Queue
-            </Link>
-          </Button>
-        }
-      />
-
-      <div className="flex flex-wrap items-center gap-2">
-        <Badge tone={PO_STATUS_TONE[po.status] ?? "neutral"}>
-          {MATERIAL_PO_STATUS_LABEL[po.status] ?? po.status}
-        </Badge>
-        <Badge tone="outline">Ordered {po.orderDate}</Badge>
-        {po.expectedDeliveryDate && (
-          <Badge tone="outline">ETA {po.expectedDeliveryDate}</Badge>
-        )}
-        <Badge tone={outstandingQty > 0 ? "warning" : "success"}>
-          {outstandingQty.toFixed(2)} outstanding
-        </Badge>
-        {openHolds > 0 && <Badge tone="warning">{openHolds} open hold</Badge>}
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inventory/receiving">Receiving</Link> /{" "}
+            <span>{po.poCode}</span>
+          </div>
+          <div className="label">
+            {`${po.vendorLegalName}${po.projectName ? ` · ${po.projectName}` : ""}`}
+          </div>
+          <h1>{`Receive ${po.poCode}`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Run the QC chain line by line, then record the at-dock decision.
+            Receiving is audit-logged; no stock or money writes happen here
+            (delivery posting + payment stay in their own flows).
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/inventory/receiving"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Queue
+          </Link>
+        </div>
       </div>
 
-      <Section
-        eyebrow="QC chain"
-        title="PO line items"
-        description="Ordered vs delivered vs consumed per line. The shortfall (ordered − delivered) is what the receiving decision resolves."
-      >
+      <div className="flex flex-wrap items-center gap-2">
+        <HandoffBadge tone={PO_STATUS_TONE[po.status] ?? "soft"}>
+          {MATERIAL_PO_STATUS_LABEL[po.status] ?? po.status}
+        </HandoffBadge>
+        <HandoffBadge tone="soft">Ordered {po.orderDate}</HandoffBadge>
+        {po.expectedDeliveryDate && (
+          <HandoffBadge tone="soft">ETA {po.expectedDeliveryDate}</HandoffBadge>
+        )}
+        <HandoffBadge tone={outstandingQty > 0 ? "warn" : "ok"}>
+          {outstandingQty.toFixed(2)} outstanding
+        </HandoffBadge>
+        {openHolds > 0 && (
+          <HandoffBadge tone="warn">{openHolds} open hold</HandoffBadge>
+        )}
+      </div>
+
+      <div>
+        <div className="label mb-2.5">QC chain</div>
         {po.lines.length === 0 ? (
           <EmptyState title="No lines on this PO" description="Nothing to receive." />
         ) : (
@@ -149,14 +166,11 @@ export default async function ReceivingPoDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {po.deliveries.length > 0 && (
-        <Section
-          eyebrow="Deliveries"
-          title="Logged drops against this PO"
-          description="Quality-check status per recorded delivery."
-        >
+        <div>
+          <div className="label mb-2.5">Deliveries</div>
           <Table>
             <THead>
               <TR>
@@ -171,23 +185,20 @@ export default async function ReceivingPoDetailPage({
                   <TD className="font-mono text-xs">{d.deliveryCode}</TD>
                   <TD className="text-xs">{d.deliveryDate}</TD>
                   <TD>
-                    <Badge tone={QC_TONE[d.qualityCheckStatus] ?? "neutral"}>
+                    <HandoffBadge tone={QC_TONE[d.qualityCheckStatus] ?? "soft"}>
                       {MATERIAL_QUALITY_LABEL[d.qualityCheckStatus] ??
                         d.qualityCheckStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
 
-      <Section
-        eyebrow="Decision"
-        title="Record receiving decision"
-        description="Accept-partial · Wait-for-back-order · Return-whole · Escalate-to-procurement. Each decision is logged as an auditable QC hold."
-      >
+      <div>
+        <div className="label mb-2.5">Decision</div>
         <ReceivingDecisionPanel
           poId={po.id}
           poCode={po.poCode}
@@ -197,13 +208,10 @@ export default async function ReceivingPoDetailPage({
             deliveryCode: d.deliveryCode,
           }))}
         />
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="History"
-        title="Receiving decisions"
-        description="Most recent first."
-      >
+      <div>
+        <div className="label mb-2.5">History</div>
         {holds.length === 0 ? (
           <EmptyState
             title="No decisions yet"
@@ -225,14 +233,18 @@ export default async function ReceivingPoDetailPage({
               {holds.map((h) => (
                 <TR key={h.id}>
                   <TD>
-                    <Badge tone={RECEIVING_DECISION_TONE[h.decision]}>
+                    <HandoffBadge
+                      tone={LEGACY_TO_HANDOFF[RECEIVING_DECISION_TONE[h.decision]]}
+                    >
                       {RECEIVING_DECISION_LABEL[h.decision]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={RECEIVING_HOLD_STATUS_TONE[h.status]}>
+                    <HandoffBadge
+                      tone={LEGACY_TO_HANDOFF[RECEIVING_HOLD_STATUS_TONE[h.status]]}
+                    >
                       {h.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TDNum>{Number(h.quantityAccepted).toFixed(2)}</TDNum>
                   <TDNum>{Number(h.quantityHeld).toFixed(2)}</TDNum>
@@ -247,7 +259,7 @@ export default async function ReceivingPoDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

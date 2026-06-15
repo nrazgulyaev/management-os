@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -35,7 +31,11 @@ export default async function VendorDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Vendor" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Vendor</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -58,36 +58,38 @@ export default async function VendorDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Vendors", href: "/development-os/vendors" },
-          { label: vendor.vendorCode },
-        ]}
-        eyebrow={`${vendor.vendorCode} · ${VENDOR_TYPE_LABEL[vendor.vendorType]}`}
-        title={vendor.legalName}
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link
-                href={`/development-os/vendors/${vendor.vendorCode}/engagements/new`}
-              >
-                + New engagement
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/vendors">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                All vendors
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/vendors">Vendors</Link> /{" "}
+            <span>{vendor.vendorCode}</span>
+            {" · "}
+            {VENDOR_TYPE_LABEL[vendor.vendorType]}
           </div>
-        }
-      />
+          <h1>{vendor.legalName}</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/vendors/${vendor.vendorCode}/engagements/new`}
+            className="btn btn-accent btn-sm"
+          >
+            + New engagement
+          </Link>
+          <Link
+            href="/development-os/vendors"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All vendors
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Profile" title="Contact + performance">
+      <div>
+        <div className="label mb-2.5">Profile</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+          <Kpi
             label="On-time delivery"
             value={
               vendor.onTimeDeliveryRate
@@ -95,7 +97,7 @@ export default async function VendorDetailPage({
                 : "—"
             }
           />
-          <MetricCard
+          <Kpi
             label="Quality rating"
             value={
               vendor.qualityRating
@@ -103,38 +105,41 @@ export default async function VendorDetailPage({
                 : "—"
             }
           />
-          <MetricCard
+          <Kpi
             label="Engagements"
             value={String(vendor.totalCommitmentsCount)}
-            hint={`${vendor.activeEngagementCount} active`}
+            sub={`${vendor.activeEngagementCount} active`}
           />
-          <MetricCard
+          <Kpi
             label="Status"
             value={VENDOR_STATUS_LABEL[vendor.status]}
-            hint={vendor.lastEngagementAt ?? undefined}
+            sub={vendor.lastEngagementAt ?? undefined}
           />
-          <MetricCard
+          <Kpi
             label="Invoices"
             value={String(vendorInvoices.length)}
-            hint={
+            sub={
               vendorInvoices.length > 0
                 ? `${fmtUsd(outstandingMinor)} outstanding`
                 : "—"
             }
           />
         </div>
-        <div className="mt-3 grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-          <Field label="Email" value={vendor.primaryEmail ?? "—"} mono />
-          <Field label="Phone" value={vendor.primaryPhone ?? "—"} />
-          <Field label="WhatsApp" value={vendor.whatsappPhone ?? "—"} />
-        </div>
-      </Section>
+        <Card padding="default" className="mt-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            <Field label="Email" value={vendor.primaryEmail ?? "—"} mono />
+            <Field label="Phone" value={vendor.primaryPhone ?? "—"} />
+            <Field label="WhatsApp" value={vendor.whatsappPhone ?? "—"} />
+          </div>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Invoices"
-        title={`Linked invoices (${vendorInvoices.length})`}
-        description="Invoices assigned to this vendor. Outstanding amounts roll up to the snapshot above."
-      >
+      <div>
+        <div className="label mb-2.5">Invoices</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Invoices assigned to this vendor. Outstanding amounts roll up to the
+          snapshot above.
+        </p>
         {vendorInvoices.length === 0 ? (
           <EmptyState
             title="No invoices linked to this vendor"
@@ -172,16 +177,17 @@ export default async function VendorDetailPage({
                     {fmtUsd(BigInt(i.outstandingMinor ?? "0"))}
                   </TD>
                   <TD>
-                    <Badge tone="neutral">{i.status}</Badge>
+                    <HandoffBadge tone="soft">{i.status}</HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Engagements" title="Project assignments">
+      <div>
+        <div className="label mb-2.5">Engagements</div>
         {engagements.length === 0 ? (
           <EmptyState
             title="No engagements"
@@ -208,26 +214,26 @@ export default async function VendorDetailPage({
                   <TD className="text-xs">{e.startDate}</TD>
                   <TD className="text-xs">{e.expectedEndDate ?? "—"}</TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         e.status === "active"
-                          ? "success"
+                          ? "ok"
                           : e.status === "completed"
-                            ? "neutral"
+                            ? "soft"
                             : e.status === "terminated"
                               ? "danger"
-                              : "warning"
+                              : "warn"
                       }
                     >
                       {ENGAGEMENT_STATUS_LABEL[e.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

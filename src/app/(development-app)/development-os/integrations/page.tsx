@@ -2,12 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
 import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { DashboardKpi } from "@/components/ui/primitives";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -35,7 +31,11 @@ export default async function IntegrationsHubPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Integrations" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Integrations</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -96,72 +96,86 @@ export default async function IntegrationsHubPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Integrations" },
-        ]}
-        eyebrow={`${activeCount} active · ${errorCount} in error · ${recentErrors} errors in last 7d`}
-        title="Integrations"
-        description="Health hub for every external system the platform talks to. Click a category to drill into per-connection detail."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section
-        eyebrow="Status"
-        title="Channel manager"
-        description="Booking.com, Airbnb, Trip.com, Agoda, Expedia, VRBO, Hotels.com. Each connection is per villa × channel."
-      >
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <DashboardKpi
-            label="Active connections"
-            value={String(activeCount)}
-            status={activeCount > 0 ? "good" : "neutral"}
-            hint={`of ${totalCount} total`}
-          />
-          <DashboardKpi
-            label="Connections in error"
-            value={String(errorCount)}
-            status={errorCount > 0 ? "bad" : "good"}
-            hint={errorCount > 0 ? "Investigate from /development-os/channels" : "All connections healthy"}
-          />
-          <DashboardKpi
-            label="Paused"
-            value={String(pausedCount)}
-            status={pausedCount > 0 ? "warn" : "neutral"}
-            hint="Not actively syncing"
-          />
-          <DashboardKpi
-            label="API calls · 7d"
-            value={recentApiCalls.toLocaleString()}
-            status={recentErrors > 0 ? "warn" : "neutral"}
-            hint={`${recentErrors} failed sync${recentErrors === 1 ? "" : "s"}`}
-          />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Integrations</span>
+          </div>
+          <h1>Integrations</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Health hub for every external system the platform talks to. Click a
+            category to drill into per-connection detail.
+          </p>
         </div>
-        <div className="mt-3 flex items-center gap-2 flex-wrap">
-          <Button asChild>
-            <Link href="/development-os/channels">Open channels →</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels/inbox">Reservation inbox</Link>
-          </Button>
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels/conflicts">
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <p className="text-[13px] text-ink-3 mt-0 mb-3 max-w-[680px]">
+            Booking.com, Airbnb, Trip.com, Agoda, Expedia, VRBO, Hotels.com. Each
+            connection is per villa × channel.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <Kpi
+              label="Active connections"
+              value={String(activeCount)}
+              sub={`of ${totalCount} total`}
+              tone={activeCount > 0 ? "success" : undefined}
+            />
+            <Kpi
+              label="Connections in error"
+              value={String(errorCount)}
+              sub={
+                errorCount > 0
+                  ? "Investigate from /development-os/channels"
+                  : "All connections healthy"
+              }
+              tone={errorCount > 0 ? "danger" : "success"}
+            />
+            <Kpi
+              label="Paused"
+              value={String(pausedCount)}
+              sub="Not actively syncing"
+              tone={pausedCount > 0 ? "warn" : undefined}
+            />
+            <Kpi
+              label="API calls · 7d"
+              value={recentApiCalls.toLocaleString()}
+              sub={`${recentErrors} failed sync${recentErrors === 1 ? "" : "s"}`}
+              tone={recentErrors > 0 ? "warn" : undefined}
+            />
+          </div>
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <Link href="/development-os/channels" className="btn btn-accent">
+              Open channels →
+            </Link>
+            <Link
+              href="/development-os/channels/inbox"
+              className="btn btn-secondary"
+            >
+              Reservation inbox
+            </Link>
+            <Link
+              href="/development-os/channels/conflicts"
+              className="btn btn-secondary"
+            >
               <AlertTriangle className="w-3 h-3" />
               Conflicts
             </Link>
-          </Button>
-        </div>
-      </Section>
+          </div>
+        </Card>
+      </div>
 
-      <Section eyebrow="Roadmap" title="Other integration categories">
+      <div>
+        <div className="label mb-2.5">Roadmap</div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           <PlaceholderCard
             title="Communications"
@@ -189,7 +203,7 @@ export default async function IntegrationsHubPage() {
             description="Extends the AI provider catalog: Gemini, vision, embeddings, per-agent routing."
           />
         </div>
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }
@@ -207,7 +221,7 @@ function PlaceholderCard({
     <div className="rounded-md border border-dashed border-line-soft p-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{title}</span>
-        <Badge tone="neutral">{stage}</Badge>
+        <HandoffBadge tone="soft">{stage}</HandoffBadge>
       </div>
       <p className="text-[11px] text-ink-tertiary mt-1 leading-relaxed">
         {description}

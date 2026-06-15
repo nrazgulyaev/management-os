@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCompanyStructure } from "@/lib/development/server/company-structure/company-queries";
@@ -25,7 +22,11 @@ export default async function CompanyStructureDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Company structure" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Company structure</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -41,35 +42,39 @@ export default async function CompanyStructureDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          {
-            label: "Project",
-            href: `/development-os/projects/${slug}`,
-          },
-          {
-            label: "Company structure",
-            href: `/development-os/projects/${slug}/company`,
-          },
-          { label: structure.structureLabel },
-        ]}
-        eyebrow={`${structure.structureType} · ${structure.registrationStatus}`}
-        title={structure.structureLabel}
-        description={structure.companyName ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>Project</Link> /{" "}
             <Link href={`/development-os/projects/${slug}/company`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All structures
-            </Link>
-          </Button>
-        }
-      />
+              Company structure
+            </Link>{" "}
+            / <span>{structure.structureLabel}</span>
+          </div>
+          <h1>{structure.structureLabel}</h1>
+          {structure.companyName && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {structure.companyName}
+            </p>
+          )}
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/company`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All structures
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Identity" title="Company">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Identity</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
           <Field label="Type" value={structure.structureType} />
           <Field label="Status" value={structure.registrationStatus} />
           <Field label="Active" value={structure.isActive ? "yes" : "no"} />
@@ -93,13 +98,12 @@ export default async function CompanyStructureDetailPage({
             label="Legal consultant"
             value={structure.responsibleLegalConsultant ?? "—"}
           />
-        </div>
-      </Section>
+          </div>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Ownership"
-        title={`Shareholders (${shareholders.length}) — sum check ${sumPct.toFixed(2)}%`}
-      >
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Ownership</div>
         <Table>
           <THead>
             <TR>
@@ -119,7 +123,7 @@ export default async function CompanyStructureDetailPage({
                 <TD className="text-xs">{s.roleInCompany ?? "—"}</TD>
                 <TD>
                   {s.isManagingParty ? (
-                    <Badge tone="info">managing</Badge>
+                    <HandoffBadge tone="info">managing</HandoffBadge>
                   ) : (
                     "—"
                   )}
@@ -129,16 +133,20 @@ export default async function CompanyStructureDetailPage({
           </TBody>
         </Table>
         <p className="text-[11px] text-ink-tertiary mt-2">
+          Shareholders ({shareholders.length}) — sum check {sumPct.toFixed(2)}%.
           DB trigger enforces shareholder ownership sums to exactly 100% at COMMIT.
         </p>
-      </Section>
+      </div>
 
       {structure.notes && (
-        <Section eyebrow="Notes" title="Operator notes">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">
-            {structure.notes}
-          </p>
-        </Section>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Notes</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap">
+              {structure.notes}
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

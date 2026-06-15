@@ -3,10 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { asc } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -34,7 +32,11 @@ export default async function NewCommitmentLedgerPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New commitment" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New commitment</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -88,26 +90,27 @@ export default async function NewCommitmentLedgerPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          {
-            label: "Commitments (PO)",
-            href: "/development-os/finance/commitments",
-          },
-          { label: "New commitment" },
-        ]}
-        title="New procurement commitment"
-        description="Record a signed vendor PO / contract. Money is captured in the contract's original currency with an FX snapshot to USD at commit time."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance/commitments">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Commitments
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance/commitments">Commitments (PO)</Link> /{" "}
+            <span>New commitment</span>
+          </div>
+          <h1>New procurement commitment</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Record a signed vendor PO / contract. Money is captured in the
+            contract&apos;s original currency with an FX snapshot to USD at commit
+            time.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance/commitments" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Commitments
+          </Link>
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -116,7 +119,9 @@ export default async function NewCommitmentLedgerPage({
       )}
 
       <form action={handleSubmit} className="space-y-4 max-w-3xl">
-        <Section eyebrow="Commitment" title="Project + vendor + terms">
+        <div>
+          <div className="label mb-2.5">Commitment</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Project">
               <select
@@ -243,9 +248,10 @@ export default async function NewCommitmentLedgerPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
         <div className="flex items-center justify-end">
-          <Button type="submit">Create commitment</Button>
+          <button type="submit" className="btn btn-accent">Create commitment</button>
         </div>
       </form>
     </DevelopmentShell>

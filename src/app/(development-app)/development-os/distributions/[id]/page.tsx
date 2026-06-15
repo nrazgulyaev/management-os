@@ -3,12 +3,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -55,21 +51,20 @@ export default async function DistributionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            {
-              label: "Distributions",
-              href: "/development-os/distributions",
-            },
-            { label: "Detail" },
-          ]}
-          title="Distribution detail"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/distributions">Distributions</Link> /{" "}
+              <span>Detail</span>
+            </div>
+            <h1>Distribution detail</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to view distribution details."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
@@ -107,56 +102,66 @@ export default async function DistributionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Distributions", href: "/development-os/distributions" },
-          { label: `#${distribution.distributionNumber}` },
-        ]}
-        eyebrow={`#${distribution.distributionNumber} · ${distribution.projectName ?? "Company-wide"}`}
-        title={DISTRIBUTION_TYPE_LABEL[distribution.distributionType]}
-        description={distribution.notes ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/distributions">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All distributions
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/distributions">Distributions</Link> /{" "}
+            <span>
+              #{distribution.distributionNumber} ·{" "}
+              {distribution.projectName ?? "Company-wide"}
+            </span>
+          </div>
+          <h1>{DISTRIBUTION_TYPE_LABEL[distribution.distributionType]}</h1>
+          {distribution.notes && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {distribution.notes}
+            </p>
+          )}
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/distributions"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All distributions
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Summary" title="At a glance">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+      <div>
+        <div className="label mb-2.5">Summary</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <Kpi
             label="Total"
             value={formatUsdMinor(BigInt(distribution.totalAmountUsdMinor))}
-            hint={DISTRIBUTION_TYPE_LABEL[distribution.distributionType]}
+            sub={DISTRIBUTION_TYPE_LABEL[distribution.distributionType]}
           />
-          <MetricCard
+          <Kpi
             label="Capital return"
             value={formatUsdMinor(totalCapitalUsd)}
           />
-          <MetricCard label="Profit" value={formatUsdMinor(totalProfitUsd)} />
-          <MetricCard
+          <Kpi label="Profit" value={formatUsdMinor(totalProfitUsd)} />
+          <Kpi
             label="Allocations"
             value={String(distribution.allocations.length)}
           />
         </div>
         <div className="mt-3 flex items-center gap-3 text-xs text-ink-secondary">
-          <Badge
+          <HandoffBadge
             tone={
               distribution.status === "completed"
-                ? "success"
+                ? "ok"
                 : distribution.status === "declared"
-                  ? "warning"
+                  ? "warn"
                   : distribution.status === "executing"
                     ? "info"
-                    : "neutral"
+                    : "soft"
             }
           >
             {DISTRIBUTION_STATUS_LABEL[distribution.status]}
-          </Badge>
+          </HandoffBadge>
           <span>Trigger: {distribution.triggerReason.replace(/_/g, " ")}</span>
           <span>
             Declared: {new Date(distribution.declaredAt).toLocaleString()}
@@ -182,7 +187,9 @@ export default async function DistributionDetailPage({
             </div>
             <div className="flex items-center gap-2">
               <form action={executeAction}>
-                <Button type="submit">Execute distribution</Button>
+                <button type="submit" className="btn btn-accent">
+                  Execute distribution
+                </button>
               </form>
               <form action={cancelAction} className="flex items-center gap-2">
                 <input
@@ -193,16 +200,17 @@ export default async function DistributionDetailPage({
                   minLength={3}
                   className="rounded-md border border-line-soft bg-surface px-2 py-1 text-xs"
                 />
-                <Button type="submit" variant="secondary">
+                <button type="submit" className="btn btn-secondary">
                   Cancel
-                </Button>
+                </button>
               </form>
             </div>
           </div>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Allocations" title="Per-commitment breakdown">
+      <div>
+        <div className="label mb-2.5">Allocations</div>
         {distribution.allocations.length === 0 ? (
           <EmptyState
             title="No allocations"
@@ -250,24 +258,24 @@ export default async function DistributionDetailPage({
                   </TDNum>
                   <TDNum>{Number(a.profitSharePercentUsed).toFixed(1)}%</TDNum>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         a.status === "executed"
-                          ? "success"
+                          ? "ok"
                           : a.status === "cancelled"
-                            ? "neutral"
-                            : "warning"
+                            ? "soft"
+                            : "warn"
                       }
                     >
                       {a.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

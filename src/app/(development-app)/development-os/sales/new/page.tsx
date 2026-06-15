@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -86,34 +83,42 @@ export default async function NewLeadPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Sales & buyers", href: "/development-os/sales" },
-          { label: "Capture lead" },
-        ]}
-        title="Capture new lead"
-        description="Manual lead entry. The form looks up the contact by email or phone — if a contact already exists, the new lead role attaches to it instead of creating a duplicate."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/sales">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Pipeline
-            </Link>
-          </Button>
-        }
-      />
-      <Section eyebrow="Form" title="Lead details">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/sales">Sales &amp; buyers</Link> /{" "}
+            <span>Capture lead</span>
+          </div>
+          <h1>Capture new lead</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Manual lead entry. The form looks up the contact by email or phone —
+            if a contact already exists, the new lead role attaches to it instead
+            of creating a duplicate.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/sales" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Pipeline
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Form</div>
         {db ? (
-          <CaptureLeadForm projects={projectOptions} leadSources={sourceOptions} />
+          <Card padding="default">
+            <CaptureLeadForm projects={projectOptions} leadSources={sourceOptions} />
+          </Card>
         ) : (
           <EmptyState
             title="Lead capture runs against the database"
             description="Database connection not configured. Contact support."
-            action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+            action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
           />
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

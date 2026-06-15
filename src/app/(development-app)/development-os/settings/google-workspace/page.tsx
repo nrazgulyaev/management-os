@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -44,7 +41,16 @@ export default async function GoogleWorkspaceSettingsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Google Workspace" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/settings">Settings</Link> /{" "}
+              <span>Google Workspace</span>
+            </div>
+            <h1>Google Workspace</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -64,23 +70,27 @@ export default async function GoogleWorkspaceSettingsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings", href: "/development-os/settings" },
-          { label: "Google Workspace" },
-        ]}
-        title="Google Workspace"
-        description="One OAuth grant unlocks Calendar, Sheets, Drive, and Gmail. Tokens are encrypted at rest. Per-user scope — each operator authorizes their own Google account."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/settings">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Settings
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/settings">Settings</Link> /{" "}
+            <span>Google Workspace</span>
+          </div>
+          <h1>Google Workspace</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            One OAuth grant unlocks Calendar, Sheets, Drive, and Gmail. Tokens
+            are encrypted at rest. Per-user scope — each operator authorizes
+            their own Google account.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/settings" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Settings
+          </Link>
+        </div>
+      </div>
 
       {sp.ok === "connected" && (
         <div className="rounded border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -104,24 +114,29 @@ export default async function GoogleWorkspaceSettingsPage({
         </div>
       )}
 
-      <Section
-        eyebrow={me ? `Signed in as ${me.email}` : "Sign-in required"}
-        title="Your connection"
-        description="OAuth grants are per-user. Connecting here authorizes the currently-signed-in operator's Google account."
-      >
+      <div>
+        <div className="label mb-2.5">
+          {me ? `Signed in as ${me.email}` : "Sign-in required"}
+        </div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          OAuth grants are per-user. Connecting here authorizes the
+          currently-signed-in operator&apos;s Google account.
+        </p>
         {!me ? (
-          <EmptyState
-            title="Sign in first"
-            description="You need to be signed in to authorize a Google account."
-          />
+          <Card padding="default">
+            <EmptyState
+              title="Sign in first"
+              description="You need to be signed in to authorize a Google account."
+            />
+          </Card>
         ) : (
           <div className="space-y-4">
             {myConnection ? (
               <div className="rounded border border-stone-200 p-4 space-y-3">
                 <div className="flex items-center gap-2">
-                  <Badge tone={myConnection.isActive ? "success" : "neutral"}>
+                  <HandoffBadge tone={myConnection.isActive ? "ok" : "soft"}>
                     {myConnection.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                  </HandoffBadge>
                   <span className="font-mono text-sm">
                     {myConnection.accountEmail ?? "—"}
                   </span>
@@ -133,9 +148,9 @@ export default async function GoogleWorkspaceSettingsPage({
                 </div>
                 <div className="flex flex-wrap gap-1">
                   {myConnection.scopes.map((s) => (
-                    <Badge key={s} tone="outline">
+                    <HandoffBadge key={s} tone="soft">
                       {SCOPE_LABELS[s] ?? s.replace("https://www.googleapis.com/auth/", "")}
-                    </Badge>
+                    </HandoffBadge>
                   ))}
                 </div>
                 <GoogleWorkspaceActions
@@ -160,10 +175,11 @@ export default async function GoogleWorkspaceSettingsPage({
             )}
           </div>
         )}
-      </Section>
+      </div>
 
       {connections.length > 1 && (
-        <Section title="All connections in this organization">
+        <div>
+          <div className="label mb-2.5">All connections in this organization</div>
           <div className="rounded border border-stone-200 overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-stone-50 text-xs text-stone-500 uppercase">
@@ -181,9 +197,9 @@ export default async function GoogleWorkspaceSettingsPage({
                       {c.accountEmail ?? c.userId}
                     </td>
                     <td className="px-3 py-2">
-                      <Badge tone={c.isActive ? "success" : "neutral"}>
+                      <HandoffBadge tone={c.isActive ? "ok" : "soft"}>
                         {c.isActive ? "active" : "inactive"}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
                     <td className="px-3 py-2 text-xs">{c.scopes.length} scopes</td>
                     <td className="px-3 py-2 text-xs text-stone-500">
@@ -196,7 +212,7 @@ export default async function GoogleWorkspaceSettingsPage({
               </tbody>
             </table>
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

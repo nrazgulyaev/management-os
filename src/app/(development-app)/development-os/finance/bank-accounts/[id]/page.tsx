@@ -2,13 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getBankAccount } from "@/lib/development/server/bank-accounts";
@@ -32,14 +28,18 @@ export default async function BankAccountDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Bank accounts", href: "/development-os/finance/bank-accounts" },
-            { label: "Detail" },
-          ]}
-          title="Bank account"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/finance/bank-accounts">
+                Bank accounts
+              </Link>{" "}
+              / <span>Detail</span>
+            </div>
+            <h1>Bank account</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -57,72 +57,82 @@ export default async function BankAccountDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Bank accounts", href: "/development-os/finance/bank-accounts" },
-          { label: account.accountCode },
-        ]}
-        eyebrow={`${account.accountCode} · ${account.accountType}`}
-        title={account.accountName}
-        description={
-          account.bankName ? `${account.bankName} · ${account.currency}` : account.currency
-        }
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
             <Link href="/development-os/finance/bank-accounts">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All accounts
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Snapshot" title="Current state">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
-            label="Balance"
-            value={formatCurrencyMinor(
-              BigInt(account.currentBalanceMinor),
-              account.currency,
-            )}
-            hint={`≈ ${formatUsdMinor(BigInt(account.currentBalanceUsdMinor))}`}
-          />
-          <MetricCard
-            label="Threshold"
-            value={
-              account.minimumBalanceThresholdMinor
-                ? formatCurrencyMinor(
-                    BigInt(account.minimumBalanceThresholdMinor),
-                    account.currency,
-                  )
-                : "—"
-            }
-            hint={account.belowThreshold ? "Below threshold" : "Above threshold"}
-          />
-          <MetricCard
-            label="Last FX"
-            value={account.lastFxRate ?? "—"}
-            hint={
-              account.lastBalanceAt
-                ? new Date(account.lastBalanceAt).toLocaleDateString()
-                : "—"
-            }
-          />
-          <MetricCard
-            label="Type"
-            value={account.accountType}
-            hint={account.isCompanyAccount ? "Company-wide" : "Project-specific"}
-          />
+              Bank accounts
+            </Link>{" "}
+            / <span>{account.accountCode}</span>
+          </div>
+          <h1>{account.accountName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {account.bankName
+              ? `${account.bankName} · ${account.currency}`
+              : account.currency}
+          </p>
         </div>
-        <div className="mt-3 text-xs text-ink-tertiary">
-          Inline edit + manual reconciliation actions are available via the{" "}
-          <code>updateBankAccountThreshold</code> and <code>recordBankBalance</code>{" "}
-          server actions; UI drawer for these is forthcoming in 2.4.
+        <div className="actions">
+          <Link
+            href="/development-os/finance/bank-accounts"
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All accounts
+          </Link>
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Transactions" title="Recent ledger">
+      <div>
+        <div className="label mb-2.5">Snapshot</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Kpi
+              label="Balance"
+              value={formatCurrencyMinor(
+                BigInt(account.currentBalanceMinor),
+                account.currency,
+              )}
+              sub={`≈ ${formatUsdMinor(BigInt(account.currentBalanceUsdMinor))}`}
+            />
+            <Kpi
+              label="Threshold"
+              value={
+                account.minimumBalanceThresholdMinor
+                  ? formatCurrencyMinor(
+                      BigInt(account.minimumBalanceThresholdMinor),
+                      account.currency,
+                    )
+                  : "—"
+              }
+              sub={account.belowThreshold ? "Below threshold" : "Above threshold"}
+            />
+            <Kpi
+              label="Last FX"
+              value={account.lastFxRate ?? "—"}
+              sub={
+                account.lastBalanceAt
+                  ? new Date(account.lastBalanceAt).toLocaleDateString()
+                  : "—"
+              }
+            />
+            <Kpi
+              label="Type"
+              value={account.accountType}
+              sub={account.isCompanyAccount ? "Company-wide" : "Project-specific"}
+            />
+          </div>
+          <div className="mt-3 text-xs text-ink-tertiary">
+            Inline edit + manual reconciliation actions are available via the{" "}
+            <code>updateBankAccountThreshold</code> and <code>recordBankBalance</code>{" "}
+            server actions; UI drawer for these is forthcoming in 2.4.
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Transactions</div>
         {txs.length === 0 ? (
           <EmptyState
             title="No transactions yet"
@@ -154,17 +164,17 @@ export default async function BankAccountDetailPage({
                   </TD>
                   <TD className="text-xs">{t.transactionDate}</TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         t.direction === "inflow"
-                          ? "success"
+                          ? "ok"
                           : t.direction === "outflow"
                             ? "danger"
-                            : "neutral"
+                            : "soft"
                       }
                     >
                       {t.direction}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{t.description}</TD>
                   <TDNum>
@@ -173,9 +183,9 @@ export default async function BankAccountDetailPage({
                   <TDNum>{formatUsdMinor(BigInt(t.amountUsdMinor))}</TDNum>
                   <TD>
                     {t.reconciledAt ? (
-                      <Badge tone="success">Yes</Badge>
+                      <HandoffBadge tone="ok">Yes</HandoffBadge>
                     ) : (
-                      <Badge tone="warning">No</Badge>
+                      <HandoffBadge tone="warn">No</HandoffBadge>
                     )}
                   </TD>
                 </TR>
@@ -183,7 +193,7 @@ export default async function BankAccountDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

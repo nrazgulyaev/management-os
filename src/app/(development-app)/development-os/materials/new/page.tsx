@@ -2,10 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -31,7 +30,11 @@ export default async function NewMaterialPoPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New PO" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New PO</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -120,23 +123,28 @@ export default async function NewMaterialPoPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Materials", href: "/development-os/materials" },
-          { label: "New PO" },
-        ]}
-        title="New material PO"
-        description="Server computes totals from line items — never trust client-asserted totals."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/materials">Materials</Link> /{" "}
+            <span>New PO</span>
+          </div>
+          <h1>New material PO</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Server computes totals from line items — never trust client-asserted
+            totals.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/materials">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               All POs
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -145,7 +153,9 @@ export default async function NewMaterialPoPage({
       )}
 
       <form action={handleSubmit} className="space-y-4 max-w-4xl">
-        <Section eyebrow="Header" title="Order details">
+        <div>
+          <div className="label mb-2.5">Header</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Field label="PO code">
               <input
@@ -240,9 +250,12 @@ export default async function NewMaterialPoPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Lines" title={`Up to ${MAX_LINES} line items`}>
+        <div>
+          <div className="label mb-2.5">Lines</div>
+          <Card padding="default">
           <div className="space-y-2">
             {Array.from({ length: MAX_LINES }, (_, i) => i).map((i) => (
               <div
@@ -321,7 +334,8 @@ export default async function NewMaterialPoPage({
             Empty lines are skipped. Server computes the PO total from the
             sum of (unit_price × quantity).
           </p>
-        </Section>
+          </Card>
+        </div>
 
         <div className="flex items-center justify-end">
           <Button type="submit">Create PO</Button>

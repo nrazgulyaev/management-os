@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -19,16 +16,16 @@ import { RFI_DISCIPLINES, type RfiStatus } from "@/features/development/rfi/rfi-
 export const metadata: Metadata = { title: "RFIs · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<RfiStatus, "warning" | "info" | "success"> = {
-  open: "warning",
+const STATUS_TONE: Record<RfiStatus, "warn" | "info" | "ok"> = {
+  open: "warn",
   answered: "info",
-  closed: "success",
+  closed: "ok",
 };
 
-const PRIORITY_TONE: Record<string, "neutral" | "info" | "warning" | "danger"> = {
-  low: "neutral",
+const PRIORITY_TONE: Record<string, "soft" | "info" | "warn" | "danger"> = {
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -73,7 +70,11 @@ export default async function ProjectRfisPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="RFIs" />
+        <div className="page-header">
+          <div className="left">
+            <h1>RFIs</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -97,32 +98,36 @@ export default async function ProjectRfisPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "RFIs" },
-        ]}
-        eyebrow={`${openCount} open · ${rfis.length} shown`}
-        title="RFI inbox"
-        description="Requests for information routed by discipline to the project-team contact who owns the answer. Compose runs the rfi-router; respond + resolve drive the open → answered → closed lifecycle."
-        actions={
-          <div className="flex items-center gap-2">
-            <RfiComposeLauncher
-              projectId={project.realProjectId}
-              projectCode={project.slug}
-              projectSlug={slug}
-            />
-            <Button asChild variant="secondary">
-              <Link href={`/development-os/projects/${slug}`}>
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Project
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>RFIs</span>
           </div>
-        }
-      />
+          <h1>RFI inbox</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Requests for information routed by discipline to the project-team
+            contact who owns the answer. Compose runs the rfi-router; respond +
+            resolve drive the open → answered → closed lifecycle.
+          </p>
+        </div>
+        <div className="actions">
+          <RfiComposeLauncher
+            projectId={project.realProjectId}
+            projectCode={project.slug}
+            projectSlug={slug}
+          />
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </div>
 
       <div className="flex flex-col gap-3 -mt-2">
         <div className="flex items-center gap-2 flex-wrap">
@@ -134,7 +139,7 @@ export default async function ProjectRfisPage({
               key={f.value}
               href={buildHref(slug, { discipline, status }, { status: f.value })}
             >
-              <Badge tone={status === f.value ? "accent" : "outline"}>{f.label}</Badge>
+              <HandoffBadge tone={status === f.value ? "info" : "soft"}>{f.label}</HandoffBadge>
             </Link>
           ))}
         </div>
@@ -143,14 +148,14 @@ export default async function ProjectRfisPage({
             Discipline
           </span>
           <Link href={buildHref(slug, { discipline, status }, { discipline: "all" })}>
-            <Badge tone={discipline === "all" ? "accent" : "outline"}>All</Badge>
+            <HandoffBadge tone={discipline === "all" ? "info" : "soft"}>All</HandoffBadge>
           </Link>
           {RFI_DISCIPLINES.map((d) => (
             <Link
               key={d}
               href={buildHref(slug, { discipline, status }, { discipline: d })}
             >
-              <Badge tone={discipline === d ? "accent" : "outline"}>{d}</Badge>
+              <HandoffBadge tone={discipline === d ? "info" : "soft"}>{d}</HandoffBadge>
             </Link>
           ))}
         </div>
@@ -162,7 +167,8 @@ export default async function ProjectRfisPage({
           description="Compose an RFI — the rfi-router picks the discipline contact from the project roster, or leaves it for the PM to assign."
         />
       ) : (
-        <Section eyebrow="Inbox" title="RFIs (newest first)">
+        <div>
+          <div className="label mb-2.5">Inbox</div>
           <Table>
             <THead>
               <TR>
@@ -197,19 +203,19 @@ export default async function ProjectRfisPage({
                     )}
                   </TD>
                   <TD>
-                    <Badge tone={PRIORITY_TONE[r.priority] ?? "neutral"}>
+                    <HandoffBadge tone={PRIORITY_TONE[r.priority] ?? "soft"}>
                       {r.priority}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[r.status]}>{r.status}</Badge>
+                    <HandoffBadge tone={STATUS_TONE[r.status]}>{r.status}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">{fmtDate(r.openedAt)}</TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { AgentOutputsTable } from "@/components/development/agent-outputs-table";
@@ -18,7 +17,11 @@ export default async function AgentPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Daily Construction Digest" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Daily Construction Digest</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,22 +38,27 @@ export default async function AgentPage() {
   );
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Daily Construction Digest"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          { label: "Daily Construction Digest" },
-        ]}
-        description="End-of-day per-project digest. Recurring at 22:00."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <span>Daily Construction Digest</span>
+          </div>
+          <h1>Daily Construction Digest</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            End-of-day per-project digest. Recurring at 22:00.
+          </p>
+        </div>
+      </div>
       <RunAgentButton agentKey="daily_digest" />
-      <Section title={`${rows.length} output(s)`}>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} output(s)`}</div>
         <AgentOutputsTable
           rows={rows}
           detailHrefBase="/development-os/ai-agents/daily-digest/outputs"
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { NpwpInput } from "@/components/development/finance/npwp-input";
 import { createVendor } from "@/lib/development/server/vendor-actions";
@@ -116,23 +114,29 @@ export default async function NewVendorPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Vendors", href: "/development-os/vendors" },
-          { label: "New" },
-        ]}
-        title="New vendor"
-        description="Construction vendor, subcontractor, supplier, or consultant. Engagement linkage to specific projects happens after creation."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/vendors">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All vendors
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/vendors">Vendors</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New vendor</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Construction vendor, subcontractor, supplier, or consultant.
+            Engagement linkage to specific projects happens after creation.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/vendors"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All vendors
+          </Link>
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -141,7 +145,9 @@ export default async function NewVendorPage({
       )}
 
       <form action={handleSubmit} className="space-y-6 max-w-3xl">
-        <Section eyebrow="Identity" title="Required fields">
+        <div>
+          <div className="label mb-2.5">Identity</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Vendor code">
               <input
@@ -188,9 +194,12 @@ export default async function NewVendorPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Contact" title="How to reach them">
+        <div>
+          <div className="label mb-2.5">Contact</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Email">
               <input
@@ -223,9 +232,12 @@ export default async function NewVendorPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Compliance + banking" title="Optional">
+        <div>
+          <div className="label mb-2.5">Compliance + banking</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Tax ID (NPWP)">
               <NpwpInput
@@ -286,10 +298,13 @@ export default async function NewVendorPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
         <div className="flex items-center justify-end">
-          <Button type="submit">Create vendor</Button>
+          <button type="submit" className="btn btn-accent">
+            Create vendor
+          </button>
         </div>
       </form>
     </DevelopmentShell>

@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import {
   Table,
   THead,
@@ -16,6 +11,7 @@ import {
   TD,
   TDNum,
 } from "@/components/ui/table";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -41,17 +37,17 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
   string,
-  "success" | "warning" | "danger" | "neutral" | "info"
+  "ok" | "warn" | "danger" | "soft" | "info"
 > = {
-  succeeded: "success",
-  success: "success",
+  succeeded: "ok",
+  success: "ok",
   dry_run: "info",
   failed: "danger",
   error: "danger",
-  budget_exceeded: "warning",
-  fallback: "warning",
-  blocked: "warning",
-  skipped: "neutral",
+  budget_exceeded: "warn",
+  fallback: "warn",
+  blocked: "warn",
+  skipped: "soft",
   running: "info",
 };
 
@@ -118,15 +114,18 @@ export default async function AiUsagePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Settings" },
-            { label: "AI usage" },
-          ]}
-          title="AI usage"
-          description="Per-assistant spend, runs, and configured budgets."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Settings</span> / <span>AI usage</span>
+            </div>
+            <h1>AI usage</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Per-assistant spend, runs, and configured budgets.
+            </p>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to view AI usage."
@@ -216,55 +215,54 @@ export default async function AiUsagePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "AI usage" },
-        ]}
-        eyebrow={`${totalRuns30d} runs · ${fmtUsd(totalSpend30d)} (last 30 days)`}
-        title="AI usage"
-        description="Per-assistant spend, runs, and configured budgets. Budgets are checked before each provider call — spending stops when daily or monthly limits are hit."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span> / <span>AI usage</span>
+          </div>
+          <h1>AI usage</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-assistant spend, runs, and configured budgets. Budgets are
+            checked before each provider call — spending stops when daily or
+            monthly limits are hit.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Last 30 days" title="Snapshot">
+      <div>
+        <div className="label mb-2.5">Last 30 days</div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <MetricCard
-            label="Spend"
-            value={fmtUsd(totalSpend30d)}
-            hint="last 30 days"
-          />
-          <MetricCard label="Runs" value={String(totalRuns30d)} />
-          <MetricCard
+          <Kpi label="Spend" value={fmtUsd(totalSpend30d)} sub="last 30 days" />
+          <Kpi label="Runs" value={String(totalRuns30d)} />
+          <Kpi
             label="Failures"
             value={String(totalFailures)}
-            hint={totalRuns30d > 0 ? `${((totalFailures / totalRuns30d) * 100).toFixed(1)}%` : undefined}
+            sub={totalRuns30d > 0 ? `${((totalFailures / totalRuns30d) * 100).toFixed(1)}%` : undefined}
           />
-          <MetricCard
+          <Kpi
             label="Budgets"
             value={String(budgets.length)}
-            hint={
+            sub={
               budgets.filter((b) => b.isEnabled).length === budgets.length
                 ? "all enabled"
                 : `${budgets.filter((b) => b.isEnabled).length} enabled`
             }
           />
         </div>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="By assistant"
-        title="Spend + reliability per agent"
-        description="Aggregated over the last 30 days from ai_assistant_runs."
-      >
+      <div>
+        <div className="label mb-2.5">By assistant</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          Aggregated over the last 30 days from ai_assistant_runs.
+        </p>
         {usage.length === 0 ? (
           <EmptyState
             title="No AI runs yet"
@@ -292,14 +290,14 @@ export default async function AiUsagePage() {
                   <TDNum>{r.successCount}</TDNum>
                   <TDNum>
                     {r.failureCount > 0 ? (
-                      <Badge tone="danger">{r.failureCount}</Badge>
+                      <HandoffBadge tone="danger">{r.failureCount}</HandoffBadge>
                     ) : (
                       "—"
                     )}
                   </TDNum>
                   <TDNum>
                     {r.budgetExceededCount > 0 ? (
-                      <Badge tone="warning">{r.budgetExceededCount}</Badge>
+                      <HandoffBadge tone="warn">{r.budgetExceededCount}</HandoffBadge>
                     ) : (
                       "—"
                     )}
@@ -312,14 +310,16 @@ export default async function AiUsagePage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {budgetWindows.length > 0 && (
-        <Section
-          eyebrow="Budgets"
-          title="Configured ceilings + utilisation"
-          description="Daily resets at 00:00 UTC. Monthly resets on the 1st. When utilisation reaches the alert threshold the next operations summary surfaces a warning."
-        >
+        <div>
+          <div className="label mb-2.5">Budgets</div>
+          <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+            Daily resets at 00:00 UTC. Monthly resets on the 1st. When
+            utilisation reaches the alert threshold the next operations summary
+            surfaces a warning.
+          </p>
           <Table>
             <THead>
               <TR>
@@ -371,13 +371,13 @@ export default async function AiUsagePage() {
                     <TDNum>{budget.alertThresholdPct}%</TDNum>
                     <TD>
                       {!budget.isEnabled ? (
-                        <Badge tone="neutral">Disabled</Badge>
+                        <HandoffBadge tone="soft">Disabled</HandoffBadge>
                       ) : exceeded ? (
-                        <Badge tone="danger">Exceeded</Badge>
+                        <HandoffBadge tone="danger">Exceeded</HandoffBadge>
                       ) : warn ? (
-                        <Badge tone="warning">Warning</Badge>
+                        <HandoffBadge tone="warn">Warning</HandoffBadge>
                       ) : (
-                        <Badge tone="success">OK</Badge>
+                        <HandoffBadge tone="ok">OK</HandoffBadge>
                       )}
                     </TD>
                   </TR>
@@ -385,36 +385,39 @@ export default async function AiUsagePage() {
               })}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
 
       {orgQuotaRow && (
-        <Section
-          eyebrow={`Org quota · ${defaultOrg?.name ?? "default"}`}
-          title="Plan limits + month-to-date breakdown"
-          description="Stage 7.0 — per-org quota enforcement. Daily resets at 00:00 UTC; monthly resets on the 1st."
-        >
+        <div>
+          <div className="label mb-2.5">
+            Org quota · {defaultOrg?.name ?? "default"}
+          </div>
+          <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+            Stage 7.0 — per-org quota enforcement. Daily resets at 00:00 UTC;
+            monthly resets on the 1st.
+          </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <MetricCard
+            <Kpi
               label="Plan"
               value={orgPlanRow?.displayName ?? "—"}
-              hint={
+              sub={
                 orgPlanRow
                   ? `Tier max ${orgPlanRow.maxTier} · ${orgPlanRow.markupPercent}% markup`
                   : "no subscription"
               }
             />
-            <MetricCard
+            <Kpi
               label="Daily cap"
               value={fmtUsd(Number(orgQuotaRow.dailyLimitUsd))}
-              hint={`today: ${fmtUsd(Number(orgUsageRow?.todayCostUsd ?? 0))}`}
+              sub={`today: ${fmtUsd(Number(orgUsageRow?.todayCostUsd ?? 0))}`}
             />
-            <MetricCard
+            <Kpi
               label="Monthly cap"
               value={fmtUsd(Number(orgQuotaRow.monthlyLimitUsd))}
-              hint={`month: ${fmtUsd(Number(orgUsageRow?.totalCostUsd ?? 0))}`}
+              sub={`month: ${fmtUsd(Number(orgUsageRow?.totalCostUsd ?? 0))}`}
             />
-            <MetricCard
+            <Kpi
               label="Quota state"
               value={
                 orgQuotaRow.lastBlockedAt
@@ -423,7 +426,7 @@ export default async function AiUsagePage() {
                     ? "disabled"
                     : "ok"
               }
-              hint={
+              sub={
                 orgQuotaRow.lastBlockedAt
                   ? `last blocked: ${orgQuotaRow.lastBlockedAt.toISOString().slice(0, 10)}`
                   : `warn≥${orgQuotaRow.warnThresholdPct}% high≥${orgQuotaRow.highThresholdPct}%`
@@ -450,10 +453,11 @@ export default async function AiUsagePage() {
               />
             </div>
           )}
-        </Section>
+        </div>
       )}
 
-      <Section eyebrow="Runs" title="Last 100 chronologically">
+      <div>
+        <div className="label mb-2.5">Runs</div>
         {runs.length === 0 ? (
           <EmptyState title="No runs yet" description="Trigger an AI assistant or wait for the next cron tick." />
         ) : (
@@ -478,9 +482,9 @@ export default async function AiUsagePage() {
                   </TD>
                   <TD className="font-mono text-xs">{r.assistantKey}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[r.status] ?? "soft"}>
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs text-ink-secondary">
                     {r.model ?? "—"}
@@ -506,7 +510,7 @@ export default async function AiUsagePage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

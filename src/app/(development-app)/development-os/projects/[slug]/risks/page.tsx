@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD} from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -17,21 +15,21 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Risks · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  identified: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  identified: "warn",
   planning_mitigation: "info",
   mitigating: "info",
-  monitored: "neutral",
-  closed_resolved: "success",
+  monitored: "soft",
+  closed_resolved: "ok",
   closed_realized: "danger",
 };
 
-function scoreTone(score: number | null): "danger" | "warning" | "info" | "neutral" {
-  if (score == null) return "neutral";
+function scoreTone(score: number | null): "danger" | "warn" | "info" | "soft" {
+  if (score == null) return "soft";
   if (score >= 15) return "danger";
-  if (score >= 8) return "warning";
+  if (score >= 8) return "warn";
   if (score >= 4) return "info";
-  return "neutral";
+  return "soft";
 }
 
 export default async function ProjectRisksPage({
@@ -44,7 +42,11 @@ export default async function ProjectRisksPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Risks" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Risks</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -65,16 +67,20 @@ export default async function ProjectRisksPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Risks" },
-        ]}
-        eyebrow={`${open} open · ${risks.length} total`}
-        title="Risk Register"
-        description="Sorted by risk_score (probability × impact) descending. Score is a DB GENERATED column — never drifts from the inputs."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>Risks</span>
+          </div>
+          <h1>Risk Register</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Sorted by risk_score (probability × impact) descending. Score is a DB
+            GENERATED column — never drifts from the inputs.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <Button asChild variant="secondary">
               <Link href={`/development-os/projects/${slug}/risks/heatmap`}>
@@ -94,8 +100,8 @@ export default async function ProjectRisksPage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {risks.length === 0 ? (
         <EmptyState
@@ -103,7 +109,8 @@ export default async function ProjectRisksPage({
           description="Capture risks as you spot them — the daily elevation cron flags scores ≥ 15."
         />
       ) : (
-        <Section eyebrow="Register" title="All risks (highest score first)">
+        <div>
+          <div className="label mb-2.5">Register</div>
           <Table>
             <THead>
               <TR>
@@ -132,20 +139,20 @@ export default async function ProjectRisksPage({
                   <TD className="text-xs">{r.probability}</TD>
                   <TD className="text-xs">{r.impact}</TD>
                   <TD>
-                    <Badge tone={scoreTone(r.riskScore)}>
+                    <HandoffBadge tone={scoreTone(r.riskScore)}>
                       {r.riskScore ?? "—"}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[r.mitigationStatus] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[r.mitigationStatus] ?? "soft"}>
                       {r.mitigationStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

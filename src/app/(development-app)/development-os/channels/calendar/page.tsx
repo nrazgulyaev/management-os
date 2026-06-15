@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -39,7 +36,11 @@ export default async function ChannelCalendarPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Cross-channel calendar" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Cross-channel calendar</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -83,24 +84,30 @@ export default async function ChannelCalendarPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels", href: "/development-os/channels" },
-          { label: "Calendar" },
-        ]}
-        eyebrow="Cross-channel availability"
-        title="Cross-channel calendar"
-        description="Per-villa view of every channel's reservations for the next 3 months. Color-coded by source. Conflict-pending rows highlighted for operator review."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Channels
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/channels">Channels</Link> /{" "}
+            <span>Calendar</span>
+          </div>
+          <h1>Cross-channel calendar</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-villa view of every channel&apos;s reservations for the next 3
+            months. Color-coded by source. Conflict-pending rows highlighted for
+            operator review.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/channels"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Channels
+          </Link>
+        </div>
+      </div>
 
       <form
         method="GET"
@@ -125,9 +132,9 @@ export default async function ChannelCalendarPage({
           </select>
         </label>
         <div className="flex items-end">
-          <Button type="submit" size="sm">
+          <button type="submit" className="btn btn-accent btn-sm">
             Show
-          </Button>
+          </button>
         </div>
       </form>
 
@@ -142,11 +149,12 @@ export default async function ChannelCalendarPage({
           description="Once channels are connected and a guest books, reservations land here automatically."
         />
       ) : (
-        <Section
-          eyebrow="Calendar"
-          title={`${months[0].label} → ${months[2].label}`}
-          description="Each colored bar is one reservation, positioned across its date span. Click any bar for the unified detail page."
-        >
+        <div>
+          <div className="label mb-2.5">Calendar</div>
+          <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+            Each colored bar is one reservation, positioned across its date
+            span. Click any bar for the unified detail page.
+          </p>
           <CalendarLegend />
           <div className="space-y-6 mt-4">
             {months.map((m) => (
@@ -159,7 +167,7 @@ export default async function ChannelCalendarPage({
               />
             ))}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );
@@ -295,9 +303,9 @@ function ReservationBar({
             {CHANNEL_LABELS[reservation.channel]}
           </span>
           {reservation.conflictPending && (
-            <Badge tone="warning" className="ml-2">
-              conflict
-            </Badge>
+            <span className="ml-2">
+              <HandoffBadge tone="warn">conflict</HandoffBadge>
+            </span>
           )}
         </div>
       </div>

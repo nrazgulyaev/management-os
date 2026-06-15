@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Wallet } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -19,7 +16,15 @@ export default async function InstallmentsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Installments" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Installments</span>
+            </div>
+            <h1>Installments</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -36,8 +41,6 @@ export default async function InstallmentsPage() {
     outstandingUsdMinor: p.outstandingUsdMinor.toString(),
   }));
 
-  const outstandingPlans = rows.filter((r) => Number(r.outstandingUsdMinor) > 0).length;
-  const overduePlans = rows.filter((r) => r.overdueCount > 0).length;
   const autoOn = rows.filter((r) => r.autoRemindEnabled).length;
 
   // KPI strip aggregates (mock: Contracted / Due / Overdue / Auto-remind).
@@ -52,23 +55,28 @@ export default async function InstallmentsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Installments" },
-        ]}
-        eyebrow={`${outstandingPlans} with balance · ${overduePlans} overdue · ${autoOn} auto-remind on`}
-        title="Buyers & installments"
-        description="Operator payment desk for every buyer's installment plan. Each row is one contract group: track stage and paid progress, open a buyer to mark milestones paid or remind per line, toggle auto-reminders, or select plans and send reminders in bulk. Mark-paid is manual (no card capture)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Installments</span>
+          </div>
+          <h1>Buyers &amp; installments</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator payment desk for every buyer&apos;s installment plan. Each
+            row is one contract group: track stage and paid progress, open a
+            buyer to mark milestones paid or remind per line, toggle
+            auto-reminders, or select plans and send reminders in bulk.
+            Mark-paid is manual (no card capture).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -78,18 +86,20 @@ export default async function InstallmentsPage() {
         />
       ) : (
         <>
-          <Section eyebrow="At a glance" title="Receivables">
+          <div>
+            <div className="label mb-2.5">At a glance</div>
             <InstallmentDeskKpis
               contractedUsdMinor={contractedTotal}
               outstandingUsdMinor={outstandingTotal}
               overdueCount={overduePayments}
               autoRemindOn={autoOn}
             />
-          </Section>
+          </div>
 
-          <Section eyebrow="Payment desk" title={`${rows.length} installment plan${rows.length === 1 ? "" : "s"}`}>
+          <div>
+            <div className="label mb-2.5">Payment desk</div>
             <InstallmentDesk plans={rows} />
-          </Section>
+          </div>
         </>
       )}
     </DevelopmentShell>

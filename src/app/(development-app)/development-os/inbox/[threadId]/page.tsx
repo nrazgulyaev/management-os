@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -43,7 +40,11 @@ export default async function ThreadDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Thread" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Thread</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -69,39 +70,51 @@ export default async function ThreadDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inbox", href: "/development-os/inbox" },
-          { label: thread.subject ?? "Thread" },
-        ]}
-        eyebrow={`${messages.length} message${messages.length === 1 ? "" : "s"}${thread.unreadCount > 0 ? ` · ${thread.unreadCount} unread` : ""}`}
-        title={thread.subject ?? "Conversation"}
-        description={
-          primaryChannel
-            ? `Primary channel: ${CHANNEL_LABELS[primaryChannel]} · ${thread.status}`
-            : thread.status
-        }
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/inbox">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Inbox
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inbox">Inbox</Link> /{" "}
+            <span>{thread.subject ?? "Thread"}</span>
+          </div>
+          <h1>{thread.subject ?? "Conversation"}</h1>
+          <div className="page-header-meta">
+            <span>
+              {messages.length} message{messages.length === 1 ? "" : "s"}
+            </span>
             {thread.unreadCount > 0 && (
-              <form action={markReadBound}>
-                <Button type="submit" variant="secondary" size="sm">
-                  Mark read
-                </Button>
-              </form>
+              <>
+                <span>·</span>
+                <span>{thread.unreadCount} unread</span>
+              </>
             )}
           </div>
-        }
-      />
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {primaryChannel
+              ? `Primary channel: ${CHANNEL_LABELS[primaryChannel]} · ${thread.status}`
+              : thread.status}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/inbox"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
+          {thread.unreadCount > 0 && (
+            <form action={markReadBound}>
+              <button type="submit" className="btn btn-secondary btn-sm">
+                Mark read
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
 
-      <Section title="Conversation">
+      <div>
+        <div className="label mb-2.5">Conversation</div>
         {messages.length === 0 ? (
           <EmptyState
             title="No messages yet"
@@ -119,9 +132,9 @@ export default async function ThreadDetailPage({
                 }`}
               >
                 <div className="flex items-center gap-2 text-[11px] uppercase tracking-wide text-ink-secondary mb-1">
-                  <Badge tone={m.direction === "inbound" ? "info" : "accent"}>
+                  <HandoffBadge tone={m.direction === "inbound" ? "info" : "gold"}>
                     {m.direction}
-                  </Badge>
+                  </HandoffBadge>
                   <span>{CHANNEL_LABELS[m.channel as MessagingChannel] ?? m.channel}</span>
                   {m.senderDisplayName && <span>· {m.senderDisplayName}</span>}
                   <span className="ml-auto text-ink-tertiary">
@@ -159,13 +172,14 @@ export default async function ThreadDetailPage({
             ))}
           </div>
         )}
-      </Section>
+      </div>
 
       {primaryChannel && primaryChannel !== "internal_note" && (
-        <Section
-          title="Reply"
-          description={`AI can draft the next reply for you to review (HITL); sends via ${CHANNEL_LABELS[primaryChannel]} using credentials from the env. The inbox agent's mode (auto · semi · off) is managed in Settings → AI agents → Agent Inbox. Failed sends surface in the conversation above.`}
-        >
+        <div>
+          <div className="label mb-2.5">Reply</div>
+          <p className="text-[13px] text-ink-3 mt-0 mb-2.5 max-w-[680px]">
+            {`AI can draft the next reply for you to review (HITL); sends via ${CHANNEL_LABELS[primaryChannel]} using credentials from the env. The inbox agent's mode (auto · semi · off) is managed in Settings → AI agents → Agent Inbox. Failed sends surface in the conversation above.`}
+          </p>
           <InboxAiComposer
             threadId={threadId}
             channel={primaryChannel}
@@ -174,10 +188,11 @@ export default async function ThreadDetailPage({
             defaultSubject={thread.subject ?? null}
             hasMessages={messages.length > 0}
           />
-        </Section>
+        </div>
       )}
 
-      <Section title="Thread actions">
+      <div>
+        <div className="label mb-2.5">Thread actions</div>
         <form
           action={async (fd: FormData) => {
             "use server";
@@ -200,11 +215,11 @@ export default async function ThreadDetailPage({
             <option value="spam">Spam</option>
             <option value="pending_assignment">Pending assignment</option>
           </select>
-          <Button type="submit" variant="secondary" size="sm">
+          <button type="submit" className="btn btn-secondary btn-sm">
             Update status
-          </Button>
+          </button>
         </form>
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

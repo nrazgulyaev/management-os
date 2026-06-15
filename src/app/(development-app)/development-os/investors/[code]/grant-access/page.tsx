@@ -3,10 +3,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -40,19 +37,20 @@ export default async function GrantAccessPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Investors", href: "/development-os/investors" },
-            { label: code },
-            { label: "Grant access" },
-          ]}
-          title="Grant portal access"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/investors">Investors</Link> /{" "}
+              <span>{code}</span> / <span>Grant access</span>
+            </div>
+            <h1>Grant portal access</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to manage portal access."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       </DevelopmentShell>
     );
@@ -127,28 +125,33 @@ export default async function GrantAccessPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investors", href: "/development-os/investors" },
-          {
-            label: investor.investorCode,
-            href: `/development-os/investors/${investor.investorCode}`,
-          },
-          { label: "Grant access" },
-        ]}
-        eyebrow={`${investor.investorCode} · ${investor.investorType}`}
-        title={`Portal access — ${investor.legalName}`}
-        description="Onboard this investor to the read-only portal. Grants create a Supabase auth user (when service key is configured) and link the app_users row to the investor."
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/investors">Investors</Link> /{" "}
             <Link href={`/development-os/investors/${investor.investorCode}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Investor detail
-            </Link>
-          </Button>
-        }
-      />
+              {investor.investorCode}
+            </Link>{" "}
+            / <span>Grant access</span>
+          </div>
+          <h1>Portal access — {investor.legalName}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Onboard this investor to the read-only portal. Grants create a
+            Supabase auth user (when service key is configured) and link the
+            app_users row to the investor.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/investors/${investor.investorCode}`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Investor detail
+          </Link>
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -172,47 +175,52 @@ export default async function GrantAccessPage({
       )}
 
       {access.hasAccess ? (
-        <Section eyebrow="Status" title="Portal access already granted">
-          <div className="rounded-lg border border-line-soft bg-surface p-4 text-sm">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Field label="Email" value={access.email ?? "—"} mono />
-              <Field label="App user ID" value={access.appUserId ?? "—"} mono />
-              <Field label="Status" value={access.status ?? "—"} />
-              <Field
-                label="Auth user linked"
-                value={access.authUserId ? "Yes" : "Not yet"}
-              />
+        <div>
+          <div className="label mb-2.5">Status</div>
+          <Card padding="default">
+            <div className="rounded-lg border border-line-soft bg-surface p-4 text-sm">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                <Field label="Email" value={access.email ?? "—"} mono />
+                <Field label="App user ID" value={access.appUserId ?? "—"} mono />
+                <Field label="Status" value={access.status ?? "—"} />
+                <Field
+                  label="Auth user linked"
+                  value={access.authUserId ? "Yes" : "Not yet"}
+                />
+              </div>
+              <div className="mt-2 text-xs text-ink-tertiary">
+                Granted at {access.grantedAt}
+              </div>
             </div>
-            <div className="mt-2 text-xs text-ink-tertiary">
-              Granted at {access.grantedAt}
-            </div>
-          </div>
 
-          <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
-            <h3 className="font-medium mb-2">Revoke portal access</h3>
-            <p className="text-xs mb-3">
-              Sets <code>investor_id = NULL</code>, sets{" "}
-              <code>status = &quot;suspended&quot;</code>, and (if admin SDK is
-              configured) bans the Supabase auth user. The audit trail
-              persists in <code>dev_notification_delivery_log</code>.
-            </p>
-            <form action={handleRevoke} className="flex items-center gap-2">
-              <input
-                type="text"
-                name="reason"
-                placeholder="Revocation reason (required, ≥3 chars)"
-                required
-                minLength={3}
-                className="flex-1 rounded-md border border-line-soft bg-surface px-2 py-1 text-xs"
-              />
-              <Button type="submit" variant="secondary">
-                Revoke
-              </Button>
-            </form>
-          </div>
-        </Section>
+            <div className="mt-4 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+              <h3 className="font-medium mb-2">Revoke portal access</h3>
+              <p className="text-xs mb-3">
+                Sets <code>investor_id = NULL</code>, sets{" "}
+                <code>status = &quot;suspended&quot;</code>, and (if admin SDK is
+                configured) bans the Supabase auth user. The audit trail
+                persists in <code>dev_notification_delivery_log</code>.
+              </p>
+              <form action={handleRevoke} className="flex items-center gap-2">
+                <input
+                  type="text"
+                  name="reason"
+                  placeholder="Revocation reason (required, ≥3 chars)"
+                  required
+                  minLength={3}
+                  className="flex-1 rounded-md border border-line-soft bg-surface px-2 py-1 text-xs"
+                />
+                <button type="submit" className="btn btn-secondary">
+                  Revoke
+                </button>
+              </form>
+            </div>
+          </Card>
+        </div>
       ) : (
-        <Section eyebrow="Grant" title="Set up portal access">
+        <div>
+          <div className="label mb-2.5">Grant</div>
+          <Card padding="default">
           <form
             action={handleGrant}
             className="grid grid-cols-1 md:grid-cols-2 gap-4"
@@ -272,7 +280,9 @@ export default async function GrantAccessPage({
               <div className="text-xs text-ink-tertiary">
                 Rate limit: 5 grants per staff member per hour.
               </div>
-              <Button type="submit">Grant access</Button>
+              <button type="submit" className="btn btn-accent">
+                Grant access
+              </button>
             </div>
           </form>
 
@@ -306,7 +316,8 @@ export default async function GrantAccessPage({
               </li>
             </ol>
           </div>
-        </Section>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

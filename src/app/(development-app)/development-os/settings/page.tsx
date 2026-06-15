@@ -8,8 +8,6 @@ import {
   ShieldCheck,
   Percent,
 } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 
@@ -57,24 +55,30 @@ const SETTINGS_CARDS = [
 export default async function SettingsIndexPage() {
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-        ]}
-        title="Settings"
-        description="Operator-configurable knobs across the Development OS workspace. Each section below opens a dedicated configuration page."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span>
+          </div>
+          <h1>Settings</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator-configurable knobs across the Development OS workspace.
+            Each section below opens a dedicated configuration page.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Command center
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Configuration" title="Available settings">
+      <div>
+        <div className="label mb-2.5">Configuration</div>
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {SETTINGS_CARDS.map((c) => (
             <li key={c.href}>
@@ -100,7 +104,7 @@ export default async function SettingsIndexPage() {
             </li>
           ))}
         </ul>
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

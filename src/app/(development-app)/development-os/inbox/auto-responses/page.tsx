@@ -1,19 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import {
-  Table,
-  THead,
-  TBody,
-  TR,
-  TH,
-  TD,
-} from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listAutoResponseRules } from "@/lib/messaging/queries";
@@ -30,7 +19,11 @@ export default async function AutoResponsesPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Auto-responses" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Auto-responses</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -42,29 +35,41 @@ export default async function AutoResponsesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inbox", href: "/development-os/inbox" },
-          { label: "Auto-responses" },
-        ]}
-        eyebrow={`${rules.length} rule${rules.length === 1 ? "" : "s"}`}
-        title="Auto-response rules"
-        description="Triggered automations for inbound messages. Keyword + first_message + after_hours fire inline as messages arrive; no_response_timeout + after_hours boundary fire from the messaging_auto_response_evaluator cron (every minute)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inbox">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Inbox
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inbox">Inbox</Link> /{" "}
+            <span>Auto-responses</span>
+          </div>
+          <h1>Auto-response rules</h1>
+          <div className="page-header-meta">
+            <span>
+              {rules.length} rule{rules.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Triggered automations for inbound messages. Keyword + first_message +
+            after_hours fire inline as messages arrive; no_response_timeout +
+            after_hours boundary fire from the messaging_auto_response_evaluator
+            cron (every minute).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/inbox" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
+        </div>
+      </div>
 
-      <Section
-        title="Create rule"
-        description='trigger_config + action_config are JSON. Examples: keyword -> {"keywords":["price","booking"],"matchType":"any"}; after_hours -> {"timezone":"Asia/Jakarta","startHour":18,"endHour":9}; no_response_timeout -> {"thresholdMinutes":120}.'
-      >
+      <div>
+        <div className="label mb-2.5">Create rule</div>
+        <p className="text-[13px] text-ink-3 mt-0 mb-2.5 max-w-[680px]">
+          {
+            'trigger_config + action_config are JSON. Examples: keyword -> {"keywords":["price","booking"],"matchType":"any"}; after_hours -> {"timezone":"Asia/Jakarta","startHour":18,"endHour":9}; no_response_timeout -> {"thresholdMinutes":120}.'
+          }
+        </p>
         <form
           action={createAutoResponseRuleAction}
           className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md border border-line-soft bg-surface p-3 text-sm"
@@ -143,72 +148,76 @@ export default async function AutoResponsesPage() {
             />
           </Field>
           <div className="md:col-span-2 flex justify-end">
-            <Button type="submit" variant="primary">
+            <button type="submit" className="btn btn-accent">
               <Plus className="w-4 h-4" strokeWidth={1.75} />
               Create rule
-            </Button>
+            </button>
           </div>
         </form>
-      </Section>
+      </div>
 
-      <Section title="Existing rules">
+      <div>
+        <div className="label mb-2.5">Existing rules</div>
         {rules.length === 0 ? (
           <EmptyState
             title="No rules configured"
             description="Create your first rule above."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Name</TH>
-                <TH>Trigger</TH>
-                <TH>Action</TH>
-                <TH>Channels</TH>
-                <TH className="text-right">Priority</TH>
-                <TH className="text-right">Triggered</TH>
-                <TH>Status</TH>
-                <TH className="text-right">Actions</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {rules.map((r) => {
-                const toggleBound = setRuleActiveAction.bind(
-                  null,
-                  r.id,
-                  !r.isActive,
-                );
-                return (
-                  <TR key={r.id}>
-                    <TD>{r.name}</TD>
-                    <TD className="text-xs font-mono">{r.triggerType}</TD>
-                    <TD className="text-xs font-mono">{r.actionType}</TD>
-                    <TD className="text-xs">
-                      {(r.channels as string[]).join(", ")}
-                    </TD>
-                    <TD className="text-right tabular-nums">{r.priority}</TD>
-                    <TD className="text-right tabular-nums">
-                      {r.triggerCount}
-                    </TD>
-                    <TD>
-                      <Badge tone={r.isActive ? "success" : "neutral"}>
-                        {r.isActive ? "active" : "paused"}
-                      </Badge>
-                    </TD>
-                    <TD className="text-right">
-                      <form action={toggleBound}>
-                        <Button type="submit" variant="secondary" size="sm">
-                          {r.isActive ? "Pause" : "Activate"}
-                        </Button>
-                      </form>
-                    </TD>
-                  </TR>
-                );
-              })}
-            </TBody>
-          </Table>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Trigger</th>
+                  <th scope="col">Action</th>
+                  <th scope="col">Channels</th>
+                  <th scope="col" className="num">Priority</th>
+                  <th scope="col" className="num">Triggered</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rules.map((r) => {
+                  const toggleBound = setRuleActiveAction.bind(
+                    null,
+                    r.id,
+                    !r.isActive,
+                  );
+                  return (
+                    <tr key={r.id}>
+                      <td className="row-title">{r.name}</td>
+                      <td className="text-xs font-mono">{r.triggerType}</td>
+                      <td className="text-xs font-mono">{r.actionType}</td>
+                      <td className="text-xs">
+                        {(r.channels as string[]).join(", ")}
+                      </td>
+                      <td className="num">{r.priority}</td>
+                      <td className="num">{r.triggerCount}</td>
+                      <td>
+                        <HandoffBadge tone={r.isActive ? "ok" : "soft"}>
+                          {r.isActive ? "active" : "paused"}
+                        </HandoffBadge>
+                      </td>
+                      <td className="text-right">
+                        <form action={toggleBound}>
+                          <button
+                            type="submit"
+                            className="btn btn-secondary btn-sm"
+                          >
+                            {r.isActive ? "Pause" : "Activate"}
+                          </button>
+                        </form>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

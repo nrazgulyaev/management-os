@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { AgentOutputsTable } from "@/components/development/agent-outputs-table";
@@ -18,7 +17,11 @@ export default async function AgentPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Executive Business Analyst" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Executive Business Analyst</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,22 +38,27 @@ export default async function AgentPage() {
   );
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Executive Business Analyst"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          { label: "Executive Business Analyst" },
-        ]}
-        description="Weekly executive synthesis + strategic recommendations."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <span>Executive Business Analyst</span>
+          </div>
+          <h1>Executive Business Analyst</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Weekly executive synthesis + strategic recommendations.
+          </p>
+        </div>
+      </div>
       <RunAgentButton agentKey="executive_business" />
-      <Section title={`${rows.length} output(s)`}>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} output(s)`}</div>
         <AgentOutputsTable
           rows={rows}
           detailHrefBase="/development-os/ai-agents/executive-business/outputs"
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

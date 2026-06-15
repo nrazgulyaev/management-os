@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -46,7 +44,11 @@ export default async function NewSafetyIncidentPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Record safety incident" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Record safety incident</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -122,23 +124,29 @@ export default async function NewSafetyIncidentPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Safety", href: "/development-os/safety" },
-          { label: "New incident" },
-        ]}
-        title="Record safety incident"
-        description="Fast emergency entry. Photos and authority follow-up are added on the incident detail page after recording."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/safety">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Safety log
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/safety">Safety</Link> /{" "}
+            <span>New incident</span>
+          </div>
+          <h1>Record safety incident</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Fast emergency entry. Photos and authority follow-up are added on
+            the incident detail page after recording.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/safety"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Safety log
+          </Link>
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -147,7 +155,9 @@ export default async function NewSafetyIncidentPage({
       )}
 
       <form action={handleSubmit} className="space-y-4 max-w-3xl">
-        <Section eyebrow="Severity" title="How serious">
+        <div>
+          <div className="label mb-2.5">Severity</div>
+          <Card padding="default">
           <fieldset className="flex flex-wrap gap-2">
             {SAFETY_SEVERITIES.map((s) => (
               <label
@@ -180,9 +190,12 @@ export default async function NewSafetyIncidentPage({
             Severe or fatal incidents fire an immediate notification to senior
             management and trigger the safety-escalation cron loop.
           </p>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Where + when" title="Project + location + time">
+        <div>
+          <div className="label mb-2.5">Where + when</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Project">
               <select
@@ -254,9 +267,12 @@ export default async function NewSafetyIncidentPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="What happened" title="Description + immediate response">
+        <div>
+          <div className="label mb-2.5">What happened</div>
+          <Card padding="default">
           <Field label="Description (what happened, witnesses, conditions)" full>
             <textarea
               name="description"
@@ -287,7 +303,8 @@ export default async function NewSafetyIncidentPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
         <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-2">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -299,7 +316,9 @@ export default async function NewSafetyIncidentPage({
         </div>
 
         <div className="flex items-center justify-end">
-          <Button type="submit">Record incident</Button>
+          <button type="submit" className="btn btn-accent">
+            Record incident
+          </button>
         </div>
       </form>
     </DevelopmentShell>

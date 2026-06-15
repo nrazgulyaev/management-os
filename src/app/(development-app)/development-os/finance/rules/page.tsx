@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -30,7 +28,11 @@ export default async function RulesPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Rules" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Rules</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -42,29 +44,36 @@ export default async function RulesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Rules" },
-        ]}
-        eyebrow={`${rules.length} rules`}
-        title="Reconciliation rules"
-        description="Operator-defined rules fire on import (before the auto-matcher) and assign categories / vendors / invoice-match strategies. Lower priority number = higher precedence; first matching rule per action wins."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Rules</span>
+          </div>
+          <h1>Reconciliation rules</h1>
+          <div className="label mt-1.5">{rules.length} rules</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator-defined rules fire on import (before the auto-matcher) and
+            assign categories / vendors / invoice-match strategies. Lower priority
+            number = higher precedence; first matching rule per action wins.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/finance/bank-review">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Bank review
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section
-        title="Create rule"
-        description='matchConfig is JSON. Examples: description_contains -> {"needle":"Stripe"}; amount_range -> {"minMinor":-10000,"maxMinor":10000}; description_regex -> {"pattern":"^INV-\\\\d+","flags":"i"}.'
-      >
+      <div>
+        <div className="label mb-2.5">Create rule</div>
+        <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
+          {'matchConfig is JSON. Examples: description_contains -> {"needle":"Stripe"}; amount_range -> {"minMinor":-10000,"maxMinor":10000}; description_regex -> {"pattern":"^INV-\\\\d+","flags":"i"}.'}
+        </p>
         <form
           action={createRuleAction}
           className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md border border-line-soft bg-surface p-3 text-sm"
@@ -141,9 +150,10 @@ export default async function RulesPage() {
             </Button>
           </div>
         </form>
-      </Section>
+      </div>
 
-      <Section title="Existing rules">
+      <div>
+        <div className="label mb-2.5">Existing rules</div>
         {rules.length === 0 ? (
           <EmptyState
             title="No rules configured"
@@ -175,9 +185,9 @@ export default async function RulesPage() {
                     <TD className="text-right tabular-nums">{r.priority}</TD>
                     <TD className="text-right tabular-nums">{r.matchCount}</TD>
                     <TD>
-                      <Badge tone={r.isActive ? "success" : "neutral"}>
+                      <HandoffBadge tone={r.isActive ? "ok" : "soft"}>
                         {r.isActive ? "active" : "paused"}
-                      </Badge>
+                      </HandoffBadge>
                     </TD>
                     <TD className="text-right">
                       <form action={toggleBound}>
@@ -192,7 +202,7 @@ export default async function RulesPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

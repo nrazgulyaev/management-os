@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listCalendars } from "@/lib/development/server/calendar/calendar-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 
@@ -16,63 +13,74 @@ export default async function CalendarsPage() {
   const rows = await safeQuery("calendars", listCalendars(), []);
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Working calendars"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Schedule" },
-          { label: "Calendars" },
-        ]}
-        description="Working week + holidays per project / vendor / company. Pre-seeded with COMPANY_DEFAULT and BALI_STANDARD."
-        actions={
-          <Button asChild>
-            <Link href="/development-os/schedule/calendars/new">New calendar</Link>
-          </Button>
-        }
-      />
-      <Section title={`${rows.length} calendar(s)`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Schedule</span> /{" "}
+            <span>Calendars</span>
+          </div>
+          <h1>Working calendars</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Working week + holidays per project / vendor / company. Pre-seeded
+            with COMPANY_DEFAULT and BALI_STANDARD.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/schedule/calendars/new"
+            className="btn btn-accent btn-sm"
+          >
+            New calendar
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} calendar(s)`}</div>
         {rows.length === 0 ? (
           <EmptyState title="No calendars" description="Run migrations to seed defaults." />
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Code</th>
-                <th>Name</th>
-                <th>Scope</th>
-                <th>Working days</th>
-                <th>Hours/day</th>
-                <th>Region</th>
-                <th>Default</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((c) => (
-                <tr key={c.id} className="border-b border-line-soft hover:bg-muted/30">
-                  <td className="py-2 font-mono text-xs">
-                    <Link
-                      href={`/development-os/schedule/calendars/${c.calendarCode}`}
-                      className="hover:underline"
-                    >
-                      {c.calendarCode}
-                    </Link>
-                  </td>
-                  <td>{c.name}</td>
-                  <td className="text-xs">{c.scope}</td>
-                  <td className="font-mono text-xs">
-                    [{(c.workingDaysOfWeek ?? []).join(",")}]
-                  </td>
-                  <td className="font-mono tabular-nums">{c.workingHoursPerDay}</td>
-                  <td className="text-xs">{c.regionCode ?? c.countryCode}</td>
-                  <td>
-                    {c.isDefault && <Badge tone="success">default</Badge>}
-                  </td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Code</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Scope</th>
+                  <th scope="col">Working days</th>
+                  <th scope="col">Hours/day</th>
+                  <th scope="col">Region</th>
+                  <th scope="col">Default</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((c) => (
+                  <tr key={c.id}>
+                    <td className="mono text-xs">
+                      <Link
+                        href={`/development-os/schedule/calendars/${c.calendarCode}`}
+                        className="hover:underline"
+                      >
+                        {c.calendarCode}
+                      </Link>
+                    </td>
+                    <td className="row-title">{c.name}</td>
+                    <td className="text-xs">{c.scope}</td>
+                    <td className="mono text-xs">
+                      [{(c.workingDaysOfWeek ?? []).join(",")}]
+                    </td>
+                    <td className="num mono">{c.workingHoursPerDay}</td>
+                    <td className="text-xs">{c.regionCode ?? c.countryCode}</td>
+                    <td>
+                      {c.isDefault && <HandoffBadge tone="ok">default</HandoffBadge>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

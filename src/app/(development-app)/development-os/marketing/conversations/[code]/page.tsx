@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getThreadByCode } from "@/lib/development/server/conversation-review/conversation-queries";
 
@@ -22,52 +19,65 @@ export default async function ConversationDetailPage({
   if (!thread) notFound();
   return (
     <DevelopmentShell>
-      <PageHeader
-        title={thread.threadCode}
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing" },
-          {
-            label: "Conversations",
-            href: "/development-os/marketing/conversations",
-          },
-          { label: thread.threadCode },
-        ]}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Marketing</span> /{" "}
             <Link href="/development-os/marketing/conversations">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back
-            </Link>
-          </Button>
-        }
-      />
-      <Section title="Status">
-        <div className="flex flex-wrap gap-2">
-          <Badge tone="info">outcome: {thread.outcome ?? "active"}</Badge>
-          <Badge tone={thread.consentToAnalyze ? "success" : "neutral"}>
-            consent: {thread.consentToAnalyze ? "yes" : "no"}
-          </Badge>
-          <Badge tone="neutral">AI: {thread.aiAnalysisStatus}</Badge>
+              Conversations
+            </Link>{" "}
+            / <span>{thread.threadCode}</span>
+          </div>
+          <h1>{thread.threadCode}</h1>
         </div>
-      </Section>
-      <Section title="Period">
-        <p className="text-sm">
-          Started: {new Date(thread.conversationStartAt).toLocaleString()}
-          <br />
-          Last message: {new Date(thread.lastMessageAt).toLocaleString()}
-          <br />
-          Messages: {thread.totalMessageCount} across {(thread.channelTypes ?? []).join(", ")}
-        </p>
-      </Section>
-      {!thread.consentToAnalyze && (
-        <Section title="Privacy">
-          <p className="text-sm leading-relaxed text-ink-secondary">
-            AI analysis is gated on explicit operator-recorded consent. Use
-            the <code>recordConsent</code> server action before triggering
-            analysis.
+        <div className="actions">
+          <Link
+            href="/development-os/marketing/conversations"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="flex flex-wrap gap-2">
+            <HandoffBadge tone="info">
+              outcome: {thread.outcome ?? "active"}
+            </HandoffBadge>
+            <HandoffBadge tone={thread.consentToAnalyze ? "ok" : "soft"}>
+              consent: {thread.consentToAnalyze ? "yes" : "no"}
+            </HandoffBadge>
+            <HandoffBadge tone="soft">AI: {thread.aiAnalysisStatus}</HandoffBadge>
+          </div>
+        </Card>
+      </div>
+      <div>
+        <div className="label mb-2.5">Period</div>
+        <Card padding="default">
+          <p className="text-sm">
+            Started: {new Date(thread.conversationStartAt).toLocaleString()}
+            <br />
+            Last message: {new Date(thread.lastMessageAt).toLocaleString()}
+            <br />
+            Messages: {thread.totalMessageCount} across {(thread.channelTypes ?? []).join(", ")}
           </p>
-        </Section>
+        </Card>
+      </div>
+      {!thread.consentToAnalyze && (
+        <div>
+          <div className="label mb-2.5">Privacy</div>
+          <Card padding="default">
+            <p className="text-sm leading-relaxed text-ink-secondary">
+              AI analysis is gated on explicit operator-recorded consent. Use
+              the <code>recordConsent</code> server action before triggering
+              analysis.
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

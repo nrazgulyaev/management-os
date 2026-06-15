@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -31,7 +29,11 @@ export default async function NewEngagementPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New engagement" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New engagement</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -88,24 +90,28 @@ export default async function NewEngagementPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Vendors", href: "/development-os/vendors" },
-          { label: vendor.vendorCode, href: `/development-os/vendors/${vendor.vendorCode}` },
-          { label: "New engagement" },
-        ]}
-        eyebrow={vendor.vendorCode}
-        title={`New engagement — ${vendor.legalName}`}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/vendors">Vendors</Link> /{" "}
             <Link href={`/development-os/vendors/${vendor.vendorCode}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Vendor
-            </Link>
-          </Button>
-        }
-      />
+              {vendor.vendorCode}
+            </Link>{" "}
+            / <span>New engagement</span>
+          </div>
+          <h1>New engagement — {vendor.legalName}</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/vendors/${vendor.vendorCode}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Vendor
+          </Link>
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -114,7 +120,9 @@ export default async function NewEngagementPage({
       )}
 
       <form action={handleSubmit} className="space-y-4 max-w-3xl">
-        <Section eyebrow="Engagement" title="Project + scope">
+        <div>
+          <div className="label mb-2.5">Engagement</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Project">
               <select
@@ -189,9 +197,12 @@ export default async function NewEngagementPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
         <div className="flex items-center justify-end">
-          <Button type="submit">Create engagement</Button>
+          <button type="submit" className="btn btn-accent">
+            Create engagement
+          </button>
         </div>
       </form>
     </DevelopmentShell>

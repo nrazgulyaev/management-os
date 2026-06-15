@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { desc } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { devFxSnapshots } from "@/lib/db/schema/dev-finance";
@@ -21,7 +18,11 @@ export default async function FxPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="FX snapshots" />
+        <div className="page-header">
+          <div className="left">
+            <h1>FX snapshots</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -38,43 +39,51 @@ export default async function FxPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "FX snapshots" },
-        ]}
-        eyebrow={
-          latest ? `Latest: ${String(latest.snapshotDate)} (${latest.source})` : "No snapshots"
-        }
-        title="FX snapshots"
-        description="Daily FX rates referenced by every transaction's USD conversion. The fx-snapshot cron rolls forward today's snapshot from the latest prior when no API source is configured."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Finance
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>FX snapshots</span>
+          </div>
+          <h1>FX snapshots</h1>
+          <div className="label mt-2">
+            {latest ? `Latest: ${String(latest.snapshotDate)} (${latest.source})` : "No snapshots"}
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Daily FX rates referenced by every transaction&apos;s USD conversion.
+            The fx-snapshot cron rolls forward today&apos;s snapshot from the
+            latest prior when no API source is configured.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+        </div>
+      </div>
 
       {latest && (
-        <Section eyebrow="Today" title="Most recent rates">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <Rate label="USD → IDR" value={String(latest.rateIdr)} />
-            {latest.rateRub && <Rate label="USD → RUB" value={String(latest.rateRub)} />}
-            {latest.rateEur && <Rate label="USD → EUR" value={String(latest.rateEur)} />}
-            <Rate label="USD → USDT" value={String(latest.rateUsdt)} />
-            {latest.rateCny && <Rate label="USD → CNY" value={String(latest.rateCny)} />}
-          </div>
-          <div className="mt-3">
-            <Badge tone="neutral">Source: {latest.source}</Badge>
-          </div>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Today</div>
+          <Card padding="default">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <Rate label="USD → IDR" value={String(latest.rateIdr)} />
+              {latest.rateRub && <Rate label="USD → RUB" value={String(latest.rateRub)} />}
+              {latest.rateEur && <Rate label="USD → EUR" value={String(latest.rateEur)} />}
+              <Rate label="USD → USDT" value={String(latest.rateUsdt)} />
+              {latest.rateCny && <Rate label="USD → CNY" value={String(latest.rateCny)} />}
+            </div>
+            <div className="mt-3">
+              <HandoffBadge tone="soft">Source: {latest.source}</HandoffBadge>
+            </div>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="History" title="Last 60 snapshots">
+      <div>
+        <div className="label mb-2.5">History</div>
         {recent.length === 0 ? (
           <EmptyState
             title="No FX snapshots"
@@ -108,7 +117,7 @@ export default async function FxPage() {
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

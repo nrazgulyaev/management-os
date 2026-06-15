@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -28,7 +26,11 @@ export default async function ProjectSchedulePage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Schedule" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Schedule</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -56,16 +58,21 @@ export default async function ProjectSchedulePage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Schedule" },
-        ]}
-        eyebrow={`${tasks.length} task${tasks.length === 1 ? "" : "s"} · ${cpCount} on critical path · ${inProgressCount} in progress`}
-        title="Schedule (Gantt)"
-        description="Critical path is recomputed nightly by dev_os_critical_path_recompute. Manual recompute via the schedule actions."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>Schedule</span>
+          </div>
+          <h1>Schedule (Gantt)</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Critical path is recomputed nightly by
+            dev_os_critical_path_recompute. Manual recompute via the schedule
+            actions.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <Button asChild variant="secondary">
               <Link href={`/development-os/projects/${slug}/schedule/lookahead`}>
@@ -84,12 +91,13 @@ export default async function ProjectSchedulePage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Gantt" title="Tasks + dependencies + critical path">
+      <div>
+        <div className="label mb-2.5">Gantt</div>
         <GanttChart tasks={ganttTasks} dependencies={deps} />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

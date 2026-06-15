@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -26,7 +24,11 @@ export default async function LookaheadPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Lookahead" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Lookahead</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -42,33 +44,39 @@ export default async function LookaheadPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Schedule", href: `/development-os/projects/${slug}/schedule` },
-          { label: "Lookahead" },
-        ]}
-        eyebrow={`${twoWeek.length} in 2 weeks · ${fourWeek.length} in 4 weeks`}
-        title="Lookahead"
-        description="Tasks active or starting within the next 2 / 4 weeks. Critical-path tasks bubble to top."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/schedule`}>Schedule</Link> /{" "}
+            <span>Lookahead</span>
+          </div>
+          <h1>Lookahead</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Tasks active or starting within the next 2 / 4 weeks. Critical-path
+            tasks bubble to top.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/projects/${slug}/schedule`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Gantt
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="14 days" title={`Two-week lookahead (${twoWeek.length})`}>
+      <div>
+        <div className="label mb-2.5">14 days</div>
         <LookaheadTable rows={twoWeek} />
-      </Section>
+      </div>
 
-      <Section eyebrow="28 days" title={`Four-week lookahead (${fourWeek.length})`}>
+      <div>
+        <div className="label mb-2.5">28 days</div>
         <LookaheadTable rows={fourWeek} />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }
@@ -100,10 +108,10 @@ function LookaheadTable({
             <TD className="font-mono text-xs">{String(r.task_code)}</TD>
             <TD className="text-sm">{String(r.name)}</TD>
             <TD>
-              <Badge tone="info">{String(r.status)}</Badge>
+              <HandoffBadge tone="info">{String(r.status)}</HandoffBadge>
             </TD>
             <TD>
-              {Boolean(r.is_on_critical_path) && <Badge tone="danger">CP</Badge>}
+              {Boolean(r.is_on_critical_path) && <HandoffBadge tone="danger">CP</HandoffBadge>}
             </TD>
             <TD className="text-xs">{String(r.planned_start)}</TD>
             <TD className="text-xs">{String(r.planned_finish)}</TD>

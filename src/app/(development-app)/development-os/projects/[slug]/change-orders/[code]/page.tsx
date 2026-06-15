@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getChangeOrderByCode } from "@/lib/development/server/change-orders/change-order-queries";
@@ -14,14 +11,17 @@ import { getChangeOrderByCode } from "@/lib/development/server/change-orders/cha
 export const metadata: Metadata = { title: "Change order · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  requested: "warning",
+const STATUS_TONE: Record<
+  string,
+  "info" | "ok" | "warn" | "danger" | "soft"
+> = {
+  requested: "warn",
   under_review: "info",
   approved: "info",
   in_progress: "info",
-  completed: "success",
+  completed: "ok",
   rejected: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function ChangeOrderDetailPage({
@@ -34,7 +34,11 @@ export default async function ChangeOrderDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Change order" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Change order</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -44,86 +48,108 @@ export default async function ChangeOrderDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          {
-            label: "Change orders",
-            href: `/development-os/projects/${slug}/change-orders`,
-          },
-          { label: co.changeOrderCode },
-        ]}
-        eyebrow={`${co.status} · initiated by ${co.initiatedByType}`}
-        title={co.title}
-        description={co.reason}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
             <Link href={`/development-os/projects/${slug}/change-orders`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Status" title="Lifecycle">
-        <Badge tone={STATUS_TONE[co.status] ?? "neutral"}>{co.status}</Badge>
-        {co.requiredApprovalRole && (
-          <p className="text-xs text-ink-tertiary mt-2">
-            Required approval role: {co.requiredApprovalRole}
-          </p>
-        )}
-      </Section>
-
-      <Section eyebrow="Impact" title="Cost + schedule">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field
-            label="Cost impact"
-            value={`${Number(co.costImpactMinor) >= 0 ? "+" : ""}$${(Number(co.costImpactMinor) / 100).toLocaleString()} ${co.costImpactCurrency}`}
-          />
-          <Field
-            label="Schedule impact"
-            value={`${co.scheduleImpactDays >= 0 ? "+" : ""}${co.scheduleImpactDays} day${co.scheduleImpactDays === 1 ? "" : "s"}`}
-          />
-          <Field label="Requested at" value={co.requestedAt} />
-        </div>
-        <p className="text-[11px] text-ink-tertiary mt-2">
-          Negative impact = downgrade (saves money / shortens timeline). Both
-          directions still flow through the same approval workflow.
-        </p>
-      </Section>
-
-      <Section eyebrow="Scope" title="What changes">
-        <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
-          {co.scopeChangeDescription}
-        </p>
-      </Section>
-
-      {co.approvedBy && (
-        <Section eyebrow="Approval" title="Approved by + when">
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            <Field label="Approved by" value={co.approvedBy.slice(0, 8)} mono />
-            <Field
-              label="Approved at"
-              value={
-                co.approvedAt ? new Date(co.approvedAt).toLocaleString() : "—"
-              }
-            />
+              Change orders
+            </Link>{" "}
+            / <span>{co.changeOrderCode}</span>
           </div>
-          {co.approvalNotes && (
-            <p className="text-sm text-ink-secondary whitespace-pre-wrap mt-3">
-              {co.approvalNotes}
+          <h1>{co.title}</h1>
+          {co.reason && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {co.reason}
             </p>
           )}
-        </Section>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/change-orders`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All
+          </Link>
+        </div>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <HandoffBadge tone={STATUS_TONE[co.status] ?? "soft"}>
+            {co.status}
+          </HandoffBadge>
+          {co.requiredApprovalRole && (
+            <p className="text-xs text-ink-tertiary mt-2">
+              Required approval role: {co.requiredApprovalRole}
+            </p>
+          )}
+        </Card>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Impact</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field
+              label="Cost impact"
+              value={`${Number(co.costImpactMinor) >= 0 ? "+" : ""}$${(Number(co.costImpactMinor) / 100).toLocaleString()} ${co.costImpactCurrency}`}
+            />
+            <Field
+              label="Schedule impact"
+              value={`${co.scheduleImpactDays >= 0 ? "+" : ""}${co.scheduleImpactDays} day${co.scheduleImpactDays === 1 ? "" : "s"}`}
+            />
+            <Field label="Requested at" value={co.requestedAt} />
+          </div>
+          <p className="text-[11px] text-ink-tertiary mt-2">
+            Negative impact = downgrade (saves money / shortens timeline). Both
+            directions still flow through the same approval workflow.
+          </p>
+        </Card>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Scope</div>
+        <Card padding="default">
+          <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed">
+            {co.scopeChangeDescription}
+          </p>
+        </Card>
+      </div>
+
+      {co.approvedBy && (
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Approval</div>
+          <Card padding="default">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <Field label="Approved by" value={co.approvedBy.slice(0, 8)} mono />
+              <Field
+                label="Approved at"
+                value={
+                  co.approvedAt ? new Date(co.approvedAt).toLocaleString() : "—"
+                }
+              />
+            </div>
+            {co.approvalNotes && (
+              <p className="text-sm text-ink-secondary whitespace-pre-wrap mt-3">
+                {co.approvalNotes}
+              </p>
+            )}
+          </Card>
+        </div>
       )}
 
       {co.rejectionReason && (
-        <Section eyebrow="Rejection" title="Why">
-          <p className="text-sm text-danger whitespace-pre-wrap">
-            {co.rejectionReason}
-          </p>
-        </Section>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Rejection</div>
+          <Card padding="default">
+            <p className="text-sm text-danger whitespace-pre-wrap">
+              {co.rejectionReason}
+            </p>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

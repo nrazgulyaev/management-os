@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { eq, desc } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { agentOutputs } from "@/lib/db/schema/ai-agents";
@@ -17,14 +15,14 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
-  awaiting_review: "warning",
-  approved: "success",
+  awaiting_review: "warn",
+  approved: "ok",
   partially_approved: "info",
   rejected: "danger",
-  edited_and_approved: "success",
-  expired: "neutral",
+  edited_and_approved: "ok",
+  expired: "soft",
 };
 
 const AGENT_DETAIL_BASE = "/development-os/ai-agents";
@@ -44,7 +42,11 @@ export default async function AgentsInboxPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Inbox" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Inbox</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -62,16 +64,21 @@ export default async function AgentsInboxPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Inbox"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          { label: "Inbox" },
-        ]}
-        description={`${outputs.length} output(s) awaiting review.`}
-      />
-      <Section title={`${outputs.length} awaiting review`}>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <span>Inbox</span>
+          </div>
+          <h1>Inbox</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${outputs.length} output(s) awaiting review.`}
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">{`${outputs.length} awaiting review`}</div>
         {outputs.length === 0 ? (
           <EmptyState
             title="Inbox empty"
@@ -80,13 +87,13 @@ export default async function AgentsInboxPage() {
               <div className="flex flex-wrap gap-2 justify-center">
                 <Link
                   href="/development-os/ai-agents"
-                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                  className="btn btn-secondary btn-sm"
                 >
                   Pick an agent to run
                 </Link>
                 <Link
                   href="/dashboard/ai/runs"
-                  className="rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40"
+                  className="btn btn-secondary btn-sm"
                 >
                   View past runs
                 </Link>
@@ -94,15 +101,15 @@ export default async function AgentsInboxPage() {
             }
           />
         ) : (
-          <table className="w-full text-sm border-collapse">
+          <table className="data">
             <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Code</th>
-                <th>Agent</th>
-                <th>Title</th>
-                <th>Confidence</th>
-                <th>Status</th>
-                <th>Created</th>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Agent</th>
+                <th scope="col">Title</th>
+                <th scope="col">Confidence</th>
+                <th scope="col">Status</th>
+                <th scope="col">Created</th>
               </tr>
             </thead>
             <tbody>
@@ -112,13 +119,13 @@ export default async function AgentsInboxPage() {
                   ? `${AGENT_DETAIL_BASE}/${slug}/outputs/${o.outputCode}`
                   : null;
                 return (
-                  <tr
-                    key={o.id}
-                    className="border-b border-line-soft hover:bg-muted/30"
-                  >
-                    <td className="py-2 font-mono text-xs">
+                  <tr key={o.id}>
+                    <td className="mono text-[12px]">
                       {href ? (
-                        <Link href={href} className="hover:underline">
+                        <Link
+                          href={href}
+                          className="text-ink hover:text-terra"
+                        >
                           {o.outputCode}
                         </Link>
                       ) : (
@@ -126,16 +133,18 @@ export default async function AgentsInboxPage() {
                       )}
                     </td>
                     <td className="text-xs">{o.agentKey}</td>
-                    <td className="truncate max-w-md">{o.title}</td>
+                    <td className="row-title truncate max-w-md">{o.title}</td>
                     <td>
-                      <Badge tone="neutral">{o.confidenceLevel ?? "—"}</Badge>
+                      <HandoffBadge tone="soft">
+                        {o.confidenceLevel ?? "—"}
+                      </HandoffBadge>
                     </td>
                     <td>
-                      <Badge tone={STATUS_TONE[o.status] ?? "neutral"}>
+                      <HandoffBadge tone={STATUS_TONE[o.status] ?? "soft"}>
                         {o.status}
-                      </Badge>
+                      </HandoffBadge>
                     </td>
-                    <td className="text-xs text-ink-tertiary">
+                    <td className="text-xs text-ink-3">
                       {new Date(o.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
@@ -144,7 +153,7 @@ export default async function AgentsInboxPage() {
             </tbody>
           </table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

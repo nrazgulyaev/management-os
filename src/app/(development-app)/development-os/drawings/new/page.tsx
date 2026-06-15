@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -18,7 +16,11 @@ export default async function NewDrawingPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New drawing" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New drawing</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -29,26 +31,32 @@ export default async function NewDrawingPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Drawings", href: "/development-os/drawings" },
-          { label: "New" },
-        ]}
-        title="New drawing"
-        description="Drawing metadata only. After creation, add revisions to attach files (uploaded via the existing documents pipeline)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/drawings">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Drawings
-            </Link>
-          </Button>
-        }
-      />
-      <Section eyebrow="Form" title="Drawing details">
-        <DrawingForm projects={projectRows} />
-      </Section>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/drawings">Drawings</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New drawing</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Drawing metadata only. After creation, add revisions to attach files
+            (uploaded via the existing documents pipeline).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/drawings" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Drawings
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Form</div>
+        <Card padding="default">
+          <DrawingForm projects={projectRows} />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -24,7 +22,11 @@ export default async function QaQcInspectPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Inspect" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Inspect</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,28 +37,31 @@ export default async function QaQcInspectPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "QA/QC", href: "/development-os/qa-qc" },
-          {
-            label: issue.issueCode,
-            href: `/development-os/qa-qc/${issue.issueCode}`,
-          },
-          { label: "Inspect" },
-        ]}
-        eyebrow={`Status: ${issue.status}`}
-        title="Record inspection"
-        description={`Issue: ${issue.title}`}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/qa-qc">QA/QC</Link> /{" "}
             <Link href={`/development-os/qa-qc/${issue.issueCode}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Issue
-            </Link>
-          </Button>
-        }
-      />
+              {issue.issueCode}
+            </Link>{" "}
+            / <span>Inspect</span>
+          </div>
+          <h1>Record inspection</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Issue: {issue.title}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/qa-qc/${issue.issueCode}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Issue
+          </Link>
+        </div>
+      </div>
 
       {issue.status !== "ready_for_reinspection" ? (
         <EmptyState
@@ -64,9 +69,12 @@ export default async function QaQcInspectPage({
           description={`Current status is '${issue.status}'. Only 'ready_for_reinspection' issues can be inspected.`}
         />
       ) : (
-        <Section eyebrow="Form" title="Inspection result">
-          <QaQcInspectionForm issueId={issue.id} />
-        </Section>
+        <div>
+          <div className="label mb-2.5">Form</div>
+          <Card padding="default">
+            <QaQcInspectionForm issueId={issue.id} />
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

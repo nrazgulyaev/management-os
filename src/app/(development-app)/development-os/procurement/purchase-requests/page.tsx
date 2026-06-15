@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import {
   QueueCard,
@@ -20,15 +18,15 @@ import { PurchaseRequestDevAddButton } from "@/components/development/procuremen
 export const metadata: Metadata = { title: "Purchase requests · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral" | "accent"> = {
-  draft: "neutral",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft" | "amber"> = {
+  draft: "soft",
   submitted: "info",
-  approved: "success",
-  quotations_in_progress: "warning",
+  approved: "ok",
+  quotations_in_progress: "warn",
   quotation_selected: "info",
-  po_created: "accent",
+  po_created: "amber",
   rejected: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 const STATUS_WAIT: Record<string, string> = {
@@ -42,10 +40,10 @@ const STATUS_WAIT: Record<string, string> = {
   cancelled: "Closed",
 };
 
-const URGENCY_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  low: "neutral",
+const URGENCY_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  low: "soft",
   normal: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -59,7 +57,11 @@ export default async function PurchaseRequestsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Purchase requests" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Purchase requests</h1>
+          </div>
+        </div>
         <QueueEmpty>Database not configured — set DATABASE_URL.</QueueEmpty>
       </DevelopmentShell>
     );
@@ -83,27 +85,29 @@ export default async function PurchaseRequestsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Procurement" },
-          { label: "Purchase requests" },
-        ]}
-        eyebrow={`${requests.length} request${requests.length === 1 ? "" : "s"}`}
-        title="Requests & procurement"
-        description="Site staff request → procurement collects quotations → approval → PO. The mobile-friendly create form lives at /procurement/purchase-requests/new."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Procurement</span> / <span>Purchase requests</span>
+          </div>
+          <h1>Requests &amp; procurement</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Site staff request → procurement collects quotations → approval → PO.
+            The mobile-friendly create form lives at
+            /procurement/purchase-requests/new.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <PurchaseRequestDevAddButton projects={projects} />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+            <Link href="/development-os" className="btn btn-secondary">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       <div className="flex items-center gap-2 flex-wrap">
         {[
@@ -159,16 +163,16 @@ export default async function PurchaseRequestsPage({
               sub={
                 <>
                   {r.quantity} {r.unitOfMeasure} ·{" "}
-                  <Badge tone={URGENCY_TONE[r.urgency] ?? "neutral"}>
+                  <HandoffBadge tone={URGENCY_TONE[r.urgency] ?? "soft"}>
                     {r.urgency}
-                  </Badge>
+                  </HandoffBadge>
                 </>
               }
               wait={STATUS_WAIT[r.status] ?? r.status}
               status={
-                <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                <HandoffBadge tone={STATUS_TONE[r.status] ?? "soft"}>
                   {r.status}
-                </Badge>
+                </HandoffBadge>
               }
               amount={
                 r.submittedAt

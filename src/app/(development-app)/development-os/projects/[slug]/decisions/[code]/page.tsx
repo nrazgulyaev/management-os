@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getProjectDecisionByCode } from "@/lib/development/server/decisions/decision-queries";
@@ -14,11 +11,11 @@ import { getProjectDecisionByCode } from "@/lib/development/server/decisions/dec
 export const metadata: Metadata = { title: "Decision · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
-  draft: "neutral",
-  active: "success",
-  superseded: "neutral",
-  reversed: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
+  draft: "soft",
+  active: "ok",
+  superseded: "soft",
+  reversed: "warn",
 };
 
 export default async function DecisionDetailPage({
@@ -31,7 +28,11 @@ export default async function DecisionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Decision" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Decision</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -41,52 +42,71 @@ export default async function DecisionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Decisions", href: `/development-os/projects/${slug}/decisions` },
-          { label: decision.decisionCode },
-        ]}
-        eyebrow={`${decision.status}${decision.category ? ` · ${decision.category}` : ""}`}
-        title={decision.title}
-        description={decision.context ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
             <Link href={`/development-os/projects/${slug}/decisions`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Decisions
-            </Link>
-          </Button>
-        }
-      />
+            </Link>{" "}
+            / <span>{decision.decisionCode}</span>
+          </div>
+          <h1>{decision.title}</h1>
+          {decision.context && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {decision.context}
+            </p>
+          )}
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/decisions`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Decisions
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Decision" title="What was decided">
-        <Badge tone={STATUS_TONE[decision.status] ?? "neutral"}>
-          {decision.status}
-        </Badge>
-        <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed mt-3">
-          {decision.decisionText}
-        </p>
-      </Section>
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Decision</div>
+        <Card padding="default">
+          <HandoffBadge tone={STATUS_TONE[decision.status] ?? "soft"}>
+            {decision.status}
+          </HandoffBadge>
+          <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed mt-3">
+            {decision.decisionText}
+          </p>
+        </Card>
+      </div>
 
       {decision.rationale && (
-        <Section eyebrow="Rationale" title="Why">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
-            {decision.rationale}
-          </p>
-        </Section>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Rationale</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
+              {decision.rationale}
+            </p>
+          </Card>
+        </div>
       )}
 
       {decision.context && (
-        <Section eyebrow="Context" title="Background">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
-            {decision.context}
-          </p>
-        </Section>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Context</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap leading-relaxed">
+              {decision.context}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Audit" title="Who + when">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Audit</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
           <Field label="Decided by" value={decision.decidedBy.slice(0, 8)} mono />
           <Field
             label="Approved by"
@@ -105,19 +125,23 @@ export default async function DecisionDetailPage({
             value={decision.supersededBy?.slice(0, 8) ?? "—"}
             mono
           />
-        </div>
-      </Section>
+          </div>
+        </Card>
+      </div>
 
       {decision.tags && decision.tags.length > 0 && (
-        <Section eyebrow="Tags" title="Categorization">
-          <div className="flex flex-wrap gap-1">
-            {decision.tags.map((t) => (
-              <Badge key={t} tone="neutral">
-                {t}
-              </Badge>
-            ))}
-          </div>
-        </Section>
+        <div className="mt-[18px]">
+          <div className="label mb-2.5">Tags</div>
+          <Card padding="default">
+            <div className="flex flex-wrap gap-1">
+              {decision.tags.map((t) => (
+                <HandoffBadge key={t} tone="soft">
+                  {t}
+                </HandoffBadge>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

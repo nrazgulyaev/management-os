@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -65,19 +63,25 @@ export default async function SiteReportsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Site reports" },
-        ]}
-        eyebrow={
-          db
-            ? `${reports.length} reports · ${reports.filter((r) => r.blockerCount > 0).length} with blockers`
-            : "Database not configured"
-        }
-        title="Daily site reports"
-        description="One report per project per day. Captures weather, workforce, zone activities, photos, blockers, and material consumption. Source can be web form, mobile app, or WhatsApp ingestion."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Site reports</span>
+          </div>
+          <h1>Daily site reports</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            One report per project per day. Captures weather, workforce, zone
+            activities, photos, blockers, and material consumption. Source can be
+            web form, mobile app, or WhatsApp ingestion.
+          </p>
+          <div className="label mt-2">
+            {db
+              ? `${reports.length} reports · ${reports.filter((r) => r.blockerCount > 0).length} with blockers`
+              : "Database not configured"}
+          </div>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <SiteReportModalForm projects={projectOptions} />
             <Button asChild variant="secondary">
@@ -91,8 +95,8 @@ export default async function SiteReportsPage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {!db ? (
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
@@ -119,11 +123,8 @@ export default async function SiteReportsPage({
           </div>
 
           {view === "calendar" ? (
-            <Section
-              eyebrow="Calendar"
-              title="By date"
-              description="Grouped by date, newest first. Each card is one report; click for detail."
-            >
+            <div>
+              <div className="label mb-2.5">Calendar</div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                 {calendarDates.map((d) => (
                   <div
@@ -148,19 +149,19 @@ export default async function SiteReportsPage({
                               <span className="truncate flex-1 mr-2">
                                 {r.projectName ?? "—"}
                               </span>
-                              <Badge
+                              <HandoffBadge
                                 tone={
                                   r.status === "reviewed"
-                                    ? "success"
+                                    ? "ok"
                                     : r.status === "submitted"
                                       ? "info"
                                       : r.status === "flagged"
                                         ? "danger"
-                                        : "neutral"
+                                        : "soft"
                                 }
                               >
                                 {REPORT_STATUS_LABEL[r.status]}
-                              </Badge>
+                              </HandoffBadge>
                             </div>
                             <div className="text-[11px] text-ink-tertiary mt-0.5 flex items-center gap-2">
                               <span>{r.totalWorkersPresent} workers</span>
@@ -181,9 +182,10 @@ export default async function SiteReportsPage({
                   </div>
                 ))}
               </div>
-            </Section>
+            </div>
           ) : (
-            <Section eyebrow="All reports" title="Last 200 chronologically">
+            <div>
+              <div className="label mb-2.5">All reports</div>
           <Table>
             <THead>
               <TR>
@@ -220,31 +222,31 @@ export default async function SiteReportsPage({
                   <TDNum>{r.photoCount}</TDNum>
                   <TDNum>
                     {r.blockerCount > 0 ? (
-                      <Badge tone="warning">{r.blockerCount}</Badge>
+                      <HandoffBadge tone="warn">{r.blockerCount}</HandoffBadge>
                     ) : (
                       "—"
                     )}
                   </TDNum>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         r.status === "reviewed"
-                          ? "success"
+                          ? "ok"
                           : r.status === "submitted"
                             ? "info"
                             : r.status === "flagged"
                               ? "danger"
-                              : "neutral"
+                              : "soft"
                       }
                     >
                       {REPORT_STATUS_LABEL[r.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+            </div>
           )}
         </>
       )}

@@ -11,10 +11,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { Button } from "@/components/ui/button";
 import { getDb } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 import {
@@ -36,7 +34,11 @@ export default async function MovementsQuickEntryPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Movements quick entry" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Movements quick entry</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use inventory movement quick entry."
@@ -83,27 +85,31 @@ export default async function MovementsQuickEntryPage() {
   return (
     <DevelopmentShell>
       <div className="flex flex-col gap-6">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "Inventory", href: "/development-os/inventory" },
-            {
-              label: "Movements",
-              href: "/development-os/inventory/movements",
-            },
-            { label: "Quick entry" },
-          ]}
-          title="Movements quick entry"
-          description="Type or paste stock movements. Tab/Enter to move across cells; Ctrl/Cmd-S to save. Item + type + qty are required; locations resolved from the catalogue."
-          actions={
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/development-os/inventory/movements">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Back to movements
-              </Link>
-            </Button>
-          }
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/inventory">Inventory</Link> /{" "}
+              <Link href="/development-os/inventory/movements">Movements</Link> /{" "}
+              <span>Quick entry</span>
+            </div>
+            <h1>Movements quick entry</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Type or paste stock movements. Tab/Enter to move across cells;
+              Ctrl/Cmd-S to save. Item + type + qty are required; locations
+              resolved from the catalogue.
+            </p>
+          </div>
+          <div className="actions">
+            <Link
+              href="/development-os/inventory/movements"
+              className="btn btn-secondary btn-sm"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Back to movements
+            </Link>
+          </div>
+        </div>
 
         {items.length === 0 ? (
           <EmptyState
@@ -112,7 +118,7 @@ export default async function MovementsQuickEntryPage() {
             action={
               <Link
                 href="/development-os/inventory/items/new"
-                className="inline-flex items-center px-4 py-2 rounded-sm bg-ink text-ink-inverse text-sm font-medium hover:bg-ink/90"
+                className="btn btn-accent"
               >
                 New item
               </Link>

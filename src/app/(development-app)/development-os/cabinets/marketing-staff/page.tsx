@@ -16,8 +16,7 @@ import {
   type HatchedBarDatum,
   type KpiItem,
 } from "@/components/award";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { loadMarketingCabinet } from "@/lib/development/server/cabinets/marketing-cabinet-queries";
 import {
@@ -246,11 +245,11 @@ export default async function MarketingStaffCabinetPage() {
 
         <KpiRowMixed kpis={kpis} heroTone="coral-solid" />
 
-        <Section
-          eyebrow="Today's pulse"
-          title="Publish cadence"
-          description="Pieces published per day across all channels over the last 7 days."
-        >
+        <div>
+          <div className="label mb-2.5">Today&rsquo;s pulse — Publish cadence</div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Pieces published per day across all channels over the last 7 days.
+          </p>
           <div className="rounded-3xl border border-line-soft bg-surface shadow-soft-card p-5 md:p-6 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
@@ -267,30 +266,34 @@ export default async function MarketingStaffCabinetPage() {
               height={200}
             />
           </div>
-        </Section>
+        </div>
 
-        <Section
-          eyebrow="Funnel"
-          title="Lead pipeline"
-          description="Counts by lifecycle stage across all leads. Conversion-% chips reflect previous-stage carry-through."
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">Funnel — Lead pipeline</div>
             <Link
               href="/development-os/sales"
               className="text-xs text-ink-tertiary hover:underline"
             >
               All leads →
             </Link>
-          }
-        >
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Counts by lifecycle stage across all leads. Conversion-% chips
+            reflect previous-stage carry-through.
+          </p>
           <LeadFunnelChart stages={funnelStages} height={300} />
-        </Section>
+        </div>
 
         {channelSplit.length > 0 && topChannel && (
-          <Section
-            eyebrow="Channels"
-            title="Channel split (published content)"
-            description="Share of published variants by platform target. Top channel donut + per-channel breakdown beneath."
-          >
+          <div>
+            <div className="label mb-2.5">
+              Channels — Channel split (published content)
+            </div>
+            <p className="text-[13px] text-ink-3 mt-2">
+              Share of published variants by platform target. Top channel donut
+              + per-channel breakdown beneath.
+            </p>
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-4 md:gap-5">
               <DonutRatioCard
                 title={`Top channel · ${topChannel.channel}`}
@@ -315,22 +318,25 @@ export default async function MarketingStaffCabinetPage() {
                 ))}
               </ul>
             </div>
-          </Section>
+          </div>
         )}
 
-        <Section
-          eyebrow="AI"
-          title="Marketing assistant — recent drafts"
-          description="Latest content drafts + reply suggestions from the marketing-assistant agent."
-          action={
+        <div>
+          <div className="flex items-center justify-between gap-2 mb-2.5">
+            <div className="label">
+              AI — Marketing assistant — recent drafts
+            </div>
             <Link
               href="/development-os/ai-agents/marketing-assistant"
               className="text-xs text-ink-tertiary hover:underline"
             >
               Open agent →
             </Link>
-          }
-        >
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2">
+            Latest content drafts + reply suggestions from the
+            marketing-assistant agent.
+          </p>
           {data.recentMarketingAssistantOutputs.length === 0 ? (
             <div className="rounded-3xl border border-line-soft bg-gradient-ink-deep text-ink-inverse shadow-soft-card p-6 md:p-7 flex flex-col gap-3">
               <span className="text-[10px] font-mono uppercase tracking-[0.16em] opacity-70">
@@ -341,9 +347,9 @@ export default async function MarketingStaffCabinetPage() {
                 from Jobs or via the AI prompt above to surface caption
                 drafts + reply suggestions here.
               </p>
-              <Badge tone="outline" className="self-start">
-                Run the agent to populate
-              </Badge>
+              <span className="self-start">
+                <HandoffBadge tone="soft">Run the agent to populate</HandoffBadge>
+              </span>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
@@ -372,15 +378,16 @@ export default async function MarketingStaffCabinetPage() {
               ))}
             </div>
           )}
-        </Section>
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
-            <Section
-              eyebrow="Breakdown"
-              title="Content by status"
-              description="Sorted by count descending. Click through to filter the content library."
-            >
+            <div>
+              <div className="label mb-2.5">Breakdown — Content by status</div>
+              <p className="text-[13px] text-ink-3 mt-2">
+                Sorted by count descending. Click through to filter the content
+                library.
+              </p>
               {statusEntries.length === 0 ? (
                 <div className="rounded-md border border-line-soft bg-surface p-5 text-sm text-ink-secondary">
                   No content yet. Drafts surface here as they&rsquo;re
@@ -403,16 +410,17 @@ export default async function MarketingStaffCabinetPage() {
                   ))}
                 </ul>
               )}
-            </Section>
+            </div>
           </div>
 
           <aside>
-            <Section
-              eyebrow="Pipeline"
-              title="Content this week"
-              description="Snapshot KPIs for scheduled / published / approval pieces."
-            >
-              <div className="grid grid-cols-1 gap-3">
+            <div>
+              <div className="label mb-2.5">Pipeline — Content this week</div>
+              <p className="text-[13px] text-ink-3 mt-2">
+                Snapshot KPIs for scheduled / published / approval pieces.
+              </p>
+              <Card padding="default">
+                <div className="grid grid-cols-1 gap-3">
                 <DashboardKpi
                   label="Scheduled"
                   value={String(data.scheduledThisWeekCount)}
@@ -435,8 +443,9 @@ export default async function MarketingStaffCabinetPage() {
                   }
                   drillHref="/development-os/marketing/content?status=pending_review"
                 />
-              </div>
-            </Section>
+                </div>
+              </Card>
+            </div>
           </aside>
         </div>
       </div>

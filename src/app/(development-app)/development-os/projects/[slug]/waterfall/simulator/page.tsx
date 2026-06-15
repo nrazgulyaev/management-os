@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -26,7 +24,11 @@ export default async function WaterfallSimulatorPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Waterfall simulator" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Waterfall simulator</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -37,33 +39,40 @@ export default async function WaterfallSimulatorPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          {
-            label: "Waterfall",
-            href: `/development-os/projects/${slug}/waterfall`,
-          },
-          { label: "Simulator" },
-        ]}
-        eyebrow="HITL preview"
-        title="Waterfall simulator"
-        description="Try any rule + scenario; see the live allocation + reasoning markdown. Math runs entirely in the browser via the same pure helper used by the real distribution path — guaranteed identical output."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link>{" "}
+            /{" "}
+            <Link href={`/development-os/projects/${slug}/waterfall`}>
+              Waterfall
+            </Link>{" "}
+            / <span>Simulator</span>
+          </div>
+          <h1>Waterfall simulator</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Try any rule + scenario; see the live allocation + reasoning
+            markdown. Math runs entirely in the browser via the same pure
+            helper used by the real distribution path — guaranteed identical
+            output.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href={`/development-os/projects/${slug}/waterfall`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               Rules
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Scenario" title="Inputs + allocation">
+      <div>
+        <div className="label mb-2.5">Scenario</div>
         <WaterfallSimulator />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

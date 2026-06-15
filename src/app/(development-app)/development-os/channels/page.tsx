@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Inbox, Calendar, AlertTriangle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -36,7 +33,11 @@ export default async function ChannelsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Channels" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Channels</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -77,48 +78,57 @@ export default async function ChannelsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels" },
-        ]}
-        eyebrow={`${connections.length} connections · ${totalActive} active across ${villas.length} villas`}
-        title="Channel manager"
-        description="Connect each villa to one or more booking channels (Booking.com, Airbnb, Trip.com, Agoda, Expedia, VRBO, Hotels.com). Each connection encrypts credentials at rest, runs a connection test on save, and pushes inventory + rates on the cron schedule defined in P1.G."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/channels/inbox">
-                <Inbox className="w-4 h-4" strokeWidth={1.75} />
-                Inbox
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/channels/calendar">
-                <Calendar className="w-4 h-4" strokeWidth={1.75} />
-                Calendar
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/channels/conflicts">
-                <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
-                Conflicts
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Channels</span>
           </div>
-        }
-      />
+          <h1>Channel manager</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Connect each villa to one or more booking channels (Booking.com,
+            Airbnb, Trip.com, Agoda, Expedia, VRBO, Hotels.com). Each connection
+            encrypts credentials at rest, runs a connection test on save, and
+            pushes inventory + rates on the cron schedule defined in P1.G.
+          </p>
+        </div>
+        <div className="actions">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/development-os/channels/inbox"
+              className="btn btn-secondary btn-sm"
+            >
+              <Inbox className="w-4 h-4" strokeWidth={1.75} />
+              Inbox
+            </Link>
+            <Link
+              href="/development-os/channels/calendar"
+              className="btn btn-secondary btn-sm"
+            >
+              <Calendar className="w-4 h-4" strokeWidth={1.75} />
+              Calendar
+            </Link>
+            <Link
+              href="/development-os/channels/conflicts"
+              className="btn btn-secondary btn-sm"
+            >
+              <AlertTriangle className="w-4 h-4" strokeWidth={1.75} />
+              Conflicts
+            </Link>
+            <Link
+              href="/development-os"
+              className="btn btn-secondary btn-sm"
+            >
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
+          </div>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Channel snapshot"
-        title="Per-channel connection counts"
-      >
+      <div>
+        <div className="label mb-2.5">Channel snapshot</div>
+        <Card padding="default">
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
           {TOP_CHANNELS.map((c) => {
             const summary = summaryByChannel.get(c);
@@ -147,23 +157,21 @@ export default async function ChannelsPage() {
             );
           })}
         </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Connections"
-        title="Villa × channel"
-        description="Click a connected cell to manage rates, view sync history, and pull reservations. Click 'Connect' to add credentials for a new channel."
-      >
+      <div>
+        <div className="label mb-2.5">Connections</div>
         {villas.length === 0 ? (
           <EmptyState
             title="No villas yet"
             description="Add villas in /development-os/projects before connecting channels."
-            action={<Badge tone="warning">No villas to connect</Badge>}
+            action={<HandoffBadge tone="warn">No villas to connect</HandoffBadge>}
           />
         ) : (
           <ConnectionsGrid villas={villas} connections={connections} />
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

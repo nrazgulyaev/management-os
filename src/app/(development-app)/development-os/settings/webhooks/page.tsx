@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -24,66 +23,77 @@ export default async function WebhooksPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Webhook subscriptions"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "Webhooks" },
-        ]}
-        description="Outbound HTTP notifications. Each delivery is HMAC-SHA256 signed (Stripe-style header). Subscriptions auto-disable after 10 consecutive failures."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/settings">Settings</Link> /{" "}
+            <span>Webhooks</span>
+          </div>
+          <h1>Webhook subscriptions</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Outbound HTTP notifications. Each delivery is HMAC-SHA256 signed
+            (Stripe-style header). Subscriptions auto-disable after 10
+            consecutive failures.
+          </p>
+        </div>
+        <div className="actions">
           <WebhookModalForm organizationId={orgId} currentUserId={me?.id} />
-        }
-      />
+        </div>
+      </div>
 
-      <Section title={`${subs.length} subscription(s)`}>
+      <div>
+        <div className="label mb-2.5">{`${subs.length} subscription(s)`}</div>
         {subs.length === 0 ? (
-          <EmptyState
-            title="No webhook subscriptions"
-            description="Use the subscribeWebhook server action or POST /api/v1/webhooks/test to register an endpoint."
-          />
+          <Card padding="default">
+            <EmptyState
+              title="No webhook subscriptions"
+              description="Use the subscribeWebhook server action or POST /api/v1/webhooks/test to register an endpoint."
+            />
+          </Card>
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Label</th>
-                <th>Endpoint</th>
-                <th>Events</th>
-                <th>Failures</th>
-                <th>Last success</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subs.map((s) => (
-                <tr key={s.id} className="border-b border-line-soft align-top">
-                  <td className="py-2">{s.webhookLabel}</td>
-                  <td className="text-xs text-ink-tertiary break-all">
-                    {s.endpointUrl}
-                  </td>
-                  <td className="text-xs">
-                    {(s.subscribedEvents ?? []).join(", ") || "—"}
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {s.consecutiveFailures}
-                  </td>
-                  <td className="text-xs text-ink-tertiary">
-                    {s.lastSuccessfulDeliveryAt
-                      ? new Date(s.lastSuccessfulDeliveryAt).toLocaleString()
-                      : "never"}
-                  </td>
-                  <td>
-                    <Badge tone={s.isActive ? "success" : "neutral"}>
-                      {s.isActive ? "active" : "disabled"}
-                    </Badge>
-                  </td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Label</th>
+                  <th scope="col">Endpoint</th>
+                  <th scope="col">Events</th>
+                  <th scope="col" className="num">Failures</th>
+                  <th scope="col">Last success</th>
+                  <th scope="col">Status</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {subs.map((s) => (
+                  <tr key={s.id} className="align-top">
+                    <td className="row-title">{s.webhookLabel}</td>
+                    <td className="text-[12px] text-ink-3 break-all">
+                      {s.endpointUrl}
+                    </td>
+                    <td className="text-[12px]">
+                      {(s.subscribedEvents ?? []).join(", ") || "—"}
+                    </td>
+                    <td className="num mono text-[12px]">
+                      {s.consecutiveFailures}
+                    </td>
+                    <td className="text-[12px] text-ink-3">
+                      {s.lastSuccessfulDeliveryAt
+                        ? new Date(s.lastSuccessfulDeliveryAt).toLocaleString()
+                        : "never"}
+                    </td>
+                    <td>
+                      <HandoffBadge tone={s.isActive ? "ok" : "soft"}>
+                        {s.isActive ? "active" : "disabled"}
+                      </HandoffBadge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft} from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD} from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -23,26 +18,26 @@ export const dynamic = "force-dynamic";
 
 const STATUS_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
   received: "info",
   queued: "info",
   sent: "info",
-  delivered: "success",
-  read: "success",
+  delivered: "ok",
+  read: "ok",
   failed: "danger",
-  processed: "success",
+  processed: "ok",
 };
 
 const INTENT_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
   site_report: "info",
   safety_alert: "danger",
-  vendor_inquiry: "warning",
+  vendor_inquiry: "warn",
   investor_question: "info",
-  unknown: "neutral",
+  unknown: "soft",
 };
 
 export default async function WhatsappDashboardPage() {
@@ -50,14 +45,18 @@ export default async function WhatsappDashboardPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[
-            { label: "Development OS", href: "/development-os" },
-            { label: "WhatsApp" },
-          ]}
-          title="WhatsApp"
-          description="Inbound site reports + outbound notifications via WhatsApp."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>WhatsApp</span>
+            </div>
+            <h1>WhatsApp</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Inbound site reports + outbound notifications via WhatsApp.
+            </p>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -92,130 +91,149 @@ export default async function WhatsappDashboardPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "WhatsApp" },
-        ]}
-        eyebrow={
-          provider.isSandbox()
-            ? `Provider: ${provider.name} (sandbox)`
-            : `Provider: ${provider.name}`
-        }
-        title="WhatsApp messages"
-        description="Site staff sends voice/text/photo via WhatsApp; the AI agent classifies intent and routes to a HITL draft. Outbound goes through approved templates only."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/whatsapp/templates">Templates</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/whatsapp/phone-numbers">Phones</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/settings/whatsapp">Setup</Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>WhatsApp</span> /{" "}
+            <span>
+              {provider.isSandbox()
+                ? `Provider: ${provider.name} (sandbox)`
+                : `Provider: ${provider.name}`}
+            </span>
           </div>
-        }
-      />
+          <h1>WhatsApp messages</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Site staff sends voice/text/photo via WhatsApp; the AI agent
+            classifies intent and routes to a HITL draft. Outbound goes through
+            approved templates only.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/whatsapp/templates"
+            className="btn btn-secondary btn-sm"
+          >
+            Templates
+          </Link>
+          <Link
+            href="/development-os/whatsapp/phone-numbers"
+            className="btn btn-secondary btn-sm"
+          >
+            Phones
+          </Link>
+          <Link
+            href="/development-os/settings/whatsapp"
+            className="btn btn-secondary btn-sm"
+          >
+            Setup
+          </Link>
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Snapshot" title="Last 50 messages">
+      <div className="mb-[18px]">
+        <div className="label mb-2.5">Snapshot</div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          <MetricCard label="Inbound" value={String(inboundCount)} />
-          <MetricCard label="Outbound" value={String(outboundCount)} />
-          <MetricCard
+          <Kpi label="Inbound" value={String(inboundCount)} />
+          <Kpi label="Outbound" value={String(outboundCount)} />
+          <Kpi
             label="Failed"
             value={String(failedCount)}
-            hint={failedCount > 0 ? "needs attention" : undefined}
+            sub={failedCount > 0 ? "needs attention" : undefined}
+            tone={failedCount > 0 ? "danger" : undefined}
           />
-          <MetricCard
+          <Kpi
             label="Unknown phones"
             value={String(unknownPhones)}
-            hint={unknownPhones > 0 ? "needs resolution" : undefined}
+            sub={unknownPhones > 0 ? "needs resolution" : undefined}
+            tone={unknownPhones > 0 ? "warn" : undefined}
           />
-          <MetricCard
+          <Kpi
             label="Approved templates"
             value={String(approvedTemplates)}
-            hint={`${templates.length} total`}
+            sub={`${templates.length} total`}
           />
         </div>
-      </Section>
+      </div>
 
-      <Section eyebrow="Recent" title="Last 50 messages chronologically">
+      <div className="mb-[18px]">
+        <div className="label mb-2.5">Recent</div>
         {recent.length === 0 ? (
           <EmptyState
             title="No WhatsApp messages yet"
             description="Configure your Twilio credentials in Settings → WhatsApp to start receiving inbound messages."
           />
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>Time</TH>
-                <TH>Direction</TH>
-                <TH>From</TH>
-                <TH>To</TH>
-                <TH>Type</TH>
-                <TH>Body / template</TH>
-                <TH>Intent</TH>
-                <TH>Status</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {recent.map((m) => (
-                <TR key={m.id}>
-                  <TD className="text-xs whitespace-nowrap">
-                    {m.occurredAt
-                      .toISOString()
-                      .slice(0, 19)
-                      .replace("T", " ")}
-                  </TD>
-                  <TD>
-                    <Badge tone={m.direction === "inbound" ? "info" : "neutral"}>
-                      {m.direction}
-                    </Badge>
-                  </TD>
-                  <TD className="font-mono text-[11px]">{m.fromPhone}</TD>
-                  <TD className="font-mono text-[11px]">{m.toPhone}</TD>
-                  <TD className="text-xs">{m.messageType}</TD>
-                  <TD className="text-xs max-w-md truncate">
-                    <Link
-                      href={`/development-os/whatsapp/messages/${m.id}`}
-                      className="hover:underline"
-                    >
-                      {m.templateName
-                        ? `[${m.templateName}]`
-                        : m.body
-                          ? m.body.slice(0, 80)
-                          : "(no body)"}
-                    </Link>
-                  </TD>
-                  <TD>
-                    {m.aiIntent ? (
-                      <Badge tone={INTENT_TONE[m.aiIntent] ?? "neutral"}>
-                        {m.aiIntent}
-                      </Badge>
-                    ) : (
-                      "—"
-                    )}
-                  </TD>
-                  <TD>
-                    <Badge tone={STATUS_TONE[m.status] ?? "neutral"}>
-                      {m.status}
-                    </Badge>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Time</th>
+                  <th scope="col">Direction</th>
+                  <th scope="col">From</th>
+                  <th scope="col">To</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Body / template</th>
+                  <th scope="col">Intent</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recent.map((m) => (
+                  <tr key={m.id}>
+                    <td className="text-xs whitespace-nowrap">
+                      {m.occurredAt
+                        .toISOString()
+                        .slice(0, 19)
+                        .replace("T", " ")}
+                    </td>
+                    <td>
+                      <HandoffBadge
+                        tone={m.direction === "inbound" ? "info" : "soft"}
+                      >
+                        {m.direction}
+                      </HandoffBadge>
+                    </td>
+                    <td className="mono text-[11px]">{m.fromPhone}</td>
+                    <td className="mono text-[11px]">{m.toPhone}</td>
+                    <td className="text-xs">{m.messageType}</td>
+                    <td className="text-xs max-w-md truncate">
+                      <Link
+                        href={`/development-os/whatsapp/messages/${m.id}`}
+                        className="hover:underline"
+                      >
+                        {m.templateName
+                          ? `[${m.templateName}]`
+                          : m.body
+                            ? m.body.slice(0, 80)
+                            : "(no body)"}
+                      </Link>
+                    </td>
+                    <td>
+                      {m.aiIntent ? (
+                        <HandoffBadge tone={INTENT_TONE[m.aiIntent] ?? "soft"}>
+                          {m.aiIntent}
+                        </HandoffBadge>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td>
+                      <HandoffBadge tone={STATUS_TONE[m.status] ?? "soft"}>
+                        {m.status}
+                      </HandoffBadge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

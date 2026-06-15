@@ -3,12 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -28,7 +25,11 @@ export default async function ProjectBudgetDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Project budget" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Project budget</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -49,26 +50,33 @@ export default async function ProjectBudgetDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Budget", href: "/development-os/finance/budget" },
-          { label: project.name },
-        ]}
-        eyebrow={`Project ${project.slug}`}
-        title={`${project.name} — budget`}
-        description="All categories with active budget lines for this project. Edit lines via the createBudgetLine action; the supersession trigger handles version chains automatically."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance/budget">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All projects
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance/budget">Budget</Link> /{" "}
+            <span>{project.name}</span>
+          </div>
+          <h1>{`${project.name} — budget`}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            All categories with active budget lines for this project. Edit lines
+            via the createBudgetLine action; the supersession trigger handles
+            version chains automatically.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/finance/budget"
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All projects
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Three-state matrix" title="Budget vs committed vs actual">
+      <div>
+        <div className="label mb-2.5">Three-state matrix</div>
         {rows.length === 0 ? (
           <EmptyState
             title="No budget lines for this project"
@@ -103,19 +111,20 @@ export default async function ProjectBudgetDetailPage({
                     {r.variancePercent.toFixed(1)}%
                   </TDNum>
                   <TD>
-                    <Badge tone={r.isOverBudget ? "danger" : "success"}>
+                    <HandoffBadge tone={r.isOverBudget ? "danger" : "ok"}>
                       {r.isOverBudget ? "Over" : "OK"}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {topVariance.length > 0 && (
-        <Section eyebrow="Variance" title="Top 5 categories by absolute variance">
+        <div>
+          <div className="label mb-2.5">Variance</div>
           <Table>
             <THead>
               <TR>
@@ -143,7 +152,7 @@ export default async function ProjectBudgetDetailPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

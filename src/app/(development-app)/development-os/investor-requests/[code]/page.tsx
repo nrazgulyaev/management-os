@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -17,13 +14,13 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  submitted: "warning",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  submitted: "warn",
   under_review: "info",
   approved: "info",
-  executed: "success",
+  executed: "ok",
   rejected: "danger",
-  cancelled: "neutral",
+  cancelled: "soft",
 };
 
 export default async function InvestorRequestDetailPage({
@@ -36,7 +33,11 @@ export default async function InvestorRequestDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Investor request" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Investor request</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -46,115 +47,129 @@ export default async function InvestorRequestDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Investor requests", href: "/development-os/investor-requests" },
-          { label: req.requestCode },
-        ]}
-        eyebrow={`${req.requestType} · ${req.status}`}
-        title={req.requestCode}
-        description={req.investorNotes ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/investor-requests">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Inbox
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Header" title="Request">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Type" value={req.requestType} />
-          <Field
-            label="Amount"
-            value={`$${(Number(req.requestedAmountMinor) / 100).toLocaleString()} ${req.currency}`}
-          />
-          <Field label="Status" value={req.status} />
-          <Field
-            label="Investor"
-            value={req.investorId.slice(0, 8)}
-            mono
-          />
-          <Field
-            label="Source project"
-            value={req.sourceProjectId?.slice(0, 8) ?? "—"}
-            mono
-          />
-          <Field
-            label="Target project"
-            value={req.targetProjectId?.slice(0, 8) ?? "—"}
-            mono
-          />
-          <Field
-            label="Submitted"
-            value={new Date(req.submittedAt).toLocaleString()}
-          />
-          <Field
-            label="Reviewed"
-            value={req.reviewedAt ? new Date(req.reviewedAt).toLocaleString() : "—"}
-          />
-          <Field
-            label="Executed"
-            value={req.executedAt ? new Date(req.executedAt).toLocaleString() : "—"}
-          />
-          <Field
-            label="Wallet movement"
-            value={req.relatedWalletMovementId?.slice(0, 8) ?? "—"}
-            mono
-          />
-          <Field
-            label="Preferred date"
-            value={req.preferredExecutionDate ?? "—"}
-          />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/investor-requests">Investor requests</Link> /{" "}
+            <span>{req.requestCode}</span>
+          </div>
+          <h1>{req.requestCode}</h1>
+          {req.investorNotes && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {req.investorNotes}
+            </p>
+          )}
         </div>
-      </Section>
+        <div className="actions">
+          <Link
+            href="/development-os/investor-requests"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Inbox
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Header</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Type" value={req.requestType} />
+            <Field
+              label="Amount"
+              value={`$${(Number(req.requestedAmountMinor) / 100).toLocaleString()} ${req.currency}`}
+            />
+            <Field label="Status" value={req.status} />
+            <Field
+              label="Investor"
+              value={req.investorId.slice(0, 8)}
+              mono
+            />
+            <Field
+              label="Source project"
+              value={req.sourceProjectId?.slice(0, 8) ?? "—"}
+              mono
+            />
+            <Field
+              label="Target project"
+              value={req.targetProjectId?.slice(0, 8) ?? "—"}
+              mono
+            />
+            <Field
+              label="Submitted"
+              value={new Date(req.submittedAt).toLocaleString()}
+            />
+            <Field
+              label="Reviewed"
+              value={req.reviewedAt ? new Date(req.reviewedAt).toLocaleString() : "—"}
+            />
+            <Field
+              label="Executed"
+              value={req.executedAt ? new Date(req.executedAt).toLocaleString() : "—"}
+            />
+            <Field
+              label="Wallet movement"
+              value={req.relatedWalletMovementId?.slice(0, 8) ?? "—"}
+              mono
+            />
+            <Field
+              label="Preferred date"
+              value={req.preferredExecutionDate ?? "—"}
+            />
+          </div>
+        </Card>
+      </div>
 
       {req.investorNotes && (
-        <Section eyebrow="Investor notes" title="Why">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">
-            {req.investorNotes}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Investor notes</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap">
+              {req.investorNotes}
+            </p>
+          </Card>
+        </div>
       )}
 
       {req.approvalNotes && (
-        <Section eyebrow="Approval" title="Operator approval notes">
-          <p className="text-sm text-ink-secondary whitespace-pre-wrap">
-            {req.approvalNotes}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Approval</div>
+          <Card padding="default">
+            <p className="text-sm text-ink-secondary whitespace-pre-wrap">
+              {req.approvalNotes}
+            </p>
+          </Card>
+        </div>
       )}
 
       {req.rejectionReason && (
-        <Section eyebrow="Rejection" title="Operator rejection reason">
-          <p className="text-sm text-danger whitespace-pre-wrap">
-            {req.rejectionReason}
-          </p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Rejection</div>
+          <Card padding="default">
+            <p className="text-sm text-danger whitespace-pre-wrap">
+              {req.rejectionReason}
+            </p>
+          </Card>
+        </div>
       )}
 
-      <Section
-        eyebrow="HITL"
-        title={
-          ["submitted", "under_review", "approved"].includes(req.status)
-            ? `Status: ${req.status} → next action`
-            : `Status: ${req.status}`
-        }
-      >
-        <Badge tone={STATUS_TONE[req.status] ?? "neutral"}>
-          {req.status}
-        </Badge>
-        <div className="mt-4">
-          <RequestReviewActions requestId={req.id} status={req.status} />
-        </div>
-        <p className="text-[11px] text-ink-tertiary mt-3">
-          Approval is necessary but not sufficient — execution writes the
-          wallet_movement atomically and links it back to this request.
-        </p>
-      </Section>
+      <div>
+        <div className="label mb-2.5">HITL</div>
+        <Card padding="default">
+          <HandoffBadge tone={STATUS_TONE[req.status] ?? "soft"}>
+            {req.status}
+          </HandoffBadge>
+          <div className="mt-4">
+            <RequestReviewActions requestId={req.id} status={req.status} />
+          </div>
+          <p className="text-[11px] text-ink-tertiary mt-3">
+            Approval is necessary but not sufficient — execution writes the
+            wallet_movement atomically and links it back to this request.
+          </p>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

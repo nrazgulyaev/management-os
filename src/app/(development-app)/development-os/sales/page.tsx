@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { SalesPipelineViews } from "@/components/development/sales/sales-pipeline-views";
 import { LeadPipelineMetricsStrip } from "@/components/development/sales/lead-pipeline-metrics";
@@ -178,43 +175,45 @@ export default async function SalesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Sales & buyers" },
-        ]}
-        eyebrow={
-          db
-            ? `${metrics.total} active · ${totalPending} AI drafts pending review`
-            : "Database not configured"
-        }
-        title="Sales pipeline"
-        description="Live pipeline backed by the contacts foundation. Switch to the Pipeline view to drag a lead between stages — moves are FSM-guarded (one step at a time) and audit-logged."
-        actions={
-          <div className="flex items-center gap-2">
-            <LeadModalForm
-              projects={projectOptions}
-              leadSources={sourceOptions.map((s) => ({
-                id: s.id,
-                displayName: s.campaignName ?? s.code,
-              }))}
-            />
-            <ExportButton entity="leads" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Sales &amp; buyers</span>
           </div>
-        }
-      />
+          <div className="label mt-1.5">
+            {db
+              ? `${metrics.total} active · ${totalPending} AI drafts pending review`
+              : "Database not configured"}
+          </div>
+          <h1>Sales pipeline</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Live pipeline backed by the contacts foundation. Switch to the
+            Pipeline view to drag a lead between stages — moves are FSM-guarded
+            (one step at a time) and audit-logged.
+          </p>
+        </div>
+        <div className="actions">
+          <LeadModalForm
+            projects={projectOptions}
+            leadSources={sourceOptions.map((s) => ({
+              id: s.id,
+              displayName: s.campaignName ?? s.code,
+            }))}
+          />
+          <ExportButton entity="leads" />
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {!db && (
         <EmptyState
           title="Sales pipeline runs against the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       )}
 
@@ -234,15 +233,13 @@ export default async function SalesPage() {
 
       {db && (
         <>
-          <Section eyebrow="Pipeline metrics" title="At a glance">
+          <div>
+            <div className="label mb-2.5">Pipeline metrics</div>
             <LeadPipelineMetricsStrip metrics={metrics} />
-          </Section>
+          </div>
 
-          <Section
-            eyebrow="Pipeline"
-            title="Lead board"
-            description="List view: filter by project, source, or agent. Pipeline view: drag a card between stages to advance the lead. Click a card to open the workspace and review AI-drafted replies before sending."
-          >
+          <div>
+            <div className="label mb-2.5">Pipeline</div>
             <SalesPipelineViews
               leads={leads}
               pendingDraftsByRoleId={pendingDrafts}
@@ -252,7 +249,7 @@ export default async function SalesPage() {
                 agents: agentOptions,
               }}
             />
-          </Section>
+          </div>
         </>
       )}
     </DevelopmentShell>

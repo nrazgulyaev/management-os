@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDigestByCode } from "@/lib/development/server/executive-digest/digest-queries";
 
@@ -32,87 +29,125 @@ export default async function DigestDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title={d.periodLabel}
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Digests", href: "/development-os/digests" },
-          { label: d.digestCode },
-        ]}
-        description={`${d.digestType} · ${d.periodStart} → ${d.periodEnd}`}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/digests">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to digests
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section title="Status">
-        <div className="flex gap-2">
-          <Badge tone="info">status: {d.status}</Badge>
-          {d.aiGenerated && <Badge tone="neutral">AI: {d.aiModel}</Badge>}
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/digests">Digests</Link> /{" "}
+            <span>{d.digestCode}</span>
+          </div>
+          <h1>{d.periodLabel}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${d.digestType} · ${d.periodStart} → ${d.periodEnd}`}
+          </p>
         </div>
-      </Section>
+        <div className="actions">
+          <Link
+            href="/development-os/digests"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to digests
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Executive summary">
-        <Markdown src={d.executiveSummary} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="flex gap-2">
+            <HandoffBadge tone="info">status: {d.status}</HandoffBadge>
+            {d.aiGenerated && <HandoffBadge tone="soft">AI: {d.aiModel}</HandoffBadge>}
+          </div>
+        </Card>
+      </div>
 
-      <Section title="Cash position">
-        <Markdown src={d.cashPositionSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Executive summary</div>
+        <Card padding="default">
+          <Markdown src={d.executiveSummary} />
+        </Card>
+      </div>
 
-      <Section title="Project progress">
-        <Markdown src={d.projectProgressSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Cash position</div>
+        <Card padding="default">
+          <Markdown src={d.cashPositionSection} />
+        </Card>
+      </div>
 
-      <Section title="Sales">
-        <Markdown src={d.salesSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Project progress</div>
+        <Card padding="default">
+          <Markdown src={d.projectProgressSection} />
+        </Card>
+      </div>
 
-      <Section title="Investor">
-        <Markdown src={d.investorSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Sales</div>
+        <Card padding="default">
+          <Markdown src={d.salesSection} />
+        </Card>
+      </div>
 
-      <Section title="Operations">
-        <Markdown src={d.operationsSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Investor</div>
+        <Card padding="default">
+          <Markdown src={d.investorSection} />
+        </Card>
+      </div>
 
-      <Section title="Risks">
-        <Markdown src={d.risksSection} />
-      </Section>
+      <div>
+        <div className="label mb-2.5">Operations</div>
+        <Card padding="default">
+          <Markdown src={d.operationsSection} />
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Risks</div>
+        <Card padding="default">
+          <Markdown src={d.risksSection} />
+        </Card>
+      </div>
 
       {d.keyWins.length > 0 && (
-        <Section title="Key wins">
-          <ul className="list-disc pl-5 text-sm">
-            {d.keyWins.map((k, i) => (
-              <li key={i}>{k}</li>
-            ))}
-          </ul>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Key wins</div>
+          <Card padding="default">
+            <ul className="list-disc pl-5 text-sm">
+              {d.keyWins.map((k, i) => (
+                <li key={i}>{k}</li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
 
       {d.keyConcerns.length > 0 && (
-        <Section title="Key concerns">
-          <ul className="list-disc pl-5 text-sm">
-            {d.keyConcerns.map((k, i) => (
-              <li key={i}>{k}</li>
-            ))}
-          </ul>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Key concerns</div>
+          <Card padding="default">
+            <ul className="list-disc pl-5 text-sm">
+              {d.keyConcerns.map((k, i) => (
+                <li key={i}>{k}</li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
 
       {d.recommendedActions.length > 0 && (
-        <Section title="Recommended actions">
-          <ul className="list-disc pl-5 text-sm">
-            {d.recommendedActions.map((k, i) => (
-              <li key={i}>{k}</li>
-            ))}
-          </ul>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Recommended actions</div>
+          <Card padding="default">
+            <ul className="list-disc pl-5 text-sm">
+              {d.recommendedActions.map((k, i) => (
+                <li key={i}>{k}</li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

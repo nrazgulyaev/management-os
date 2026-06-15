@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { PushPermission } from "@/components/development/pwa/push-permission";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -17,63 +16,74 @@ export default async function PushSettingsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Push notifications"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "Push notifications" },
-        ]}
-        description="Per-device push subscriptions and notification preferences."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span> / <span>Push notifications</span>
+          </div>
+          <h1>Push notifications</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-device push subscriptions and notification preferences.
+          </p>
+        </div>
+      </div>
 
-      <Section title="Enable on this device">
-        {!me ? (
-          <EmptyState title="Sign in" description="Log in to manage subscriptions." />
-        ) : (
-          <PushPermission />
-        )}
-      </Section>
+      <div>
+        <div className="label mb-2.5">Enable on this device</div>
+        <Card padding="default">
+          {!me ? (
+            <EmptyState title="Sign in" description="Log in to manage subscriptions." />
+          ) : (
+            <PushPermission />
+          )}
+        </Card>
+      </div>
 
-      <Section title={`${subs.length} subscription(s) on file`}>
+      <div>
+        <div className="label mb-2.5">{subs.length} subscription(s) on file</div>
         {subs.length === 0 ? (
-          <EmptyState
-            title="No devices subscribed"
-            description="Use 'Enable notifications' above to subscribe this device."
-          />
+          <Card padding="default">
+            <EmptyState
+              title="No devices subscribed"
+              description="Use 'Enable notifications' above to subscribe this device."
+            />
+          </Card>
         ) : (
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="text-left text-ink-tertiary border-b border-line-soft">
-                <th className="py-2">Device</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Failures</th>
-                <th>Subscribed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {subs.map((s) => (
-                <tr key={s.id} className="border-b border-line-soft">
-                  <td className="py-2">{s.deviceLabel ?? "Unnamed device"}</td>
-                  <td className="text-xs">{s.deviceType ?? "—"}</td>
-                  <td>
-                    <Badge tone={s.isActive ? "success" : "neutral"}>
-                      {s.isActive ? "active" : "inactive"}
-                    </Badge>
-                  </td>
-                  <td className="font-mono tabular-nums text-xs">
-                    {s.consecutiveFailures}
-                  </td>
-                  <td className="text-xs text-ink-tertiary">
-                    {new Date(s.subscribedAt).toLocaleDateString()}
-                  </td>
+          <Card padding="none" overflowHidden>
+            <table className="data">
+              <thead>
+                <tr>
+                  <th scope="col">Device</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="num">Failures</th>
+                  <th scope="col">Subscribed</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {subs.map((s) => (
+                  <tr key={s.id}>
+                    <td className="row-title">{s.deviceLabel ?? "Unnamed device"}</td>
+                    <td className="text-xs">{s.deviceType ?? "—"}</td>
+                    <td>
+                      <HandoffBadge tone={s.isActive ? "ok" : "soft"}>
+                        {s.isActive ? "active" : "inactive"}
+                      </HandoffBadge>
+                    </td>
+                    <td className="num mono text-xs">
+                      {s.consecutiveFailures}
+                    </td>
+                    <td className="text-xs text-ink-3">
+                      {new Date(s.subscribedAt).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

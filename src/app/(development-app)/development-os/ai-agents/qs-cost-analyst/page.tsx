@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { AgentOutputsTable } from "@/components/development/agent-outputs-table";
@@ -18,7 +17,11 @@ export default async function QsCostAnalystPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="QS Cost Analyst" />
+        <div className="page-header">
+          <div className="left">
+            <h1>QS Cost Analyst</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,22 +38,27 @@ export default async function QsCostAnalystPage() {
   );
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="QS Cost Analyst"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          { label: "QS Cost Analyst" },
-        ]}
-        description="Forecast at completion + cost overrun analysis per category."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <span>QS Cost Analyst</span>
+          </div>
+          <h1>QS Cost Analyst</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Forecast at completion + cost overrun analysis per category.
+          </p>
+        </div>
+      </div>
       <RunAgentButton agentKey="qs_cost_analyst" />
-      <Section title={`${rows.length} output(s)`}>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} output(s)`}</div>
         <AgentOutputsTable
           rows={rows}
           detailHrefBase="/development-os/ai-agents/qs-cost-analyst/outputs"
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

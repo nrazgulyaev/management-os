@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -43,33 +40,33 @@ export default async function CostCategoriesPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Categories" },
-        ]}
-        eyebrow={`${cats.length} categories (${parents.length} parents, ${cats.length - parents.length} children)`}
-        title="Cost categories"
-        description="Hierarchical taxonomy used by the budget, transactions, and vendor commitments."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Finance
-              </Link>
-            </Button>
-            <CostCategoryModalForm
-              parents={parents.map((p) => ({
-                id: p.id,
-                categoryCode: p.categoryCode,
-                displayName: p.displayName,
-              }))}
-            />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Categories</span>
           </div>
-        }
-      />
+          <h1>Cost categories</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Hierarchical taxonomy used by the budget, transactions, and vendor
+            commitments.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+          <CostCategoryModalForm
+            parents={parents.map((p) => ({
+              id: p.id,
+              categoryCode: p.categoryCode,
+              displayName: p.displayName,
+            }))}
+          />
+        </div>
+      </div>
 
       <FinanceTabs />
 
@@ -79,7 +76,8 @@ export default async function CostCategoriesPage() {
           description={!db ? "Database connection not configured. Contact support." : "Add your first finance category to organize the chart of accounts."}
         />
       ) : (
-        <Section eyebrow="Hierarchy" title="Tree view">
+        <div>
+          <div className="label mb-2.5">Hierarchy</div>
           <div className="space-y-3">
             {parents.map((p) => {
               const ch = childrenByParent.get(p.id) ?? [];
@@ -96,17 +94,22 @@ export default async function CostCategoriesPage() {
                       <div className="font-medium">{p.displayName}</div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-ink-tertiary">
-                      <Badge tone="neutral">{p.categoryType}</Badge>
-                      {!p.isActive && <Badge tone="warning">Inactive</Badge>}
+                      <HandoffBadge tone="soft">{p.categoryType}</HandoffBadge>
+                      {!p.isActive && (
+                        <HandoffBadge tone="warn">Inactive</HandoffBadge>
+                      )}
                       {(() => {
                         const u = usageById.get(p.id);
                         return u ? (
-                          <Badge tone="info" data-testid="cost-category-usage">
+                          <span
+                            className="badge badge-info"
+                            data-testid="cost-category-usage"
+                          >
                             {u.transactionCount} tx ·{" "}
                             {fmtUsd(BigInt(u.totalUsdMinor))}
-                          </Badge>
+                          </span>
                         ) : (
-                          <Badge tone="neutral">unused</Badge>
+                          <HandoffBadge tone="soft">unused</HandoffBadge>
                         );
                       })()}
                       {ch.length > 0 && (
@@ -129,7 +132,7 @@ export default async function CostCategoriesPage() {
                             </span>
                             <span>{c.displayName}</span>
                             {!c.isActive && (
-                              <Badge tone="warning">Inactive</Badge>
+                              <HandoffBadge tone="warn">Inactive</HandoffBadge>
                             )}
                             {u ? (
                               <span className="text-[11px] text-ink-tertiary">
@@ -145,7 +148,7 @@ export default async function CostCategoriesPage() {
               );
             })}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

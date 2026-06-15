@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getBuyerByCode } from "@/lib/development/server/buyers/buyer-queries";
@@ -19,13 +16,13 @@ import { getCurrentUserContext } from "@/features/auth/permissions";
 export const metadata: Metadata = { title: "Buyer · Development OS" };
 export const dynamic = "force-dynamic";
 
-const ASSIGN_TONE: Record<string, "info" | "success" | "warning" | "neutral"> = {
+const ASSIGN_TONE: Record<string, "info" | "ok" | "warn" | "soft"> = {
   reserved: "info",
   contracted: "info",
   paying: "info",
-  paid_in_full: "success",
-  handed_over: "success",
-  cancelled: "neutral",
+  paid_in_full: "ok",
+  handed_over: "ok",
+  cancelled: "soft",
 };
 
 export default async function BuyerDetailPage({
@@ -38,7 +35,11 @@ export default async function BuyerDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Buyer" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Buyer</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -58,80 +59,87 @@ export default async function BuyerDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Buyers", href: "/development-os/buyers" },
-          { label: buyer.buyerCode },
-        ]}
-        eyebrow={`${buyer.buyerCode} · ${buyer.kycStatus}`}
-        title={buyer.displayName}
-        description={buyer.primaryEmail ?? undefined}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/buyers">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All buyers
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Identity" title="Contact">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Buyer code" value={buyer.buyerCode} mono />
-          <Field label="Email" value={buyer.primaryEmail ?? "—"} />
-          <Field label="Phone" value={buyer.primaryPhone ?? "—"} />
-          <Field label="WhatsApp" value={buyer.whatsappPhone ?? "—"} />
-          <Field label="Language" value={buyer.preferredLanguage} />
-          <Field
-            label="KYC completed"
-            value={
-              buyer.kycCompletedAt
-                ? new Date(buyer.kycCompletedAt).toLocaleDateString()
-                : "—"
-            }
-          />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/buyers">Buyers</Link> /{" "}
+            <span>{buyer.buyerCode}</span>
+          </div>
+          <h1>{buyer.displayName}</h1>
+          {buyer.primaryEmail && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {buyer.primaryEmail}
+            </p>
+          )}
         </div>
-      </Section>
-
-      <Section eyebrow="Portal" title="Buyer portal access">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field
-            label="Access enabled"
-            value={buyer.portalAccessEnabled ? "yes" : "no"}
-          />
-          <Field
-            label="Invited"
-            value={
-              buyer.portalInvitedAt
-                ? new Date(buyer.portalInvitedAt).toLocaleString()
-                : "—"
-            }
-          />
-          <Field
-            label="First login"
-            value={
-              buyer.portalFirstLoginAt
-                ? new Date(buyer.portalFirstLoginAt).toLocaleString()
-                : "—"
-            }
-          />
-          <Field
-            label="Last login"
-            value={
-              buyer.portalLastLoginAt
-                ? new Date(buyer.portalLastLoginAt).toLocaleString()
-                : "—"
-            }
-          />
+        <div className="actions">
+          <Link href="/development-os/buyers" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All buyers
+          </Link>
         </div>
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Units"
-        title={`Unit assignments (${assignments.length})`}
-      >
+      <div>
+        <div className="label mb-2.5">Identity</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Buyer code" value={buyer.buyerCode} mono />
+            <Field label="Email" value={buyer.primaryEmail ?? "—"} />
+            <Field label="Phone" value={buyer.primaryPhone ?? "—"} />
+            <Field label="WhatsApp" value={buyer.whatsappPhone ?? "—"} />
+            <Field label="Language" value={buyer.preferredLanguage} />
+            <Field
+              label="KYC completed"
+              value={
+                buyer.kycCompletedAt
+                  ? new Date(buyer.kycCompletedAt).toLocaleDateString()
+                  : "—"
+              }
+            />
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Portal</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field
+              label="Access enabled"
+              value={buyer.portalAccessEnabled ? "yes" : "no"}
+            />
+            <Field
+              label="Invited"
+              value={
+                buyer.portalInvitedAt
+                  ? new Date(buyer.portalInvitedAt).toLocaleString()
+                  : "—"
+              }
+            />
+            <Field
+              label="First login"
+              value={
+                buyer.portalFirstLoginAt
+                  ? new Date(buyer.portalFirstLoginAt).toLocaleString()
+                  : "—"
+              }
+            />
+            <Field
+              label="Last login"
+              value={
+                buyer.portalLastLoginAt
+                  ? new Date(buyer.portalLastLoginAt).toLocaleString()
+                  : "—"
+              }
+            />
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Units · assignments ({assignments.length})</div>
         {assignments.length === 0 ? (
           <EmptyState
             title="No villa assignments yet"
@@ -154,9 +162,9 @@ export default async function BuyerDetailPage({
                 <TR key={a.id}>
                   <TD className="font-mono text-xs">{a.unitId.slice(0, 8)}</TD>
                   <TD>
-                    <Badge tone={ASSIGN_TONE[a.status] ?? "neutral"}>
+                    <HandoffBadge tone={ASSIGN_TONE[a.status] ?? "soft"}>
                       {a.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="font-mono text-xs">
                     {a.reservationId?.slice(0, 8) ?? "—"}
@@ -173,24 +181,24 @@ export default async function BuyerDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="CRM"
-        title="Activity timeline"
-        action={
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="label">CRM</div>
           <LogActivityComposer
             subjectType="buyer"
             subjectId={buyer.id}
             canManage={canManageCrm}
           />
-        }
-      >
-        <RecordTimeline
-          activities={crmActivity}
-          emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
-        />
-      </Section>
+        </div>
+        <Card padding="default">
+          <RecordTimeline
+            activities={crmActivity}
+            emptyLabel="No CRM activity yet — log a note, call, or email to start the timeline."
+          />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listBuyers } from "@/lib/development/server/buyers/buyer-queries";
@@ -17,13 +14,13 @@ import { ExportButton } from "@/components/development/bulk-import/export-button
 export const metadata: Metadata = { title: "Buyers · Development OS" };
 export const dynamic = "force-dynamic";
 
-const KYC_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  not_started: "neutral",
+const KYC_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  not_started: "soft",
   in_progress: "info",
   submitted: "info",
-  verified: "success",
+  verified: "ok",
   rejected: "danger",
-  expired: "warning",
+  expired: "warn",
 };
 
 export default async function BuyersListPage() {
@@ -31,7 +28,11 @@ export default async function BuyersListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Buyers" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Buyers</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -40,27 +41,28 @@ export default async function BuyersListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Buyers" },
-        ]}
-        eyebrow={`${rows.length} buyer${rows.length === 1 ? "" : "s"}`}
-        title="Villa buyers"
-        description="Buyers purchase specific villas. They have a separate workspace at /buyer-portal — RLS keeps their view scoped to own units + published reports only."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Buyers</span>
+          </div>
+          <h1>Villa buyers</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Buyers purchase specific villas. They have a separate workspace at /buyer-portal — RLS keeps their view scoped to own units + published reports only.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <BuyerModalForm />
             <ExportButton entity="buyers" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+            <Link href="/development-os" className="btn btn-secondary btn-sm">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState
@@ -68,7 +70,8 @@ export default async function BuyersListPage() {
           description="Use createBuyer to add the first buyer profile. KYC + portal invite happen as separate operator actions."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All buyers">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -95,22 +98,22 @@ export default async function BuyersListPage() {
                   <TD className="text-xs">{b.primaryEmail ?? "—"}</TD>
                   <TD className="text-xs">{b.preferredLanguage}</TD>
                   <TD>
-                    <Badge tone={KYC_TONE[b.kycStatus] ?? "neutral"}>
+                    <HandoffBadge tone={KYC_TONE[b.kycStatus] ?? "soft"}>
                       {b.kycStatus}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
                     {b.portalAccessEnabled ? (
-                      <Badge tone="success">enabled</Badge>
+                      <HandoffBadge tone="ok">enabled</HandoffBadge>
                     ) : (
-                      <Badge tone="neutral">not invited</Badge>
+                      <HandoffBadge tone="soft">not invited</HandoffBadge>
                     )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

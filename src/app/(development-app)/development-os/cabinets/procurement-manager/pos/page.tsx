@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
@@ -32,15 +30,6 @@ import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 export const metadata: Metadata = { title: "Purchase orders · Development OS" };
 export const dynamic = "force-dynamic";
 
-const BREADCRUMBS = [
-  { label: "Development OS", href: "/development-os" },
-  {
-    label: "Procurement",
-    href: "/development-os/cabinets/procurement-manager",
-  },
-  { label: "Purchase orders" },
-];
-
 function poStatusTone(
   status: string,
 ): "neutral" | "warning" | "success" | "danger" {
@@ -55,11 +44,21 @@ export default async function PoListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={BREADCRUMBS}
-          title="Purchase orders"
-          description="Active + recent POs across every project."
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/cabinets/procurement-manager">
+                Procurement
+              </Link>{" "}
+              / <span>Purchase orders</span>
+            </div>
+            <h1>Purchase orders</h1>
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              Active + recent POs across every project.
+            </p>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to view purchase orders."
@@ -88,20 +87,31 @@ export default async function PoListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={BREADCRUMBS}
-        eyebrow={`${rows.length} purchase orders`}
-        title="Purchase orders"
-        description="Active + recent POs across every project. Click a row for the procure-to-pay money lifecycle."
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
             <Link href="/development-os/cabinets/procurement-manager">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Procurement cabinet
-            </Link>
-          </Button>
-        }
-      />
+              Procurement
+            </Link>{" "}
+            / <span>Purchase orders · {rows.length}</span>
+          </div>
+          <h1>Purchase orders</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Active + recent POs across every project. Click a row for the
+            procure-to-pay money lifecycle.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cabinets/procurement-manager"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Procurement cabinet
+          </Link>
+        </div>
+      </div>
       {rows.length === 0 ? (
         <EmptyState
           title="No purchase orders"

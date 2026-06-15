@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { BoqWorkspace } from "./_boq-client";
@@ -87,25 +85,33 @@ export default async function ProjectBoqPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: detail.project.name, href: `/development-os/projects/${slug}` },
-          { label: "BOQ" },
-        ]}
-        eyebrow={`${lines.length} lines · ${nodes.length} work packages`}
-        title="Bill of quantities"
-        description="Virtualized table. Click a WP on the left to filter; click a row for line detail + actuals history. Real data lands once the import wizard publishes a revision."
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
             <Link href={`/development-os/projects/${slug}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to project
-            </Link>
-          </Button>
-        }
-      />
+              {detail.project.name}
+            </Link>{" "}
+            / <span>BOQ</span>
+          </div>
+          <h1>Bill of quantities</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Virtualized table. Click a WP on the left to filter; click a row for
+            line detail + actuals history. Real data lands once the import wizard
+            publishes a revision.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to project
+          </Link>
+        </div>
+      </div>
       <BoqWorkspace nodes={nodes} lines={linesWithHref} />
     </DevelopmentShell>
   );

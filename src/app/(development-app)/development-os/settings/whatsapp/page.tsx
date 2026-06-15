@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Check, Circle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {} from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -127,31 +125,37 @@ export default async function WhatsappSetupPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "WhatsApp" },
-        ]}
-        title="WhatsApp setup"
-        description="Operational configuration for the WhatsApp provider, webhook endpoint, and template approvals."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/settings">Settings</Link> /{" "}
+            <span>WhatsApp</span>
+          </div>
+          <h1>WhatsApp setup</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operational configuration for the WhatsApp provider, webhook
+            endpoint, and template approvals.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/whatsapp">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               WhatsApp
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
-      <Section eyebrow="Section 1" title="Provider configuration">
-        <div className="rounded-md border border-line-soft bg-surface p-4 space-y-2 text-sm">
+      <div>
+        <div className="label mb-2.5">Provider configuration</div>
+        <Card padding="default" className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
-            <Badge tone={health.healthy ? "success" : "warning"}>
+            <HandoffBadge tone={health.healthy ? "ok" : "warn"}>
               {provider.name}
-            </Badge>
-            {provider.isSandbox() && <Badge tone="warning">sandbox</Badge>}
+            </HandoffBadge>
+            {provider.isSandbox() && <HandoffBadge tone="warn">sandbox</HandoffBadge>}
           </div>
           <p className="text-ink-secondary">
             {health.details ?? "No additional details"}
@@ -165,31 +169,36 @@ export default async function WhatsappSetupPage() {
             <code>WHATSAPP_REQUIRE_REAL_PROVIDER=1</code> in production to
             refuse the DryRun fallback.
           </p>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
       {orgId && (
-        <Section
-          eyebrow="Per-org credentials"
-          title="Per-org credentials (in-app form)"
-          description="Saves Twilio credentials encrypted to oauth_connections and drives the runtime: outbound sends + the test message use these per-org credentials, falling back to env only when none are saved."
-        >
-          <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 mb-4">
-            <strong>Live:</strong> credentials saved here are encrypted at
-            rest and now drive outbound WhatsApp for this organization. The
-            test message below uses them; if you haven't saved any, the
-            runtime falls back to the platform env credentials. Use
-            <em> Disconnect</em> to revert this org to env.
-          </div>
-          <WhatsappCredentialForm
-            organizationId={orgId}
-            hasExistingConnection={hasSavedCreds}
-          />
-        </Section>
+        <div>
+          <div className="label mb-2.5">Per-org credentials</div>
+          <p className="text-[13px] text-ink-3 mt-2 mb-2.5 max-w-[680px]">
+            Saves Twilio credentials encrypted to oauth_connections and drives
+            the runtime: outbound sends + the test message use these per-org
+            credentials, falling back to env only when none are saved.
+          </p>
+          <Card padding="default">
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 mb-4">
+              <strong>Live:</strong> credentials saved here are encrypted at
+              rest and now drive outbound WhatsApp for this organization. The
+              test message below uses them; if you haven't saved any, the
+              runtime falls back to the platform env credentials. Use
+              <em> Disconnect</em> to revert this org to env.
+            </div>
+            <WhatsappCredentialForm
+              organizationId={orgId}
+              hasExistingConnection={hasSavedCreds}
+            />
+          </Card>
+        </div>
       )}
 
-      <Section eyebrow="Section 2" title="Webhook configuration">
-        <div className="rounded-md border border-line-soft bg-surface p-4 space-y-2 text-sm">
+      <div>
+        <div className="label mb-2.5">Webhook configuration</div>
+        <Card padding="default" className="space-y-2 text-sm">
           <div>
             <span className="text-[11px] uppercase tracking-wide text-ink-tertiary">
               Expected webhook URL
@@ -208,11 +217,12 @@ export default async function WhatsappSetupPage() {
             inbound-processor cron picks up `received` rows every 2 minutes
             and runs the AI intent classifier.
           </p>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Section 3" title="Operational checklist">
-        <div className="rounded-md border border-line-soft bg-surface p-4">
+      <div>
+        <div className="label mb-2.5">Operational checklist</div>
+        <Card padding="default">
           <ul className="space-y-2">
             {checklist.map((item, i) => (
               <li key={i} className="flex items-start gap-2 text-sm">
@@ -232,11 +242,12 @@ export default async function WhatsappSetupPage() {
               </li>
             ))}
           </ul>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Section 4" title="Production deployment">
-        <div className="rounded-md border border-line-soft bg-surface p-4 text-sm space-y-2">
+      <div>
+        <div className="label mb-2.5">Production deployment</div>
+        <Card padding="default" className="text-sm space-y-2">
           <ol className="list-decimal list-inside space-y-1 text-ink-secondary">
             <li>
               Create a Twilio account at{" "}
@@ -274,8 +285,8 @@ export default async function WhatsappSetupPage() {
             </li>
             <li>Test inbound + outbound flows end-to-end.</li>
           </ol>
-        </div>
-      </Section>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

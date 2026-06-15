@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { MetricCard } from "@/components/ui/metric-card";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDistributions } from "@/lib/development/server/distributions";
@@ -47,81 +43,89 @@ export default async function DistributionsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Distributions" },
-        ]}
-        eyebrow={
-          db
-            ? `${distributions.length} total · ${declared.length} pending execution`
-            : "Database not configured"
-        }
-        title="Distributions"
-        description="Capital returns and profit distributions to investors. Declare a distribution to compute per-commitment allocations; execute to attribute funds to wallets. Cash payout to investors is a separate wallet withdrawal action."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/distributions/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                Declare distribution
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Distributions</span>
           </div>
-        }
-      />
+          <h1>Distributions</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Capital returns and profit distributions to investors. Declare a
+            distribution to compute per-commitment allocations; execute to
+            attribute funds to wallets. Cash payout to investors is a separate
+            wallet withdrawal action.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/distributions/new"
+            className="btn btn-accent btn-sm"
+          >
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            Declare distribution
+          </Link>
+          <Link
+            href="/development-os"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {!db && (
         <EmptyState
           title="Distributions need the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       )}
 
       {db && (
         <>
-          <Section eyebrow="Snapshot" title="At a glance">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <MetricCard
+          <div>
+            <div className="label mb-2.5">Snapshot</div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <Kpi
                 label="Pending execution"
                 value={String(declared.length)}
-                hint={formatUsdMinor(totalDeclared)}
+                sub={formatUsdMinor(totalDeclared)}
               />
-              <MetricCard
+              <Kpi
                 label="Completed"
                 value={String(completed.length)}
-                hint={formatUsdMinor(totalExecuted)}
+                sub={formatUsdMinor(totalExecuted)}
               />
-              <MetricCard
+              <Kpi
                 label="Total distributions"
                 value={String(distributions.length)}
               />
-              <MetricCard
+              <Kpi
                 label="Cancelled"
                 value={String(
                   distributions.filter((d) => d.status === "cancelled").length,
                 )}
               />
             </div>
-          </Section>
+          </div>
 
-          <Section eyebrow="All distributions" title="Chronological">
+          <div>
+            <div className="label mb-2.5">All distributions</div>
             {distributions.length === 0 ? (
               <EmptyState
                 title="No distributions yet"
                 description="Click 'Declare distribution' to compute and stage your first allocation."
-              
-          action={
-            <Link href="/development-os/distributions" className="inline-flex items-center justify-center rounded-full border border-line-soft bg-surface px-4 py-2 text-sm font-medium text-ink hover:bg-muted/40">View distributions</Link>
-          }
-        />
+                action={
+                  <Link
+                    href="/development-os/distributions"
+                    className="btn btn-secondary btn-sm"
+                  >
+                    View distributions
+                  </Link>
+                }
+              />
             ) : (
               <Table>
                 <THead>
@@ -168,26 +172,26 @@ export default async function DistributionsPage() {
                       <TD className="text-xs">{d.effectiveDate}</TD>
                       <TDNum>{d.allocationCount}</TDNum>
                       <TD>
-                        <Badge
+                        <HandoffBadge
                           tone={
                             d.status === "completed"
-                              ? "success"
+                              ? "ok"
                               : d.status === "declared"
-                                ? "warning"
+                                ? "warn"
                                 : d.status === "executing"
                                   ? "info"
-                                  : "neutral"
+                                  : "soft"
                           }
                         >
                           {DISTRIBUTION_STATUS_LABEL[d.status]}
-                        </Badge>
+                        </HandoffBadge>
                       </TD>
                     </TR>
                   ))}
                 </TBody>
               </Table>
             )}
-          </Section>
+          </div>
         </>
       )}
     </DevelopmentShell>

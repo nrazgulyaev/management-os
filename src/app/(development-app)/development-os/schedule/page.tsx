@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { sql } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ExportButton } from "@/components/development/bulk-import/export-button";
@@ -67,7 +64,15 @@ export default async function GlobalSchedulePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Schedule" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Schedule</span>
+            </div>
+            <h1>Schedule</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -88,26 +93,30 @@ export default async function GlobalSchedulePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Schedule" },
-        ]}
-        eyebrow={`${projects.length} project${projects.length === 1 ? "" : "s"} · ${totalTasks} task${totalTasks === 1 ? "" : "s"} · ${totalCritical} on critical path · ${projectsDelayed} project${projectsDelayed === 1 ? "" : "s"} with delayed tasks`}
-        title="Master schedule"
-        description="Per-project schedule overview. Critical path is recomputed nightly via dev_os_critical_path_recompute. Click a project to open its full Gantt + tasks."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Schedule</span>
+          </div>
+          <h1>Master schedule</h1>
+          <div className="label mt-2">{`${projects.length} project${projects.length === 1 ? "" : "s"} · ${totalTasks} task${totalTasks === 1 ? "" : "s"} · ${totalCritical} on critical path · ${projectsDelayed} project${projectsDelayed === 1 ? "" : "s"} with delayed tasks`}</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-project schedule overview. Critical path is recomputed nightly
+            via dev_os_critical_path_recompute. Click a project to open its full
+            Gantt + tasks.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <ExportButton entity="tasks" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+            <Link href="/development-os" className="btn btn-secondary btn-sm">
+              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+              Command center
+            </Link>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {projects.length === 0 ? (
         <EmptyState
@@ -115,7 +124,8 @@ export default async function GlobalSchedulePage() {
           description="Add work packages + tasks via Projects → [project] → Work packages."
         />
       ) : (
-        <Section eyebrow="Per project" title="Schedule summary">
+        <div>
+          <div className="label mb-2.5">Per project</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {projects.map((p) => {
               const isOnTrack = p.delayed_count === 0;
@@ -132,7 +142,7 @@ export default async function GlobalSchedulePage() {
                         {p.slug}
                       </p>
                     </div>
-                    <Badge tone={isOnTrack ? "success" : "warning"}>
+                    <HandoffBadge tone={isOnTrack ? "ok" : "warn"}>
                       {isOnTrack ? (
                         <>
                           <CheckCircle2 className="w-3 h-3 mr-1" /> on track
@@ -143,7 +153,7 @@ export default async function GlobalSchedulePage() {
                           {p.delayed_count} delayed
                         </>
                       )}
-                    </Badge>
+                    </HandoffBadge>
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 text-center">
@@ -178,7 +188,7 @@ export default async function GlobalSchedulePage() {
               );
             })}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

@@ -2,11 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDocumentExtraction } from "@/lib/development/server/document-extraction-actions";
@@ -30,7 +27,11 @@ export default async function ExtractionDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Extraction review" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Extraction review</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -45,30 +46,34 @@ export default async function ExtractionDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          {
-            label: "Document extractions",
-            href: "/development-os/finance/document-extractions",
-          },
-          { label: extraction.id.slice(0, 8) },
-        ]}
-        eyebrow={`${extraction.documentType} · ${extraction.status}`}
-        title="Extraction review"
-        description="Review the AI-extracted fields, override anything that's wrong, then approve to create a transaction. Nothing is created until you click Approve."
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
             <Link href="/development-os/finance/document-extractions">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to inbox
-            </Link>
-          </Button>
-        }
-      />
+              Document extractions
+            </Link>{" "}
+            / <span>{extraction.id.slice(0, 8)}</span>
+          </div>
+          <h1>Extraction review</h1>
+          <div className="label mt-2">{`${extraction.documentType} · ${extraction.status}`}</div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Review the AI-extracted fields, override anything that&apos;s wrong,
+            then approve to create a transaction. Nothing is created until you
+            click Approve.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance/document-extractions" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to inbox
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="HITL" title="Approve, edit, or reject">
+      <div>
+        <div className="label mb-2.5">HITL</div>
         <ExtractionReviewPanel
           extraction={{
             id: extraction.id,
@@ -105,19 +110,22 @@ export default async function ExtractionDetailPage({
             label: c.displayName,
           }))}
         />
-      </Section>
+      </div>
 
       {extraction.ambiguities && extraction.ambiguities.length > 0 && (
-        <Section eyebrow="AI flagged" title="Ambiguities">
-          <ul className="text-sm text-ink-secondary space-y-1">
-            {extraction.ambiguities.map((a, i) => (
-              <li key={i} className="flex gap-2">
-                <Badge tone="warning">!</Badge>
-                <span>{a}</span>
-              </li>
-            ))}
-          </ul>
-        </Section>
+        <div>
+          <div className="label mb-2.5">AI flagged</div>
+          <Card padding="default">
+            <ul className="text-sm text-ink-secondary space-y-1">
+              {extraction.ambiguities.map((a, i) => (
+                <li key={i} className="flex gap-2">
+                  <HandoffBadge tone="warn">!</HandoffBadge>
+                  <span>{a}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

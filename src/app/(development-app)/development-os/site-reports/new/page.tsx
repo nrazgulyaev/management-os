@@ -3,11 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -59,7 +57,16 @@ export default async function NewSiteReportPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New site report" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/site-reports">Site reports</Link> /{" "}
+              <span>New</span>
+            </div>
+            <h1>New site report</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -215,23 +222,28 @@ export default async function NewSiteReportPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Site reports", href: "/development-os/site-reports" },
-          { label: "New" },
-        ]}
-        title="New site report"
-        description="One report per project per day. Save the report (defaults to draft) and add photos on the detail page; submit when ready for review."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/site-reports">Site reports</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>New site report</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            One report per project per day. Save the report (defaults to draft)
+            and add photos on the detail page; submit when ready for review.
+          </p>
+        </div>
+        <div className="actions">
           <Button asChild variant="secondary">
             <Link href="/development-os/site-reports">
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
               All reports
             </Link>
           </Button>
-        }
-      />
+        </div>
+      </div>
 
       {sp.error && (
         <div className="rounded-md border border-danger/40 bg-danger/5 px-4 py-3 text-sm text-danger">
@@ -240,7 +252,9 @@ export default async function NewSiteReportPage({
       )}
 
       <form action={handleSubmit} className="space-y-6">
-        <Section eyebrow="Step 1" title="Basics">
+        <div>
+          <div className="label mb-2.5">Step 1 · Basics</div>
+          <Card padding="default">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Project">
               <select
@@ -329,9 +343,12 @@ export default async function NewSiteReportPage({
               />
             </Field>
           </div>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Step 2" title="Workforce by role">
+        <div>
+          <div className="label mb-2.5">Step 2 · Workforce by role</div>
+          <Card padding="default">
           <div className="space-y-2">
             {[0, 1, 2, 3, 4].map((i) => (
               <div
@@ -391,9 +408,12 @@ export default async function NewSiteReportPage({
           <p className="text-xs text-ink-tertiary mt-2">
             Up to 5 role rows. Empty rows are skipped.
           </p>
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Step 3" title="Zones">
+        <div>
+          <div className="label mb-2.5">Step 3 · Zones</div>
+          <Card padding="default">
           {zones.length === 0 ? (
             <EmptyState
               title="No zones for this project"
@@ -413,7 +433,7 @@ export default async function NewSiteReportPage({
                       </span>
                       <span className="ml-2 font-medium">{z.zoneName}</span>
                     </div>
-                    <Badge tone="neutral">{z.zoneType}</Badge>
+                    <HandoffBadge tone="soft">{z.zoneType}</HandoffBadge>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <Field label="Activities completed (one per line)">
@@ -468,9 +488,12 @@ export default async function NewSiteReportPage({
               ))}
             </div>
           )}
-        </Section>
+          </Card>
+        </div>
 
-        <Section eyebrow="Step 4" title="Summary">
+        <div>
+          <div className="label mb-2.5">Step 4 · Summary</div>
+          <Card padding="default">
           <Field label="Daily summary (free text)" full>
             <textarea
               name="summary"
@@ -479,14 +502,17 @@ export default async function NewSiteReportPage({
               className="w-full rounded-md border border-line-soft bg-surface px-3 py-2 text-sm"
             />
           </Field>
-        </Section>
+          </Card>
+        </div>
 
         <div className="flex items-center justify-between gap-3">
           <p className="text-xs text-ink-tertiary">
             Saves as draft. Photos can be added on the detail page after
             saving. Submit for review via the detail page.
           </p>
-          <Button type="submit">Save draft</Button>
+          <button type="submit" className="btn btn-accent">
+            Save draft
+          </button>
         </div>
       </form>
     </DevelopmentShell>

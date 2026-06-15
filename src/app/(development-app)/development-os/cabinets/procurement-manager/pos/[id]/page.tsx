@@ -3,12 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, desc, eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -71,18 +68,6 @@ export async function generateMetadata({
   return { title: po ? `${po.poCode} · Development OS` : "Purchase order" };
 }
 
-const BREADCRUMBS = [
-  { label: "Development OS", href: "/development-os" },
-  {
-    label: "Procurement",
-    href: "/development-os/cabinets/procurement-manager",
-  },
-  {
-    label: "POs",
-    href: "/development-os/cabinets/procurement-manager/pos",
-  },
-];
-
 export default async function PoDetailPage({
   params,
 }: {
@@ -93,10 +78,22 @@ export default async function PoDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader
-          breadcrumbs={[...BREADCRUMBS, { label: "Detail" }]}
-          title="Purchase order"
-        />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <Link href="/development-os/cabinets/procurement-manager">
+                Procurement
+              </Link>{" "}
+              /{" "}
+              <Link href="/development-os/cabinets/procurement-manager/pos">
+                POs
+              </Link>{" "}
+              / <span>Detail</span>
+            </div>
+            <h1>Purchase order</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to view purchase order details."
@@ -163,44 +160,61 @@ export default async function PoDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[...BREADCRUMBS, { label: po.poCode }]}
-        eyebrow={`${vendor?.name ?? "Vendor"}${project ? ` · ${project.name}` : ""}`}
-        title={po.poCode}
-        description={`Ordered ${po.orderDate}${
-          po.expectedDeliveryDate ? ` · expected ${po.expectedDeliveryDate}` : ""
-        }`}
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/cabinets/procurement-manager">
+              Procurement
+            </Link>{" "}
+            /{" "}
             <Link href="/development-os/cabinets/procurement-manager/pos">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              All POs
-            </Link>
-          </Button>
-        }
-      />
+              POs
+            </Link>{" "}
+            / <span>{po.poCode}</span>
+          </div>
+          <h1>{po.poCode}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {vendor?.name ?? "Vendor"}
+            {project ? ` · ${project.name}` : ""} · Ordered {po.orderDate}
+            {po.expectedDeliveryDate
+              ? ` · expected ${po.expectedDeliveryDate}`
+              : ""}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/cabinets/procurement-manager/pos"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All POs
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Terms" title="Purchase order">
+      <div>
+        <div className="label mb-2.5">Terms</div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard
+          <Kpi
             label="Total"
             value={formatCurrencyMinor(totalOriginalMinor, currency)}
-            hint={`≈ ${formatUsdMinor(totalUsdMinor)} at FX ${po.fxRateAtOrder}`}
+            sub={`≈ ${formatUsdMinor(totalUsdMinor)} at FX ${po.fxRateAtOrder}`}
           />
-          <MetricCard
+          <Kpi
             label="Paid"
             value={formatUsdMinor(paidUsdMinor)}
-            hint={`${paidPercent.toFixed(1)}% of total`}
+            sub={`${paidPercent.toFixed(1)}% of total`}
           />
-          <MetricCard
+          <Kpi
             label="Outstanding"
             value={formatUsdMinor(remainingUsdMinor)}
-            hint="Balance to pay"
+            sub="Balance to pay"
           />
-          <MetricCard
+          <Kpi
             label="Lines"
             value={String(lines.length)}
-            hint={`${deliveries.length} deliveries`}
+            sub={`${deliveries.length} deliveries`}
           />
         </div>
         <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-ink-secondary">
@@ -226,43 +240,48 @@ export default async function PoDetailPage({
             {po.notes}
           </p>
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Lifecycle"
-        title="Place → receive → pay"
-        description="Drive the procure-to-pay money lifecycle. Mark-paid is MANUAL (PSP deferred — Indonesia rails land at launch); paying records an outflow transaction against this PO and advances its payment status."
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-              Place order
+      <div>
+        <div className="label mb-2.5">Lifecycle</div>
+        <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+          Drive the procure-to-pay money lifecycle. Mark-paid is MANUAL (PSP
+          deferred — Indonesia rails land at launch); paying records an outflow
+          transaction against this PO and advances its payment status.
+        </p>
+        <Card padding="default">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                Place order
+              </div>
+              <PlaceOrderControl poId={po.id} status={po.status} />
             </div>
-            <PlaceOrderControl poId={po.id} status={po.status} />
-          </div>
-          <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-              Confirm receipt
+            <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                Confirm receipt
+              </div>
+              <ConfirmReceiptControl poId={po.id} status={po.status} />
             </div>
-            <ConfirmReceiptControl poId={po.id} status={po.status} />
-          </div>
-          <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
-            <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
-              Record manual payment
+            <div className="rounded-md border border-line-soft p-4 flex flex-col gap-3">
+              <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
+                Record manual payment
+              </div>
+              <MarkPoPaidControl
+                poId={po.id}
+                currency={currency}
+                remainingMinor={remainingOriginalMinor.toString()}
+                bankAccounts={bankChoices}
+                paymentStatus={po.paymentStatus}
+                status={po.status}
+              />
             </div>
-            <MarkPoPaidControl
-              poId={po.id}
-              currency={currency}
-              remainingMinor={remainingOriginalMinor.toString()}
-              bankAccounts={bankChoices}
-              paymentStatus={po.paymentStatus}
-              status={po.status}
-            />
           </div>
-        </div>
-      </Section>
+        </Card>
+      </div>
 
-      <Section eyebrow="Line items" title="Ordered materials">
+      <div>
+        <div className="label mb-2.5">Line items</div>
         {lines.length === 0 ? (
           <EmptyState
             title="No line items"
@@ -305,9 +324,10 @@ export default async function PoDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section eyebrow="Deliveries" title="Goods received">
+      <div>
+        <div className="label mb-2.5">Deliveries</div>
         {deliveries.length === 0 ? (
           <EmptyState
             title="No deliveries yet"
@@ -337,7 +357,7 @@ export default async function PoDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

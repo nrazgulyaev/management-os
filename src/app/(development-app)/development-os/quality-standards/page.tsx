@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -24,7 +22,11 @@ export default async function QualityStandardsListPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Quality standards" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Quality standards</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -38,16 +40,20 @@ export default async function QualityStandardsListPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Knowledge Base" },
-          { label: "Quality standards" },
-        ]}
-        eyebrow={`${rows.length} active standard${rows.length === 1 ? "" : "s"}`}
-        title="Quality standards / acceptance criteria"
-        description="Acceptance-criteria templates linked back to QA/QC inspections. QA inspectors can pin an inspection result against the formal standard that was being checked."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Knowledge Base</span> / <span>Quality standards</span>
+          </div>
+          <h1>Quality standards / acceptance criteria</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Acceptance-criteria templates linked back to QA/QC inspections. QA
+            inspectors can pin an inspection result against the formal standard
+            that was being checked.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <AddQualityStandardButton />
             <Button asChild variant="secondary">
@@ -57,8 +63,8 @@ export default async function QualityStandardsListPage() {
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {rows.length === 0 ? (
         <NoItemsYet
@@ -67,7 +73,8 @@ export default async function QualityStandardsListPage() {
           addAction={<AddQualityStandardButton />}
         />
       ) : (
-        <Section eyebrow="Catalog" title="All quality standards">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -90,20 +97,20 @@ export default async function QualityStandardsListPage() {
                   </TD>
                   <TD className="text-sm">{q.title}</TD>
                   <TD>
-                    <Badge tone="neutral">{q.category}</Badge>
+                    <HandoffBadge tone="soft">{q.category}</HandoffBadge>
                   </TD>
                   <TD>
                     {q.isActive ? (
-                      <Badge tone="success">active</Badge>
+                      <HandoffBadge tone="ok">active</HandoffBadge>
                     ) : (
-                      <Badge tone="neutral">inactive</Badge>
+                      <HandoffBadge tone="soft">inactive</HandoffBadge>
                     )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

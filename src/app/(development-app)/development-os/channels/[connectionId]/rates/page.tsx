@@ -2,9 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -29,7 +26,11 @@ export default async function RateManagementPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Rate management" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Rate management</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -57,37 +58,42 @@ export default async function RateManagementPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels", href: "/development-os/channels" },
-          {
-            label: `${CHANNEL_LABELS[channel]} · ${connection.externalPropertyId}`,
-            href: `/development-os/channels/${connectionId}`,
-          },
-          { label: "Rate management" },
-        ]}
-        eyebrow={`${CHANNEL_LABELS[channel]} · ${villa?.name ?? "—"}`}
-        title="Rate management"
-        description="Per-day rates pushed to the channel. Today + next 18 months. Click a day to edit, or use Bulk edit to apply across a range."
-        actions={
-          <Button asChild variant="secondary">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/channels">Channels</Link> /{" "}
             <Link href={`/development-os/channels/${connectionId}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Connection
-            </Link>
-          </Button>
-        }
-      />
+              {CHANNEL_LABELS[channel]} · {connection.externalPropertyId}
+            </Link>{" "}
+            / <span>Rate management</span>
+          </div>
+          <h1>Rate management</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Per-day rates pushed to the channel. Today + next 18 months. Click a
+            day to edit, or use Bulk edit to apply across a range.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/channels/${connectionId}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Connection
+          </Link>
+        </div>
+      </div>
 
-      <Section eyebrow="Calendar" title="Per-day rates">
+      <div>
+        <div className="label mb-2.5">Calendar</div>
         <RateCalendar
           connectionId={connectionId}
           channelLabel={CHANNEL_LABELS[channel]}
           baseRateUsd={baseRateUsd}
           onPushRates={pushRatesForConnection}
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

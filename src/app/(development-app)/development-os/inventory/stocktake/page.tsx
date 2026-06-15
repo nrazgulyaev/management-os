@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listLowStockItems } from "@/lib/development/server/inventory/inventory-queries";
@@ -20,7 +17,11 @@ export default async function StocktakePage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Stocktake" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Stocktake</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -29,24 +30,33 @@ export default async function StocktakePage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: "Stocktake" },
-        ]}
-        eyebrow={`${lowStock.length} location-SKU pair${lowStock.length === 1 ? "" : "s"} below reorder point`}
-        title="Stocktake + low-stock alerts"
-        description="Items at or below their reorder point. Daily cron `dev_os_inventory_low_stock_alert` notifies procurement when these grow."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inventory/items">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Items
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inventory/items">Inventory</Link> /{" "}
+            <span>Stocktake</span>
+          </div>
+          <div className="label">
+            {`${lowStock.length} location-SKU pair${lowStock.length === 1 ? "" : "s"} below reorder point`}
+          </div>
+          <h1>Stocktake + low-stock alerts</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Items at or below their reorder point. Daily cron
+            `dev_os_inventory_low_stock_alert` notifies procurement when these
+            grow.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/inventory/items"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Items
+          </Link>
+        </div>
+      </div>
 
       {lowStock.length === 0 ? (
         <EmptyState
@@ -54,7 +64,8 @@ export default async function StocktakePage() {
           description="Nothing to procure right now."
         />
       ) : (
-        <Section eyebrow="Reorder" title="Below reorder point">
+        <div>
+          <div className="label mb-2.5">Reorder</div>
           <Table>
             <THead>
               <TR>
@@ -83,16 +94,16 @@ export default async function StocktakePage() {
                   <TDNum>{Number(row.reorder_point).toFixed(2)}</TDNum>
                   <TD>
                     {Number(row.quantity_on_hand) <= 0 ? (
-                      <Badge tone="danger">out of stock</Badge>
+                      <HandoffBadge tone="danger">out of stock</HandoffBadge>
                     ) : (
-                      <Badge tone="warning">below reorder</Badge>
+                      <HandoffBadge tone="warn">below reorder</HandoffBadge>
                     )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

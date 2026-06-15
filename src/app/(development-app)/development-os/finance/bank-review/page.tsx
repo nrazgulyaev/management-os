@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, RefreshCw } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -14,6 +10,7 @@ import {
   TH,
   TD,
 } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -47,7 +44,11 @@ export default async function BankReviewPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Bank review" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Bank review</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -66,33 +67,36 @@ export default async function BankReviewPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Bank review" },
-        ]}
-        eyebrow={`${transactions.length} transactions · ${stats.unmatched} unmatched · ${stats.partial} partial · ${stats.matched} matched`}
-        title="Bank review"
-        description="Daily bookkeeper view: every imported bank transaction with its match + category status. Approve auto-matches, flag misreads, or ignore noise."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Finance
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance/reconciliation">
-                Reconciliation
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Bank review</span>
           </div>
-        }
-      />
+          <h1>Bank review</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Daily bookkeeper view: every imported bank transaction with its
+            match + category status. Approve auto-matches, flag misreads, or
+            ignore noise.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+          <Link
+            href="/development-os/finance/reconciliation"
+            className="btn btn-secondary"
+          >
+            Reconciliation
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Active connections">
+      <div>
+        <div className="label mb-2.5">Active connections</div>
         {connections.length === 0 ? (
           <EmptyState
             title="No bank connections yet"
@@ -127,17 +131,17 @@ export default async function BankReviewPage({
                         : "—"}
                     </TD>
                     <TD>
-                      <Badge
+                      <HandoffBadge
                         tone={
                           c.status === "active"
-                            ? "success"
+                            ? "ok"
                             : c.status === "error"
                               ? "danger"
-                              : "neutral"
+                              : "soft"
                         }
                       >
                         {c.status}
-                      </Badge>
+                      </HandoffBadge>
                       {c.lastSyncError && (
                         <div className="mt-1 text-[11px] text-danger">
                           {c.lastSyncError.slice(0, 80)}
@@ -146,10 +150,10 @@ export default async function BankReviewPage({
                     </TD>
                     <TD className="text-right">
                       <form action={sync}>
-                        <Button type="submit" size="sm" variant="secondary">
+                        <button type="submit" className="btn btn-secondary btn-sm">
                           <RefreshCw className="w-3.5 h-3.5" strokeWidth={1.75} />
                           Sync
-                        </Button>
+                        </button>
                       </form>
                     </TD>
                   </TR>
@@ -158,12 +162,10 @@ export default async function BankReviewPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
-      <Section
-        title="Recent transactions"
-        description="Filter by match status. The auto-matcher fires on import + on a 30-min cron sweep."
-      >
+      <div>
+        <div className="label mb-2.5">Recent transactions</div>
         <form
           method="GET"
           action="/development-os/finance/bank-review"
@@ -186,9 +188,9 @@ export default async function BankReviewPage({
               <option value="ignored">Ignored</option>
             </select>
           </label>
-          <Button type="submit" size="sm" variant="primary">
+          <button type="submit" className="btn btn-accent btn-sm">
             Apply
-          </Button>
+          </button>
         </form>
 
         {transactions.length === 0 ? (
@@ -220,9 +222,9 @@ export default async function BankReviewPage({
                     <TD>
                       {t.description}
                       {t.isPending && (
-                        <Badge tone="warning" className="ml-2">
-                          pending
-                        </Badge>
+                        <span className="ml-2">
+                          <HandoffBadge tone="warn">pending</HandoffBadge>
+                        </span>
                       )}
                     </TD>
                     <TD className="text-xs">{t.counterpartyName ?? "—"}</TD>
@@ -230,20 +232,20 @@ export default async function BankReviewPage({
                       {formatAmount(t.amountMinor, t.currency)}
                     </TD>
                     <TD>
-                      <Badge
+                      <HandoffBadge
                         tone={
                           t.matchStatus === "auto_matched" ||
                           t.matchStatus === "manually_matched"
-                            ? "success"
+                            ? "ok"
                             : t.matchStatus === "partial_match"
-                              ? "warning"
+                              ? "warn"
                               : t.matchStatus === "unmatched"
-                                ? "neutral"
-                                : "outline"
+                                ? "soft"
+                                : "soft"
                         }
                       >
                         {t.matchStatus}
-                      </Badge>
+                      </HandoffBadge>
                     </TD>
                     <TD className="text-right tabular-nums text-xs">
                       {t.matchConfidence ?? "—"}
@@ -255,9 +257,9 @@ export default async function BankReviewPage({
                           name="bankTransactionId"
                           value={t.id}
                         />
-                        <Button type="submit" size="sm" variant="secondary">
+                        <button type="submit" className="btn btn-secondary btn-sm">
                           Ignore
-                        </Button>
+                        </button>
                       </form>
                     </TD>
                   </TR>
@@ -266,7 +268,7 @@ export default async function BankReviewPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

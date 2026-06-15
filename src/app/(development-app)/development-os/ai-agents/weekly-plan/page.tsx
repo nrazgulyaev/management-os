@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { AgentOutputsTable } from "@/components/development/agent-outputs-table";
@@ -18,7 +17,11 @@ export default async function AgentPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Weekly Construction Plan" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Weekly Construction Plan</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,22 +38,27 @@ export default async function AgentPage() {
   );
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Weekly Construction Plan"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "AI agents", href: "/development-os/ai-agents" },
-          { label: "Weekly Construction Plan" },
-        ]}
-        description="Sunday-evening forward-looking plan. Recurring."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/ai-agents">AI agents</Link> /{" "}
+            <span>Weekly Construction Plan</span>
+          </div>
+          <h1>Weekly Construction Plan</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Sunday-evening forward-looking plan. Recurring.
+          </p>
+        </div>
+      </div>
       <RunAgentButton agentKey="weekly_plan" />
-      <Section title={`${rows.length} output(s)`}>
+      <div>
+        <div className="label mb-2.5">{`${rows.length} output(s)`}</div>
         <AgentOutputsTable
           rows={rows}
           detailHrefBase="/development-os/ai-agents/weekly-plan/outputs"
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

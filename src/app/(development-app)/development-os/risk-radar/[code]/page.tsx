@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -33,12 +30,12 @@ export const dynamic = "force-dynamic";
 
 const SEVERITY_TONE: Record<
   string,
-  "info" | "success" | "warning" | "danger" | "neutral"
+  "info" | "ok" | "warn" | "danger" | "soft"
 > = {
   info: "info",
-  low: "neutral",
+  low: "soft",
   medium: "info",
-  high: "warning",
+  high: "warn",
   critical: "danger",
 };
 
@@ -63,70 +60,82 @@ export default async function RiskAlertDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title={alert.title}
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Risk radar", href: "/development-os/risk-radar" },
-          { label: alert.alertCode },
-        ]}
-        description={`${alert.alertCategory} · detected ${new Date(alert.detectedAt).toLocaleString()}`}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/risk-radar">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back to inbox
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section title="Status">
-        <div className="flex gap-2">
-          <Badge tone={SEVERITY_TONE[alert.severity] ?? "neutral"}>
-            severity: {alert.severity}
-          </Badge>
-          <Badge tone="info">status: {alert.status}</Badge>
-          {alert.confidenceLevel && (
-            <Badge tone="neutral">confidence: {alert.confidenceLevel}</Badge>
-          )}
-          {alert.isRecurring && <Badge tone="warning">recurring pattern</Badge>}
-        </div>
-        {me?.id && (
-          <div className="mt-4">
-            <AlertActions
-              alertCode={alert.alertCode}
-              status={alert.status}
-              userId={me.id}
-              initialPlan={alert.notes ?? null}
-              rfqProjectId={rfqProjectId}
-            />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/risk-radar">Risk radar</Link> /{" "}
+            <span>{alert.alertCode}</span>
           </div>
-        )}
-      </Section>
+          <h1>{alert.title}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${alert.alertCategory} · detected ${new Date(alert.detectedAt).toLocaleString()}`}
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/risk-radar" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back to inbox
+          </Link>
+        </div>
+      </div>
 
-      <Section title="Description">
-        <p className="text-sm leading-relaxed">{alert.description}</p>
-      </Section>
+      <div>
+        <div className="label mb-2.5">Status</div>
+        <Card padding="default">
+          <div className="flex gap-2">
+            <HandoffBadge tone={SEVERITY_TONE[alert.severity] ?? "soft"}>
+              severity: {alert.severity}
+            </HandoffBadge>
+            <HandoffBadge tone="info">status: {alert.status}</HandoffBadge>
+            {alert.confidenceLevel && (
+              <HandoffBadge tone="soft">confidence: {alert.confidenceLevel}</HandoffBadge>
+            )}
+            {alert.isRecurring && <HandoffBadge tone="warn">recurring pattern</HandoffBadge>}
+          </div>
+          {me?.id && (
+            <div className="mt-4">
+              <AlertActions
+                alertCode={alert.alertCode}
+                status={alert.status}
+                userId={me.id}
+                initialPlan={alert.notes ?? null}
+                rfqProjectId={rfqProjectId}
+              />
+            </div>
+          )}
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Description</div>
+        <Card padding="default">
+          <p className="text-sm leading-relaxed">{alert.description}</p>
+        </Card>
+      </div>
 
       {alert.detectedPattern && (
-        <Section title="Pattern">
-          <code className="text-xs bg-muted/40 px-2 py-1 rounded">
-            {alert.detectedPattern}
-          </code>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Pattern</div>
+          <Card padding="default">
+            <code className="text-xs bg-muted/40 px-2 py-1 rounded">
+              {alert.detectedPattern}
+            </code>
+          </Card>
+        </div>
       )}
 
       {alert.recommendedAction && (
-        <Section title="Recommended action">
-          <p className="text-sm leading-relaxed">{alert.recommendedAction}</p>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Recommended action</div>
+          <Card padding="default">
+            <p className="text-sm leading-relaxed">{alert.recommendedAction}</p>
+          </Card>
+        </div>
       )}
 
-      <Section
-        title="Similar risks"
-        description="Other alerts in this category / detection method and how they were handled."
-      >
+      <div>
+        <div className="label mb-2.5">Similar risks</div>
         {similar.length === 0 ? (
           <EmptyState
             title="No similar risks yet"
@@ -158,12 +167,12 @@ export default async function RiskAlertDetailPage({
                     </div>
                   </TD>
                   <TD>
-                    <Badge tone={SEVERITY_TONE[s.severity] ?? "neutral"}>
+                    <HandoffBadge tone={SEVERITY_TONE[s.severity] ?? "soft"}>
                       {s.severity}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD>
-                    <Badge tone="neutral">{s.status}</Badge>
+                    <HandoffBadge tone="soft">{s.status}</HandoffBadge>
                   </TD>
                   <TD>{new Date(s.detectedAt).toLocaleDateString()}</TD>
                   <TD className="max-w-xs">
@@ -177,51 +186,66 @@ export default async function RiskAlertDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
 
       {alert.notes && (
-        <Section title="Mitigation plan">
-          <pre className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded">
-            {alert.notes}
-          </pre>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Mitigation plan</div>
+          <Card padding="default">
+            <pre className="text-sm whitespace-pre-wrap leading-relaxed bg-muted/20 p-3 rounded">
+              {alert.notes}
+            </pre>
+          </Card>
+        </div>
       )}
 
       {alert.aiReasoning && (
-        <Section title="AI reasoning">
-          <pre className="text-xs whitespace-pre-wrap leading-relaxed bg-muted/30 p-3 rounded">
-            {alert.aiReasoning}
-          </pre>
-        </Section>
+        <div>
+          <div className="label mb-2.5">AI reasoning</div>
+          <Card padding="default">
+            <pre className="text-xs whitespace-pre-wrap leading-relaxed bg-muted/30 p-3 rounded">
+              {alert.aiReasoning}
+            </pre>
+          </Card>
+        </div>
       )}
 
       {alert.affectedEntities != null && (
-        <Section title="Affected entities">
-          <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
-            {JSON.stringify(alert.affectedEntities as unknown, null, 2)}
-          </pre>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Affected entities</div>
+          <Card padding="default">
+            <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
+              {JSON.stringify(alert.affectedEntities as unknown, null, 2)}
+            </pre>
+          </Card>
+        </div>
       )}
 
       {alert.supportingData != null && (
-        <Section title="Supporting data">
-          <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
-            {JSON.stringify(alert.supportingData as unknown, null, 2)}
-          </pre>
-        </Section>
+        <div>
+          <div className="label mb-2.5">Supporting data</div>
+          <Card padding="default">
+            <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
+              {JSON.stringify(alert.supportingData as unknown, null, 2)}
+            </pre>
+          </Card>
+        </div>
       )}
 
       {alert.resolvedAt && (
-        <Section title="Resolution">
-          <p className="text-sm">
-            Resolved at {new Date(alert.resolvedAt).toLocaleString()}.
-          </p>
-          {alert.resolutionNotes && (
-            <p className="text-sm text-ink-secondary mt-2">
-              {alert.resolutionNotes}
+        <div>
+          <div className="label mb-2.5">Resolution</div>
+          <Card padding="default">
+            <p className="text-sm">
+              Resolved at {new Date(alert.resolvedAt).toLocaleString()}.
             </p>
-          )}
-        </Section>
+            {alert.resolutionNotes && (
+              <p className="text-sm text-ink-secondary mt-2">
+                {alert.resolutionNotes}
+              </p>
+            )}
+          </Card>
+        </div>
       )}
     </DevelopmentShell>
   );

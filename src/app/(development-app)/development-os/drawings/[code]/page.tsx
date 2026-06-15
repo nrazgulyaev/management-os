@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -18,12 +15,12 @@ import { RevisionImageViewer } from "./_revision-image-viewer";
 export const metadata: Metadata = { title: "Drawing · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  draft: "neutral",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  draft: "soft",
   for_review: "info",
   approved: "info",
-  issued_for_construction: "success",
-  superseded: "neutral",
+  issued_for_construction: "ok",
+  superseded: "soft",
   rejected: "danger",
 };
 
@@ -37,7 +34,11 @@ export default async function DrawingDetailPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Drawing" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Drawing</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -57,68 +58,66 @@ export default async function DrawingDetailPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Drawings", href: "/development-os/drawings" },
-          { label: drawing.drawingCode },
-        ]}
-        eyebrow={`${drawing.drawingType} · ${drawing.drawingPhase ?? "—"}`}
-        title={drawing.title}
-        description={drawing.description ?? undefined}
-        actions={
-          <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link
-                href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}/distribution`}
-              >
-                Distribution log
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/drawings">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                All drawings
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/drawings">Drawings</Link> /{" "}
+            <span>{drawing.drawingCode}</span>
           </div>
-        }
-      />
-
-      <Section eyebrow="Identity" title="Drawing metadata">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
-          <Field label="Code" value={drawing.drawingCode} mono />
-          <Field label="Number" value={drawing.drawingNumber} mono />
-          <Field label="Type" value={drawing.drawingType} />
-          <Field label="Phase" value={drawing.drawingPhase ?? "—"} />
-          <Field label="Author firm" value={drawing.authorFirm ?? "—"} />
-          <Field label="Author name" value={drawing.authorName ?? "—"} />
-          <Field label="Project" value={drawing.projectId.slice(0, 8)} mono />
-          <Field
-            label="Villa"
-            value={drawing.villaId?.slice(0, 8) ?? "—"}
-            mono
-          />
-          <Field
-            label="Active IFC"
-            value={ifc ? `Rev ${ifc.revisionLabel}` : "—"}
-          />
+          <h1>{drawing.title}</h1>
+          {drawing.description && (
+            <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+              {drawing.description}
+            </p>
+          )}
         </div>
-      </Section>
+        <div className="actions">
+          <Link
+            href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}/distribution`}
+            className="btn btn-secondary btn-sm"
+          >
+            Distribution log
+          </Link>
+          <Link href="/development-os/drawings" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            All drawings
+          </Link>
+        </div>
+      </div>
 
-      <Section
-        eyebrow="Preview"
-        title={
-          previewRevision
-            ? `${ifc ? "IFC" : "Latest"} revision · Rev ${previewRevision.revisionLabel}`
-            : "Drawing preview"
-        }
-        description={
-          previewRevision
-            ? "Read-only view of the active revision's drawing. Pan and use the measurement overlay; takeoff lives in BOQ → Takeoff."
-            : undefined
-        }
-      >
+      <div>
+        <div className="label mb-2.5">Identity</div>
+        <Card padding="default">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+            <Field label="Code" value={drawing.drawingCode} mono />
+            <Field label="Number" value={drawing.drawingNumber} mono />
+            <Field label="Type" value={drawing.drawingType} />
+            <Field label="Phase" value={drawing.drawingPhase ?? "—"} />
+            <Field label="Author firm" value={drawing.authorFirm ?? "—"} />
+            <Field label="Author name" value={drawing.authorName ?? "—"} />
+            <Field label="Project" value={drawing.projectId.slice(0, 8)} mono />
+            <Field
+              label="Villa"
+              value={drawing.villaId?.slice(0, 8) ?? "—"}
+              mono
+            />
+            <Field
+              label="Active IFC"
+              value={ifc ? `Rev ${ifc.revisionLabel}` : "—"}
+            />
+          </div>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Preview</div>
+        {previewRevision && (
+          <p className="text-[13px] text-ink-3 mt-2 mb-2.5 max-w-[680px]">
+            Read-only view of the active revision&apos;s drawing. Pan and use the
+            measurement overlay; takeoff lives in BOQ → Takeoff.
+          </p>
+        )}
         {!previewRevision ? (
           <EmptyState
             title="No revision to preview"
@@ -140,12 +139,10 @@ export default async function DrawingDetailPage({
             description="This revision has no stored image file, or storage is not configured."
           />
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Revisions"
-        title={`${revisions.length} revision${revisions.length === 1 ? "" : "s"}`}
-      >
+      <div>
+        <div className="label mb-2.5">Revisions</div>
         {revisions.length === 0 ? (
           <EmptyState
             title="No revisions yet"
@@ -171,9 +168,9 @@ export default async function DrawingDetailPage({
                   <TD className="font-mono text-xs">{r.revisionLabel}</TD>
                   <TD className="text-xs">{r.revisionDate}</TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[r.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[r.status] ?? "soft"}>
                       {r.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs">{r.revisionReason ?? "—"}</TD>
                   <TD className="font-mono text-xs flex items-center gap-1">
@@ -200,7 +197,7 @@ export default async function DrawingDetailPage({
             </TBody>
           </Table>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

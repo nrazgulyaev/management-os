@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -22,7 +20,11 @@ export default async function NewInventoryMovementPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="New movement" />
+        <div className="page-header">
+          <div className="left">
+            <h1>New movement</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -35,26 +37,34 @@ export default async function NewInventoryMovementPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Inventory", href: "/development-os/inventory/items" },
-          { label: "Movements", href: "/development-os/inventory/movements" },
-          { label: "New" },
-        ]}
-        title="Record inventory movement"
-        description="Mobile-friendly form. Stock balances update atomically — refuses to drive on-hand negative."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/inventory/movements">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Movements
-            </Link>
-          </Button>
-        }
-      />
-      <Section eyebrow="Form" title="Movement details">
-        <InventoryMovementForm
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/inventory/items">Inventory</Link> /{" "}
+            <Link href="/development-os/inventory/movements">Movements</Link> /{" "}
+            <span>New</span>
+          </div>
+          <h1>Record inventory movement</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Mobile-friendly form. Stock balances update atomically — refuses to
+            drive on-hand negative.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/inventory/movements"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Movements
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Form</div>
+        <Card padding="default">
+          <InventoryMovementForm
           items={items.map((i) => ({
             id: i.id,
             sku: i.sku,
@@ -68,8 +78,9 @@ export default async function NewInventoryMovementPage() {
             locationType: l.locationType,
           }))}
           projects={projectRows}
-        />
-      </Section>
+          />
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

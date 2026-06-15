@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { projects } from "@/lib/db/schema/projects";
@@ -32,7 +30,11 @@ export default async function NewProductivityLogPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Log productivity" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Log productivity</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -40,7 +42,11 @@ export default async function NewProductivityLogPage({
   if (!me?.id) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Log productivity" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Log productivity</h1>
+          </div>
+        </div>
         <EmptyState
           title="Sign-in required"
           description="Productivity logs are recorded against your app user — sign in to log an entry."
@@ -91,23 +97,28 @@ export default async function NewProductivityLogPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Log productivity"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Productivity", href: "/development-os/productivity" },
-          { label: "Log entry" },
-        ]}
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/productivity">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Back
-            </Link>
-          </Button>
-        }
-      />
-      <Section title="Manual entry">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/productivity">Productivity</Link> /{" "}
+            <span>Log entry</span>
+          </div>
+          <h1>Log productivity</h1>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/productivity"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Back
+          </Link>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Manual entry</div>
+        <Card padding="default">
         {sp.error && (
           <div className="mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
             {sp.error === "auth"
@@ -152,17 +163,23 @@ export default async function NewProductivityLogPage({
             <textarea name="activityDescription" rows={3} className={inputCls} placeholder="What was done…" />
           </Field>
           <div className="flex items-center gap-2">
-            <Button type="submit">Save log entry</Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os/productivity">Cancel</Link>
-            </Button>
+            <button type="submit" className="btn btn-accent">
+              Save log entry
+            </button>
+            <Link
+              href="/development-os/productivity"
+              className="btn btn-secondary"
+            >
+              Cancel
+            </Link>
           </div>
           <p className="text-[11px] text-ink-tertiary">
             Productivity rate is computed automatically (quantity ÷ actual hours)
             when both are present.
           </p>
         </form>
-      </Section>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

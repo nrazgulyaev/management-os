@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listContent } from "@/lib/development/server/content/content-queries";
@@ -28,48 +27,55 @@ export default async function ContentCalendarPage() {
   const days = Object.keys(grouped).sort();
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="Content calendar"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Marketing" },
-          { label: "Content", href: "/development-os/marketing/content" },
-          { label: "Calendar" },
-        ]}
-        description={`${rows.length} scheduled or approved piece(s).`}
-      />
-      <Section title="Upcoming">
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Marketing</span> /{" "}
+            <Link href="/development-os/marketing/content">Content</Link> /{" "}
+            <span>Calendar</span>
+          </div>
+          <h1>Content calendar</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            {`${rows.length} scheduled or approved piece(s).`}
+          </p>
+        </div>
+      </div>
+      <div>
+        <div className="label mb-2.5">Upcoming</div>
         {days.length === 0 ? (
           <EmptyState
             title="No scheduled content"
             description="Schedule content from the pipeline view."
           />
         ) : (
-          <div className="space-y-4">
-            {days.map((d) => (
-              <div key={d}>
-                <h3 className="text-label mb-2">{d}</h3>
-                <ul className="text-sm space-y-1">
-                  {grouped[d].map((c) => (
-                    <li key={c.id}>
-                      <Link
-                        href={`/development-os/marketing/content/${c.contentCode}`}
-                        className="hover:underline"
-                      >
-                        <span className="font-mono text-xs text-ink-tertiary">
-                          {c.contentCode}
-                        </span>{" "}
-                        {c.title}{" "}
-                        <span className="text-xs text-ink-tertiary">({c.contentType})</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
+          <Card padding="default">
+            <div className="space-y-4">
+              {days.map((d) => (
+                <div key={d}>
+                  <h3 className="text-label mb-2">{d}</h3>
+                  <ul className="text-sm space-y-1">
+                    {grouped[d].map((c) => (
+                      <li key={c.id}>
+                        <Link
+                          href={`/development-os/marketing/content/${c.contentCode}`}
+                          className="hover:underline"
+                        >
+                          <span className="font-mono text-xs text-ink-tertiary">
+                            {c.contentCode}
+                          </span>{" "}
+                          {c.title}{" "}
+                          <span className="text-xs text-ink-tertiary">({c.contentType})</span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </Card>
         )}
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

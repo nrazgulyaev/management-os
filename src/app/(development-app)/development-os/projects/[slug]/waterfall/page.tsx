@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -27,7 +25,11 @@ export default async function ProjectWaterfallRulesPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Waterfall rules" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Waterfall rules</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -44,17 +46,24 @@ export default async function ProjectWaterfallRulesPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Waterfall rules" },
-        ]}
-        eyebrow={`${rules.filter((r) => r.isActive).length} active / ${rules.length} total`}
-        title="Waterfall rules"
-        description="Custom distribution waterfall rules. Six built-in rule types incl. Arconique 25% credit. Commitment-scoped rules override project-scoped rules. Math is in lib/development/server/waterfall/waterfall-helpers.ts (pure, runtime tested)."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>Waterfall rules</span>
+          </div>
+          <h1>Waterfall rules</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Custom distribution waterfall rules. Six built-in rule types incl.
+            Arconique 25% credit. Commitment-scoped rules override project-scoped
+            rules. Math is in
+            lib/development/server/waterfall/waterfall-helpers.ts (pure, runtime
+            tested).
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex gap-2">
             <Button asChild variant="secondary">
               <Link href={`/development-os/projects/${slug}/waterfall/simulator`}>
@@ -68,8 +77,8 @@ export default async function ProjectWaterfallRulesPage({
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       {rules.length === 0 ? (
         <EmptyState
@@ -77,7 +86,8 @@ export default async function ProjectWaterfallRulesPage({
           description="Use createWaterfallRule to declare the project's distribution waterfall. The 'arconique_25_credit' rule applies the Arconique-specific credit logic."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All rules (active + historical)">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -97,16 +107,16 @@ export default async function ProjectWaterfallRulesPage({
                   <TD className="text-xs">{r.effectiveFrom}</TD>
                   <TD>
                     {r.isActive ? (
-                      <Badge tone="success">active</Badge>
+                      <HandoffBadge tone="ok">active</HandoffBadge>
                     ) : (
-                      <Badge tone="neutral">historical</Badge>
+                      <HandoffBadge tone="soft">historical</HandoffBadge>
                     )}
                   </TD>
                 </TR>
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

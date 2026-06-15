@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getBankAccounts } from "@/lib/development/server/bank-accounts";
@@ -35,27 +32,28 @@ export default async function BankAccountsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Bank accounts" },
-        ]}
-        eyebrow={`${accounts.length} active accounts`}
-        title="Bank accounts"
-        description="Company bank accounts and crypto wallets that hold capital. Each account has a manual minimum-balance threshold; the balance-alert cron fires when it dips below."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild variant="secondary">
-              <Link href="/development-os/finance">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Finance
-              </Link>
-            </Button>
-            <BankAccountModalForm projects={projectOptions} />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Bank accounts</span>
           </div>
-        }
-      />
+          <h1>Bank accounts</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Company bank accounts and crypto wallets that hold capital. Each
+            account has a manual minimum-balance threshold; the balance-alert
+            cron fires when it dips below.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Finance
+          </Link>
+          <BankAccountModalForm projects={projectOptions} />
+        </div>
+      </div>
 
       <FinanceTabs />
 
@@ -70,7 +68,8 @@ export default async function BankAccountsPage() {
           description="Add your first bank account to start reconciling statements."
         />
       ) : (
-        <Section eyebrow="Accounts" title="All active">
+        <div>
+          <div className="label mb-2.5">Accounts</div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {accounts.map((a) => (
               <Link
@@ -82,9 +81,9 @@ export default async function BankAccountsPage() {
                   <span className="font-mono text-xs text-ink-tertiary">
                     {a.accountCode}
                   </span>
-                  <Badge tone={a.belowThreshold ? "danger" : "success"}>
+                  <HandoffBadge tone={a.belowThreshold ? "danger" : "ok"}>
                     {a.belowThreshold ? "Below threshold" : "OK"}
-                  </Badge>
+                  </HandoffBadge>
                 </div>
                 <div className="font-medium">{a.accountName}</div>
                 <div className="text-xs text-ink-tertiary mt-1">
@@ -113,7 +112,7 @@ export default async function BankAccountsPage() {
               </Link>
             ))}
           </div>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

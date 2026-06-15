@@ -2,10 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -17,16 +14,16 @@ import { safeQuery } from "@/lib/development/safe-query";
 export const metadata: Metadata = { title: "Permits · Development OS" };
 export const dynamic = "force-dynamic";
 
-const STATUS_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  planned: "neutral",
+const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  planned: "soft",
   preparing: "info",
   submitted: "info",
   under_review: "info",
-  approved: "success",
+  approved: "ok",
   rejected: "danger",
-  expired: "warning",
-  renewed: "success",
-  cancelled: "neutral",
+  expired: "warn",
+  renewed: "ok",
+  cancelled: "soft",
 };
 
 export default async function ProjectPermitsPage({
@@ -39,7 +36,11 @@ export default async function ProjectPermitsPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Permits" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Permits</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -56,25 +57,31 @@ export default async function ProjectPermitsPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Projects", href: "/development-os/projects" },
-          { label: project.name, href: `/development-os/projects/${slug}` },
-          { label: "Permits" },
-        ]}
-        eyebrow={`${permits.length} permit${permits.length === 1 ? "" : "s"}`}
-        title="Permits lifecycle"
-        description="PBG, SLF, building license, etc. Each permit tracks status (planned → submitted → under review → approved/rejected → expired/renewed), cost, and attached documents."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/projects/${slug}`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Project
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/projects">Projects</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}`}>{project.name}</Link> /{" "}
+            <span>Permits</span>
+          </div>
+          <h1>Permits lifecycle</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            PBG, SLF, building license, etc. Each permit tracks status (planned
+            → submitted → under review → approved/rejected → expired/renewed),
+            cost, and attached documents.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Project
+          </Link>
+        </div>
+      </div>
 
       {permits.length === 0 ? (
         <EmptyState
@@ -82,7 +89,8 @@ export default async function ProjectPermitsPage({
           description="Use the createPermit server action to add a permit. Detail/create form UI is a planned UI polish follow-on."
         />
       ) : (
-        <Section eyebrow="Catalog" title="All permits">
+        <div>
+          <div className="label mb-2.5">Catalog</div>
           <Table>
             <THead>
               <TR>
@@ -109,9 +117,9 @@ export default async function ProjectPermitsPage({
                     </Link>
                   </TD>
                   <TD>
-                    <Badge tone={STATUS_TONE[p.status] ?? "neutral"}>
+                    <HandoffBadge tone={STATUS_TONE[p.status] ?? "soft"}>
                       {p.status}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs font-mono">{p.permitNumber ?? "—"}</TD>
                   <TD className="text-xs">{p.issuingAuthority ?? "—"}</TD>
@@ -122,7 +130,7 @@ export default async function ProjectPermitsPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );

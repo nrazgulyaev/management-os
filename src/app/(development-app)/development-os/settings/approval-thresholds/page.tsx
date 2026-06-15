@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listApprovalThresholds } from "@/lib/development/server/procurement/procurement-actions";
@@ -17,12 +14,12 @@ export const metadata: Metadata = {
 };
 export const dynamic = "force-dynamic";
 
-const ROLE_TONE: Record<string, "info" | "success" | "warning" | "danger" | "neutral"> = {
-  auto_approved: "success",
+const ROLE_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = {
+  auto_approved: "ok",
   procurement_manager: "info",
   project_manager: "info",
   finance_manager: "info",
-  director: "warning",
+  director: "warn",
   investor_approval: "danger",
   reserved_matter: "danger",
 };
@@ -38,7 +35,15 @@ export default async function ApprovalThresholdsPage() {
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Approval thresholds" />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Settings</span> / <span>Approval thresholds</span>
+            </div>
+            <h1>Approval thresholds</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -60,24 +65,27 @@ export default async function ApprovalThresholdsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "Approval thresholds" },
-        ]}
-        eyebrow={`${thresholds.length} active thresholds across ${byType.size} types`}
-        title="Approval thresholds matrix"
-        description="Operator-configurable approval matrix per threshold type × amount tier × required role. Re-checked in code at every approve action via lib/development/server/procurement/approval-helpers.ts (defense in depth)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Command center
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span> / <span>Approval thresholds</span>
+          </div>
+          <h1>Approval thresholds matrix</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Operator-configurable approval matrix per threshold type × amount
+            tier × required role. Re-checked in code at every approve action via
+            lib/development/server/procurement/approval-helpers.ts (defense in
+            depth).
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {thresholds.length === 0 ? (
         <EmptyState
@@ -86,11 +94,11 @@ export default async function ApprovalThresholdsPage() {
         />
       ) : (
         Array.from(byType.entries()).map(([type, rows]) => (
-          <Section
-            key={type}
-            eyebrow={type}
-            title={`${rows.length} tier${rows.length === 1 ? "" : "s"}`}
-          >
+          <div key={type}>
+            <div className="label mb-2.5">{type}</div>
+            <p className="text-[13px] text-ink-3 mb-2.5">
+              {rows.length} tier{rows.length === 1 ? "" : "s"}
+            </p>
             <Table>
               <THead>
                 <TR>
@@ -109,9 +117,9 @@ export default async function ApprovalThresholdsPage() {
                     <TDNum>{fmtUsd(r.amountMinorMax)}</TDNum>
                     <TD className="text-xs">{r.currency}</TD>
                     <TD>
-                      <Badge tone={ROLE_TONE[r.requiredRole] ?? "neutral"}>
+                      <HandoffBadge tone={ROLE_TONE[r.requiredRole] ?? "soft"}>
                         {r.requiredRole}
-                      </Badge>
+                      </HandoffBadge>
                     </TD>
                     <TDNum>{r.requiredApproverCount}</TDNum>
                     <TD className="text-xs">{r.notes ?? "—"}</TD>
@@ -119,7 +127,7 @@ export default async function ApprovalThresholdsPage() {
                 ))}
               </TBody>
             </Table>
-          </Section>
+          </div>
         ))
       )}
     </DevelopmentShell>

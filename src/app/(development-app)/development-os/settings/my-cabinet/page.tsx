@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
+import Link from "next/link";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import {
@@ -20,8 +19,18 @@ export default async function MyCabinetSettingsPage() {
   if (!me) {
     return (
       <DevelopmentShell>
-        <PageHeader title="My cabinet" />
-        <EmptyState title="Sign in" description="Log in to customize." />
+        <div className="page-header">
+          <div className="left">
+            <div className="crumb">
+              <Link href="/development-os">Development OS</Link> /{" "}
+              <span>Settings</span> / <span>My cabinet</span>
+            </div>
+            <h1>My cabinet</h1>
+          </div>
+        </div>
+        <Card padding="default">
+          <EmptyState title="Sign in" description="Log in to customize." />
+        </Card>
       </DevelopmentShell>
     );
   }
@@ -34,58 +43,73 @@ export default async function MyCabinetSettingsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        title="My cabinet"
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Settings" },
-          { label: "My cabinet" },
-        ]}
-        description="Customize your default cabinet and widget visibility."
-      />
-      <Section title="My roles">
-        {roles.length === 0 ? (
-          <EmptyState
-            title="No roles assigned"
-            description="Ask your admin to grant you a role."
-          />
-        ) : (
-          <ul className="text-sm space-y-1">
-            {roles.map((r) => (
-              <li
-                key={r.id}
-                className="flex items-center justify-between border-b border-line-soft py-2"
-              >
-                <span>{r.roleKey}</span>
-                <span className="flex gap-2">
-                  {r.isPrimary && <Badge tone="success">primary</Badge>}
-                  <Badge tone="neutral">{r.scope}</Badge>
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
-      <Section title="Default cabinet">
-        <p className="text-sm leading-relaxed">
-          Custom default:{" "}
-          <code>
-            {prefs?.defaultCabinetKey ?? "(none — using role default)"}
-          </code>
-        </p>
-        <p className="text-sm leading-relaxed mt-2">
-          Role default:{" "}
-          <code>{roleDefault ?? "/development-os/dashboard"}</code>
-        </p>
-        <p className="text-xs text-ink-tertiary mt-3 leading-relaxed">
-          Wire to <code>saveCabinetPreferences</code> to update via form.
-        </p>
-      </Section>
-      <Section title="Widget preferences">
-        <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
-          {JSON.stringify(prefs?.cabinetWidgetPreferences ?? {}, null, 2)}
-        </pre>
-      </Section>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Settings</span> / <span>My cabinet</span>
+          </div>
+          <h1>My cabinet</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Customize your default cabinet and widget visibility.
+          </p>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">My roles</div>
+        <Card padding="default">
+          {roles.length === 0 ? (
+            <EmptyState
+              title="No roles assigned"
+              description="Ask your admin to grant you a role."
+            />
+          ) : (
+            <ul className="text-sm space-y-1">
+              {roles.map((r) => (
+                <li
+                  key={r.id}
+                  className="flex items-center justify-between border-b border-line-soft py-2"
+                >
+                  <span>{r.roleKey}</span>
+                  <span className="flex gap-2">
+                    {r.isPrimary && <HandoffBadge tone="ok">primary</HandoffBadge>}
+                    <HandoffBadge tone="soft">{r.scope}</HandoffBadge>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Default cabinet</div>
+        <Card padding="default">
+          <p className="text-sm leading-relaxed">
+            Custom default:{" "}
+            <code>
+              {prefs?.defaultCabinetKey ?? "(none — using role default)"}
+            </code>
+          </p>
+          <p className="text-sm leading-relaxed mt-2">
+            Role default:{" "}
+            <code>{roleDefault ?? "/development-os/dashboard"}</code>
+          </p>
+          <p className="text-xs text-ink-3 mt-3 leading-relaxed">
+            Wire to <code>saveCabinetPreferences</code> to update via form.
+          </p>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Widget preferences</div>
+        <Card padding="default">
+          <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
+            {JSON.stringify(prefs?.cabinetWidgetPreferences ?? {}, null, 2)}
+          </pre>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

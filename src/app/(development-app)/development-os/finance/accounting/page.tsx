@@ -1,13 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { FinanceTabs } from "@/components/development/finance/finance-tabs";
 import { getDb } from "@/lib/db/client";
@@ -108,7 +104,11 @@ export default async function AccountingDeskPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Accounting" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Accounting</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -195,140 +195,142 @@ export default async function AccountingDeskPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Finance", href: "/development-os/finance" },
-          { label: "Accounting" },
-        ]}
-        eyebrow={`As of ${asOf} · period ${from} → ${to}`}
-        title="Accounting desk"
-        description="Balance sheet, income statement, AP/AR aging, and bank reconciliation — all derived from the double-entry general ledger. Money is held in minor units; statements tie to the trial balance."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/finance/general-ledger">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              General ledger
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/finance">Finance</Link> /{" "}
+            <span>Accounting</span>
+          </div>
+          <h1>Accounting desk</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Balance sheet, income statement, AP/AR aging, and bank
+            reconciliation — all derived from the double-entry general ledger.
+            Money is held in minor units; statements tie to the trial balance.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/finance/general-ledger"
+            className="btn btn-secondary"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            General ledger
+          </Link>
+        </div>
+      </div>
 
       <FinanceTabs />
 
-      <Section
-        eyebrow="Period controls"
-        title="Reporting window"
-        description="Balance sheet + aging are AS OF the date; the income statement covers the period. Defaults: year-to-date through today."
-      >
-        <form method="get" className="flex flex-wrap items-end gap-3">
-          <label className="flex flex-col gap-1 text-xs text-ink-secondary">
-            As of (balance sheet / aging)
-            <input
-              type="date"
-              name="asOf"
-              defaultValue={asOf}
-              className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-ink-secondary">
-            Period from (P&L)
-            <input
-              type="date"
-              name="from"
-              defaultValue={from}
-              className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-xs text-ink-secondary">
-            Period to (P&L)
-            <input
-              type="date"
-              name="to"
-              defaultValue={to}
-              className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
-            />
-          </label>
-          <Button type="submit" variant="primary" size="sm">
-            Apply
-          </Button>
-        </form>
-      </Section>
-
-      <Section
-        eyebrow="Statement of financial position"
-        title={`Balance sheet — as of ${asOf}`}
-        description="Asset, liability, and equity balances rolled from the GL. Current-period net income (not yet closed to retained earnings) is shown separately; the identity below proves the books tie."
-      >
-        {!bs ? (
-          <EmptyState title="Balance sheet unavailable" description="No posted journal entries yet, or the query timed out." />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <MetricCard label="Total assets" value={fmt(bs.totalAssetsMinor)} />
-              <MetricCard label="Total liabilities" value={fmt(bs.totalLiabilitiesMinor)} />
-              <MetricCard label="Total equity" value={fmt(bs.totalEquityMinor)} />
-              <MetricCard
-                label="Net income (to date)"
-                value={fmt(bs.retainedFromIncomeMinor)}
-                hint="Unclosed revenue − expense"
+      <div>
+        <div className="label mb-2.5">Period controls</div>
+        <Card padding="default">
+          <form method="get" className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-xs text-ink-secondary">
+              As of (balance sheet / aging)
+              <input
+                type="date"
+                name="asOf"
+                defaultValue={asOf}
+                className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
               />
-            </div>
-            <div className="flex items-center gap-3">
-              <Badge tone={bs.balanced ? "success" : "danger"}>
-                {bs.balanced ? "Identity balances ✓" : "OUT OF BALANCE"}
-              </Badge>
-              <span className="text-xs text-ink-secondary font-mono">
-                Assets = Liabilities + Equity + Net income
-                {!bs.balanced && <> · Δ {fmt(bs.imbalanceMinor)}</>}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="flex flex-col gap-4">
-                <StatementSection group={bs.assets} totalLabel="Total assets" />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-ink-secondary">
+              Period from (P&L)
+              <input
+                type="date"
+                name="from"
+                defaultValue={from}
+                className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-ink-secondary">
+              Period to (P&L)
+              <input
+                type="date"
+                name="to"
+                defaultValue={to}
+                className="rounded border border-line-soft bg-surface px-2 py-1.5 text-sm"
+              />
+            </label>
+            <button type="submit" className="btn btn-accent btn-sm">
+              Apply
+            </button>
+          </form>
+        </Card>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Statement of financial position</div>
+        <Card padding="default">
+          {!bs ? (
+            <EmptyState title="Balance sheet unavailable" description="No posted journal entries yet, or the query timed out." />
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <Kpi label="Total assets" value={fmt(bs.totalAssetsMinor)} />
+                <Kpi label="Total liabilities" value={fmt(bs.totalLiabilitiesMinor)} />
+                <Kpi label="Total equity" value={fmt(bs.totalEquityMinor)} />
+                <Kpi
+                  label="Net income (to date)"
+                  value={fmt(bs.retainedFromIncomeMinor)}
+                  sub="Unclosed revenue − expense"
+                />
               </div>
-              <div className="flex flex-col gap-4">
-                <StatementSection group={bs.liabilities} totalLabel="Total liabilities" />
-                <StatementSection group={bs.equity} totalLabel="Total equity" />
+              <div className="flex items-center gap-3">
+                <HandoffBadge tone={bs.balanced ? "ok" : "danger"}>
+                  {bs.balanced ? "Identity balances ✓" : "OUT OF BALANCE"}
+                </HandoffBadge>
+                <span className="text-xs text-ink-secondary font-mono">
+                  Assets = Liabilities + Equity + Net income
+                  {!bs.balanced && <> · Δ {fmt(bs.imbalanceMinor)}</>}
+                </span>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="flex flex-col gap-4">
+                  <StatementSection group={bs.assets} totalLabel="Total assets" />
+                </div>
+                <div className="flex flex-col gap-4">
+                  <StatementSection group={bs.liabilities} totalLabel="Total liabilities" />
+                  <StatementSection group={bs.equity} totalLabel="Total equity" />
+                </div>
               </div>
             </div>
-          </div>
-        )}
-      </Section>
+          )}
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Statement of operations"
-        title={`Income statement — ${from} → ${to}`}
-        description="Revenue and expense activity for the selected period. Net income flows to retained earnings at period close."
-      >
-        {!pl ? (
-          <EmptyState title="Income statement unavailable" description="No posted journal entries in this period, or the query timed out." />
-        ) : (
-          <div className="flex flex-col gap-4">
-            <div className="grid grid-cols-3 gap-2">
-              <MetricCard label="Revenue" value={fmt(pl.totalRevenueMinor)} />
-              <MetricCard label="Expenses" value={fmt(pl.totalExpenseMinor)} />
-              <MetricCard
-                label="Net income"
-                value={fmt(pl.netIncomeMinor)}
-                hint={pl.netIncomeMinor >= 0n ? "Profit" : "Loss"}
-              />
+      <div>
+        <div className="label mb-2.5">Statement of operations</div>
+        <Card padding="default">
+          {!pl ? (
+            <EmptyState title="Income statement unavailable" description="No posted journal entries in this period, or the query timed out." />
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-3 gap-2">
+                <Kpi label="Revenue" value={fmt(pl.totalRevenueMinor)} />
+                <Kpi label="Expenses" value={fmt(pl.totalExpenseMinor)} />
+                <Kpi
+                  label="Net income"
+                  value={fmt(pl.netIncomeMinor)}
+                  sub={pl.netIncomeMinor >= 0n ? "Profit" : "Loss"}
+                />
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <StatementSection group={pl.revenue} totalLabel="Total revenue" />
+                <StatementSection group={pl.expense} totalLabel="Total expenses" />
+              </div>
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <StatementSection group={pl.revenue} totalLabel="Total revenue" />
-              <StatementSection group={pl.expense} totalLabel="Total expenses" />
-            </div>
-          </div>
-        )}
-      </Section>
+          )}
+        </Card>
+      </div>
 
-      <Section
-        eyebrow="Receivables"
-        title="AR aging — money owed to us"
-        description="Outstanding receivables grouped by counterparty, bucketed 0–30 / 31–60 / 61–90 / 90+ from the due date as of the reporting date. Remind files an in-app payment reminder to the finance team via the notification queue (external dunning channels are not connected yet)."
-      >
+      <div>
+        <div className="label mb-2.5">Receivables</div>
         {!arAging ? (
-          <EmptyState title="AR aging unavailable" description="No open receivables, or the query timed out." />
+          <Card padding="default">
+            <EmptyState title="AR aging unavailable" description="No open receivables, or the query timed out." />
+          </Card>
         ) : (
           <AgingSection
             kind="ar"
@@ -336,33 +338,29 @@ export default async function AccountingDeskPage({
             remindedAt={remindedAt}
           />
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Payables"
-        title="AP aging — money we owe"
-        description="Outstanding payables grouped by vendor, bucketed by age from the due date as of the reporting date. Pay opens the invoice's payment form — payments are recorded there, never here."
-      >
+      <div>
+        <div className="label mb-2.5">Payables</div>
         {!apAging ? (
-          <EmptyState title="AP aging unavailable" description="No open payables, or the query timed out." />
+          <Card padding="default">
+            <EmptyState title="AP aging unavailable" description="No open payables, or the query timed out." />
+          </Card>
         ) : (
           <AgingSection kind="ap" rows={serializeAgingRows(apAging)} />
         )}
-      </Section>
+      </div>
 
-      <Section
-        eyebrow="Reconciliation"
-        title={`Bank ↔ GL matching · ${recon.matchedCount} matched · ${recon.unmatchedCount} open`}
-        description="Tie imported bank lines to posted journal entries. Manual matching only — each match is audit-logged. Variance shows where the bank line and the journal net diverge."
-        action={
+      <div>
+        <div className="flex items-end justify-between mb-2.5">
+          <div className="label">Reconciliation</div>
           <Link
             href="/development-os/finance/statement-import"
             className="btn btn-secondary btn-sm"
           >
             Import bank statement →
           </Link>
-        }
-      >
+        </div>
         <ReconciliationMatcher
           unmatched={recon.unmatched.map((u) => ({
             ...u,
@@ -378,7 +376,7 @@ export default async function AccountingDeskPage({
             netMinor: c.netMinor.toString(),
           }))}
         />
-      </Section>
+      </div>
     </DevelopmentShell>
   );
 }

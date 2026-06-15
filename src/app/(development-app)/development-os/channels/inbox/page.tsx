@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, AlertTriangle } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   Table,
@@ -52,7 +49,11 @@ export default async function ChannelInboxPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Channel inbox" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Channel inbox</h1>
+          </div>
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL."
@@ -74,24 +75,30 @@ export default async function ChannelInboxPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Channels", href: "/development-os/channels" },
-          { label: "Inbox" },
-        ]}
-        eyebrow={`${reservations.length} reservation${reservations.length === 1 ? "" : "s"}${conflictCount > 0 ? ` · ${conflictCount} conflict${conflictCount === 1 ? "" : "s"}` : ""}`}
-        title="Channel inbox"
-        description="Every reservation pulled or webhook-pushed from any connected channel. Filter by channel + state + date range; click a row for the unified detail view."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href="/development-os/channels">
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Channels
-            </Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/channels">Channels</Link> /{" "}
+            <span>Inbox</span>
+          </div>
+          <h1>Channel inbox</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every reservation pulled or webhook-pushed from any connected
+            channel. Filter by channel + state + date range; click a row for the
+            unified detail view.
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href="/development-os/channels"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Channels
+          </Link>
+        </div>
+      </div>
 
       <form
         method="GET"
@@ -155,13 +162,16 @@ export default async function ChannelInboxPage({
           />
         </FilterField>
         <div className="md:col-span-5 flex items-center gap-2">
-          <Button type="submit" size="sm">
+          <button type="submit" className="btn btn-accent btn-sm">
             Apply
-          </Button>
+          </button>
           {(sp.channel || sp.state || sp.from || sp.to || sp.q) && (
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/development-os/channels/inbox">Clear</Link>
-            </Button>
+            <Link
+              href="/development-os/channels/inbox"
+              className="btn btn-secondary btn-sm"
+            >
+              Clear
+            </Link>
           )}
         </div>
       </form>
@@ -172,7 +182,8 @@ export default async function ChannelInboxPage({
           description="Try clearing filters, or wait for the next scheduled reservation pull (P1.G crons run every 5 min)."
         />
       ) : (
-        <Section eyebrow="Inbox" title="All reservations">
+        <div>
+          <div className="label mb-2.5">Inbox</div>
           <Table>
             <THead>
               <TR>
@@ -194,7 +205,7 @@ export default async function ChannelInboxPage({
                   data-testid={`inbox-row-${r.id}`}
                 >
                   <TD className="text-xs">
-                    <Badge tone="neutral">{CHANNEL_LABELS[r.channel]}</Badge>
+                    <HandoffBadge tone="soft">{CHANNEL_LABELS[r.channel]}</HandoffBadge>
                   </TD>
                   <TD className="font-mono text-xs">
                     <Link
@@ -222,9 +233,9 @@ export default async function ChannelInboxPage({
                   <TD className="text-xs">{r.checkOut}</TD>
                   <TD>
                     <div className="flex items-center gap-1.5">
-                      <Badge tone={stateTone(r.reservationState)}>
+                      <HandoffBadge tone={stateTone(r.reservationState)}>
                         {r.reservationState}
-                      </Badge>
+                      </HandoffBadge>
                       {r.conflictPending && (
                         <span
                           title="Conflict pending"
@@ -242,7 +253,7 @@ export default async function ChannelInboxPage({
               ))}
             </TBody>
           </Table>
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );
@@ -270,10 +281,10 @@ function FilterField({
 
 function stateTone(
   s: string,
-): "success" | "warning" | "danger" | "info" | "neutral" {
+): "ok" | "warn" | "danger" | "info" | "soft" {
   switch (s) {
     case "confirmed":
-      return "success";
+      return "ok";
     case "received":
     case "modified":
       return "info";
@@ -281,8 +292,8 @@ function stateTone(
     case "no_show":
       return "danger";
     case "completed":
-      return "neutral";
+      return "soft";
     default:
-      return "neutral";
+      return "soft";
   }
 }

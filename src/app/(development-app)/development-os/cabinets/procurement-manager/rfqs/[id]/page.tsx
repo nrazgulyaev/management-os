@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { RfqStatusPill } from "@/components/procurement/rfq-status-pill";
 import { QuoteCompareClient } from "./_compare-client";
@@ -77,27 +75,32 @@ export default async function RfqCompareePage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Procurement", href: "/development-os/cabinets/procurement-manager" },
-          { label: `RFQ ${id}` },
-        ]}
-        eyebrow="3 quotes received · WP-04 marble package"
-        title={`RFQ ${id}`}
-        description="Three quotes received. The vendor-matcher agent has analyzed price + lead time + scorecard + project context — see recommendation below."
-        actions={
-          <div className="flex items-center gap-2">
-            <RfqStatusPill status="quoting" />
-            <Button asChild variant="secondary">
-              <Link href="/development-os/cabinets/procurement-manager">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Procurement cabinet
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href="/development-os/cabinets/procurement-manager">
+              Procurement
+            </Link>{" "}
+            / <span>RFQ {id}</span>
           </div>
-        }
-      />
+          <h1>RFQ {id}</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Three quotes received. The vendor-matcher agent has analyzed price +
+            lead time + scorecard + project context — see recommendation below.
+          </p>
+        </div>
+        <div className="actions">
+          <RfqStatusPill status="quoting" />
+          <Link
+            href="/development-os/cabinets/procurement-manager"
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Procurement cabinet
+          </Link>
+        </div>
+      </div>
       <QuoteCompareClient
         rfqId={id}
         columns={columns}

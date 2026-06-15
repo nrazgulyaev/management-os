@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
@@ -55,7 +53,11 @@ export default async function RiskHeatmapPage({
   if (!db) {
     return (
       <DevelopmentShell>
-        <PageHeader title="Risk heatmap" />
+        <div className="page-header">
+          <div className="left">
+            <h1>Risk heatmap</h1>
+          </div>
+        </div>
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       </DevelopmentShell>
     );
@@ -74,91 +76,98 @@ export default async function RiskHeatmapPage({
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Risks", href: `/development-os/projects/${slug}/risks` },
-          { label: "Heatmap" },
-        ]}
-        eyebrow={`${risks.length} risks plotted`}
-        title="Risk heatmap"
-        description="Probability × impact matrix. Cells colored by risk score (P × I)."
-        actions={
-          <Button asChild variant="secondary">
-            <Link href={`/development-os/projects/${slug}/risks`}>
-              <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-              Risks
-            </Link>
-          </Button>
-        }
-      />
-
-      <Section eyebrow="Matrix" title="Probability × Impact">
-        <div className="overflow-x-auto">
-          <table className="border-collapse text-xs">
-            <thead>
-              <tr>
-                <th className="p-2 text-right font-medium">P \ I</th>
-                {IMPACTS.map((i) => (
-                  <th key={i} className="p-2 text-center font-medium">
-                    {i}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {[...PROBABILITIES].reverse().map((p) => (
-                <tr key={p}>
-                  <td className="p-2 text-right font-medium pr-3">{p}</td>
-                  {IMPACTS.map((i) => {
-                    const score = PROB_SCORE[p] * IMPACT_SCORE[i];
-                    const cell = buckets[`${p}|${i}`] ?? [];
-                    return (
-                      <td
-                        key={i}
-                        className={`p-2 border border-line-soft ${cellColor(score)} align-top`}
-                        style={{ width: 130, height: 80 }}
-                      >
-                        <div className="text-[10px] uppercase tracking-wide opacity-70">
-                          score {score}
-                        </div>
-                        {cell.length === 0 ? (
-                          <div className="text-[11px] text-stone-500">—</div>
-                        ) : (
-                          <ul className="space-y-0.5">
-                            {cell.slice(0, 3).map((r) => (
-                              <li key={r.id} className="truncate">
-                                <Link
-                                  href={`/development-os/projects/${slug}/risks/${r.riskCode}`}
-                                  className="font-mono hover:underline"
-                                >
-                                  {r.riskCode}
-                                </Link>
-                              </li>
-                            ))}
-                            {cell.length > 3 && (
-                              <li className="text-[10px] text-stone-600">
-                                +{cell.length - 3} more
-                              </li>
-                            )}
-                          </ul>
-                        )}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <Link href={`/development-os/projects/${slug}/risks`}>Risks</Link> /{" "}
+            <span>Heatmap</span>
+          </div>
+          <h1>Risk heatmap</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Probability × impact matrix. Cells colored by risk score (P × I).
+          </p>
         </div>
-        <p className="text-[11px] text-ink-tertiary mt-3">
-          Score color bands: <span className="bg-green-100 px-1">1-4</span>{" "}
-          <span className="bg-yellow-100 px-1">5-9</span>{" "}
-          <span className="bg-amber-200 px-1">10-15</span>{" "}
-          <span className="bg-red-200 px-1">16-25</span>. Risks scoring ≥ 15
-          are flagged by the weekly elevation cron.
-        </p>
-      </Section>
+        <div className="actions">
+          <Link
+            href={`/development-os/projects/${slug}/risks`}
+            className="btn btn-secondary btn-sm"
+          >
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Risks
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Matrix · Probability × Impact</div>
+        <Card padding="default">
+          <div className="overflow-x-auto">
+            <table className="border-collapse text-xs">
+              <thead>
+                <tr>
+                  <th className="p-2 text-right font-medium">P \ I</th>
+                  {IMPACTS.map((i) => (
+                    <th key={i} className="p-2 text-center font-medium">
+                      {i}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[...PROBABILITIES].reverse().map((p) => (
+                  <tr key={p}>
+                    <td className="p-2 text-right font-medium pr-3">{p}</td>
+                    {IMPACTS.map((i) => {
+                      const score = PROB_SCORE[p] * IMPACT_SCORE[i];
+                      const cell = buckets[`${p}|${i}`] ?? [];
+                      return (
+                        <td
+                          key={i}
+                          className={`p-2 border border-line-soft ${cellColor(score)} align-top`}
+                          style={{ width: 130, height: 80 }}
+                        >
+                          <div className="text-[10px] uppercase tracking-wide opacity-70">
+                            score {score}
+                          </div>
+                          {cell.length === 0 ? (
+                            <div className="text-[11px] text-stone-500">—</div>
+                          ) : (
+                            <ul className="space-y-0.5">
+                              {cell.slice(0, 3).map((r) => (
+                                <li key={r.id} className="truncate">
+                                  <Link
+                                    href={`/development-os/projects/${slug}/risks/${r.riskCode}`}
+                                    className="font-mono hover:underline"
+                                  >
+                                    {r.riskCode}
+                                  </Link>
+                                </li>
+                              ))}
+                              {cell.length > 3 && (
+                                <li className="text-[10px] text-stone-600">
+                                  +{cell.length - 3} more
+                                </li>
+                              )}
+                            </ul>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="text-[11px] text-ink-tertiary mt-3">
+            Score color bands: <span className="bg-green-100 px-1">1-4</span>{" "}
+            <span className="bg-yellow-100 px-1">5-9</span>{" "}
+            <span className="bg-amber-200 px-1">10-15</span>{" "}
+            <span className="bg-red-200 px-1">16-25</span>. Risks scoring ≥ 15
+            are flagged by the weekly elevation cron.
+          </p>
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

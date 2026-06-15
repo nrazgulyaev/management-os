@@ -1,13 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
-import { MetricCard } from "@/components/ui/metric-card";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -25,6 +20,17 @@ import { SafetyStatusControl } from "./_status-control";
 
 export const metadata: Metadata = { title: "Safety · Development OS" };
 export const dynamic = "force-dynamic";
+
+/** Presentational map: legacy severity tone → handoff badge tone. */
+const SEVERITY_BADGE_TONE: Record<
+  "neutral" | "info" | "warning" | "danger",
+  "soft" | "info" | "warn" | "danger"
+> = {
+  neutral: "soft",
+  info: "info",
+  warning: "warn",
+  danger: "danger",
+};
 
 export default async function SafetyPage() {
   const db = getDb();
@@ -65,137 +71,138 @@ export default async function SafetyPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Safety" },
-        ]}
-        eyebrow={
-          db
-            ? `${list.length} incidents · ${metrics?.openCount ?? 0} open`
-            : "Database not configured"
-        }
-        title="Safety incident log"
-        description="Every safety event from near-miss to fatal. Severe and fatal incidents that stay open >24h are escalated by the safety-escalation cron."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/safety/new">
-                + Record incident
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Safety</span>
+            {" · "}
+            {db
+              ? `${list.length} incidents · ${metrics?.openCount ?? 0} open`
+              : "Database not configured"}
           </div>
-        }
-      />
+          <h1>Safety incident log</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every safety event from near-miss to fatal. Severe and fatal
+            incidents that stay open &gt;24h are escalated by the
+            safety-escalation cron.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/safety/new" className="btn btn-accent">
+            + Record incident
+          </Link>
+          <Link href="/development-os" className="btn btn-secondary">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {!db ? (
         <EmptyState title="Database not configured" description="Set DATABASE_URL." />
       ) : (
         <>
           {metrics && (
-            <Section eyebrow="Snapshot" title="By severity + status">
+            <div>
+              <div className="label mb-2.5">Snapshot</div>
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-                <MetricCard
+                <Kpi
                   label="Open"
                   value={String(metrics.openCount)}
-                  hint={
+                  sub={
                     metrics.bySeverity.severe + metrics.bySeverity.fatal > 0
                       ? `${metrics.bySeverity.severe + metrics.bySeverity.fatal} severe/fatal`
                       : undefined
                   }
                 />
-                <MetricCard
+                <Kpi
                   label="Affected"
                   value={String(metrics.affectedWorkersTotal)}
-                  hint="cumulative workers"
+                  sub="cumulative workers"
                 />
-                <MetricCard
+                <Kpi
                   label="Severe + fatal"
                   value={String(
                     metrics.bySeverity.severe + metrics.bySeverity.fatal,
                   )}
                 />
-                <MetricCard
+                <Kpi
                   label="Moderate"
                   value={String(metrics.bySeverity.moderate)}
                 />
-                <MetricCard
+                <Kpi
                   label="Minor + near miss"
                   value={String(
                     metrics.bySeverity.minor + metrics.bySeverity.near_miss,
                   )}
                 />
               </div>
-            </Section>
+            </div>
           )}
 
-          <Section eyebrow="Incidents" title="Chronological">
+          <div>
+            <div className="label mb-2.5">Incidents</div>
             {list.length === 0 ? (
               <EmptyState
                 title="No incidents on record"
                 description="Record your first safety incident from the cabinets / site-supervisor surface."
               />
             ) : (
-              <Table>
-                <THead>
-                  <TR>
-                    <TH>Code</TH>
-                    <TH>Date</TH>
-                    <TH>Severity</TH>
-                    <TH>Category</TH>
-                    <TH>Affected</TH>
-                    <TH>Description</TH>
-                    <TH>Status</TH>
-                    <TH>Set status</TH>
-                  </TR>
-                </THead>
-                <TBody>
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th scope="col">Code</th>
+                    <th scope="col">Date</th>
+                    <th scope="col">Severity</th>
+                    <th scope="col">Category</th>
+                    <th scope="col" className="num">Affected</th>
+                    <th scope="col">Description</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Set status</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {list.map((i) => (
-                    <TR key={i.id}>
-                      <TD className="font-mono text-xs">{i.incidentCode}</TD>
-                      <TD className="text-xs">{i.incidentDate}</TD>
-                      <TD>
-                        <Badge tone={SAFETY_SEVERITY_TONE[i.severity]}>
+                    <tr key={i.id}>
+                      <td className="row-title mono text-xs">{i.incidentCode}</td>
+                      <td className="text-xs">{i.incidentDate}</td>
+                      <td>
+                        <HandoffBadge tone={SEVERITY_BADGE_TONE[SAFETY_SEVERITY_TONE[i.severity]]}>
                           {SAFETY_SEVERITY_LABEL[i.severity]}
-                        </Badge>
-                      </TD>
-                      <TD className="text-xs text-ink-secondary">
+                        </HandoffBadge>
+                      </td>
+                      <td className="text-xs text-ink-secondary">
                         {SAFETY_CATEGORY_LABEL[i.category]}
-                      </TD>
-                      <TDNum>{i.affectedWorkersCount}</TDNum>
-                      <TD className="text-xs">
+                      </td>
+                      <td className="num">{i.affectedWorkersCount}</td>
+                      <td className="text-xs">
                         {i.description.length > 80
                           ? i.description.slice(0, 80) + "…"
                           : i.description}
-                      </TD>
-                      <TD>
-                        <Badge
+                      </td>
+                      <td>
+                        <HandoffBadge
                           tone={
                             i.status === "open"
                               ? "danger"
                               : i.status === "under_investigation"
-                                ? "warning"
-                                : "neutral"
+                                ? "warn"
+                                : "soft"
                           }
                         >
                           {SAFETY_STATUS_LABEL[i.status]}
-                        </Badge>
-                      </TD>
-                      <TD>
+                        </HandoffBadge>
+                      </td>
+                      <td>
                         <SafetyStatusControl id={i.id} status={i.status} />
-                      </TD>
-                    </TR>
+                      </td>
+                    </tr>
                   ))}
-                </TBody>
-              </Table>
+                </tbody>
+              </table>
             )}
-          </Section>
+          </div>
         </>
       )}
     </DevelopmentShell>

@@ -2,12 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, Plus } from "lucide-react";
 import { inArray } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
+import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -28,6 +25,19 @@ export const metadata: Metadata = {
   title: "Commitments (PO) · Development OS",
 };
 export const dynamic = "force-dynamic";
+
+/** Map the legacy Badge tone vocabulary onto the handoff badge palette. */
+const HANDOFF_TONE: Record<
+  string,
+  "ok" | "warn" | "danger" | "gold" | "info" | "soft"
+> = {
+  success: "ok",
+  warning: "warn",
+  danger: "danger",
+  gold: "gold",
+  info: "info",
+  neutral: "soft",
+};
 
 export default async function CommitmentsLedgerPage() {
   const db = getDb();
@@ -112,57 +122,56 @@ export default async function CommitmentsLedgerPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Development OS", href: "/development-os" },
-          { label: "Commitments (PO)" },
-        ]}
-        eyebrow={
-          db
-            ? `${rows.length} commitments · ${formatUsdMinor(totalCommittedUsd)} committed · ${formatUsdMinor(totalPaidUsd)} paid`
-            : "Database not configured"
-        }
-        title="Procurement commitments"
-        description="Signed vendor POs / contracts (the 'Committed' state of the three-state cost ledger). Approve, record manual payments, and track paid-vs-committed as actuals land against each PO."
-        actions={
-          <div className="flex items-center gap-2">
-            <Button asChild>
-              <Link href="/development-os/finance/commitments/new">
-                <Plus className="w-4 h-4" strokeWidth={1.75} />
-                New commitment
-              </Link>
-            </Button>
-            <Button asChild variant="secondary">
-              <Link href="/development-os">
-                <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
-                Command center
-              </Link>
-            </Button>
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Commitments (PO)</span>
           </div>
-        }
-      />
+          <h1>Procurement commitments</h1>
+          <div className="label mt-2">
+            {db
+              ? `${rows.length} commitments · ${formatUsdMinor(totalCommittedUsd)} committed · ${formatUsdMinor(totalPaidUsd)} paid`
+              : "Database not configured"}
+          </div>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Signed vendor POs / contracts (the &apos;Committed&apos; state of the
+            three-state cost ledger). Approve, record manual payments, and track
+            paid-vs-committed as actuals land against each PO.
+          </p>
+        </div>
+        <div className="actions">
+          <Link href="/development-os/finance/commitments/new" className="btn btn-accent btn-sm">
+            <Plus className="w-4 h-4" strokeWidth={1.75} />
+            New commitment
+          </Link>
+          <Link href="/development-os" className="btn btn-secondary btn-sm">
+            <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+            Command center
+          </Link>
+        </div>
+      </div>
 
       {!db && (
         <EmptyState
           title="Commitments need the database"
           description="Database connection not configured. Contact support."
-          action={<Badge tone="warning">DATABASE_URL not set</Badge>}
+          action={<HandoffBadge tone="warn">DATABASE_URL not set</HandoffBadge>}
         />
       )}
 
       {db && (
-        <Section eyebrow="All commitments" title="Open + closed POs">
+        <div>
+          <div className="label mb-2.5">All commitments</div>
           {rows.length === 0 ? (
             <EmptyState
               title="No commitments yet"
               description="Create your first vendor PO to start tracking committed cost and manual payments."
               action={
-                <Button asChild>
-                  <Link href="/development-os/finance/commitments/new">
-                    <Plus className="w-4 h-4" strokeWidth={1.75} />
-                    New commitment
-                  </Link>
-                </Button>
+                <Link href="/development-os/finance/commitments/new" className="btn btn-accent btn-sm">
+                  <Plus className="w-4 h-4" strokeWidth={1.75} />
+                  New commitment
+                </Link>
               }
             />
           ) : (
@@ -211,11 +220,11 @@ export default async function CommitmentsLedgerPage() {
                       </TDNum>
                       <TDNum>{formatUsdMinor(paid)}</TDNum>
                       <TD>
-                        <Badge tone={commitmentLedgerStatusTone(r.status)}>
+                        <HandoffBadge tone={HANDOFF_TONE[commitmentLedgerStatusTone(r.status)]}>
                           {COMMITMENT_LEDGER_STATUS_LABEL[
                             r.status as keyof typeof COMMITMENT_LEDGER_STATUS_LABEL
                           ] ?? r.status}
-                        </Badge>
+                        </HandoffBadge>
                       </TD>
                     </TR>
                   );
@@ -223,7 +232,7 @@ export default async function CommitmentsLedgerPage() {
               </TBody>
             </Table>
           )}
-        </Section>
+        </div>
       )}
     </DevelopmentShell>
   );
