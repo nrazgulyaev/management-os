@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Kpi } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
@@ -107,12 +106,19 @@ export default async function ProjectsPage() {
 
   return (
     <DevelopmentShell>
-      <PageHeader
-        breadcrumbs={[{ label: "Development OS", href: "/development-os" }, { label: "Projects" }]}
-        eyebrow={`${counts.total} projects · ${counts.active} building · ${counts.design} design · ${counts.closing} closing`}
-        title="Projects"
-        description="Every project Arconique is currently developing. Click a card to open the project detail with milestones, BOQ, procurement, and team."
-        actions={
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/development-os">Development OS</Link> /{" "}
+            <span>Projects</span>
+          </div>
+          <h1>Projects</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Every project Arconique is currently developing. Click a card to
+            open the project detail with milestones, BOQ, procurement, and team.
+          </p>
+        </div>
+        <div className="actions">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost">
               <Link href="/development-os/projects?export=csv">Export</Link>
@@ -127,8 +133,8 @@ export default async function ProjectsPage() {
               </Link>
             </Button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
       <div className="projects-kpi-strip">
         <Kpi

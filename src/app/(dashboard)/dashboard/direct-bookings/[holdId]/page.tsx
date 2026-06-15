@@ -1,9 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageHeader } from "@/components/ui/page-header";
-import { Section } from "@/components/ui/section";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/dashboard/primitives";
+import { Card, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { CancelHoldButton } from "@/components/direct-booking/admin-buttons";
 import { CoverageStrip } from "@/components/direct-booking/coverage-strip";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -20,6 +17,24 @@ const MGMT_LABELS: Record<string, string> = {
   pooled: "Revenue pool",
   hybrid: "Hybrid agreement",
 };
+
+type LabelTone = "info" | "success" | "warning" | "neutral" | "danger";
+function badgeTone(
+  tone: LabelTone,
+): "ok" | "warn" | "danger" | "info" | "soft" {
+  switch (tone) {
+    case "success":
+      return "ok";
+    case "warning":
+      return "warn";
+    case "danger":
+      return "danger";
+    case "info":
+      return "info";
+    default:
+      return "soft";
+  }
+}
 
 export default async function DirectBookingDetailPage({
   params,
@@ -61,22 +76,30 @@ export default async function DirectBookingDetailPage({
 
   return (
     <div className="flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Direct bookings", href: "/dashboard/direct-bookings" },
-          { label: "Holds", href: "/dashboard/direct-bookings/holds" },
-          { label: hold.holdCode },
-        ]}
-        title={`${villaName ?? villaCode ?? "Direct booking"} · ${hold.checkIn} → ${hold.checkOut}`}
-        description={`${hold.holdCode} · ${hold.nights} nights · ${hold.guestCount} guest${hold.guestCount === 1 ? "" : "s"}`}
-        actions={
-          <div className="flex items-center gap-3">
-            <Badge tone={statusLab.tone}>{statusLab.label}</Badge>
-            <Badge tone="info">direct</Badge>
-            {hold.status === "active" && <CancelHoldButton id={hold.id} />}
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/direct-bookings">Direct bookings</Link> /{" "}
+            <Link href="/dashboard/direct-bookings/holds">Holds</Link> /{" "}
+            <span>{hold.holdCode}</span>
           </div>
-        }
-      />
+          <h1>
+            {villaName ?? villaCode ?? "Direct booking"} · {hold.checkIn} →{" "}
+            {hold.checkOut}
+          </h1>
+          <p className="text-[13px] text-ink-3 mt-2">
+            {hold.holdCode} · {hold.nights} nights · {hold.guestCount} guest
+            {hold.guestCount === 1 ? "" : "s"}
+          </p>
+        </div>
+        <div className="actions">
+          <HandoffBadge tone={badgeTone(statusLab.tone)}>
+            {statusLab.label}
+          </HandoffBadge>
+          <HandoffBadge tone="info">direct</HandoffBadge>
+          {hold.status === "active" && <CancelHoldButton id={hold.id} />}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main column */}
@@ -138,14 +161,14 @@ export default async function DirectBookingDetailPage({
               Stay · {villaCode ?? villaName ?? "villa"}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
-              <Stat label="arrival" value={hold.checkIn} sub="check-in 15:00" />
-              <Stat
+              <Kpi label="arrival" value={hold.checkIn} sub="check-in 15:00" />
+              <Kpi
                 label="departure"
                 value={hold.checkOut}
                 sub="check-out 11:00"
               />
-              <Stat label="nights" value={String(hold.nights)} sub="direct" />
-              <Stat
+              <Kpi label="nights" value={String(hold.nights)} sub="direct" />
+              <Kpi
                 label="ADR"
                 value={formatMinor(hold.averageNightlyMinor, hold.currency)}
                 sub="avg / night"
@@ -170,9 +193,9 @@ export default async function DirectBookingDetailPage({
               <div className="text-[10px] font-mono uppercase tracking-widest text-ink-tertiary">
                 Pricing
               </div>
-              <Badge tone="success" className="ml-auto">
-                commission-free
-              </Badge>
+              <span className="ml-auto">
+                <HandoffBadge tone="ok">commission-free</HandoffBadge>
+              </span>
             </div>
             <table className="w-full text-sm">
               <tbody>
@@ -205,7 +228,8 @@ export default async function DirectBookingDetailPage({
         {/* Side rail */}
         <aside className="flex flex-col gap-6">
           {/* Deposit */}
-          <Section eyebrow="Payments" title="Deposit">
+          <div>
+            <div className="label mb-2.5">Payments</div>
             {deposit && depositLab ? (
               <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
                 <div className="flex items-center justify-between">
@@ -215,7 +239,9 @@ export default async function DirectBookingDetailPage({
                   >
                     {deposit.depositCode}
                   </Link>
-                  <Badge tone={depositLab.tone}>{depositLab.label}</Badge>
+                  <HandoffBadge tone={badgeTone(depositLab.tone)}>
+                    {depositLab.label}
+                  </HandoffBadge>
                 </div>
                 <span className="font-mono text-ink-tertiary">
                   {formatMinor(deposit.amountMinor, deposit.currency)}
@@ -230,28 +256,32 @@ export default async function DirectBookingDetailPage({
                 submitted.
               </p>
             )}
-          </Section>
+          </div>
 
           {/* Concierge */}
-          <Section eyebrow="Concierge" title="Requests">
-            {request?.specialRequests ? (
-              <p className="text-sm text-ink-secondary whitespace-pre-line">
-                {request.specialRequests}
-              </p>
-            ) : (
-              <p className="text-xs text-ink-tertiary">
-                No concierge requests captured.
-              </p>
-            )}
-            {request?.arrivalTime && (
-              <p className="text-xs text-ink-tertiary mt-2">
-                Arrival · {request.arrivalTime}
-              </p>
-            )}
-          </Section>
+          <div>
+            <div className="label mb-2.5">Concierge</div>
+            <Card padding="default">
+              {request?.specialRequests ? (
+                <p className="text-sm text-ink-secondary whitespace-pre-line m-0">
+                  {request.specialRequests}
+                </p>
+              ) : (
+                <p className="text-xs text-ink-tertiary m-0">
+                  No concierge requests captured.
+                </p>
+              )}
+              {request?.arrivalTime && (
+                <p className="text-xs text-ink-tertiary mt-2 mb-0">
+                  Arrival · {request.arrivalTime}
+                </p>
+              )}
+            </Card>
+          </div>
 
           {/* Owner statement context */}
-          <Section eyebrow="Owner statement" title="Allocation">
+          <div>
+            <div className="label mb-2.5">Owner statement</div>
             <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
               <div className="text-ink">
                 Allocates to{" "}
@@ -270,10 +300,11 @@ export default async function DirectBookingDetailPage({
                 the {hold.checkIn.slice(0, 7)} statement on confirmation.
               </div>
             </div>
-          </Section>
+          </div>
 
           {/* Channel block status */}
-          <Section eyebrow="Channels" title="Block status">
+          <div>
+            <div className="label mb-2.5">Channels</div>
             <div className="rounded-md border border-line-soft bg-canvas p-3 flex flex-col gap-1 text-xs">
               <div className="text-ink-secondary">
                 Internal hold block on the villa calendar is{" "}
@@ -288,41 +319,24 @@ export default async function DirectBookingDetailPage({
                   : "No other source blocks this window"}
               </div>
             </div>
-          </Section>
+          </div>
 
           {/* Linked booking */}
           {booking && (
-            <Section eyebrow="Booking" title="Linked booking">
-              <Link
-                href={`/dashboard/bookings/${booking.id}`}
-                className="text-sm text-ink hover:underline underline-offset-4"
-              >
-                {booking.bookingCode} ({booking.status}) →
-              </Link>
-            </Section>
+            <div>
+              <div className="label mb-2.5">Booking</div>
+              <Card padding="default">
+                <Link
+                  href={`/dashboard/bookings/${booking.id}`}
+                  className="text-sm text-ink hover:underline underline-offset-4"
+                >
+                  {booking.bookingCode} ({booking.status}) →
+                </Link>
+              </Card>
+            </div>
           )}
         </aside>
       </div>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  sub,
-}: {
-  label: string;
-  value: string;
-  sub: string;
-}) {
-  return (
-    <div>
-      <div className="text-[9.5px] font-mono uppercase tracking-widest text-ink-tertiary">
-        {label}
-      </div>
-      <div className="font-mono text-[15px] text-ink mt-1">{value}</div>
-      <div className="text-[11px] text-ink-tertiary">{sub}</div>
     </div>
   );
 }

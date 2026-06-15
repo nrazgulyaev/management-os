@@ -1,8 +1,5 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/dashboard/primitives";
-import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listOpenDisputes } from "@/features/finance/dispute-queries";
 import { formatMoneyMinor } from "@/lib/money";
@@ -21,14 +18,20 @@ export default async function OwnerDisputesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Owner disputes" },
-        ]}
-        title="Owner disputes"
-        description="Statements an owner formally disputed. Open a thread to reply, then resolve & reissue a corrected statement. Payout stays paused until resolved."
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <span>Owner disputes</span>
+          </div>
+          <h1>Owner disputes</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Statements an owner formally disputed. Open a thread to reply, then
+            resolve & reissue a corrected statement. Payout stays paused until
+            resolved.
+          </p>
+        </div>
+      </div>
       <DbStatusNotice />
       {rows.length === 0 ? (
         <Card padding="default">
@@ -37,45 +40,47 @@ export default async function OwnerDisputesPage() {
           </p>
         </Card>
       ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>Statement</TH>
-              <TH>Owner</TH>
-              <TH>Period</TH>
-              <TH>Reason</TH>
-              <TH className="text-right">Net</TH>
-              <TH>Opened</TH>
-              <TH>Status</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {rows.map((d) => (
-              <TR key={d.threadId}>
-                <TD>
-                  <Link
-                    href={`/dashboard/finance/disputes/${d.threadId}`}
-                    className="font-mono text-xs text-ink hover:text-accent"
-                  >
-                    {d.statementCode}
-                  </Link>
-                </TD>
-                <TD className="text-ink">{d.ownerName}</TD>
-                <TD className="text-ink-secondary text-sm">{d.periodLabel}</TD>
-                <TD className="text-ink-secondary text-sm">{d.reasonLabel}</TD>
-                <TDNum>{formatMoneyMinor(d.netPayoutMinor, d.currency)}</TDNum>
-                <TD className="text-ink-secondary text-sm">
-                  {new Date(d.openedAt).toLocaleDateString("en-GB")}
-                </TD>
-                <TD>
-                  <Badge tone={d.threadStatus === "open" ? "gold" : "neutral"}>
-                    {d.threadStatus}
-                  </Badge>
-                </TD>
-              </TR>
-            ))}
-          </TBody>
-        </Table>
+        <Card padding="none" overflowHidden>
+          <table className="data">
+            <thead>
+              <tr>
+                <th scope="col">Statement</th>
+                <th scope="col">Owner</th>
+                <th scope="col">Period</th>
+                <th scope="col">Reason</th>
+                <th scope="col" className="num">Net</th>
+                <th scope="col">Opened</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((d) => (
+                <tr key={d.threadId}>
+                  <td>
+                    <Link
+                      href={`/dashboard/finance/disputes/${d.threadId}`}
+                      className="font-mono text-xs text-ink hover:text-accent"
+                    >
+                      {d.statementCode}
+                    </Link>
+                  </td>
+                  <td className="text-ink">{d.ownerName}</td>
+                  <td className="text-ink-secondary text-sm">{d.periodLabel}</td>
+                  <td className="text-ink-secondary text-sm">{d.reasonLabel}</td>
+                  <td className="num">{formatMoneyMinor(d.netPayoutMinor, d.currency)}</td>
+                  <td className="text-ink-secondary text-sm">
+                    {new Date(d.openedAt).toLocaleDateString("en-GB")}
+                  </td>
+                  <td>
+                    <HandoffBadge tone={d.threadStatus === "open" ? "gold" : "soft"}>
+                      {d.threadStatus}
+                    </HandoffBadge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
       )}
     </div>
   );

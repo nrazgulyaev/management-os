@@ -1,9 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/dashboard/primitives";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDisputeThread } from "@/features/finance/dispute-queries";
 import { DisputeReplyForm } from "@/components/finance/dispute-reply-form";
 import { resolveDisputeAndReissue } from "@/features/finance/statement-actions";
@@ -32,20 +29,28 @@ export default async function DisputeThreadPage({
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Finance", href: "/dashboard/finance" },
-          { label: "Owner disputes", href: "/dashboard/finance/disputes" },
-          { label: t.statementCode },
-        ]}
-        title={`Dispute · ${t.statementCode}`}
-        description={`${t.ownerName} · ${t.periodLabel}${t.villaCode ? ` · ${t.villaCode}` : ""}`}
-        actions={
-          <Button asChild variant="secondary" size="sm">
-            <Link href={`/dashboard/finance/statements/${t.statementId}`}>Open statement</Link>
-          </Button>
-        }
-      />
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard/finance">Finance</Link> /{" "}
+            <Link href="/dashboard/finance/disputes">Owner disputes</Link> /{" "}
+            <span>{t.statementCode}</span>
+          </div>
+          <h1>Dispute · {t.statementCode}</h1>
+          <p className="text-[13px] text-ink-3 mt-2">
+            {t.ownerName} · {t.periodLabel}
+            {t.villaCode ? ` · ${t.villaCode}` : ""}
+          </p>
+        </div>
+        <div className="actions">
+          <Link
+            href={`/dashboard/finance/statements/${t.statementId}`}
+            className="btn btn-secondary btn-sm"
+          >
+            Open statement
+          </Link>
+        </div>
+      </div>
 
       {/* Summary */}
       <Card padding="default">
@@ -56,7 +61,7 @@ export default async function DisputeThreadPage({
           <Field label="Reason" value={t.reasonLabel} />
         </div>
         <div className="mt-4 flex items-center gap-2">
-          <Badge tone={resolved ? "neutral" : "gold"}>{t.threadStatus}</Badge>
+          <HandoffBadge tone={resolved ? "soft" : "gold"}>{t.threadStatus}</HandoffBadge>
           <span className="text-xs text-ink-tertiary">
             Owner-state: {t.ownerState}
             {!resolved && " · payout paused"}
@@ -131,9 +136,9 @@ export default async function DisputeThreadPage({
                   }
                 }}
               >
-                <Button type="submit" size="sm">
+                <button type="submit" className="btn btn-accent btn-sm">
                   Resolve & reissue
-                </Button>
+                </button>
               </form>
             </div>
           </Card>

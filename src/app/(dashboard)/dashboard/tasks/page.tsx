@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { PageHeader } from "@/components/ui/page-header";
 import { Kpi, Card } from "@/components/dashboard/primitives";
 import { Forbidden } from "@/components/ui/state";
 import { TaskFeed } from "@/components/crm-tasks/task-feed";
@@ -87,20 +86,23 @@ export default async function TasksPage() {
 
   return (
     <>
-      <PageHeader
-        breadcrumbs={[
-          { label: "Dashboard", href: "/dashboard" },
-          { label: "My tasks" },
-        ]}
-        eyebrow="CRM"
-        title="My tasks"
-        description="Follow-ups across owners, contacts, leads, buyers and deals. Create one here, or from any record's Tasks tab."
-        actions={
-          canManage ? (
+      <div className="page-header">
+        <div className="left">
+          <div className="crumb">
+            <Link href="/dashboard">Dashboard</Link> / <span>My tasks</span>
+          </div>
+          <h1>My tasks</h1>
+          <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
+            Follow-ups across owners, contacts, leads, buyers and deals. Create
+            one here, or from any record&apos;s Tasks tab.
+          </p>
+        </div>
+        {canManage ? (
+          <div className="actions">
             <NewTaskButton owners={ownerOptions} assignableUsers={assignableUsers} />
-          ) : undefined
-        }
-      />
+          </div>
+        ) : null}
+      </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mt-6">
         <Kpi label="Overdue" value={mine.overdue.length} tone={mine.overdue.length > 0 ? "gold" : undefined} />

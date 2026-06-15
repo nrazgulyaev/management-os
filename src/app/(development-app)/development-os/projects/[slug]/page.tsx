@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Globe, Layers } from "lucide-react";
-import { Section } from "@/components/ui/section";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
@@ -92,6 +90,18 @@ const acquisitionLabel: Record<string, string> = {
   freehold: "Freehold",
   joint_venture: "Joint venture",
   mixed: "Mixed",
+};
+
+// Map the shared (Layer-A Badge) severity tone vocabulary onto the
+// handoff badge palette used on this ported page.
+const SEVERITY_HANDOFF_TONE: Record<
+  "neutral" | "info" | "warning" | "danger",
+  "soft" | "info" | "warn" | "danger"
+> = {
+  neutral: "soft",
+  info: "info",
+  warning: "warn",
+  danger: "danger",
 };
 
 export default async function ProjectDetailPage({
@@ -646,11 +656,11 @@ export default async function ProjectDetailPage({
         ) : (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Stat
+              <Kpi
                 label="Project balance"
                 value={formatUsdMinor(projectBalance ?? 0n)}
               />
-              <Stat
+              <Kpi
                 label="Committed"
                 value={formatUsdMinor(
                   projectCommitments.reduce(
@@ -658,9 +668,9 @@ export default async function ProjectDetailPage({
                     0n,
                   ),
                 )}
-                hint={`${projectCommitments.length} commitments`}
+                sub={`${projectCommitments.length} commitments`}
               />
-              <Stat
+              <Kpi
                 label="Drawn"
                 value={formatUsdMinor(
                   projectCommitments.reduce(
@@ -669,12 +679,12 @@ export default async function ProjectDetailPage({
                   ),
                 )}
               />
-              <Stat
+              <Kpi
                 label="Self-sustaining"
                 value={
                   sustainCheck?.isThresholdMet ? "Yes" : "Not yet"
                 }
-                hint={
+                sub={
                   sustainCheck
                     ? `Net 90d ${formatUsdMinor(
                         BigInt(sustainCheck.netCashFlowUsdMinor),
@@ -683,10 +693,8 @@ export default async function ProjectDetailPage({
                 }
               />
             </div>
-            <Section
-              eyebrow="Commitments"
-              title="Investor capital allocated to this project"
-            >
+            <div>
+              <div className="label mb-2.5">Commitments</div>
               <Table>
                 <THead>
                   <TR>
@@ -725,28 +733,25 @@ export default async function ProjectDetailPage({
                       <TDNum>{c.drawnPercent.toFixed(1)}%</TDNum>
                       <TDNum>{Number(c.profitSharePercent).toFixed(1)}%</TDNum>
                       <TD>
-                        <Badge
+                        <HandoffBadge
                           tone={
                             c.status === "active"
-                              ? "success"
+                              ? "ok"
                               : c.status === "fully_called"
                                 ? "info"
-                                : "neutral"
+                                : "soft"
                           }
                         >
                           {COMMITMENT_STATUS_LABEL[c.status]}
-                        </Badge>
+                        </HandoffBadge>
                       </TD>
                     </TR>
                   ))}
                 </TBody>
               </Table>
-            </Section>
-            <Section
-              eyebrow="AI"
-              title="Distribution preview"
-              description="The AI agent reviews this project's cash flow and suggests whether to declare a distribution. Suggestions are HITL: nothing is declared without your approval. Conservative defaults (6-month buffer, 30-day cooldown, capital-return-first) are enforced in code regardless of the AI's view."
-            >
+            </div>
+            <div>
+              <div className="label mb-2.5">AI</div>
               <DistributionSuggestionCard
                 projectId={project.realProjectId}
                 isSelfSustaining={Boolean(sustainCheck?.isThresholdMet)}
@@ -810,7 +815,7 @@ export default async function ProjectDetailPage({
                     : null
                 }
               />
-            </Section>
+            </div>
           </div>
         ),
     },
@@ -826,34 +831,32 @@ export default async function ProjectDetailPage({
         ) : (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Stat
+              <Kpi
                 label="Total budget"
                 value={formatUsdMinor(BigInt(financialSummary.totalBudgetUsdMinor))}
               />
-              <Stat
+              <Kpi
                 label="Committed (POs)"
                 value={formatUsdMinor(
                   BigInt(financialSummary.totalCommittedUsdMinor),
                 )}
               />
-              <Stat
+              <Kpi
                 label="Actual spent"
                 value={formatUsdMinor(
                   BigInt(financialSummary.totalActualUsdMinor),
                 )}
-                hint={`${financialSummary.budgetConsumedPercent.toFixed(1)}% of budget`}
+                sub={`${financialSummary.budgetConsumedPercent.toFixed(1)}% of budget`}
               />
-              <Stat
+              <Kpi
                 label="Remaining"
                 value={formatUsdMinor(
                   BigInt(financialSummary.remainingBudgetUsdMinor),
                 )}
               />
             </div>
-            <Section
-              eyebrow="Three-state"
-              title="Budget vs committed vs actual"
-            >
+            <div>
+              <div className="label mb-2.5">Three-state</div>
               {budgetRows.length === 0 ? (
                 <EmptyState
                   title="No budget lines for this project yet"
@@ -890,12 +893,10 @@ export default async function ProjectDetailPage({
                   </TBody>
                 </Table>
               )}
-            </Section>
+            </div>
             {projectTransactions.length > 0 && (
-              <Section
-                eyebrow="Activity"
-                title={`Last ${projectTransactions.length} transactions`}
-              >
+              <div>
+                <div className="label mb-2.5">Activity</div>
                 <Table>
                   <THead>
                     <TR>
@@ -919,17 +920,17 @@ export default async function ProjectDetailPage({
                         </TD>
                         <TD className="text-xs">{t.transactionDate}</TD>
                         <TD>
-                          <Badge
+                          <HandoffBadge
                             tone={
                               t.direction === "inflow"
-                                ? "success"
+                                ? "ok"
                                 : t.direction === "outflow"
                                   ? "danger"
-                                  : "neutral"
+                                  : "soft"
                             }
                           >
                             {t.direction}
-                          </Badge>
+                          </HandoffBadge>
                         </TD>
                         <TD className="text-xs">{t.description}</TD>
                         <TDNum>{formatUsdMinor(BigInt(t.amountUsdMinor))}</TDNum>
@@ -937,7 +938,7 @@ export default async function ProjectDetailPage({
                     ))}
                   </TBody>
                 </Table>
-              </Section>
+              </div>
             )}
           </div>
         ),
@@ -1002,17 +1003,17 @@ export default async function ProjectDetailPage({
         ) : (
           <div className="flex flex-col gap-4">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              <Stat
+              <Kpi
                 label="Total reports"
                 value={String(projectSiteReports.length)}
               />
-              <Stat
+              <Kpi
                 label="With blockers"
                 value={String(
                   projectSiteReports.filter((r) => r.blockerCount > 0).length,
                 )}
               />
-              <Stat
+              <Kpi
                 label="Avg workers"
                 value={String(
                   Math.round(
@@ -1023,17 +1024,15 @@ export default async function ProjectDetailPage({
                   ),
                 )}
               />
-              <Stat
+              <Kpi
                 label="Photos uploaded"
                 value={String(
                   projectSiteReports.reduce((a, r) => a + r.photoCount, 0),
                 )}
               />
             </div>
-            <Section
-              eyebrow="Recent"
-              title={`Last ${Math.min(20, projectSiteReports.length)} reports`}
-            >
+            <div>
+              <div className="label mb-2.5">Recent</div>
               <Table>
                 <THead>
                   <TR>
@@ -1067,31 +1066,31 @@ export default async function ProjectDetailPage({
                       <TDNum>{r.photoCount}</TDNum>
                       <TDNum>
                         {r.blockerCount > 0 ? (
-                          <Badge tone="warning">{r.blockerCount}</Badge>
+                          <HandoffBadge tone="warn">{r.blockerCount}</HandoffBadge>
                         ) : (
                           "—"
                         )}
                       </TDNum>
                       <TD>
-                        <Badge
+                        <HandoffBadge
                           tone={
                             r.status === "reviewed"
-                              ? "success"
+                              ? "ok"
                               : r.status === "submitted"
                                 ? "info"
                                 : r.status === "flagged"
                                   ? "danger"
-                                  : "neutral"
+                                  : "soft"
                           }
                         >
                           {REPORT_STATUS_LABEL[r.status]}
-                        </Badge>
+                        </HandoffBadge>
                       </TD>
                     </TR>
                   ))}
                 </TBody>
               </Table>
-            </Section>
+            </div>
           </div>
         ),
     },
@@ -1141,19 +1140,19 @@ export default async function ProjectDetailPage({
                   <TD className="text-xs">{e.startDate}</TD>
                   <TD className="text-xs">{e.expectedEndDate ?? "—"}</TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         e.status === "active"
-                          ? "success"
+                          ? "ok"
                           : e.status === "completed"
-                            ? "neutral"
+                            ? "soft"
                             : e.status === "terminated"
                               ? "danger"
-                              : "warning"
+                              : "warn"
                       }
                     >
                       {ENGAGEMENT_STATUS_LABEL[e.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
@@ -1209,19 +1208,19 @@ export default async function ProjectDetailPage({
                   <TDNum>{p.lineCount}</TDNum>
                   <TDNum>{formatUsdMinor(BigInt(p.totalAmountUsdMinor))}</TDNum>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         p.status === "fully_delivered"
-                          ? "success"
+                          ? "ok"
                           : p.status === "partially_delivered"
                             ? "info"
                             : p.status === "ordered"
-                              ? "warning"
-                              : "neutral"
+                              ? "warn"
+                              : "soft"
                       }
                     >
                       {MATERIAL_PO_STATUS_LABEL[p.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
@@ -1266,9 +1265,9 @@ export default async function ProjectDetailPage({
                   <TD className="font-mono text-xs">{i.incidentCode}</TD>
                   <TD className="text-xs">{i.incidentDate}</TD>
                   <TD>
-                    <Badge tone={SAFETY_SEVERITY_TONE[i.severity]}>
+                    <HandoffBadge tone={SEVERITY_HANDOFF_TONE[SAFETY_SEVERITY_TONE[i.severity]]}>
                       {SAFETY_SEVERITY_LABEL[i.severity]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                   <TD className="text-xs text-ink-secondary">
                     {SAFETY_CATEGORY_LABEL[i.category]}
@@ -1280,17 +1279,17 @@ export default async function ProjectDetailPage({
                       : i.description}
                   </TD>
                   <TD>
-                    <Badge
+                    <HandoffBadge
                       tone={
                         i.status === "open"
                           ? "danger"
                           : i.status === "under_investigation"
-                            ? "warning"
-                            : "neutral"
+                            ? "warn"
+                            : "soft"
                       }
                     >
                       {SAFETY_STATUS_LABEL[i.status]}
-                    </Badge>
+                    </HandoffBadge>
                   </TD>
                 </TR>
               ))}
