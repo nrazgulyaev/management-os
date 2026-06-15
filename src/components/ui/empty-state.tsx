@@ -167,8 +167,25 @@ export function EmptyState(props: EmptyStateProps) {
     );
   }
 
-  // Legacy render — preserves existing visuals for ~50 callsites.
+  // Legacy render.
   const { icon, title, description, action, className, tone = "default" } = props;
+
+  // The plain `default` tone now renders the design-system `.empty` block —
+  // the same mock-matched markup the variant API (and ~200 other EmptyState
+  // callsites) already use — so the common empty surface is consistent
+  // everywhere. The richer gradient tones (soft/emerald/gold/coral) keep their
+  // distinctive cards (intentional on the owner/marketing surfaces).
+  if (tone === "default") {
+    return (
+      <div className={cn("empty", className)} data-variant="no-results">
+        <div className="glyph">{icon ?? <DefaultGlyph variant="no-results" />}</div>
+        <h3>{title}</h3>
+        {description !== undefined && description !== null && <p>{description}</p>}
+        {action && <div className="actions">{action}</div>}
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
