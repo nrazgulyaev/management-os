@@ -113,3 +113,12 @@ export async function archiveDocumentAction(
   if (!id.success) return { ok: false, error: "Missing document id." };
   return transition(id.data, "archived", "document.archive");
 }
+
+export async function unarchiveDocumentAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Missing document id." };
+  return transition(id.data, "active", "document.unarchive");
+}

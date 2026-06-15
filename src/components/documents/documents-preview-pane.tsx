@@ -11,6 +11,10 @@ import {
   markDocumentSignedAction,
   deleteDocumentAppAction,
 } from "@/features/documents/app-actions";
+import {
+  archiveDocumentAction,
+  unarchiveDocumentAction,
+} from "@/features/documents/actions";
 import { DocumentAiFeedModal } from "./documents-ai-feed";
 import { SignatureRequestButton } from "./documents-signature-modals";
 import { VersionCompareButton } from "./documents-version-modals";
@@ -320,6 +324,39 @@ export function DocumentPreviewPane({
             >
               {isFed ? "Manage AI knowledge" : "Feed to AI agent"}
             </Button>
+            {doc.status === "archived" ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={pending}
+                title="Restore this document to active"
+                onClick={() =>
+                  run(() => {
+                    const fd = new FormData();
+                    fd.append("id", doc.id);
+                    return unarchiveDocumentAction(null, fd);
+                  })
+                }
+              >
+                Unarchive
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={pending}
+                title="Archive — soft-hide without deleting"
+                onClick={() =>
+                  run(() => {
+                    const fd = new FormData();
+                    fd.append("id", doc.id);
+                    return archiveDocumentAction(null, fd);
+                  })
+                }
+              >
+                Archive
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"

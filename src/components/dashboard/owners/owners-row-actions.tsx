@@ -23,7 +23,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Pencil, Archive, ExternalLink } from "lucide-react";
+import { Pencil, Archive, ArchiveRestore, ExternalLink } from "lucide-react";
 import {
   RowActionsMenu,
   EntityFormModal,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/primitives";
 import {
   archiveOwnerAction,
+  unarchiveOwnerAction,
   updateOwnerAction,
 } from "@/features/owners/actions";
 import {
@@ -197,6 +198,13 @@ export function OwnersRowActions({
 
   const fields = React.useMemo(() => fieldsFor(kind), [kind]);
 
+  // Owners carry a status (active / archived / …). When archived, the
+  // per-row menu offers "Reactivate" (unarchiveOwnerAction) instead of
+  // "Archive" — mirroring the archive↔unarchive toggle the action layer
+  // already supports. Only owners have an unarchive action here.
+  const isArchivedOwner =
+    kind === "owner" && row.values.status === "archived";
+
   async function onSubmit(values: Record<string, unknown>) {
     // Merge: full row values are the baseline (each existing edit
     // schema requires every create-field) + user's edits override.
@@ -229,6 +237,14 @@ export function OwnersRowActions({
     router.refresh();
   }
 
+  async function onUnarchive() {
+    const fd = new FormData();
+    fd.append("id", row.id);
+    const result = await unarchiveOwnerAction(null, fd);
+    if (!result.ok) throw new Error(result.error);
+    router.refresh();
+  }
+
   return (
     <>
       <RowActionsMenu
@@ -252,15 +268,26 @@ export function OwnersRowActions({
             permitted: canWrite,
             onSelect: () => setEditOpen(true),
           },
-          {
-            id: "archive",
-            label: kind === "share" ? "End share" : "Archive",
-            icon: Archive,
-            tone: "danger",
-            permitted: canWrite,
-            separatorBefore: true,
-            onSelect: () => setArchiveOpen(true),
-          },
+          isArchivedOwner
+            ? {
+                id: "unarchive",
+                label: "Reactivate",
+                icon: ArchiveRestore,
+                permitted: canWrite,
+                separatorBefore: true,
+                onSelect: () => {
+                  void onUnarchive();
+                },
+              }
+            : {
+                id: "archive",
+                label: kind === "share" ? "End share" : "Archive",
+                icon: Archive,
+                tone: "danger",
+                permitted: canWrite,
+                separatorBefore: true,
+                onSelect: () => setArchiveOpen(true),
+              },
         ]}
       />
       <EntityFormModal

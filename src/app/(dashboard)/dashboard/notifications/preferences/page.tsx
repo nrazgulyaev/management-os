@@ -2,14 +2,20 @@ import Link from "next/link";
 import { Card, Kpi } from "@/components/dashboard/primitives";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { TableEmpty } from "@/components/ui/table-empty";
+import { ModalFirstAddButton } from "@/components/ui/primitives/modal-first-add-button";
 import { SelfPreferenceForm } from "@/components/notifications/self-preference-form";
+import { PreferenceForm } from "@/components/notifications/preference-form";
+import { PreferenceEditButton } from "@/components/notifications/preference-edit-button";
 import { listNotificationPreferences } from "@/features/notifications/services";
+import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 
 export const metadata = { title: "Notification preferences" };
 export const dynamic = "force-dynamic";
 
 export default async function NotificationPreferencesPage() {
   const rows = await listNotificationPreferences();
+  const ctx = await getCurrentUserContext();
+  const canManage = hasPermission(ctx, "notifications.manage");
   const enabledCount = rows.filter((p) => p.enabled).length;
   const quietHoursCount = rows.filter(
     (p) => p.quietHoursStart || p.quietHoursEnd,
@@ -29,6 +35,16 @@ export default async function NotificationPreferencesPage() {
             &gt; role &gt; global).
           </p>
         </div>
+        {canManage && (
+          <div className="actions">
+            <ModalFirstAddButton
+              label="Add preference"
+              modalTitle="Add preference"
+              modalDescription="Configure a per-user, per-owner, per-role or global channel preference."
+              formComponent={PreferenceForm}
+            />
+          </div>
+        )}
       </div>
 
       <DbStatusNotice />
@@ -63,11 +79,16 @@ export default async function NotificationPreferencesPage() {
               <th scope="col">Template</th>
               <th scope="col">Enabled</th>
               <th scope="col">Quiet hours</th>
+              {canManage && (
+                <th scope="col" className="text-right">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <TableEmpty colSpan={5}>
+              <TableEmpty colSpan={canManage ? 6 : 5}>
                 No preferences configured yet. Defaults apply: in-app channel
                 always on, external channels off until Resend / Twilio env is
                 set and dry-run is off.
@@ -102,6 +123,23 @@ export default async function NotificationPreferencesPage() {
                       ? `${p.quietHoursStart ?? "—"} → ${p.quietHoursEnd ?? "—"}`
                       : "—"}
                   </td>
+                  {canManage && (
+                    <td className="text-right">
+                      <PreferenceEditButton
+                        row={{
+                          id: p.id,
+                          appUserId: p.appUserId,
+                          ownerId: p.ownerId,
+                          roleKey: p.roleKey,
+                          channel: p.channel,
+                          templateKey: p.templateKey,
+                          enabled: p.enabled,
+                          quietHoursStart: p.quietHoursStart,
+                          quietHoursEnd: p.quietHoursEnd,
+                        }}
+                      />
+                    </td>
+                  )}
                 </tr>
               ))
             )}

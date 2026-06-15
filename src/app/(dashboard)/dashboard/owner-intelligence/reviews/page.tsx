@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listAdminReviews } from "@/features/owner-intelligence/reviews-services";
+import { listVillas } from "@/features/villas/services";
 import {
   HideReviewButton,
   PublishReviewButton,
 } from "@/components/owner-intelligence/snapshot-buttons";
+import { ManualReviewAddButton } from "@/components/owner-intelligence/manual-review-add-button";
 
 export const metadata = { title: "Guest reviews" };
 export const dynamic = "force-dynamic";
@@ -43,7 +45,16 @@ export default async function ReviewsAdminPage({
       ? sp.status
       : undefined;
   const source = sp.source || undefined;
-  const reviews = await listAdminReviews({ status, source, limit: 200 });
+  const [reviews, villaList] = await Promise.all([
+    listAdminReviews({ status, source, limit: 200 }),
+    listVillas(),
+  ]);
+  const villaOptions = villaList.map((v) => ({
+    id: v.id,
+    label: v.name
+      ? `${v.unitCode} · ${v.name} (${v.projectName})`
+      : `${v.unitCode} (${v.projectName})`,
+  }));
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -60,6 +71,9 @@ export default async function ReviewsAdminPage({
             never reach the owner portal — even when the underlying booking is
             owned by them.
           </p>
+        </div>
+        <div className="actions">
+          <ManualReviewAddButton villas={villaOptions} />
         </div>
       </div>
 

@@ -8,10 +8,15 @@ import {
   listVendorInvoices,
   listVendorServices,
 } from "@/features/service-fulfilment/services";
+import { listAllCatalogServices } from "@/features/guest-services/services";
 import {
   formatFulfilmentAmountForAdmin,
 } from "@/features/service-fulfilment/pricing-pure";
-import { VendorStatusButton } from "@/components/service-fulfilment/buttons";
+import {
+  AttachVendorServiceButton,
+  PauseVendorServiceButton,
+  VendorStatusButton,
+} from "@/components/service-fulfilment/buttons";
 
 export const metadata = { title: "Vendor detail" };
 export const dynamic = "force-dynamic";
@@ -24,12 +29,18 @@ export default async function VendorDetailPage({
   const { id } = await params;
   const vendor = await getServiceVendorById(id);
   if (!vendor) notFound();
-  const [services, fulfilments, invoices, ratings] = await Promise.all([
-    listVendorServices(id),
-    listGuestServiceFulfilments({ vendorId: id, limit: 20 }),
-    listVendorInvoices({ vendorId: id, limit: 20 }),
-    listGuestServiceRatings({ vendorId: id, limit: 20 }),
-  ]);
+  const [services, fulfilments, invoices, ratings, catalogue] =
+    await Promise.all([
+      listVendorServices(id),
+      listGuestServiceFulfilments({ vendorId: id, limit: 20 }),
+      listVendorInvoices({ vendorId: id, limit: 20 }),
+      listGuestServiceRatings({ vendorId: id, limit: 20 }),
+      listAllCatalogServices({ status: "active", limit: 500 }),
+    ]);
+  const serviceOptions = catalogue.map((s) => ({
+    id: s.id,
+    label: s.villaCode ? `${s.name} · ${s.villaCode}` : s.name,
+  }));
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -70,7 +81,14 @@ export default async function VendorDetailPage({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div>
-            <div className="label mb-2.5">Catalogue</div>
+            <div className="mb-2.5 flex items-center justify-between gap-3">
+              <div className="label">Catalogue</div>
+              <AttachVendorServiceButton
+                vendorId={vendor.id}
+                services={serviceOptions}
+                defaultCurrency={vendor.defaultCurrency}
+              />
+            </div>
             {services.length === 0 ? (
               <p className="text-xs text-ink-tertiary">
                 No services mapped yet.
@@ -90,9 +108,17 @@ export default async function VendorDetailPage({
                         {formatFulfilmentAmountForAdmin(link.baseCostMinor, link.currency)}
                       </span>
                     </div>
-                    <HandoffBadge tone={link.status === "active" ? "ok" : "soft"}>
-                      {link.status}
-                    </HandoffBadge>
+                    <div className="flex items-center gap-3">
+                      <HandoffBadge tone={link.status === "active" ? "ok" : "soft"}>
+                        {link.status}
+                      </HandoffBadge>
+                      {link.status === "active" && (
+                        <PauseVendorServiceButton
+                          vendorId={vendor.id}
+                          serviceId={link.serviceId}
+                        />
+                      )}
+                    </div>
                   </li>
                 ))}
               </ul>

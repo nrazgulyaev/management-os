@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, HandoffBadge, Kpi } from "@/components/dashboard/primitives";
 import { listDepartures } from "@/features/front-office/services";
 import { CheckOutButton } from "@/components/front-office/check-in-out-buttons";
+import { ExpectedCheckoutEditor } from "@/components/front-office/expected-checkout-editor";
 
 export const metadata = { title: "Departures" };
 export const dynamic = "force-dynamic";
@@ -88,8 +89,11 @@ export default async function DeparturesPage({
                   <td className="row-title">{r.bookingCode}</td>
                   <td className="text-ink-2">{r.villaCode ?? "—"}</td>
                   <td className="text-ink-2">{r.guestDisplay}</td>
-                  <td className="num text-ink-3">
-                    {r.expectedCheckoutAt ? r.expectedCheckoutAt.slice(0, 16).replace("T", " ") : "—"}
+                  <td className="num">
+                    <ExpectedCheckoutEditor
+                      bookingId={r.bookingId}
+                      expectedCheckoutAt={r.expectedCheckoutAt}
+                    />
                   </td>
                   <td>
                     {r.cleaningTaskStatus ? (
