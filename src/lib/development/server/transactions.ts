@@ -8,6 +8,7 @@ import {
   devCostCategories,
 } from "@/lib/db/schema/dev-finance";
 import type { SupportedCurrency } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const toStr = (v: unknown): string =>
   v === null || v === undefined ? "0" : String(v);
@@ -107,7 +108,12 @@ export async function getTransactions(
 ): Promise<TransactionListItem[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANT-1 — org scoping is MANDATORY here regardless of the optional
+  // filters.organizationId, so unscoped callers (recent-tx widget,
+  // shared-costs page, bulk-import export) can no longer span tenants.
+  const organizationId = await requireOrgId();
   const conditions = buildTransactionConditions(filters);
+  conditions.push(eq(devTransactions.organizationId, organizationId));
 
   const where = conditions.length ? and(...conditions) : undefined;
   const limit = pagination.limit ?? 100;
@@ -193,7 +199,10 @@ export async function getTransactionLedgerSummary(
 ): Promise<TransactionLedgerSummary> {
   const db = getDb();
   if (!db) return EMPTY_LEDGER_SUMMARY;
+  // TENANT-1 — mandatory org scope so the aggregate can never span tenants.
+  const organizationId = await requireOrgId();
   const conditions = buildTransactionConditions(filters);
+  conditions.push(eq(devTransactions.organizationId, organizationId));
   const where = conditions.length ? and(...conditions) : undefined;
 
   const rows = await db

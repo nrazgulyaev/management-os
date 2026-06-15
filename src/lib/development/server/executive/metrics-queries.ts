@@ -89,11 +89,13 @@ export async function listRecentCompanySnapshots(limit = 30) {
 export async function listCompanySnapshotsInRange(start: Date, end: Date) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(executiveMetricsSnapshots)
     .where(
       and(
+        eq(executiveMetricsSnapshots.organizationId, organizationId),
         eq(executiveMetricsSnapshots.scope, "company_wide"),
         isNull(executiveMetricsSnapshots.projectId),
         gte(executiveMetricsSnapshots.snapshotDate, isoDate(start)),

@@ -14,9 +14,10 @@ import "server-only";
  * Money is bigint MINOR units throughout.
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { revenueLines, expenseLines } from "@/lib/db/schema/finance";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { postJournal } from "./post-journal";
 
 function today(): string {
@@ -37,20 +38,58 @@ export async function postFinanceToGl(
   const db = getDb();
   if (!db) return { revenuePosted: 0, expensePosted: 0, reused: 0 };
 
-  // NOTE: the finance sub-ledgers (revenue_lines / expense_lines) and their
-  // projects/villas are single-tenant in the current schema (no org column),
-  // so we post all `posted` lines into the caller's org GL. The chart of
-  // accounts IS org-scoped, so entries land in the correct ledger.
+  // TENANCY (write-flow IDOR): revenue_lines / expense_lines have NO
+  // organization_id, but they DO carry villa_id / project_id, and
+  // projects.organizationId is the org anchor (villas → projects). Without
+  // scoping, this would post EVERY tenant's posted lines into the caller's
+  // org GL (cross-tenant money leak). Derive the caller's owned villa/project
+  // id sets and only post lines anchored to them — same approach the owner
+  // statement generator uses for these sub-ledgers.
+  const ownedProjects = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(eq(projects.organizationId, organizationId));
+  const projectIds = ownedProjects.map((p) => p.id);
+  const ownedVillas = projectIds.length
+    ? await db
+        .select({ id: villas.id })
+        .from(villas)
+        .where(inArray(villas.projectId, projectIds))
+    : [];
+  const villaIds = ownedVillas.map((v) => v.id);
+
   let revenuePosted = 0;
   let expensePosted = 0;
   let reused = 0;
+
+  // No projects/villas in this org → no sub-ledger lines belong to it.
+  if (projectIds.length === 0 && villaIds.length === 0) {
+    return { revenuePosted: 0, expensePosted: 0, reused: 0 };
+  }
+
+  // A line belongs to the org if its villa_id is one of the org's villas OR
+  // its project_id is one of the org's projects. Lines with neither FK set
+  // have no tenant anchor and are intentionally excluded.
+  const orgAnchorPredicates = [
+    villaIds.length ? inArray(revenueLines.villaId, villaIds) : undefined,
+    projectIds.length ? inArray(revenueLines.projectId, projectIds) : undefined,
+  ].filter(Boolean);
+  const expenseAnchorPredicates = [
+    villaIds.length ? inArray(expenseLines.villaId, villaIds) : undefined,
+    projectIds.length ? inArray(expenseLines.projectId, projectIds) : undefined,
+  ].filter(Boolean);
 
   try {
     // ---- Revenue ----
     const revRows = await db
       .select()
       .from(revenueLines)
-      .where(eq(revenueLines.status, "posted"))
+      .where(
+        and(
+          eq(revenueLines.status, "posted"),
+          or(...orgAnchorPredicates),
+        ),
+      )
       .limit(limit);
     for (const r of revRows) {
       const amount = BigInt(r.amountMinor);
@@ -74,7 +113,12 @@ export async function postFinanceToGl(
     const expRows = await db
       .select()
       .from(expenseLines)
-      .where(eq(expenseLines.status, "posted"))
+      .where(
+        and(
+          eq(expenseLines.status, "posted"),
+          or(...expenseAnchorPredicates),
+        ),
+      )
       .limit(limit);
     for (const e of expRows) {
       const amount = BigInt(e.amountMinor);

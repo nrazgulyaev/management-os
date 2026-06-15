@@ -106,7 +106,12 @@ export async function recordTransaction(
     const [account] = await tx
       .select()
       .from(devBankAccounts)
-      .where(eq(devBankAccounts.id, parsed.bankAccountId))
+      .where(
+        and(
+          eq(devBankAccounts.id, parsed.bankAccountId),
+          eq(devBankAccounts.organizationId, organizationId),
+        ),
+      )
       .limit(1);
     if (!account) throw new Error("Bank account not found");
     if (account.currency !== parsed.currency) {

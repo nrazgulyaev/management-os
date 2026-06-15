@@ -1,16 +1,35 @@
 "use server";
 
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireDb } from "@/lib/db/client";
 import { aiInvestorQaDrafts } from "@/lib/db/schema/ai-development";
 import { investors } from "@/lib/db/schema/investor-capital";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   draftInvestorResponse,
   type DraftInvestorResponseResult,
 } from "@/lib/development/ai/investor-relations";
+
+/**
+ * TENANCY — `ai_investor_qa_drafts.organization_id` is nullable and NOT
+ * threaded (null on every row, migration 0154), so drafts are scoped by
+ * their investor's org. This returns a SQL predicate constraining a draft's
+ * `investorId` to investors owned by the caller's org; AND it into every
+ * mutate/read WHERE so org A cannot touch org B's investor drafts.
+ */
+function draftInOrg(organizationId: string) {
+  const db = requireDb();
+  return inArray(
+    aiInvestorQaDrafts.investorId,
+    db
+      .select({ id: investors.id })
+      .from(investors)
+      .where(eq(investors.organizationId, organizationId)),
+  );
+}
 
 const generateSchema = z.object({
   investorId: z.string().uuid(),
@@ -24,15 +43,27 @@ export async function generateInvestorDraft(
 ): Promise<DraftInvestorResponseResult> {
   const parsed = generateSchema.parse(input);
   await requireInternalUser();
-  const out = await draftInvestorResponse(parsed);
-  // Resolve investor code for the path revalidation.
+  const organizationId = await requireOrgId();
   const db = requireDb();
+
+  // TENANCY — verify the investor belongs to the caller's org BEFORE drafting.
+  // draftInvestorResponse loads the investor + its commitments/wallets/
+  // distributions with no org filter and writes a draft against it, so a raw
+  // foreign investorId must be rejected here first.
   const [inv] = await db
     .select({ code: investors.investorCode })
     .from(investors)
-    .where(eq(investors.id, parsed.investorId))
+    .where(
+      and(
+        eq(investors.id, parsed.investorId),
+        eq(investors.organizationId, organizationId),
+      ),
+    )
     .limit(1);
-  if (inv) revalidatePath(`/development-os/investors/${inv.code}`);
+  if (!inv) throw new Error("Investor not found");
+
+  const out = await draftInvestorResponse(parsed);
+  revalidatePath(`/development-os/investors/${inv.code}`);
   return out;
 }
 
@@ -44,6 +75,7 @@ export async function approveInvestorDraft(
   const parsed = idSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(aiInvestorQaDrafts)
@@ -53,7 +85,12 @@ export async function approveInvestorDraft(
       reviewedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiInvestorQaDrafts.id, parsed.draftId));
+    .where(
+      and(
+        eq(aiInvestorQaDrafts.id, parsed.draftId),
+        draftInOrg(organizationId),
+      ),
+    );
   await revalidatePathForDraft(parsed.draftId);
   return { ok: true };
 }
@@ -69,6 +106,7 @@ export async function editAndApproveInvestorDraft(
   const parsed = editSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(aiInvestorQaDrafts)
@@ -79,7 +117,12 @@ export async function editAndApproveInvestorDraft(
       reviewedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiInvestorQaDrafts.id, parsed.draftId));
+    .where(
+      and(
+        eq(aiInvestorQaDrafts.id, parsed.draftId),
+        draftInOrg(organizationId),
+      ),
+    );
   await revalidatePathForDraft(parsed.draftId);
   return { ok: true };
 }
@@ -95,6 +138,7 @@ export async function rejectInvestorDraft(
   const parsed = rejectSchema.parse(input);
   const me = await requireInternalUser();
   const meId = me.appUser?.id ?? null;
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(aiInvestorQaDrafts)
@@ -104,7 +148,12 @@ export async function rejectInvestorDraft(
       reviewedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(aiInvestorQaDrafts.id, parsed.draftId));
+    .where(
+      and(
+        eq(aiInvestorQaDrafts.id, parsed.draftId),
+        draftInOrg(organizationId),
+      ),
+    );
   await revalidatePathForDraft(parsed.draftId);
   return { ok: true };
 }
@@ -119,6 +168,7 @@ export async function markInvestorDraftSent(
 ): Promise<{ ok: true }> {
   const parsed = sentSchema.parse(input);
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(aiInvestorQaDrafts)
@@ -128,13 +178,34 @@ export async function markInvestorDraftSent(
       sentVia: parsed.sentVia,
       updatedAt: new Date(),
     })
-    .where(eq(aiInvestorQaDrafts.id, parsed.draftId));
+    .where(
+      and(
+        eq(aiInvestorQaDrafts.id, parsed.draftId),
+        draftInOrg(organizationId),
+      ),
+    );
   await revalidatePathForDraft(parsed.draftId);
   return { ok: true };
 }
 
 export async function getInvestorDrafts(investorId: string, limit = 20) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
+  // TENANCY — verify the investor belongs to the caller's org before reading
+  // its AI Q&A drafts (questions + drafted/approved responses). Scoped via the
+  // investor's org because the draft rows' org column is null (not threaded).
+  const [investor] = await db
+    .select({ id: investors.id })
+    .from(investors)
+    .where(
+      and(
+        eq(investors.id, investorId),
+        eq(investors.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!investor) return [];
   return await db
     .select()
     .from(aiInvestorQaDrafts)

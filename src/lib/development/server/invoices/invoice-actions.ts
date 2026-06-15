@@ -236,12 +236,14 @@ export async function listInvoices(opts?: {
   limit?: number;
 }) {
   const db = requireDb();
-  const conditions = [];
+  // TENANCY — always scope to the caller's org; the optional filters only narrow further.
+  const organizationId = await requireOrgId();
+  const conditions = [eq(devInvoices.organizationId, organizationId)];
   if (opts?.invoiceType) conditions.push(eq(devInvoices.invoiceType, opts.invoiceType));
   if (opts?.status) conditions.push(eq(devInvoices.status, opts.status));
   if (opts?.vendorId) conditions.push(eq(devInvoices.vendorId, opts.vendorId));
   if (opts?.projectId) conditions.push(eq(devInvoices.projectId, opts.projectId));
-  const where = conditions.length > 0 ? and(...conditions) : sql`true`;
+  const where = and(...conditions);
   return await db
     .select()
     .from(devInvoices)
@@ -252,10 +254,17 @@ export async function listInvoices(opts?: {
 
 export async function getInvoice(invoiceId: string) {
   const db = requireDb();
+  // TENANCY — scope the detail read to the caller's org so a cross-org id 404s.
+  const organizationId = await requireOrgId();
   const [inv] = await db
     .select()
     .from(devInvoices)
-    .where(eq(devInvoices.id, invoiceId))
+    .where(
+      and(
+        eq(devInvoices.id, invoiceId),
+        eq(devInvoices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!inv) return null;
   const lines = await db
