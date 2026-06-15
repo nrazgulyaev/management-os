@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getProjectRiskByCode } from "@/lib/development/server/risks/risk-queries";
+import { RiskStatusActions } from "./_status-actions";
 
 export const metadata: Metadata = { title: "Risk · Development OS" };
 export const dynamic = "force-dynamic";
@@ -81,6 +82,12 @@ export default async function RiskDetailPage({
             <HandoffBadge tone={STATUS_TONE[risk.mitigationStatus] ?? "soft"}>
               {risk.mitigationStatus}
             </HandoffBadge>
+          </div>
+          <div className="mt-3">
+            <RiskStatusActions
+              riskId={risk.id}
+              status={risk.mitigationStatus}
+            />
           </div>
         </Card>
       </div>

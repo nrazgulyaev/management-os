@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, sql, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   bankConnections,
@@ -10,17 +10,22 @@ import {
   statementImports,
   type MatchStatus,
 } from "@/lib/db/schema/banking";
+import { contractGroups, invoices } from "@/lib/db/schema/sales";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Stage 6.P3.G — Read queries for the bookkeeper UI.
  *
- * RLS at the DB layer keeps per-org isolation honest; we don't
- * filter by organization_id here.
+ * TENANCY: the DB role is BYPASSRLS, so there is NO RLS net — per-org
+ * isolation MUST be enforced in code here. Each reader that surfaces
+ * tenant data hard-scopes by `requireOrgId()`. (An earlier comment here
+ * falsely claimed RLS handled isolation; it does not.)
  */
 
 export async function listBankConnectionsForUi() {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   return db
     .select({
       id: bankConnections.id,
@@ -34,6 +39,7 @@ export async function listBankConnectionsForUi() {
       lastSyncError: bankConnections.lastSyncError,
     })
     .from(bankConnections)
+    .where(eq(bankConnections.organizationId, orgId))
     .orderBy(desc(bankConnections.createdAt))
     .limit(200);
 }
@@ -46,7 +52,10 @@ export async function listBankTransactionsForUi(opts: {
 }) {
   const db = getDb();
   if (!db) return [];
-  const conds = [] as ReturnType<typeof eq>[];
+  const orgId = await requireOrgId();
+  const conds = [
+    eq(bankTransactions.organizationId, orgId),
+  ] as ReturnType<typeof eq>[];
   if (opts.matchStatus) {
     conds.push(eq(bankTransactions.matchStatus, opts.matchStatus));
   }
@@ -58,7 +67,7 @@ export async function listBankTransactionsForUi(opts: {
   if (opts.uncategorizedOnly) {
     conds.push(isNull(bankTransactions.categoryId) as never);
   }
-  const where = conds.length > 0 ? and(...conds) : sql`true`;
+  const where = and(...conds);
   return db
     .select({
       id: bankTransactions.id,
@@ -109,15 +118,50 @@ export async function listClosedPeriodsForUi(opts: { limit?: number } = {}) {
     .limit(opts.limit ?? 24);
 }
 
+/**
+ * Open invoices for the caller's org, for the manual-match `<select>` on
+ * the reconciliation + bank-review screens. Org-scoped through the invoice's
+ * contract group (contract_groups.organization_id) — the exact scope
+ * matchInvoiceAction validates against, so every option here is acceptable to
+ * the action. Limited to not-yet-settled statuses (the auto-matcher's
+ * candidate pool); paid/void invoices are excluded.
+ */
+export async function listOpenInvoicesForMatch() {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  return db
+    .select({
+      id: invoices.id,
+      invoiceNumber: invoices.invoiceNumber,
+      amountUsdMinor: invoices.amountUsdMinor,
+      currency: invoices.currency,
+      dueDate: invoices.dueDate,
+      status: invoices.status,
+    })
+    .from(invoices)
+    .innerJoin(contractGroups, eq(contractGroups.id, invoices.contractGroupId))
+    .where(
+      and(
+        eq(contractGroups.organizationId, orgId),
+        inArray(invoices.status, ["draft", "sent", "viewed", "overdue"]),
+      ),
+    )
+    .orderBy(desc(invoices.issuedAt))
+    .limit(200);
+}
+
 export async function getReconciliationStats() {
   const db = getDb();
   if (!db) return { unmatched: 0, partial: 0, matched: 0 };
+  const orgId = await requireOrgId();
   const rows = await db
     .select({
       status: bankTransactions.matchStatus,
       total: sql<number>`count(*)::int`,
     })
     .from(bankTransactions)
+    .where(eq(bankTransactions.organizationId, orgId))
     .groupBy(bankTransactions.matchStatus);
   const out = { unmatched: 0, partial: 0, matched: 0 };
   for (const r of rows) {

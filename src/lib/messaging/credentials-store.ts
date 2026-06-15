@@ -1,9 +1,11 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+import { appUsers } from "@/lib/db/schema/identity";
 import {
   conversationThreads,
   messageTemplates,
@@ -119,15 +121,27 @@ export async function updateThreadStatus(
   input: z.input<typeof updateThreadStatusSchema>,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateThreadStatusSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message };
   }
   const db = requireDb();
-  await db
+  // TENANCY: scope by org so an internal user in org A cannot mutate org B's
+  // thread. conversation_threads.organization_id is NOT NULL (+ indexed).
+  const updated = await db
     .update(conversationThreads)
     .set({ status: parsed.data.status, updatedAt: new Date() })
-    .where(eq(conversationThreads.id, parsed.data.threadId));
+    .where(
+      and(
+        eq(conversationThreads.id, parsed.data.threadId),
+        eq(conversationThreads.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: conversationThreads.id });
+  if (updated.length === 0) {
+    return { ok: false, error: "Thread not found in your organization" };
+  }
   return { ok: true };
 }
 
@@ -140,19 +154,47 @@ export async function assignThread(
   input: z.input<typeof assignThreadSchema>,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = assignThreadSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message };
   }
   const db = requireDb();
-  await db
+  // Validate the assignee belongs to the caller's org — `userId` is an
+  // arbitrary client-supplied id. app_users.organization_id is NOT NULL.
+  if (parsed.data.userId) {
+    const [assignee] = await db
+      .select({ id: appUsers.id })
+      .from(appUsers)
+      .where(
+        and(
+          eq(appUsers.id, parsed.data.userId),
+          eq(appUsers.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!assignee) {
+      return { ok: false, error: "Assignee not found in your organization" };
+    }
+  }
+  // TENANCY: scope the thread UPDATE by org so the assign cannot cross tenants.
+  const updated = await db
     .update(conversationThreads)
     .set({
       assignedToUserId: parsed.data.userId,
       assignedAt: parsed.data.userId ? new Date() : null,
       updatedAt: new Date(),
     })
-    .where(eq(conversationThreads.id, parsed.data.threadId));
+    .where(
+      and(
+        eq(conversationThreads.id, parsed.data.threadId),
+        eq(conversationThreads.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: conversationThreads.id });
+  if (updated.length === 0) {
+    return { ok: false, error: "Thread not found in your organization" };
+  }
   return { ok: true };
 }
 
@@ -160,11 +202,23 @@ export async function markThreadRead(
   threadId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  await db
+  // TENANCY: scope by org so a caller can only clear the unread count on a
+  // thread that belongs to their organization.
+  const updated = await db
     .update(conversationThreads)
     .set({ unreadCount: 0, updatedAt: new Date() })
-    .where(eq(conversationThreads.id, threadId));
+    .where(
+      and(
+        eq(conversationThreads.id, threadId),
+        eq(conversationThreads.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: conversationThreads.id });
+  if (updated.length === 0) {
+    return { ok: false, error: "Thread not found in your organization" };
+  }
   return { ok: true };
 }
 

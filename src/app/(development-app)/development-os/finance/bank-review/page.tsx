@@ -17,10 +17,14 @@ import {
   listBankConnectionsForUi,
   listBankTransactionsForUi,
   getReconciliationStats,
+  listOpenInvoicesForMatch,
 } from "@/lib/banking/queries";
+import { getCostCategories } from "@/lib/development/server/cost-categories";
 import {
   syncConnectionAction,
   ignoreTransactionAction,
+  matchInvoiceAction,
+  assignCategoryAction,
 } from "@/lib/banking/bookkeeper-actions";
 
 export const metadata: Metadata = { title: "Bank review · Finance" };
@@ -56,14 +60,18 @@ export default async function BankReviewPage({
       </DevelopmentShell>
     );
   }
-  const [connections, transactions, stats] = await Promise.all([
-    listBankConnectionsForUi(),
-    listBankTransactionsForUi({
-      matchStatus: statusFilter,
-      limit: 200,
-    }),
-    getReconciliationStats(),
-  ]);
+  const [connections, transactions, stats, openInvoices, categories] =
+    await Promise.all([
+      listBankConnectionsForUi(),
+      listBankTransactionsForUi({
+        matchStatus: statusFilter,
+        limit: 200,
+      }),
+      getReconciliationStats(),
+      listOpenInvoicesForMatch(),
+      getCostCategories(),
+    ]);
+  const activeCategories = categories.filter((c) => c.isActive);
 
   return (
     <DevelopmentShell>
@@ -208,6 +216,8 @@ export default async function BankReviewPage({
                 <TH className="text-right">Amount</TH>
                 <TH>Status</TH>
                 <TH className="text-right">Conf.</TH>
+                <TH>Category</TH>
+                <TH>Match invoice</TH>
                 <TH className="text-right">Actions</TH>
               </TR>
             </THead>
@@ -249,6 +259,72 @@ export default async function BankReviewPage({
                     </TD>
                     <TD className="text-right tabular-nums text-xs">
                       {t.matchConfidence ?? "—"}
+                    </TD>
+                    <TD>
+                      <form
+                        action={assignCategoryAction}
+                        className="flex items-center gap-1.5"
+                      >
+                        <input
+                          type="hidden"
+                          name="bankTransactionId"
+                          value={t.id}
+                        />
+                        <select
+                          name="categoryId"
+                          defaultValue={t.categoryId ?? ""}
+                          className="rounded-md border border-line-soft bg-surface px-2 py-1.5 text-xs max-w-[180px]"
+                        >
+                          <option value="">Uncategorized</option>
+                          {activeCategories.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.categoryCode} · {c.displayName}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="submit"
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Save
+                        </button>
+                      </form>
+                    </TD>
+                    <TD>
+                      {t.matchStatus === "unmatched" ||
+                      t.matchStatus === "partial_match" ? (
+                        <form
+                          action={matchInvoiceAction}
+                          className="flex items-center gap-1.5"
+                        >
+                          <input
+                            type="hidden"
+                            name="bankTransactionId"
+                            value={t.id}
+                          />
+                          <select
+                            name="invoiceId"
+                            defaultValue={t.matchedInvoiceId ?? ""}
+                            className="rounded-md border border-line-soft bg-surface px-2 py-1.5 text-xs max-w-[200px]"
+                          >
+                            <option value="">Reject / unmatched</option>
+                            {openInvoices.map((inv) => (
+                              <option key={inv.id} value={inv.id}>
+                                {inv.invoiceNumber} ·{" "}
+                                {formatAmount(inv.amountUsdMinor, inv.currency)}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            type="submit"
+                            className="btn btn-accent btn-sm"
+                          >
+                            Match
+                          </button>
+                        </form>
+                      ) : (
+                        <span className="text-xs text-ink-tertiary">—</span>
+                      )}
                     </TD>
                     <TD className="text-right">
                       <form action={ignoreBound}>

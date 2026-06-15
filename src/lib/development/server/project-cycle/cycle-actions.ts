@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -9,6 +9,7 @@ import {
   projectCycleRecommendations,
 } from "@/lib/db/schema/project-cycle";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   computeProjectCycleAdvisory,
   type ProjectCycleInput,
@@ -43,11 +44,13 @@ export async function createPayrollPeriod(
   input: z.input<typeof createPayrollPeriodSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createPayrollPeriodSchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(payrollPeriods)
     .values({
+      organizationId,
       periodLabel: parsed.periodLabel,
       periodType: parsed.periodType,
       periodStart: parsed.periodStart,
@@ -97,11 +100,13 @@ export async function trackTeamCapacity(
   input: z.input<typeof trackCapacitySchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = trackCapacitySchema.parse(input);
   const db = requireDb();
   const [row] = await db
     .insert(teamCapacityTracking)
     .values({
+      organizationId,
       trackingPeriodStart: parsed.trackingPeriodStart,
       trackingPeriodEnd: parsed.trackingPeriodEnd,
       roleType: parsed.roleType,
@@ -170,6 +175,7 @@ export async function reviewCycleRecommendation(
   input: z.input<typeof reviewSchema>,
 ) {
   const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = reviewSchema.parse(input);
   const db = requireDb();
   const [row] = await db
@@ -180,7 +186,12 @@ export async function reviewCycleRecommendation(
       reviewedBy: ctx.appUser?.id ?? null,
       reviewedAt: new Date(),
     })
-    .where(eq(projectCycleRecommendations.id, parsed.recommendationId))
+    .where(
+      and(
+        eq(projectCycleRecommendations.id, parsed.recommendationId),
+        eq(projectCycleRecommendations.organizationId, organizationId),
+      ),
+    )
     .returning();
   return row;
 }

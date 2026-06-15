@@ -27,6 +27,14 @@ export default async function PushSettingsPage() {
             Per-device push subscriptions and notification preferences.
           </p>
         </div>
+        <div className="actions">
+          <Link
+            href="/development-os/settings/notifications-push/compose"
+            className="btn btn-primary btn-sm"
+          >
+            Send notification
+          </Link>
+        </div>
       </div>
 
       <div>

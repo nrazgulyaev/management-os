@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { specifications } from "@/lib/db/schema/specifications";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listSpecifications(filters?: {
   category?: string;
@@ -29,10 +30,19 @@ export async function listSpecifications(filters?: {
 
 export async function getSpecificationByCode(code: string) {
   const db = requireDb();
+  // TENANCY — specCode is globally unique; without the org filter a tenant
+  // could open another tenant's specification by code. Org mismatch returns
+  // null so the page notFound()s.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(specifications)
-    .where(eq(specifications.specCode, code))
+    .where(
+      and(
+        eq(specifications.specCode, code),
+        eq(specifications.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

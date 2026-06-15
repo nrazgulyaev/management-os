@@ -8,6 +8,7 @@ import {
   qaQcInspections,
   qaQcIssuePhotos,
 } from "@/lib/db/schema/qa-qc";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listQaQcCategories() {
   const db = requireDb();
@@ -52,22 +53,41 @@ export async function listQaQcIssues(filters?: {
 
 export async function getQaQcIssueByCode(issueCode: string) {
   const db = requireDb();
+  // TENANCY — issueCode is globally unique; without the org filter a tenant
+  // could open another tenant's QA/QC issue (and its photos/inspections) by
+  // code. Org mismatch returns null so the page notFound()s.
+  const organizationId = await requireOrgId();
   const [issue] = await db
     .select()
     .from(qaQcIssues)
-    .where(eq(qaQcIssues.issueCode, issueCode))
+    .where(
+      and(
+        eq(qaQcIssues.issueCode, issueCode),
+        eq(qaQcIssues.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!issue) return null;
   const [photos, inspections] = await Promise.all([
     db
       .select()
       .from(qaQcIssuePhotos)
-      .where(eq(qaQcIssuePhotos.issueId, issue.id))
+      .where(
+        and(
+          eq(qaQcIssuePhotos.issueId, issue.id),
+          eq(qaQcIssuePhotos.organizationId, organizationId),
+        ),
+      )
       .orderBy(desc(qaQcIssuePhotos.uploadedAt)),
     db
       .select()
       .from(qaQcInspections)
-      .where(eq(qaQcInspections.issueId, issue.id))
+      .where(
+        and(
+          eq(qaQcInspections.issueId, issue.id),
+          eq(qaQcInspections.organizationId, organizationId),
+        ),
+      )
       .orderBy(qaQcInspections.inspectionNumber),
   ]);
   return { issue, photos, inspections };

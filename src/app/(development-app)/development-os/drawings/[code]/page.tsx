@@ -9,6 +9,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getDrawingByCode } from "@/lib/development/server/drawings/drawing-queries";
 import { RevisionActions } from "./_revision-actions";
+import { AddRevisionButton } from "./_add-revision-button";
 import { resolveRevisionImage } from "./_resolve-revision-image";
 import { RevisionImageViewer } from "./_revision-image-viewer";
 
@@ -73,6 +74,7 @@ export default async function DrawingDetailPage({
           )}
         </div>
         <div className="actions">
+          <AddRevisionButton drawingId={drawing.id} />
           <Link
             href={`/development-os/drawings/${encodeURIComponent(drawing.drawingCode)}/distribution`}
             className="btn btn-secondary btn-sm"

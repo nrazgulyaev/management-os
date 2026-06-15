@@ -3,6 +3,7 @@ import "server-only";
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
 import { getQaQcPhotoUrl } from "@/lib/development/server/qa-qc/qa-qc-photo-upload-actions";
+import { QaQcPhotoDeleteButton } from "@/app/(development-app)/development-os/qa-qc/[code]/_photo-delete-button";
 
 export interface QaQcGalleryPhoto {
   id: string;
@@ -37,8 +38,11 @@ const ROLE_ORDER = [
  */
 export async function QaQcPhotoGallery({
   photos,
+  issueCode,
 }: {
   photos: QaQcGalleryPhoto[];
+  /** When provided, each thumbnail gets a delete control. */
+  issueCode?: string;
 }) {
   if (photos.length === 0) {
     return (
@@ -125,8 +129,16 @@ export async function QaQcPhotoGallery({
                       {p.caption && (
                         <div className="truncate text-ink">{p.caption}</div>
                       )}
-                      <div className="text-[10px] text-ink-tertiary">
-                        {new Date(p.uploadedAt).toLocaleDateString()}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[10px] text-ink-tertiary">
+                          {new Date(p.uploadedAt).toLocaleDateString()}
+                        </div>
+                        {issueCode && (
+                          <QaQcPhotoDeleteButton
+                            photoId={p.id}
+                            issueCode={issueCode}
+                          />
+                        )}
                       </div>
                     </div>
                   </li>

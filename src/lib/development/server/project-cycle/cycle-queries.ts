@@ -1,19 +1,22 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, type SQL } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import {
   payrollPeriods,
   teamCapacityTracking,
   projectCycleRecommendations,
 } from "@/lib/db/schema/project-cycle";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listPayrollPeriods(filters?: {
   status?: string;
   fromDate?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const orgId = await requireOrgId();
+  // TENANCY: hard-scope by org — pre-existing NULL-org (demo) rows drop out.
+  const conditions: SQL[] = [eq(payrollPeriods.organizationId, orgId)];
   if (filters?.status) {
     conditions.push(eq(payrollPeriods.status, filters.status));
   }
@@ -23,7 +26,7 @@ export async function listPayrollPeriods(filters?: {
   return db
     .select()
     .from(payrollPeriods)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(asc(payrollPeriods.periodStart));
 }
 
@@ -32,7 +35,9 @@ export async function listTeamCapacityTracking(filters?: {
   fromDate?: string;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const orgId = await requireOrgId();
+  // TENANCY: hard-scope by org — pre-existing NULL-org (demo) rows drop out.
+  const conditions: SQL[] = [eq(teamCapacityTracking.organizationId, orgId)];
   if (filters?.roleType) {
     conditions.push(eq(teamCapacityTracking.roleType, filters.roleType));
   }
@@ -44,7 +49,7 @@ export async function listTeamCapacityTracking(filters?: {
   return db
     .select()
     .from(teamCapacityTracking)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(teamCapacityTracking.trackingPeriodStart));
 }
 
@@ -53,7 +58,11 @@ export async function listCycleRecommendations(filters?: {
   limit?: number;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const orgId = await requireOrgId();
+  // TENANCY: hard-scope by org — pre-existing NULL-org (demo) rows drop out.
+  const conditions: SQL[] = [
+    eq(projectCycleRecommendations.organizationId, orgId),
+  ];
   if (filters?.status) {
     conditions.push(
       eq(projectCycleRecommendations.operatorStatus, filters.status),
@@ -62,7 +71,7 @@ export async function listCycleRecommendations(filters?: {
   return db
     .select()
     .from(projectCycleRecommendations)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(projectCycleRecommendations.generatedForDate))
     .limit(filters?.limit ?? 50);
 }

@@ -1,27 +1,39 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { devCostCategories, devTransactions } from "@/lib/db/schema/dev-finance";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export type CostCategory = typeof devCostCategories.$inferSelect;
 
 export async function getCostCategories(): Promise<CostCategory[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: dev_cost_categories.organization_id is NOT NULL. All callers are
+  // tenant finance/boq request pages (no cron/sync), so hard-scope by org.
+  const orgId = await requireOrgId();
   return await db
     .select()
     .from(devCostCategories)
+    .where(eq(devCostCategories.organizationId, orgId))
     .orderBy(devCostCategories.displayOrder, devCostCategories.categoryCode);
 }
 
 export async function getCostCategory(id: string): Promise<CostCategory | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY: id is client-supplied — scope the lookup to the caller's org.
+  const orgId = await requireOrgId();
   const [r] = await db
     .select()
     .from(devCostCategories)
-    .where(eq(devCostCategories.id, id))
+    .where(
+      and(
+        eq(devCostCategories.id, id),
+        eq(devCostCategories.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return r ?? null;
 }

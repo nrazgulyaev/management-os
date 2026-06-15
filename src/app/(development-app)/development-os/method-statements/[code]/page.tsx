@@ -7,6 +7,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getMethodStatementByCode } from "@/lib/development/server/method-statements/method-statement-queries";
+import { MethodStatementStatusActions } from "./_status-actions";
 
 export const metadata: Metadata = {
   title: "Method statement · Development OS",
@@ -167,6 +168,9 @@ export default async function MethodStatementDetailPage({
               {m.effectiveFrom && ` · effective ${m.effectiveFrom}`}
               {m.effectiveUntil && ` → ${m.effectiveUntil}`}
             </span>
+          </div>
+          <div className="mt-3">
+            <MethodStatementStatusActions methodId={m.id} status={m.status} />
           </div>
         </Card>
       </div>
