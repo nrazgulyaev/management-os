@@ -10,6 +10,7 @@ import {
   getDiscounts,
   getPendingDiscountApprovals,
 } from "@/lib/development/server/discounts";
+import { getContractGroups } from "@/lib/development/server/contracts";
 import { safeQuery } from "@/lib/development/safe-query";
 import {
   DISCOUNT_REASON_LABEL,
@@ -18,6 +19,10 @@ import {
 import type { DiscountStatus } from "@/lib/development/types/discounts";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { DiscountApprovalActions } from "./_approval-actions";
+import {
+  ApplyDiscountToContract,
+  type ContractGroupOption,
+} from "./_apply-actions";
 
 export const metadata: Metadata = { title: "Discounts · Development OS" };
 export const dynamic = "force-dynamic";
@@ -45,7 +50,7 @@ function fmtPercent(v: number | null): string {
 export default async function DiscountsPage() {
   // Stage 10.6.B.2-fix.2 — wrap each query individually so a single
   // failing loader doesn't 500 the whole page.
-  const [pending, all, limits, me] = await Promise.all([
+  const [pending, all, limits, groups, me] = await Promise.all([
     safeQuery(
       "discounts.getPendingDiscountApprovals",
       getPendingDiscountApprovals(),
@@ -61,8 +66,21 @@ export default async function DiscountsPage() {
       getAllAuthorizationLimits(),
       [] as Awaited<ReturnType<typeof getAllAuthorizationLimits>>,
     ),
+    safeQuery(
+      "discounts.getContractGroups",
+      getContractGroups(),
+      [] as Awaited<ReturnType<typeof getContractGroups>>,
+    ),
     getCurrentAppUser().catch(() => null),
   ]);
+
+  // Option list for the "Apply to contract" control on approved discounts.
+  const contractGroupOptions: ContractGroupOption[] = groups.map((g) => ({
+    id: g.id,
+    label: `${g.contactFullName} · ${g.villaCode} · ${g.projectName}`,
+    contactId: g.contactId,
+    villaId: g.villaId,
+  }));
 
   return (
     <DevelopmentShell>
@@ -228,6 +246,7 @@ export default async function DiscountsPage() {
                       <th className="num">Disc.</th>
                       <th className="num">Final</th>
                       <th>Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -247,6 +266,16 @@ export default async function DiscountsPage() {
                           <HandoffBadge tone={statusTone[d.status]}>
                             {DISCOUNT_STATUS_LABEL[d.status]}
                           </HandoffBadge>
+                        </td>
+                        <td>
+                          {d.status === "approved" && (
+                            <ApplyDiscountToContract
+                              discountId={d.id}
+                              discountContactId={d.contactId}
+                              discountVillaId={d.villaId}
+                              contractGroups={contractGroupOptions}
+                            />
+                          )}
                         </td>
                       </tr>
                     ))}

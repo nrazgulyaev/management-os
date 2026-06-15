@@ -7,7 +7,8 @@
  * server-side authority re-check) but no UI reached them — the
  * "awaiting approval" cards were display-only. This mounts Approve /
  * Reject over the existing actions. (`applyDiscountToContract` is wired
- * separately from the contract detail surface.)
+ * separately via `_apply-actions.tsx`, surfaced on approved discounts in
+ * the History table.)
  */
 
 import * as React from "react";

@@ -14,6 +14,11 @@ import {
 } from "@/lib/development/server/capital-account/capital-account-queries";
 import { listInvestorResidualShares } from "@/lib/development/server/residual-inventory/residual-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  CapitalAccountControls,
+  ReverseMovementButton,
+  type WalletOption,
+} from "./_controls";
 
 export const metadata: Metadata = {
   title: "Capital account · Development OS",
@@ -95,6 +100,25 @@ export default async function CapitalAccountPage({
     ),
   ]);
 
+  // Enrich each wallet with its commitment's project (from the investor
+  // detail already loaded above) so the movement forms can label wallets and
+  // resolve source/target projects for cross-project moves — no extra reader.
+  const commitmentById = new Map(
+    investor.commitments.map((c) => [c.id, c]),
+  );
+  const walletOptions: WalletOption[] = account.wallets.map((w) => {
+    const c = w.commitmentId ? commitmentById.get(w.commitmentId) : undefined;
+    const projectLabel = c?.projectName ?? "Company-level";
+    return {
+      walletId: w.id,
+      label: c
+        ? `${c.commitmentCode} · ${projectLabel}`
+        : `Wallet ${w.id.slice(0, 8)}`,
+      projectId: c?.projectId ?? null,
+      projectName: c?.projectName ?? null,
+    };
+  });
+
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -117,6 +141,11 @@ export default async function CapitalAccountPage({
           </p>
         </div>
         <div className="actions">
+          <CapitalAccountControls
+            code={investor.investorCode}
+            investorId={investor.id}
+            wallets={walletOptions}
+          />
           <Button asChild variant="secondary">
             <Link href={`/development-os/investors/${investor.investorCode}`}>
               <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
@@ -167,6 +196,7 @@ export default async function CapitalAccountPage({
                   <th className="num">Amount</th>
                   <th>Status</th>
                   <th>Reason</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -201,6 +231,14 @@ export default async function CapitalAccountPage({
                     <td className="text-xs">{m.status}</td>
                     <td className="max-w-[280px] truncate text-xs">
                       {m.reason ?? "—"}
+                    </td>
+                    <td className="text-right">
+                      {m.status === "recorded" ? (
+                        <ReverseMovementButton
+                          code={investor.investorCode}
+                          movementId={m.id}
+                        />
+                      ) : null}
                     </td>
                   </tr>
                 ))}
