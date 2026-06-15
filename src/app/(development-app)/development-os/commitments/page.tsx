@@ -4,8 +4,10 @@ import { ArrowLeft } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { CommitmentModalForm } from "@/components/development/investors/commitment-modal-form";
 import { getDb } from "@/lib/db/client";
-import { getCommitments } from "@/lib/development/server/investors";
+import { getCommitments, getInvestors } from "@/lib/development/server/investors";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import {
   COMMITMENT_STATUS_LABEL,
   formatCurrencyMinor,
@@ -27,14 +29,40 @@ function fmtAbbrevUsd(minor: bigint): string {
 export default async function CommitmentsPage() {
   const db = getDb();
 
-  const commitments = db
-    ? await safeQuery(
-        "getCommitments",
-        getCommitments({}),
-        [] as Awaited<ReturnType<typeof getCommitments>>,
-        4000,
-      )
-    : [];
+  const [commitments, investors, projects] = db
+    ? await Promise.all([
+        safeQuery(
+          "getCommitments",
+          getCommitments({}),
+          [] as Awaited<ReturnType<typeof getCommitments>>,
+          4000,
+        ),
+        safeQuery(
+          "getInvestors",
+          getInvestors({}),
+          [] as Awaited<ReturnType<typeof getInvestors>>,
+          4000,
+        ),
+        safeQuery(
+          "getDevelopmentProjects",
+          getDevelopmentProjects(),
+          [] as Awaited<ReturnType<typeof getDevelopmentProjects>>,
+          4000,
+        ),
+      ])
+    : [[], [], []];
+
+  // Selects for the create-commitment modal. Investors carry id/code/name;
+  // projects are filtered to real DB rows (a mock id can't be committed
+  // against — the action org-scopes the project existence check).
+  const investorOptions = investors.map((i) => ({
+    id: i.id,
+    investorCode: i.investorCode,
+    legalName: i.legalName,
+  }));
+  const projectOptions = projects
+    .filter((p) => p.source === "db")
+    .map((p) => ({ id: p.realProjectId, name: p.name ?? p.slug }));
 
   const totalCommittedUsd = commitments.reduce(
     (acc, c) => acc + BigInt(c.committedAmountUsdMinor),
@@ -79,12 +107,12 @@ export default async function CommitmentsPage() {
       </div>
 
       <div className="flex justify-end gap-2 mb-[22px]">
-        <Link
-          href="/development-os/commitments"
-          className="btn btn-accent btn-sm"
-        >
-          + New commitment
-        </Link>
+        {db && (
+          <CommitmentModalForm
+            investors={investorOptions}
+            projects={projectOptions}
+          />
+        )}
         <Link href="/development-os" className="btn btn-dark btn-sm">
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Command center
@@ -137,12 +165,10 @@ export default async function CommitmentsPage() {
                   title="No commitments yet"
                   description="Add your first investor commitment to start tracking capital calls and distributions."
                   action={
-                    <Link
-                      href="/development-os/commitments"
-                      className="btn btn-dark btn-sm"
-                    >
-                      View commitments
-                    </Link>
+                    <CommitmentModalForm
+                      investors={investorOptions}
+                      projects={projectOptions}
+                    />
                   }
                 />
               ) : (

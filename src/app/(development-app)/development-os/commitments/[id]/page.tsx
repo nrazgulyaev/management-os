@@ -5,6 +5,11 @@ import { ArrowLeft } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import {
+  CommitmentLifecycleControls,
+  RequestDrawdownControl,
+  DrawdownRowControls,
+} from "./_controls";
 import { getDb } from "@/lib/db/client";
 import { getCommitment } from "@/lib/development/server/commitments";
 import {
@@ -132,6 +137,14 @@ export default async function CommitmentDetailPage({
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             All commitments
           </Link>
+          <CommitmentLifecycleControls
+            commitmentId={commitment.id}
+            status={commitment.status}
+            profitSharePercent={commitment.profitSharePercent}
+            capitalReturnPriority={commitment.capitalReturnPriority}
+            signedAt={commitment.signedAt}
+            notes={commitment.notes}
+          />
         </div>
       </header>
 
@@ -171,11 +184,18 @@ export default async function CommitmentDetailPage({
       </section>
 
       <section>
-        <div className="label mb-3">Capital calls · drawdowns</div>
+        <div className="flex items-center justify-between mb-3">
+          <div className="label">Capital calls · drawdowns</div>
+          <RequestDrawdownControl
+            commitmentId={commitment.id}
+            status={commitment.status}
+            defaultCurrency={commitment.committedCurrency}
+          />
+        </div>
         {commitment.drawdowns.length === 0 ? (
           <EmptyState
             title="No drawdowns yet"
-            description="Use requestDrawdown via the API to create the first capital call."
+            description="Request the first capital call to begin drawing committed capital. Use the “Request capital call” button above."
           />
         ) : (
           <div className="card overflow-hidden">
@@ -191,6 +211,7 @@ export default async function CommitmentDetailPage({
                     <th>Received</th>
                     <th>Trigger</th>
                     <th>Status</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -229,6 +250,13 @@ export default async function CommitmentDetailPage({
                         >
                           {DRAWDOWN_STATUS_LABEL[d.status]}
                         </HandoffBadge>
+                      </td>
+                      <td>
+                        <DrawdownRowControls
+                          commitmentId={commitment.id}
+                          drawdownId={d.id}
+                          status={d.status}
+                        />
                       </td>
                     </tr>
                   ))}

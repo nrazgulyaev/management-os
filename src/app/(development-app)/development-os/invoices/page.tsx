@@ -11,6 +11,7 @@ import {
   INVOICE_TYPE_LABEL,
 } from "@/lib/development/constants/payment-constants";
 import type { InvoiceStatus } from "@/lib/development/types/payments";
+import { InvoiceRowControls } from "./_controls";
 
 export const metadata: Metadata = { title: "Invoices · Development OS" };
 export const dynamic = "force-dynamic";
@@ -72,9 +73,15 @@ export default async function InvoicesPage() {
       </div>
 
       <div className="flex justify-end gap-2 mb-[22px]">
-        <button type="button" className="btn btn-accent btn-sm">
+        {/*
+          Issuing originates from a contract milestone — `issueInvoiceForMilestone`
+          requires a milestoneId, which is only known on a contract's milestone
+          row (the "Issue invoice" control lives there). Route operators to the
+          contract groups so the existing per-milestone issue flow is reachable.
+        */}
+        <Link href="/development-os/contracts" className="btn btn-accent btn-sm">
           + Issue invoice
-        </button>
+        </Link>
         <Link href="/development-os" className="btn btn-dark btn-sm">
           <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
           Command center
@@ -126,6 +133,7 @@ export default async function InvoicesPage() {
                     <th className="num">Amount</th>
                     <th>Due</th>
                     <th>Status</th>
+                    <th className="text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -153,6 +161,13 @@ export default async function InvoicesPage() {
                         <HandoffBadge tone={statusTone[i.status]}>
                           {INVOICE_STATUS_LABEL[i.status]}
                         </HandoffBadge>
+                      </td>
+                      <td className="text-right">
+                        <InvoiceRowControls
+                          invoiceId={i.id}
+                          status={i.status}
+                          hasDocument={i.documentId != null}
+                        />
                       </td>
                     </tr>
                   ))}
