@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { projects } from "@/lib/db/schema/projects";
 import {
   agents,
@@ -87,9 +88,11 @@ export async function getLeadsPipeline(
 ): Promise<LeadListItem[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const conditions = [
     eq(contactRoles.role, "lead"),
+    eq(contactRoles.organizationId, organizationId),
     isNull(contactRoles.endedAt),
   ];
   if (filters.projectId)
@@ -135,7 +138,15 @@ export async function getLeadsPipeline(
       agencyName: agents.agencyName,
     })
     .from(agents)
-    .innerJoin(contacts, eq(contacts.id, agents.contactId));
+    .innerJoin(contacts, eq(contacts.id, agents.contactId))
+    // `agents.organization_id` is nullable (migration 0154 backfill): keep
+    // shared/seed agents visible while excluding other tenants' agents.
+    .where(
+      or(
+        eq(agents.organizationId, organizationId),
+        isNull(agents.organizationId),
+      ),
+    );
   const agentNameById = new Map(
     allAgents.map((a) => [a.id, a.agencyName ?? a.contactName]),
   );
@@ -157,6 +168,7 @@ export async function getLeadDetail(
 ): Promise<LeadListItem | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       role: contactRoles,
@@ -171,7 +183,12 @@ export async function getLeadDetail(
     .leftJoin(leadSources, eq(leadSources.id, contactRoles.sourceId))
     .leftJoin(unitTypes, eq(unitTypes.id, contactRoles.unitTypeInterestId))
     .leftJoin(projects, eq(projects.id, contactRoles.scopeProjectId))
-    .where(eq(contactRoles.id, contactRoleId))
+    .where(
+      and(
+        eq(contactRoles.id, contactRoleId),
+        eq(contactRoles.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   const row = rows[0];
   if (!row) return null;
@@ -210,6 +227,7 @@ export async function getLeadPipelineMetrics(
       lostMtd: 0,
     };
   }
+  const organizationId = await requireOrgId();
 
   // One round-trip for all six counts via FILTER aggregation. The earlier
   // implementation issued six separate SELECT count(*)s sequentially, each
@@ -244,6 +262,7 @@ export async function getLeadPipelineMetrics(
       ) AS lost_mtd
     FROM contact_roles
     WHERE role = 'lead'
+      AND organization_id = ${organizationId}
       AND ${projectFilter};
   `);
 
@@ -268,6 +287,7 @@ export type ActiveLeadSourceOption = Pick<
 export async function getActiveLeadSources(): Promise<ActiveLeadSourceOption[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       id: leadSources.id,
@@ -276,7 +296,17 @@ export async function getActiveLeadSources(): Promise<ActiveLeadSourceOption[]> 
       campaignName: leadSources.campaignName,
     })
     .from(leadSources)
-    .where(eq(leadSources.isActive, true))
+    .where(
+      and(
+        eq(leadSources.isActive, true),
+        // `lead_sources.organization_id` is nullable (migration 0154):
+        // keep shared/default-org sources visible, exclude other tenants'.
+        or(
+          eq(leadSources.organizationId, organizationId),
+          isNull(leadSources.organizationId),
+        ),
+      ),
+    )
     .orderBy(leadSources.sourceCode);
   return rows;
 }

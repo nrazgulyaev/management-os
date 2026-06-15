@@ -3,6 +3,7 @@ import "server-only";
 import { eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { distributions } from "@/lib/db/schema/investor-capital";
+import { requireOrgId } from "@/features/auth/require-org";
 import type {
   DistributionAllocationItem,
   DistributionDetail,
@@ -40,7 +41,11 @@ export async function getDistributions(
   const db = getDb();
   if (!db) return [];
 
-  const conditions: ReturnType<typeof sql>[] = [];
+  const organizationId = await requireOrgId();
+
+  const conditions: ReturnType<typeof sql>[] = [
+    sql`d.organization_id = ${organizationId}`,
+  ];
   if (filters.projectId !== undefined) {
     if (filters.projectId === null) {
       conditions.push(sql`d.project_id IS NULL`);
@@ -215,11 +220,17 @@ const toBig = (v: bigint | string | number): bigint => {
 
 async function loadCommitmentSnapshots(
   projectId: string | null,
+  organizationId: string | null = null,
 ): Promise<CommitmentSnapshot[]> {
   const db = getDb();
   if (!db) return [];
 
+  // Cron/AI callers (distribution-preview) pass an explicit org resolved
+  // from the project; request/action callers default to requireOrgId().
+  const orgId = organizationId ?? (await requireOrgId());
+
   const conditions: ReturnType<typeof sql>[] = [
+    sql`cc.organization_id = ${orgId}`,
     sql`cc.status IN ('active','fully_called')`,
   ];
   if (projectId) {
@@ -264,9 +275,34 @@ async function loadCommitmentSnapshots(
 
 export async function previewDistribution(
   input: PreviewDistributionInput,
+  // Cron/AI callers (distribution-preview) pass an explicit org resolved
+  // from the project; request/action callers default to requireOrgId().
+  organizationId: string | null = null,
 ): Promise<PreviewDistributionResult> {
+  const orgId = organizationId ?? (await requireOrgId());
   const total = toBig(input.totalAmountUsdMinor);
-  const snapshots = await loadCommitmentSnapshots(input.projectId);
+
+  // Verify the projectId belongs to the caller's org before previewing,
+  // so a cross-org projectId cannot pull another tenant's commitments.
+  if (input.projectId) {
+    const db = getDb();
+    if (db) {
+      const projRows = await db.execute(sql`
+        SELECT 1 FROM projects
+        WHERE id = ${input.projectId} AND organization_id = ${orgId}
+        LIMIT 1
+      `);
+      if ((projRows as Record<string, unknown>[]).length === 0) {
+        return {
+          allocations: [],
+          totalAllocatedUsdMinor: 0n,
+          unallocatedUsdMinor: total,
+        };
+      }
+    }
+  }
+
+  const snapshots = await loadCommitmentSnapshots(input.projectId, orgId);
 
   let capitalMap = new Map<string, bigint>();
   let profitMap = new Map<string, bigint>();

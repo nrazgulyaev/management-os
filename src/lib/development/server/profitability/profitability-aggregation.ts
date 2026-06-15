@@ -432,6 +432,14 @@ function serializePools(p: ProjectPools): ProjectAggregationResult["pools"] {
 export async function recomputeAllProfitability(
   onProject?: (r: ProjectAggregationResult) => Promise<void> | void,
   computedBy: string | null = null,
+  /**
+   * Tenancy scope. Request/action callers pass a concrete org id so the
+   * projects scan (and every per-project write) is confined to that tenant.
+   * The all-orgs cron (`runDevOsProfitabilityRecompute`) passes `null` to
+   * recompute every org. NEVER default this to a request org — the cron must
+   * be able to run unscoped.
+   */
+  organizationId: string | null = null,
 ): Promise<AggregationRunResult> {
   const db = getDb();
   if (!db) {
@@ -446,7 +454,14 @@ export async function recomputeAllProfitability(
   const projectRows = await db
     .select({ id: projects.id })
     .from(projects)
-    .where(sql`${projects.status} <> 'archived'`);
+    .where(
+      organizationId
+        ? and(
+            sql`${projects.status} <> 'archived'`,
+            eq(projects.organizationId, organizationId),
+          )
+        : sql`${projects.status} <> 'archived'`,
+    );
 
   // Build the category→pool map once and reuse across projects.
   const poolMap = await buildCategoryPoolMap(db);

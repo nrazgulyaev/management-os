@@ -7,6 +7,7 @@ import {
   capitalCommitments,
 } from "@/lib/db/schema/investor-capital";
 import { walletMovements } from "@/lib/db/schema/wallet-movements";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Get the unified capital account view for one investor: aggregated
@@ -14,6 +15,7 @@ import { walletMovements } from "@/lib/db/schema/wallet-movements";
  */
 export async function getInvestorCapitalAccount(investorId: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const wallets = await db
     .select({
       id: investorWallets.id,
@@ -38,7 +40,12 @@ export async function getInvestorCapitalAccount(investorId: string) {
       capitalCommitments,
       eq(capitalCommitments.id, investorWallets.commitmentId),
     )
-    .where(eq(capitalCommitments.investorId, investorId));
+    .where(
+      and(
+        eq(capitalCommitments.investorId, investorId),
+        eq(capitalCommitments.organizationId, organizationId),
+      ),
+    );
 
   const totals = wallets.reduce(
     (acc, w) => ({
@@ -70,7 +77,11 @@ export async function listWalletMovements(filters?: {
   limit?: number;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  const organizationId = await requireOrgId();
+  // Always-on org predicate — not gated on the optional investor/wallet filters.
+  const conditions = [
+    eq(walletMovements.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.investorId) {
     conditions.push(eq(walletMovements.investorId, filters.investorId));
   }
@@ -80,17 +91,23 @@ export async function listWalletMovements(filters?: {
   return db
     .select()
     .from(walletMovements)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(walletMovements.effectedAt))
     .limit(filters?.limit ?? 100);
 }
 
 export async function getWalletMovement(id: string) {
   const db = requireDb();
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(walletMovements)
-    .where(eq(walletMovements.id, id))
+    .where(
+      and(
+        eq(walletMovements.id, id),
+        eq(walletMovements.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

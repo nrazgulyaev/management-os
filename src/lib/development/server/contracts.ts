@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import { contacts } from "@/lib/db/schema/contacts";
 import { projects, villas } from "@/lib/db/schema/projects";
 import {
@@ -127,7 +128,8 @@ export async function getContractGroups(
 ): Promise<ContractGroupListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [];
+  const organizationId = await requireOrgId();
+  const conds = [eq(contractGroups.organizationId, organizationId)];
   if (filters.projectId) conds.push(eq(contractGroups.projectId, filters.projectId));
   if (filters.contactId) conds.push(eq(contractGroups.contactId, filters.contactId));
   if (filters.status) conds.push(eq(contractGroups.status, filters.status));
@@ -169,6 +171,7 @@ export async function getContractGroupById(
 ): Promise<ContractGroupDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const groupRows = await db
     .select({
       group: contractGroups,
@@ -189,7 +192,12 @@ export async function getContractGroupById(
       eq(contractTemplates.id, contractGroups.templateId),
     )
     .leftJoin(salesSchemes, eq(salesSchemes.id, contractGroups.salesSchemeId))
-    .where(eq(contractGroups.id, id))
+    .where(
+      and(
+        eq(contractGroups.id, id),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
     .limit(1);
 
   const head = groupRows[0];

@@ -3,6 +3,7 @@ import "server-only";
 import { eq, sql, and } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { devCommitmentsLedger } from "@/lib/db/schema/dev-finance";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export type CommitmentLedgerRow = typeof devCommitmentsLedger.$inferSelect;
 
@@ -18,7 +19,10 @@ export async function getCommitmentsLedger(
 ): Promise<CommitmentLedgerRow[]> {
   const db = getDb();
   if (!db) return [];
-  const conditions = [];
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(devCommitmentsLedger.organizationId, organizationId),
+  ];
   if (filters.projectId)
     conditions.push(eq(devCommitmentsLedger.projectId, filters.projectId));
   if (filters.categoryId)
@@ -47,6 +51,7 @@ export async function getOpenCommitmentsByCategory(
 ): Promise<OpenCommitmentByCategory[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute(sql`
     SELECT
       category_id,
@@ -54,6 +59,7 @@ export async function getOpenCommitmentsByCategory(
       count(*)::int AS count
     FROM dev_commitments_ledger
     WHERE project_id = ${projectId}
+      AND organization_id = ${organizationId}
       AND status IN ('open','partially_paid')
     GROUP BY category_id
   `);

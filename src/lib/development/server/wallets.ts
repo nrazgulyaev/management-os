@@ -1,7 +1,8 @@
 import "server-only";
 
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   investorWallets,
   walletTransactions,
@@ -29,10 +30,16 @@ export async function getWalletByCommitment(
   const db = getDb();
   if (!db) return { wallet: null, recentTransactions: [] };
 
+  const organizationId = await requireOrgId();
   const [w] = await db
     .select()
     .from(investorWallets)
-    .where(eq(investorWallets.commitmentId, commitmentId))
+    .where(
+      and(
+        eq(investorWallets.commitmentId, commitmentId),
+        eq(investorWallets.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!w) return { wallet: null, recentTransactions: [] };
 

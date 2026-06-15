@@ -4,7 +4,9 @@ import { eq, and, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { devBudgetLines } from "@/lib/db/schema/dev-finance";
+import { projects } from "@/lib/db/schema/projects";
 import { SUPPORTED_CURRENCIES } from "@/lib/development/constants/investor-constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const createSchema = z.object({
   projectId: z.string().uuid(),
@@ -40,6 +42,20 @@ export async function createBudgetLine(
 ): Promise<{ id: string; budgetVersion: number }> {
   const parsed = createSchema.parse(input);
   const db = requireDb();
+  const orgId = await requireOrgId();
+
+  // dev_budget_lines has no organization_id column — org is anchored
+  // through the project. Verify the client-supplied projectId belongs to
+  // the caller's org BEFORE any insert/supersession, so a tenant cannot
+  // write a budget line against (or supersede) another org's project.
+  const [ownProject] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(eq(projects.id, parsed.projectId), eq(projects.organizationId, orgId)),
+    )
+    .limit(1);
+  if (!ownProject) throw new Error("Project not found");
 
   return await db.transaction(async (tx) => {
     const conditions = [
@@ -116,10 +132,25 @@ export async function updateBudgetLine(
 ): Promise<{ id: string; budgetVersion: number }> {
   const parsed = updateSchema.parse(input);
   const db = requireDb();
+  const orgId = await requireOrgId();
+  // dev_budget_lines has no organization_id — anchor org via the line's
+  // project; reject if the line's project is not in the caller's org.
   const [old] = await db
-    .select()
+    .select({
+      id: devBudgetLines.id,
+      projectId: devBudgetLines.projectId,
+      categoryId: devBudgetLines.categoryId,
+      unitId: devBudgetLines.unitId,
+      budgetedAtCurrency: devBudgetLines.budgetedAtCurrency,
+    })
     .from(devBudgetLines)
-    .where(eq(devBudgetLines.id, parsed.id))
+    .innerJoin(projects, eq(projects.id, devBudgetLines.projectId))
+    .where(
+      and(
+        eq(devBudgetLines.id, parsed.id),
+        eq(projects.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!old) throw new Error("Budget line not found");
   // Reuse createBudgetLine semantics — supersedes the old row.
@@ -148,13 +179,17 @@ export async function updateBudgetLine(
  */
 export async function deleteBudgetLine(id: string): Promise<void> {
   const db = requireDb();
+  const orgId = await requireOrgId();
+  // dev_budget_lines has no organization_id — anchor org via the line's
+  // project so a tenant cannot delete another org's budget line by id.
   const [line] = await db
     .select({
       projectId: devBudgetLines.projectId,
       categoryId: devBudgetLines.categoryId,
     })
     .from(devBudgetLines)
-    .where(eq(devBudgetLines.id, id))
+    .innerJoin(projects, eq(projects.id, devBudgetLines.projectId))
+    .where(and(eq(devBudgetLines.id, id), eq(projects.organizationId, orgId)))
     .limit(1);
   if (!line) throw new Error("Budget line not found");
 

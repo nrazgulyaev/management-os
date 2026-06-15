@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, gte, isNotNull, lte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   leads,
   marketingLeadSources,
@@ -46,8 +47,14 @@ export async function loadTopAttributedSource(
 ): Promise<TopAttributedSource | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
 
-  const filters = [isNotNull(leads.leadSourceKey)];
+  // `leads.organization_id` exists in the DB (NOT NULL, migration 0072) but
+  // is not declared on the Drizzle table object, so reference it via raw SQL.
+  const filters = [
+    isNotNull(leads.leadSourceKey),
+    sql`${leads}.organization_id = ${organizationId}`,
+  ];
   if (options.managerId) {
     filters.push(eq(leads.assignedManagerId, options.managerId));
   }
@@ -141,10 +148,15 @@ export async function loadChannelSplit(
 ): Promise<ChannelSplitRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   // Channel split is derived from variants with a non-null
   // platform_target on a published parent content_piece.
-  const filters = [eq(contentPieces.status, "published")];
+  const filters = [
+    eq(contentPieces.status, "published"),
+    eq(contentPieces.organizationId, organizationId),
+    eq(contentVariants.organizationId, organizationId),
+  ];
   if (options.periodStart) {
     filters.push(gte(contentPieces.publishedAt, options.periodStart));
   }

@@ -1,8 +1,10 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { reservations } from "@/lib/db/schema/sales";
+import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import { getContractGroups } from "./contracts";
 import { getReservations } from "./reservations";
 import type { ReservationListItem } from "@/lib/development/types/reservations";
@@ -46,10 +48,18 @@ export async function hasActiveReservation(
 ): Promise<boolean> {
   const db = getDb();
   if (!db) return false;
+  // reservations has NO own organization_id — anchor org via projects.
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({ id: reservations.id })
     .from(reservations)
-    .where(eq(reservations.contactId, contactId))
+    .innerJoin(projects, eq(projects.id, reservations.projectId))
+    .where(
+      and(
+        eq(reservations.contactId, contactId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return rows.length > 0;
 }

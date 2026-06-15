@@ -2,10 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contractMilestones } from "@/lib/db/schema/sales";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const triggerSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -18,11 +19,17 @@ export async function triggerMilestonePreInvoice(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const now = new Date();
   await db
     .update(contractMilestones)
     .set({ status: "pre_invoiced", preInvoicedAt: now, updatedAt: now })
-    .where(eq(contractMilestones.id, parsed.data.milestoneId));
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
   revalidatePath(`${DEVELOPMENT_APP_PATH}/invoices`);
   return { ok: true };
@@ -37,11 +44,17 @@ export async function triggerMilestoneInvoice(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const now = new Date();
   await db
     .update(contractMilestones)
     .set({ status: "invoiced", invoicedAt: now, updatedAt: now })
-    .where(eq(contractMilestones.id, parsed.data.milestoneId));
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
   revalidatePath(`${DEVELOPMENT_APP_PATH}/invoices`);
   return { ok: true };
@@ -71,11 +84,17 @@ export async function recordMilestonePayment(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
   const [milestone] = await db
     .select()
     .from(contractMilestones)
-    .where(eq(contractMilestones.id, parsed.data.milestoneId))
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!milestone) return { ok: false, error: "Milestone not found." };
 
@@ -93,7 +112,12 @@ export async function recordMilestonePayment(
         : milestone.notes,
       updatedAt: now,
     })
-    .where(eq(contractMilestones.id, milestone.id));
+    .where(
+      and(
+        eq(contractMilestones.id, milestone.id),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
 
   // Suppress unused-var warning for fxRate (kept for future ledger integration).
   void parsed.data.fxRateUsdToIdr;
@@ -112,11 +136,17 @@ export async function markMilestoneOverdue(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const now = new Date();
   await db
     .update(contractMilestones)
     .set({ status: "overdue", overdueAt: now, updatedAt: now })
-    .where(eq(contractMilestones.id, parsed.data.milestoneId));
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
   return { ok: true };
 }
@@ -136,6 +166,7 @@ export async function waiveMilestone(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const now = new Date();
   await db
     .update(contractMilestones)
@@ -144,7 +175,12 @@ export async function waiveMilestone(
       notes: `Waived: ${parsed.data.reason}`,
       updatedAt: now,
     })
-    .where(eq(contractMilestones.id, parsed.data.milestoneId));
+    .where(
+      and(
+        eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
   revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
   return { ok: true };
 }
