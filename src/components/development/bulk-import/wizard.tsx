@@ -16,7 +16,9 @@ import { Field, inputCls, selectCls } from "@/components/admin/form-shell";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { parseCsv } from "@/lib/development/server/bulk-import/csv-parser-helpers";
-import { parseXlsx } from "@/lib/development/server/bulk-import/xlsx-parser-helpers";
+// `parseXlsx` pulls in the ~500KB SheetJS (`xlsx`) library. It's only
+// needed on the .xlsx/.xls branch below, so it's lazily `import()`ed
+// inside the handler to keep `xlsx` out of the eager client bundle.
 import {
   applyMapping,
   autoSuggestMapping,
@@ -146,6 +148,9 @@ export function BulkImportWizard() {
         const bytes = new Uint8Array(buf);
         const binary = Array.from(bytes, (b) => String.fromCharCode(b)).join("");
         content = btoa(binary);
+        const { parseXlsx } = await import(
+          "@/lib/development/server/bulk-import/xlsx-parser-helpers"
+        );
         const r = parseXlsx(bytes);
         parsed = { headers: r.headers, rows: r.rows };
       } else if (ext === "json") {

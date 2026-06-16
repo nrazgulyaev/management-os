@@ -212,6 +212,11 @@ export const maintenanceTickets = pgTable(
     index("maintenance_tickets_status_idx").on(t.status),
     index("maintenance_tickets_villa_idx").on(t.villaId),
     index("maintenance_tickets_severity_idx").on(t.severity),
+    // PERF (0181): ops KPI + ticket list filter (villa_id, status); the
+    // list/digest order/filter by reported_at. No org column here (scoped via
+    // villa -> project), so these are scope+sort composites.
+    index("maintenance_tickets_villa_status_idx").on(t.villaId, t.status),
+    index("maintenance_tickets_reported_at_idx").on(t.reportedAt),
   ],
 );
 

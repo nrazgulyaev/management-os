@@ -49,24 +49,42 @@ function read(rel: string): string {
 // 1 — Primitive prop interfaces no longer carry `formatValue`
 // ============================================================================
 
+// client-tax: these primitives were split for lazy-loading — the public
+// named export lives in `<base>.tsx` (a `next/dynamic` wrapper), the
+// recharts render in `<base>-impl.tsx`, and the prop interface (which
+// carries `formatSpec` / `valuePrefix` / `valueSuffix`) in
+// `<base>-shared.ts`. The contract is unchanged; we just read the whole
+// module set so the assertions still find the relocated declarations.
 const REFACTORED_PRIMITIVES = [
-  "src/components/ui/primitives/area-chart-card.tsx",
-  "src/components/award/hatched-bar-chart.tsx",
+  "src/components/ui/primitives/area-chart-card",
+  "src/components/award/hatched-bar-chart",
 ];
 
-for (const path of REFACTORED_PRIMITIVES) {
-  test(`hf-1 — ${path} drops the legacy formatValue function prop`, () => {
-    const src = read(path);
+function readPrimitiveModuleSet(base: string): string {
+  return [`${base}.tsx`, `${base}-impl.tsx`, `${base}-shared.ts`]
+    .map((rel) => {
+      try {
+        return read(rel);
+      } catch {
+        return "";
+      }
+    })
+    .join("\n");
+}
+
+for (const base of REFACTORED_PRIMITIVES) {
+  test(`hf-1 — ${base} drops the legacy formatValue function prop`, () => {
+    const src = readPrimitiveModuleSet(base);
     // The prop interface must no longer declare `formatValue?: (...) => string`.
     assert.doesNotMatch(
       src,
       /formatValue\?:\s*\(/,
-      `${path} still declares formatValue as a function prop — this re-opens the RSC serialisation crash`,
+      `${base} still declares formatValue as a function prop — this re-opens the RSC serialisation crash`,
     );
   });
 
-  test(`hf-1 — ${path} exposes the serialisable formatSpec prop instead`, () => {
-    const src = read(path);
+  test(`hf-1 — ${base} exposes the serialisable formatSpec prop instead`, () => {
+    const src = readPrimitiveModuleSet(base);
     assert.match(src, /formatSpec\?:\s*FormatSpec/);
     assert.match(src, /valuePrefix\?:\s*string/);
     assert.match(src, /valueSuffix\?:\s*string/);

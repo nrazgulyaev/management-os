@@ -79,6 +79,14 @@ export const revenueLines = pgTable(
     index("revenue_lines_project_date_idx").on(t.projectId, t.serviceDate),
     index("revenue_lines_booking_idx").on(t.bookingId),
     index("revenue_lines_status_idx").on(t.status),
+    // PERF (0181): the statement generator pulls posted rows by scope within a
+    // period window; lead with status='posted' (pinned every pull) so the
+    // (status, villa_id, service_date) index is fully usable.
+    index("revenue_lines_status_villa_date_idx").on(
+      t.status,
+      t.villaId,
+      t.serviceDate,
+    ),
   ],
 );
 
@@ -105,6 +113,12 @@ export const feeLines = pgTable(
     index("fee_lines_villa_date_idx").on(t.villaId, t.feeDate),
     index("fee_lines_project_date_idx").on(t.projectId, t.feeDate),
     index("fee_lines_booking_idx").on(t.bookingId),
+    // PERF (0181): statement-generator posted-row pull by scope + period.
+    index("fee_lines_status_villa_date_idx").on(
+      t.status,
+      t.villaId,
+      t.feeDate,
+    ),
   ],
 );
 
@@ -156,6 +170,12 @@ export const expenseLines = pgTable(
     index("expense_lines_scope_idx").on(t.allocationScope),
     index("expense_lines_cost_bearer_idx").on(t.costBearer),
     index("expense_lines_payroll_run_idx").on(t.payrollRunId),
+    // PERF (0181): statement-generator posted-row pull by scope + period.
+    index("expense_lines_status_villa_date_idx").on(
+      t.status,
+      t.villaId,
+      t.expenseDate,
+    ),
   ],
 );
 
@@ -422,6 +442,21 @@ export const ownerStatements = pgTable(
     index("owner_statements_period_month_idx").on(t.periodMonth),
     index("owner_statements_owner_state_auto_ack_idx").on(t.ownerState, t.autoAckAt),
     index("owner_statements_superseded_by_idx").on(t.supersededById),
+    // PERF (0181): generator idempotency lookup pins
+    // (organization_id, owner_id, period_id) — the existing
+    // (owner_id, period_id) lacks org. The live list orders
+    // (organization_id, period_month DESC, created_at DESC) — the existing
+    // (org, period_month) lacks the created_at sort tiebreak.
+    index("owner_statements_org_owner_period_idx").on(
+      t.organizationId,
+      t.ownerId,
+      t.periodId,
+    ),
+    index("owner_statements_org_period_month_created_idx").on(
+      t.organizationId,
+      t.periodMonth,
+      t.createdAt,
+    ),
   ],
 );
 

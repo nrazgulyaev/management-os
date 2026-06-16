@@ -135,6 +135,12 @@ export const agentInvocationLog = pgTable(
     index("agent_invocation_log_status_idx").on(t.status),
     index("agent_invocation_log_review_idx").on(t.operatorReviewStatus),
     index("agent_invocation_log_invoked_idx").on(t.invokedAt),
+    // PERF (0181): the Overview "AI agents · live" card hits this high-volume
+    // log on every load with (organization_id, invoked_at >= now-24h).
+    index("agent_invocation_log_org_invoked_idx").on(
+      t.organizationId,
+      t.invokedAt,
+    ),
   ],
 );
 

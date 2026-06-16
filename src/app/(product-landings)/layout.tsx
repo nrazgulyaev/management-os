@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { MotionLayer } from "@/components/motion-layer";
+import { MotionLayerLazy } from "@/components/motion-layer-lazy";
 import "./landing-responsive.css";
 
 /**
@@ -39,8 +39,9 @@ export default function ProductLandingsLayout({
     <>
       {children}
       {/* Scroll-reveal / parallax / count-up engine — scoped to the product
-          landing surfaces (moved out of the global root layout). */}
-      <MotionLayer />
+          landing surfaces (moved out of the global root layout). Lazy-loaded
+          (ssr:false) so it doesn't block first paint. */}
+      <MotionLayerLazy />
     </>
   );
 }

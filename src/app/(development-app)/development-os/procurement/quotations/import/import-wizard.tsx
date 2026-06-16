@@ -338,7 +338,7 @@ function UploadTab({
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
-      setParsed(parseXlsx(buf));
+      setParsed(await parseXlsx(buf));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setParsed(null);
