@@ -590,11 +590,20 @@ export async function createPayoutLineAction(
   const batchId = nullable(d.payoutBatchId);
   if (batchId) {
     const [batch] = await db
-      .select({ id: payoutBatches.id })
+      .select({ id: payoutBatches.id, currency: payoutBatches.currency })
       .from(payoutBatches)
       .where(and(eq(payoutBatches.id, batchId), eq(payoutBatches.organizationId, organizationId)))
       .limit(1);
     if (!batch) return { ok: false, error: "Payout batch not found." };
+    // MONEY-CORRECTNESS — a batch total is a single-currency sum; a line in a
+    // different currency would silently corrupt the displayed batch total
+    // (listPayoutBatches now also guards this). Reject the mismatch at write.
+    if (d.currency !== batch.currency) {
+      return {
+        ok: false,
+        error: `Line currency (${d.currency}) must match the batch currency (${batch.currency}).`,
+      };
+    }
   }
   // FC-OWNER-STATEMENTS §4.4 — payout is PAUSED while a statement is disputed.
   // A disputed statement can't have funds released until it is resolved/reissued.

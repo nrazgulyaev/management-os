@@ -47,7 +47,9 @@ export default async function PayoutsPage() {
     .map((o) => ({ id: o.id, label: o.displayName }));
   const batchOptions = batches.map((b) => ({
     id: b.id,
-    label: `${b.batchCode} · ${b.status}`,
+    label: `${b.batchCode} · ${b.status} · ${b.currency}`,
+    // Lets the line form lock its currency to the batch currency.
+    currency: b.currency,
   }));
 
   return (

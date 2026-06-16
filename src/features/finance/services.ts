@@ -689,7 +689,15 @@ export async function listPayoutBatches(): Promise<WithSource<PayoutBatchRow>[]>
       // already org-validates batch attachment, but the totals read must not
       // rely on that being the only write path.
       .where(and(eq(payoutLines.payoutBatchId, r.id), eq(payoutLines.organizationId, organizationId)));
-    const totalAmountMinor = lines.reduce<bigint>((acc, l) => acc + BigInt(l.amountMinor), 0n);
+    // MONEY-CORRECTNESS — a batch total is single-currency. Sum ONLY lines whose
+    // currency matches the batch currency so a stray foreign-currency line (e.g.
+    // an IDR line on a USD batch) can't corrupt the displayed total. The write
+    // path (createPayoutLineAction) now rejects such lines, but the read must not
+    // depend on that being the only entry point.
+    const totalAmountMinor = lines.reduce<bigint>(
+      (acc, l) => (l.currency === r.currency ? acc + BigInt(l.amountMinor) : acc),
+      0n,
+    );
     result.push({
       source: "db" as const,
       id: r.id,
