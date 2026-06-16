@@ -305,6 +305,42 @@ export const managementFeeRules = pgTable(
   ],
 );
 
+/**
+ * STATEMENT-SETTINGS (migration 0182) — per-org configuration for the canonical
+ * owner-statement generator. One row per organization (unique index on
+ * organization_id). Mirrors the column defaults in the migration; the app reads
+ * it via getStatementSettings() (org-scoped) and falls back to
+ * STATEMENT_SETTINGS_DEFAULTS when no row exists — so an org without a row keeps
+ * TODAY's generation behavior exactly.
+ */
+export const orgStatementSettings = pgTable(
+  "org_statement_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    includeFees: boolean("include_fees").notNull().default(true),
+    includeExpenses: boolean("include_expenses").notNull().default(true),
+    includeManagementFee: boolean("include_management_fee").notNull().default(true),
+    /** 'off' | 'ledger' | 'formula' */
+    taxMode: text("tax_mode").notNull().default("ledger"),
+    taxPct: numeric("tax_pct", { precision: 6, scale: 3 }).notNull().default("11.000"),
+    taxLabel: text("tax_label").notNull().default("Tax"),
+    /** 'off' | 'ledger' | 'formula' */
+    reserveMode: text("reserve_mode").notNull().default("ledger"),
+    reservePct: numeric("reserve_pct", { precision: 6, scale: 3 }).notNull().default("3.000"),
+    reserveLabel: text("reserve_label").notNull().default("Reserve"),
+    mgmtLabel: text("mgmt_label").notNull().default("Management fee"),
+    statementCurrency: text("statement_currency").notNull().default("IDR"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by"),
+  },
+  (t) => [
+    uniqueIndex("org_statement_settings_org_unique").on(t.organizationId),
+  ],
+);
+
 export const managementFeeLines = pgTable(
   "management_fee_lines",
   {
@@ -596,6 +632,8 @@ export type ReserveMovement = typeof reserveMovements.$inferSelect;
 export type NewReserveMovement = typeof reserveMovements.$inferInsert;
 export type ManagementFeeRule = typeof managementFeeRules.$inferSelect;
 export type ManagementFeeLine = typeof managementFeeLines.$inferSelect;
+export type OrgStatementSettings = typeof orgStatementSettings.$inferSelect;
+export type NewOrgStatementSettings = typeof orgStatementSettings.$inferInsert;
 export type StatementPeriod = typeof statementPeriods.$inferSelect;
 export type OwnerStatement = typeof ownerStatements.$inferSelect;
 export type NewOwnerStatement = typeof ownerStatements.$inferInsert;

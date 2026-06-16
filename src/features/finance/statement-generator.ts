@@ -29,7 +29,9 @@ import { percentOfMinor } from "@/lib/money";
 import {
   computeStatementNet,
   assertStatementLinesMatchNet,
+  formulaDeductionMagnitudeMinor,
 } from "./statement-net-pure";
+import { getStatementSettings } from "./statement-settings";
 
 // -----------------------------------------------------------------------------
 // Public API
@@ -108,7 +110,16 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     return { ok: false, reason: "owner_not_found" };
   }
 
-  const currency = input.currency ?? "USD";
+  // STATEMENT-SETTINGS — per-org config for what the statement includes and how
+  // tax/reserve are computed (org_statement_settings, migration 0182). Org-scoped
+  // via requireOrgId() inside getStatementSettings; returns DEFAULTS (all includes
+  // true, tax/reserve='ledger') when no row exists, so an org WITHOUT a settings
+  // row behaves EXACTLY as today.
+  const settings = await getStatementSettings();
+
+  // Currency: explicit input precedence (callers may force a currency), else the
+  // org's configured statement currency. Replaces the old hardcoded "USD".
+  const currency = input.currency ?? settings.statementCurrency;
 
   // -----------------------------------------------------------------
   // 1) Resolve ownership shares active during the period
@@ -218,7 +229,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const feesVilla = villaIds.length
+  // STATEMENT-SETTINGS: include_fees=false → skip pulling/emitting fee lines.
+  const feesVilla = settings.includeFees && villaIds.length
     ? await db
         .select()
         .from(feeLines)
@@ -232,7 +244,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const feesPool = projectIds.length
+  const feesPool = settings.includeFees && projectIds.length
     ? await db
         .select()
         .from(feeLines)
@@ -246,7 +258,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const expVilla = villaIds.length
+  // STATEMENT-SETTINGS: include_expenses=false → skip pulling/emitting expense
+  // lines AND their materialised expense_allocations (built in the loops below,
+  // which become no-ops when these arrays are empty).
+  const expVilla = settings.includeExpenses && villaIds.length
     ? await db
         .select()
         .from(expenseLines)
@@ -261,7 +276,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const expPoolShared = projectIds.length
+  const expPoolShared = settings.includeExpenses && projectIds.length
     ? await db
         .select()
         .from(expenseLines)
@@ -277,7 +292,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const taxesVilla = villaIds.length
+  // STATEMENT-SETTINGS: only read posted tax_lines in 'ledger' mode. 'off' emits
+  // no tax; 'formula' computes the tax from gross below (NOT from the ledger).
+  const taxesVilla = settings.taxMode === "ledger" && villaIds.length
     ? await db
         .select()
         .from(taxLines)
@@ -291,7 +308,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const reservesVilla = villaIds.length
+  // STATEMENT-SETTINGS: only read posted reserve_movements in 'ledger' mode.
+  const reservesVilla = settings.reserveMode === "ledger" && villaIds.length
     ? await db
         .select()
         .from(reserveMovements)
@@ -305,7 +323,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const mgmtVilla = villaIds.length
+  // STATEMENT-SETTINGS: include_management_fee=false → skip the recorded mgmt-fee
+  // lines (and the synthetic-rule block below), leaving managementFeeMinor at 0.
+  const mgmtVilla = settings.includeManagementFee && villaIds.length
     ? await db
         .select()
         .from(managementFeeLines)
@@ -577,6 +597,57 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     });
   }
 
+  // STATEMENT-SETTINGS: FORMULA tax. Computed as a % of GROSS revenue (NOT read
+  // from the ledger). Emits ONE tax line with the canonical NEGATIVE magnitude,
+  // and adds the POSITIVE magnitude to totalTaxesMinor — which computeStatementNet
+  // SUBTRACTS, keeping Σ(lines) == net. Placed BEFORE the management-fee blocks so
+  // a percent_of_net management rule sees this tax in its net base.
+  if (settings.taxMode === "formula") {
+    const taxMagnitude = formulaDeductionMagnitudeMinor(
+      grossRevenueMinor,
+      settings.taxPct,
+    );
+    if (taxMagnitude !== 0n) {
+      totalTaxesMinor += taxMagnitude;
+      pushLine({
+        line_type: "tax",
+        source_table: "org_statement_settings",
+        source_id: "00000000-0000-0000-0000-000000000000",
+        category: "tax_formula",
+        description: `${settings.taxLabel} · ${settings.taxPct}% of gross`,
+        // Deduction line: SIGNED negative (canonical model).
+        amount_minor: -taxMagnitude,
+        currency,
+        owner_visible: true,
+      });
+    }
+  }
+
+  // STATEMENT-SETTINGS: FORMULA reserve. Same shape as the formula tax — a % of
+  // gross as a POSITIVE magnitude in totalReservesMinor (a contribution, so the
+  // net subtracts it) with a NEGATIVE statement line.
+  if (settings.reserveMode === "formula") {
+    const reserveMagnitude = formulaDeductionMagnitudeMinor(
+      grossRevenueMinor,
+      settings.reservePct,
+    );
+    if (reserveMagnitude !== 0n) {
+      totalReservesMinor += reserveMagnitude;
+      pushLine({
+        line_type: "reserve",
+        source_table: "org_statement_settings",
+        source_id: "00000000-0000-0000-0000-000000000000",
+        category: "reserve_formula",
+        description: `${settings.reserveLabel} · ${settings.reservePct}% of gross`,
+        // SIGNED line: contribution → −magnitude (reduces net). Mirrors the net's
+        // `- totalReservesMinor`, keeping Σ(lines) == net.
+        amount_minor: -reserveMagnitude,
+        currency,
+        owner_visible: true,
+      });
+    }
+  }
+
   // Management fee (villa-attributed lines, if any)
   for (const m of mgmtVilla) {
     if (!m.villaId) continue;
@@ -597,7 +668,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   }
 
   // Compute synthetic management fee from rules if no recorded lines exist.
-  if (managementFeeMinor === 0n) {
+  // STATEMENT-SETTINGS: gated by include_management_fee (mgmtVilla is already
+  // empty when disabled, but skip the rule lookup too).
+  if (settings.includeManagementFee && managementFeeMinor === 0n) {
     const rules = await db
       .select()
       .from(managementFeeRules)
@@ -647,7 +720,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
           source_table: "management_fee_rules",
           source_id: rule.id,
           category: "management_fee",
-          description: `${rule.ruleName} · ${rule.feeModel}`,
+          description: `${settings.mgmtLabel} · ${rule.ruleName} · ${rule.feeModel}`,
           // Deduction line: SIGNED negative (canonical model).
           amount_minor: -amt,
           currency,

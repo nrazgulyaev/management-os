@@ -51,6 +51,35 @@ export function computeStatementNet(parts: StatementNetParts): bigint {
 }
 
 /**
+ * STATEMENT-SETTINGS — pure formula deduction magnitude. Computes a percentage
+ * of a base (gross revenue) as a POSITIVE minor-unit magnitude, used for the
+ * tax/reserve `formula` modes. Pure (no DB) so it is unit-testable here.
+ *
+ * Lives in the `-pure` module so the canonical generator and the test compute
+ * the SAME number. The generator emits the statement LINE as the NEGATIVE of
+ * this magnitude and adds the POSITIVE magnitude to the running total
+ * (totalTaxesMinor / totalReservesMinor), which `computeStatementNet` then
+ * SUBTRACTS — keeping the Σ(lines)==net invariant intact.
+ *
+ * Half-up rounding on the .5 boundary (matches Math.round on positive values);
+ * the base is a non-negative gross so we never round a negative.
+ */
+export function formulaDeductionMagnitudeMinor(
+  baseMinor: bigint,
+  pct: number,
+): bigint {
+  if (!Number.isFinite(pct) || pct <= 0) return 0n;
+  if (baseMinor <= 0n) return 0n;
+  // Scale pct to 3 decimals (matches the numeric(6,3) column) before BigInt
+  // division to avoid float drift: magnitude = base * pct_milli / 100_000.
+  const pctMilli = BigInt(Math.round(pct * 1000));
+  const numerator = baseMinor * pctMilli;
+  const denominator = 100_000n;
+  // Round half-up: add half the denominator before the floor division.
+  return (numerator + denominator / 2n) / denominator;
+}
+
+/**
  * Hard invariant guard: Σ(signed statement lines) MUST equal the computed net.
  * If a line sign or accumulator ever drifts, this throws BEFORE any money row
  * is written — failing loudly is correct for owner-payout money.
