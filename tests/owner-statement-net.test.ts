@@ -39,6 +39,54 @@ test("computeStatementNet SUBTRACTS positive-magnitude deductions (worked exampl
   assert.notEqual(net, 141_000_000n);
 });
 
+test("custom deductions SUBTRACT from net (positive magnitude) and the line is negative", async () => {
+  const { computeStatementNet, assertStatementLinesMatchNet } = await import(
+    "../src/features/finance/statement-net-pure"
+  );
+
+  // #284 custom deductions: a formula 2%-of-gross + a fixed 1,000,000 deduction.
+  // Both are POSITIVE magnitudes the generator accumulates into
+  // totalCustomDeductionsMinor, which the net SUBTRACTS (#283 sign convention).
+  const grossRevenueMinor = 100_000_000n;
+  const customFormula = 2_000_000n; // 2% of gross
+  const customFixed = 1_000_000n; // flat
+  const totalCustomDeductionsMinor = customFormula + customFixed;
+
+  const net = computeStatementNet({
+    grossRevenueMinor,
+    totalFeesMinor: 0n,
+    totalExpensesMinor: 0n,
+    totalTaxesMinor: 0n,
+    totalReservesMinor: 0n,
+    managementFeeMinor: 0n,
+    totalCustomDeductionsMinor,
+  });
+  // 100M - 2M - 1M = 97M.
+  assert.equal(net, 97_000_000n);
+
+  // Statement LINES: revenue POSITIVE, each custom deduction the NEGATIVE of its
+  // magnitude.
+  const lines = [
+    { amount_minor: grossRevenueMinor },
+    { amount_minor: -customFormula },
+    { amount_minor: -customFixed },
+  ];
+  const linesSignedTotal = lines.reduce<bigint>((acc, l) => acc + l.amount_minor, 0n);
+  assert.equal(linesSignedTotal, net, "Σ(lines) must equal net with custom deductions");
+  assert.doesNotThrow(() => assertStatementLinesMatchNet(linesSignedTotal, net));
+
+  // Omitting the field entirely (legacy call sites) must behave as 0 deductions.
+  const netNoCustom = computeStatementNet({
+    grossRevenueMinor,
+    totalFeesMinor: 0n,
+    totalExpensesMinor: 0n,
+    totalTaxesMinor: 0n,
+    totalReservesMinor: 0n,
+    managementFeeMinor: 0n,
+  });
+  assert.equal(netNoCustom, 100_000_000n);
+});
+
 test("Σ(signed lines) equals net, and every deduction line is negative", async () => {
   const { computeStatementNet, assertStatementLinesMatchNet } = await import(
     "../src/features/finance/statement-net-pure"

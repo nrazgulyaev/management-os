@@ -32,6 +32,12 @@ export interface StatementNetParts {
   totalReservesMinor: bigint;
   /** Positive magnitude. */
   managementFeeMinor: bigint;
+  /**
+   * Positive magnitude. STATEMENT-SETTINGS (#284 custom deductions): operator-
+   * defined extra deduction lines (formula % of gross OR fixed). Optional so the
+   * call sites that predate custom deductions keep compiling — absent → 0.
+   */
+  totalCustomDeductionsMinor?: bigint;
 }
 
 /**
@@ -46,7 +52,8 @@ export function computeStatementNet(parts: StatementNetParts): bigint {
     parts.totalExpensesMinor -
     parts.totalTaxesMinor -
     parts.totalReservesMinor -
-    parts.managementFeeMinor
+    parts.managementFeeMinor -
+    (parts.totalCustomDeductionsMinor ?? 0n)
   );
 }
 
