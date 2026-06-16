@@ -1,7 +1,7 @@
 import "server-only";
 
-import { and, eq, gte, lte, inArray, lt, gt, isNull, or } from "drizzle-orm";
-import { getDb, type DB } from "@/lib/db/client";
+import { and, eq, gte, lte, inArray, lt, gt, isNull, or, sql } from "drizzle-orm";
+import { getDb, rowsOf, type DB } from "@/lib/db/client";
 import {
   expenseAllocations,
   expenseLines,
@@ -110,17 +110,6 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     return { ok: false, reason: "owner_not_found" };
   }
 
-  // STATEMENT-SETTINGS — per-org config for what the statement includes and how
-  // tax/reserve are computed (org_statement_settings, migration 0182). Org-scoped
-  // via requireOrgId() inside getStatementSettings; returns DEFAULTS (all includes
-  // true, tax/reserve='ledger') when no row exists, so an org WITHOUT a settings
-  // row behaves EXACTLY as today.
-  const settings = await getStatementSettings();
-
-  // Currency: explicit input precedence (callers may force a currency), else the
-  // org's configured statement currency. Replaces the old hardcoded "USD".
-  const currency = input.currency ?? settings.statementCurrency;
-
   // -----------------------------------------------------------------
   // 1) Resolve ownership shares active during the period
   // -----------------------------------------------------------------
@@ -193,6 +182,38 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     poolShares[0]?.s.projectId ??
     (villaShares[0]?.s.projectId ?? null);
 
+  // STATEMENT-SETTINGS — per-SCOPE config for what the statement includes and
+  // how tax/reserve/mgmt/revenue are computed (org_statement_settings + custom
+  // deductions, migrations 0182/0183). Org-scoped via requireOrgId() inside
+  // getStatementSettings; resolves owner > project > org-default precedence so a
+  // per-owner / per-project override applies. The scope projectId falls back to
+  // the headline project so a project-level override still matches a villa-only
+  // owner. Returns DEFAULTS (all includes true, tax/reserve/mgmt='ledger',
+  // revenue from the ledger) when no row exists → an org WITHOUT a settings row
+  // behaves EXACTLY as today.
+  const settings = await getStatementSettings({
+    ownerId: input.ownerId,
+    projectId: input.projectId ?? headlineProjectId,
+  });
+
+  // Currency: explicit input precedence (callers may force a currency), else the
+  // org's configured statement currency. Replaces the old hardcoded "USD".
+  const currency = input.currency ?? settings.statementCurrency;
+
+  // REVENUE_SOURCE (cron-convergence capability): 'ledger' (default) reads posted
+  // revenue_lines as today. 'bookings' derives gross from the period's bookings
+  // (gross_amount + channel_fee_amount, FX→IDR minor) AND reads opex/capex/cogs
+  // from dev_transactions — reproducing the FORMULA generator's inputs.
+  const revenueFromBookings = settings.revenueSource === "bookings";
+
+  // FX snapshot — resolved ONCE here (not lazily after line-building) because the
+  // bookings/dev_transactions ports below convert USD→IDR minor at this rate,
+  // exactly like statement-generation.ts. getUsdToIdr() with the pinned 15,800
+  // fallback. The net-to-owner-USD conversion in section 3b reuses this value.
+  const { getUsdToIdr } = await import("@/features/integrations/fx-service");
+  const fxUsdToIdr =
+    (await getUsdToIdr().catch(() => FX_USD_TO_IDR_FALLBACK)) || FX_USD_TO_IDR_FALLBACK;
+
   // -----------------------------------------------------------------
   // 2) Pull source rows for the period
   // -----------------------------------------------------------------
@@ -201,7 +222,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
 
   // Revenue: villa-attributed posted rows in period. Pool-only owners (no villa)
   // get their share of project revenue (via villas in the project).
-  const revVilla = villaIds.length
+  // REVENUE_SOURCE='bookings': skip the ledger revenue_lines entirely — gross is
+  // derived from bookings below (the channel fee becomes the only fee line), so
+  // reading revenue_lines here would DOUBLE-COUNT.
+  const revVilla = !revenueFromBookings && villaIds.length
     ? await db
         .select()
         .from(revenueLines)
@@ -215,7 +239,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const revPool = projectIds.length
+  const revPool = !revenueFromBookings && projectIds.length
     ? await db
         .select()
         .from(revenueLines)
@@ -230,7 +254,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     : [];
 
   // STATEMENT-SETTINGS: include_fees=false → skip pulling/emitting fee lines.
-  const feesVilla = settings.includeFees && villaIds.length
+  // REVENUE_SOURCE='bookings': fee_lines are NOT read — the only fee is the
+  // booking channel commission, emitted from the bookings port below.
+  const feesVilla = settings.includeFees && !revenueFromBookings && villaIds.length
     ? await db
         .select()
         .from(feeLines)
@@ -244,7 +270,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const feesPool = settings.includeFees && projectIds.length
+  const feesPool = settings.includeFees && !revenueFromBookings && projectIds.length
     ? await db
         .select()
         .from(feeLines)
@@ -261,7 +287,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   // STATEMENT-SETTINGS: include_expenses=false → skip pulling/emitting expense
   // lines AND their materialised expense_allocations (built in the loops below,
   // which become no-ops when these arrays are empty).
-  const expVilla = settings.includeExpenses && villaIds.length
+  // REVENUE_SOURCE='bookings': the ledger expense_lines are NOT read — expenses
+  // come from dev_transactions (loadVillaExpenses port) instead, reproducing the
+  // formula generator's expense inputs.
+  const expVilla = settings.includeExpenses && !revenueFromBookings && villaIds.length
     ? await db
         .select()
         .from(expenseLines)
@@ -276,7 +305,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  const expPoolShared = settings.includeExpenses && projectIds.length
+  const expPoolShared = settings.includeExpenses && !revenueFromBookings && projectIds.length
     ? await db
         .select()
         .from(expenseLines)
@@ -323,9 +352,13 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         )
     : [];
 
-  // STATEMENT-SETTINGS: include_management_fee=false → skip the recorded mgmt-fee
-  // lines (and the synthetic-rule block below), leaving managementFeeMinor at 0.
-  const mgmtVilla = settings.includeManagementFee && villaIds.length
+  // STATEMENT-SETTINGS: management fee is gated by include_management_fee (a hard
+  // off switch — false ALWAYS wins) AND mgmtMode. The LEDGER path (recorded
+  // mgmt-fee lines + the synthetic-rule fallback below) runs only when
+  // mgmtMode==='ledger'; 'off' suppresses the fee; 'formula' computes it from
+  // gross in a dedicated block (after the deduction totals are known).
+  const mgmtLedger = settings.includeManagementFee && settings.mgmtMode === "ledger";
+  const mgmtVilla = mgmtLedger && villaIds.length
     ? await db
         .select()
         .from(managementFeeLines)
@@ -395,6 +428,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   let totalTaxesMinor = 0n;
   let totalReservesMinor = 0n;
   let managementFeeMinor = 0n;
+  // STATEMENT-SETTINGS (#284 custom deductions): POSITIVE running magnitude for
+  // operator-defined extra deduction lines; computeStatementNet SUBTRACTS it.
+  let totalCustomDeductionsMinor = 0n;
 
   function applyVillaShare(amount: bigint, villaId: string): bigint {
     const share = shareForVilla(villaId);
@@ -413,6 +449,166 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   let sortOrder = 0;
   function pushLine(p: Omit<(typeof linesToInsert)[number], "sort_order">) {
     linesToInsert.push({ ...p, sort_order: sortOrder++ });
+  }
+
+  // -----------------------------------------------------------------
+  // REVENUE_SOURCE='bookings' — port of statement-generation.ts loadBookings +
+  // loadVillaExpenses. Replicated FAITHFULLY (raw SQL, the same date_trunc month
+  // filter, the same per-booking `Math.round(gross * sharePct/100)` share-split,
+  // the same USD→IDR conversion) so the booking-derived gross / channel fee /
+  // dev_transactions expenses match the formula generator byte-for-byte.
+  //
+  // Pooling note: like the formula generator, this only handles VILLA-attributed
+  // shares (each villa share builds its own bookings + that villa's project's
+  // opex/capex/cogs). Pool-only owners are NOT reproduced via bookings (the
+  // formula generator is per owner×villa and has no pool-only mode).
+  // -----------------------------------------------------------------
+  if (revenueFromBookings) {
+    const toIdrMinor = (units: number, isUsd: boolean): bigint => {
+      const idr = isUsd ? units * fxUsdToIdr : units;
+      return BigInt(Math.round(idr * 100));
+    };
+
+    for (const vs of villaShares) {
+      const villaId = vs.s.villaId!;
+      const sharePct = Number(vs.s.sharePercent);
+      const sharePctFactor = sharePct / 100;
+      const projectId = vs.s.projectId ?? null;
+
+      // 1) Bookings → gross + channel fee (loadBookings port).
+      const bookingRows = await db.execute<{
+        id: string;
+        booking_code: string;
+        notes: string | null;
+        check_in: string;
+        nights: string;
+        gross: string;
+        channel_fee: string;
+        currency: string;
+      }>(sql`
+        SELECT b.id::text          AS id,
+               b.booking_code       AS booking_code,
+               b.notes              AS notes,
+               b.check_in::text     AS check_in,
+               b.nights::text       AS nights,
+               b.gross_amount::text AS gross,
+               b.channel_fee_amount::text AS channel_fee,
+               b.currency           AS currency
+          FROM bookings b
+         WHERE b.villa_id = ${villaId}::uuid
+           AND b.status IN ('confirmed','checked_in','checked_out')
+           AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
+         ORDER BY b.check_in ASC
+      `);
+
+      let villaChannelFeeMinor = 0n;
+      for (const b of rowsOf<{
+        id: string;
+        booking_code: string;
+        notes: string | null;
+        check_in: string;
+        nights: string;
+        gross: string;
+        channel_fee: string;
+        currency: string;
+      }>(bookingRows)) {
+        const isUsd = b.currency === "USD";
+        const grossIdrMinor = toIdrMinor(Number(b.gross || 0), isUsd);
+        const channelFeeIdrMinor = toIdrMinor(Number(b.channel_fee || 0), isUsd);
+        // Per-booking share split — Math.round to match statement-generation.ts.
+        const ownerGross = BigInt(Math.round(Number(grossIdrMinor) * sharePctFactor));
+        const ownerChannelFee = BigInt(
+          Math.round(Number(channelFeeIdrMinor) * sharePctFactor),
+        );
+        grossRevenueMinor += ownerGross;
+        villaChannelFeeMinor += ownerChannelFee;
+        const guestName = b.notes?.replace(/^\[DEMO2\] /, "").trim() || "Guest";
+        pushLine({
+          line_type: "revenue",
+          source_table: "bookings",
+          source_id: b.id,
+          category: "revenue",
+          description: `${b.booking_code} · ${guestName} · ${Number(b.nights || 0)}n from ${b.check_in}`,
+          amount_minor: ownerGross,
+          currency,
+          owner_visible: true,
+        });
+      }
+
+      // Channel commission — ONE negative fee line per villa (mirrors the
+      // formula generator emitting a single aggregated channel-fee line).
+      if (settings.includeFees && villaChannelFeeMinor > 0n) {
+        totalFeesMinor += villaChannelFeeMinor;
+        pushLine({
+          line_type: "fee",
+          source_table: "bookings",
+          source_id: "00000000-0000-0000-0000-000000000000",
+          category: "fees",
+          description: "Channel commission (OTA fees)",
+          amount_minor: -villaChannelFeeMinor,
+          currency,
+          owner_visible: true,
+        });
+      }
+
+      // 2) dev_transactions opex/capex/cogs → expenses (loadVillaExpenses port).
+      if (settings.includeExpenses && projectId) {
+        const expenseRows = await db.execute<{
+          id: string;
+          description: string;
+          category_name: string;
+          amount_minor: string;
+          currency: string;
+          fx_rate: string | null;
+        }>(sql`
+          SELECT t.id::text                            AS id,
+                 COALESCE(t.description, c.display_name) AS description,
+                 c.display_name                         AS category_name,
+                 t.amount_minor::text                   AS amount_minor,
+                 t.currency                             AS currency,
+                 t.fx_rate_at_transaction               AS fx_rate
+            FROM dev_transactions t
+            JOIN dev_cost_categories c ON c.id = t.category_id
+           WHERE t.organization_id = ${input.organizationId}::uuid
+             AND t.project_id = ${projectId}::uuid
+             AND date_trunc('month', t.transaction_date)::date = ${periodMonth}::date
+             AND c.category_type IN ('opex','capex','cogs')
+             AND c.category_type <> 'corporate_event'
+             AND t.direction = 'outflow'
+           ORDER BY t.transaction_date ASC
+           LIMIT 50
+        `);
+        for (const e of rowsOf<{
+          id: string;
+          description: string;
+          category_name: string;
+          amount_minor: string;
+          currency: string;
+          fx_rate: string | null;
+        }>(expenseRows)) {
+          let amountIdrMinor = BigInt(e.amount_minor ?? "0");
+          if (e.currency !== "IDR") {
+            const fx = Number(e.fx_rate ?? "16000");
+            amountIdrMinor = BigInt(Math.round((Number(amountIdrMinor) / 100) * fx * 100));
+          }
+          const ownerShare = BigInt(Math.round(Number(amountIdrMinor) * sharePctFactor));
+          if (ownerShare === 0n) continue;
+          totalExpensesMinor += ownerShare;
+          const desc =
+            e.description?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ?? "Expense";
+          pushLine({
+            line_type: "expense",
+            source_table: "dev_transactions",
+            source_id: e.id,
+            category: e.category_name,
+            description: `${e.category_name} · ${desc}`,
+            amount_minor: -ownerShare,
+            currency,
+            owner_visible: true,
+          });
+        }
+      }
+    }
   }
 
   // Revenue (villa)
@@ -668,9 +864,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   }
 
   // Compute synthetic management fee from rules if no recorded lines exist.
-  // STATEMENT-SETTINGS: gated by include_management_fee (mgmtVilla is already
-  // empty when disabled, but skip the rule lookup too).
-  if (settings.includeManagementFee && managementFeeMinor === 0n) {
+  // STATEMENT-SETTINGS: gated by the LEDGER mode (mgmtVilla is already empty when
+  // off/formula, but skip the rule lookup too). The 'formula' mode is handled in
+  // its own block below.
+  if (mgmtLedger && managementFeeMinor === 0n) {
     const rules = await db
       .select()
       .from(managementFeeRules)
@@ -730,6 +927,63 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     }
   }
 
+  // STATEMENT-SETTINGS: FORMULA management fee. mgmt = round(gross * mgmtPct/100)
+  // as a POSITIVE magnitude in managementFeeMinor (the net SUBTRACTS it) with ONE
+  // NEGATIVE statement line. include_management_fee=false already forced mgmtMode
+  // off (mgmtLedger=false and this guard), so 'off' wins. Uses the SAME half-up
+  // magnitude helper as the formula tax/reserve so all three round identically.
+  if (settings.includeManagementFee && settings.mgmtMode === "formula") {
+    const mgmtMagnitude = formulaDeductionMagnitudeMinor(
+      grossRevenueMinor,
+      settings.mgmtPct,
+    );
+    if (mgmtMagnitude !== 0n) {
+      managementFeeMinor = mgmtMagnitude;
+      pushLine({
+        line_type: "management_fee",
+        source_table: "org_statement_settings",
+        source_id: "00000000-0000-0000-0000-000000000000",
+        category: "management_fee",
+        description: `${settings.mgmtLabel} · ${settings.mgmtPct}% of gross`,
+        // Deduction line: SIGNED negative (canonical model).
+        amount_minor: -mgmtMagnitude,
+        currency,
+        owner_visible: true,
+      });
+    }
+  }
+
+  // STATEMENT-SETTINGS (#284): CUSTOM DEDUCTIONS — operator-defined extra
+  // deductions resolved at the same owner>project>org scope as the settings row.
+  // Each is a DEDUCTION (#283 sign convention): formula = round(gross * pct/100),
+  // fixed = fixedAmountMinor. Emitted as a NEGATIVE 'expense' line carrying the
+  // custom label; the POSITIVE magnitude accrues to totalCustomDeductionsMinor,
+  // which computeStatementNet SUBTRACTS — preserving Σ(lines)==net.
+  for (const cd of settings.customDeductions) {
+    const magnitude =
+      cd.mode === "formula"
+        ? formulaDeductionMagnitudeMinor(grossRevenueMinor, cd.pct ?? 0)
+        : cd.fixedAmountMinor !== null && cd.fixedAmountMinor > 0n
+          ? cd.fixedAmountMinor
+          : 0n;
+    if (magnitude <= 0n) continue;
+    totalCustomDeductionsMinor += magnitude;
+    pushLine({
+      line_type: "expense",
+      source_table: "org_statement_custom_deductions",
+      source_id: "00000000-0000-0000-0000-000000000000",
+      category: "custom_deduction",
+      description:
+        cd.mode === "formula"
+          ? `${cd.label} · ${cd.pct ?? 0}% of gross`
+          : cd.label,
+      // Deduction line: SIGNED negative (canonical model).
+      amount_minor: -magnitude,
+      currency,
+      owner_visible: true,
+    });
+  }
+
   // MONEY-CORRECTNESS — canonical ledger net (mirrors statement-generation.ts):
   // deductions are stored as positive magnitudes and SUBTRACTED. The prior code
   // SUMMED them, adding positive expenses/fees/taxes to the payout → overpaying
@@ -741,6 +995,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     totalTaxesMinor,
     totalReservesMinor,
     managementFeeMinor,
+    totalCustomDeductionsMinor,
   });
 
   // SAFETY NET — Σ(signed statement lines) MUST reconcile to the net. Throws
@@ -763,9 +1018,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   //   - IDR statement → USD minor = round(netIdrMinor / 100 / fxUsdToIdr * 100).
   //   - other currency → no canonical pair to convert through; leave USD NULL
   //     but still snapshot the rate.
-  const { getUsdToIdr } = await import("@/features/integrations/fx-service");
-  const fxUsdToIdr =
-    (await getUsdToIdr().catch(() => FX_USD_TO_IDR_FALLBACK)) || FX_USD_TO_IDR_FALLBACK;
+  // fxUsdToIdr resolved ONCE near the top (the bookings port needs it for
+  // USD→IDR conversion); reuse the snapshot here.
   const fxRateSnapshot = String(fxUsdToIdr);
   let netToOwnerUsdMinor: bigint | null;
   if (currency === "USD") {

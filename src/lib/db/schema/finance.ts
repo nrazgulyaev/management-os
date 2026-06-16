@@ -306,10 +306,13 @@ export const managementFeeRules = pgTable(
 );
 
 /**
- * STATEMENT-SETTINGS (migration 0182) — per-org configuration for the canonical
- * owner-statement generator. One row per organization (unique index on
- * organization_id). Mirrors the column defaults in the migration; the app reads
- * it via getStatementSettings() (org-scoped) and falls back to
+ * STATEMENT-SETTINGS (migrations 0182, 0183) — configuration for the canonical
+ * owner-statement generator. PER-SCOPE rows keyed by (organization_id,
+ * project_id, owner_id): the most-specific row wins (owner > project > org).
+ * A row with project_id + owner_id both NULL is the ORG-DEFAULT (what every
+ * 0182 row became). The unique index COALESCEs the nullable scope cols to a
+ * sentinel uuid so exactly one row exists per scope tuple. The app reads it via
+ * getStatementSettings() (org-scoped) and falls back to
  * STATEMENT_SETTINGS_DEFAULTS when no row exists — so an org without a row keeps
  * TODAY's generation behavior exactly.
  */
@@ -320,6 +323,10 @@ export const orgStatementSettings = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    // SCOPE (0183): NULL/NULL = org-default; project set = whole project;
+    // owner set = single owner. Most-specific wins at read time.
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id").references(() => owners.id, { onDelete: "cascade" }),
     includeFees: boolean("include_fees").notNull().default(true),
     includeExpenses: boolean("include_expenses").notNull().default(true),
     includeManagementFee: boolean("include_management_fee").notNull().default(true),
@@ -331,13 +338,61 @@ export const orgStatementSettings = pgTable(
     reserveMode: text("reserve_mode").notNull().default("ledger"),
     reservePct: numeric("reserve_pct", { precision: 6, scale: 3 }).notNull().default("3.000"),
     reserveLabel: text("reserve_label").notNull().default("Reserve"),
+    // MGMT (0183): 'off' | 'ledger' | 'formula'. 'formula' uses mgmtPct (% of
+    // gross); 'ledger' reads posted management-fee lines (today's behavior).
+    mgmtMode: text("mgmt_mode").notNull().default("ledger"),
+    mgmtPct: numeric("mgmt_pct", { precision: 6, scale: 3 }).notNull().default("20.000"),
     mgmtLabel: text("mgmt_label").notNull().default("Management fee"),
+    /** 'ledger' | 'bookings' — where gross revenue comes from (0183). */
+    revenueSource: text("revenue_source").notNull().default("ledger"),
     statementCurrency: text("statement_currency").notNull().default("IDR"),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy: uuid("updated_by"),
   },
   (t) => [
-    uniqueIndex("org_statement_settings_org_unique").on(t.organizationId),
+    // 0183: one row per (org, project, owner) scope. COALESCE-on-NULL handled
+    // at the DB level (see migration); Drizzle tracks the column set here.
+    uniqueIndex("org_statement_settings_scope_unique").on(
+      t.organizationId,
+      t.projectId,
+      t.ownerId,
+    ),
+  ],
+);
+
+/**
+ * STATEMENT CUSTOM DEDUCTIONS (migration 0183) — operator-defined extra
+ * deduction lines on the owner statement (e.g. "Linen fee", "Pool service"),
+ * scoped the same (org / project / owner) way as orgStatementSettings.
+ *   - mode='formula' → pct is a % of gross revenue.
+ *   - mode='fixed'   → fixedAmountMinor is a flat minor-unit amount.
+ * Inactive rows (active=false) are kept for history but skipped by the
+ * generator. Each row is a DEDUCTION (subtracts from net), per the #283 sign
+ * convention.
+ */
+export const orgStatementCustomDeductions = pgTable(
+  "org_statement_custom_deductions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }),
+    ownerId: uuid("owner_id").references(() => owners.id, { onDelete: "cascade" }),
+    label: text("label").notNull(),
+    /** 'formula' | 'fixed' */
+    mode: text("mode").notNull().default("formula"),
+    /** % of gross revenue when mode='formula'. */
+    pct: numeric("pct", { precision: 6, scale: 3 }),
+    /** Flat minor-unit amount when mode='fixed'. */
+    fixedAmountMinor: bigint("fixed_amount_minor", { mode: "bigint" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("org_statement_custom_deductions_org_idx").on(t.organizationId),
   ],
 );
 
@@ -634,6 +689,8 @@ export type ManagementFeeRule = typeof managementFeeRules.$inferSelect;
 export type ManagementFeeLine = typeof managementFeeLines.$inferSelect;
 export type OrgStatementSettings = typeof orgStatementSettings.$inferSelect;
 export type NewOrgStatementSettings = typeof orgStatementSettings.$inferInsert;
+export type OrgStatementCustomDeduction = typeof orgStatementCustomDeductions.$inferSelect;
+export type NewOrgStatementCustomDeduction = typeof orgStatementCustomDeductions.$inferInsert;
 export type StatementPeriod = typeof statementPeriods.$inferSelect;
 export type OwnerStatement = typeof ownerStatements.$inferSelect;
 export type NewOwnerStatement = typeof ownerStatements.$inferInsert;
