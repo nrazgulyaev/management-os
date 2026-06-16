@@ -70,7 +70,14 @@ function hashLines(periodMonth: string, lines: DraftLine[]): string {
   return createHash("sha256").update(payload).digest("hex");
 }
 
-async function resolveOrCreatePeriod(
+/**
+ * Resolve (or create) the statement_period row for a `YYYY-MM-01` periodMonth,
+ * anchored on the first-of-month period_start. Exported so the monthly cron can
+ * resolve the SAME period the engine requires (generateOwnerStatement needs a
+ * pre-existing periodId) — keeping period creation identical to the legacy
+ * formula path.
+ */
+export async function resolveOrCreatePeriod(
   db: ReturnType<typeof getDb>,
   periodMonth: string,
 ): Promise<string> {
@@ -495,6 +502,15 @@ async function loadOwnerChargeableExpenseLines(
   return out;
 }
 
+/**
+ * @deprecated CRON-CONVERGENCE — the legacy FORMULA generator. The monthly cron
+ * and the bulk "generate all" path now call the canonical engine
+ * (statement-generator.ts `generateOwnerStatement`) with the reproduce-cron
+ * settingsOverride, which yields a BYTE-EXACT net per (owner, VILLA) (proven by
+ * tests/statement-cron-replay.test.ts) while enforcing the Σ(lines)==net
+ * invariant and BigInt half-up rounding. This file is kept (not deleted) for
+ * reference and for any legacy caller; do NOT add new callers.
+ */
 export async function generateStatementForOwnerVilla(
   orgId: string,
   ownerId: string,

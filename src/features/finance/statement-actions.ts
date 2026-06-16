@@ -9,9 +9,9 @@ import { ownerStatements, statementLines } from "@/lib/db/schema/finance";
 import { ownerThreads } from "@/lib/db/schema/owner-threads";
 import { recordAuditEvent } from "@/features/audit/services";
 import {
-  generateAllPendingStatements,
-  generateStatementForOwnerVilla,
-} from "@/features/finance/statement-generation";
+  generateAllPendingStatementsViaEngine,
+  regenerateOwnerVillaViaEngine,
+} from "@/features/finance/statement-generator";
 import {
   AUTO_ACK_DAYS,
   assertTransition,
@@ -321,7 +321,10 @@ export async function resolveDisputeAndReissue(
 
 export async function generateAllForPeriod(periodMonth: string): Promise<ActionResult & { count?: number }> {
   try {
-    const results = await generateAllPendingStatements(periodMonth);
+    // CRON-CONVERGENCE: bulk monthly generation now runs the CANONICAL engine
+    // (reproduce-cron config) per (owner, villa) — byte-exact with the legacy
+    // formula path but with the Σ(lines)==net invariant enforced.
+    const results = await generateAllPendingStatementsViaEngine(periodMonth);
     revalidatePath("/dashboard/finance");
     return { ok: true, count: results.length };
   } catch (e) {
@@ -336,7 +339,9 @@ export async function regenerateStatement(
 ): Promise<ActionResult> {
   try {
     const orgId = await requireOrgId();
-    await generateStatementForOwnerVilla(orgId, ownerId, villaId, periodMonth);
+    // CRON-CONVERGENCE: regenerate via the canonical engine (reproduce-cron
+    // config) so a manual regenerate matches the monthly cron byte-for-byte.
+    await regenerateOwnerVillaViaEngine(orgId, ownerId, villaId, periodMonth);
     revalidatePath("/dashboard/finance");
     return { ok: true };
   } catch (e) {
