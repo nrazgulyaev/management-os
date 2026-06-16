@@ -595,19 +595,29 @@ export async function getOperationalHealthTiles(): Promise<OperationalHealthTile
 
   // Pending = no decision recorded yet. Keyed off the decision timestamps
   // rather than the `status` string so it's robust to status-vocab drift.
-  const rows = orgId
-    ? await db.execute<{ pending: string }>(sql`
-        SELECT COUNT(*)::text AS pending
-          FROM owner_stay_requests
-         WHERE approved_at IS NULL
-           AND rejected_at IS NULL
-           AND completed_at IS NULL
-           AND organization_id = ${orgId}
-      `)
-    : [];
-  const ownerStayRequestsPending = Number(
-    rowsOf<{ pending: string }>(rows)[0]?.pending ?? "0",
-  );
+  // PERF (Phase 4): only the COUNT row (text) is cached per-org for 60s;
+  // org resolved OUTSIDE the cache and passed as a key-part. getOperationsKpis
+  // is cached separately in its own module.
+  const pendingRow = orgId
+    ? await unstable_cache(
+        async () => {
+          const cdb = getDb();
+          if (!cdb) return null;
+          const rows = await cdb.execute<{ pending: string }>(sql`
+            SELECT COUNT(*)::text AS pending
+              FROM owner_stay_requests
+             WHERE approved_at IS NULL
+               AND rejected_at IS NULL
+               AND completed_at IS NULL
+               AND organization_id = ${orgId}
+          `);
+          return rowsOf<{ pending: string }>(rows)[0] ?? null;
+        },
+        ["dash", "ops-health-pending", orgId],
+        { revalidate: 60 },
+      )()
+    : null;
+  const ownerStayRequestsPending = Number(pendingRow?.pending ?? "0");
 
   return {
     openMaintenance: kpis.ticketsOpen,

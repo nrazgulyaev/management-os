@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -66,8 +67,16 @@ function monthLabelOf(periodMonth: string): string {
 export async function listManagementPnlPeriods(): Promise<string[]> {
   const db = getDb();
   if (!db) return [];
-  const orgId = await requireOrgId();
-  const rows = await db.execute<{ period_month: string }>(sql`
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
+  // PERF (Phase 4): months-with-data change ~once/month; cache the resolved
+  // string[] per-org for 300s. Org resolved OUTSIDE the cache, passed as a
+  // key-part. Output is already plain strings — no bigint.
+  return unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return [];
+      const rows = await cdb.execute<{ period_month: string }>(sql`
     WITH stmt_months AS (
       SELECT DISTINCT s.period_month::date AS pm
         FROM owner_statements s
@@ -95,7 +104,11 @@ export async function listManagementPnlPeriods(): Promise<string[]> {
      ORDER BY period_month DESC
      LIMIT 24
   `);
-  return rowsOf<{ period_month: string }>(rows).map((r) => r.period_month);
+      return rowsOf<{ period_month: string }>(rows).map((r) => r.period_month);
+    },
+    ["finance", "mgmt-pnl-periods", orgId],
+    { revalidate: 300 },
+  )();
 }
 
 /**
@@ -118,14 +131,29 @@ export async function getManagementPnl(periodMonth: string): Promise<ManagementP
 
   const db = getDb();
   if (!db) return empty;
-  const orgId = await requireOrgId();
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return empty;
 
-  // -----------------------------------------------------------------
-  // 1) Commission earned — management_fee statement lines across the org's
-  //    statements for the period. Stored negative on the owner statement
-  //    (a deduction from owner payout); the operator earns the magnitude.
-  // -----------------------------------------------------------------
-  const commissionRows = await db.execute<{ total_minor: string; line_count: string }>(sql`
+  // PERF (Phase 4): a closed month never changes, so both heavy aggregates are
+  // cached together per-org+period for 300s. Org resolved OUTSIDE the cache;
+  // org AND periodMonth are key-parts. Only raw ::text rows are cached — every
+  // BigInt()/reduce/netMargin/marginPct computation runs live below.
+  const { commission: commissionRow, cost: costRowsData } = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return { commission: null, cost: [] as Array<{
+        label: string;
+        category: string;
+        source: string;
+        cost_minor: string;
+        line_count: string;
+      }> };
+      // ---------------------------------------------------------------
+      // 1) Commission earned — management_fee statement lines across the org's
+      //    statements for the period. Stored negative on the owner statement
+      //    (a deduction from owner payout); the operator earns the magnitude.
+      // ---------------------------------------------------------------
+      const commissionRows = await cdb.execute<{ total_minor: string; line_count: string }>(sql`
     SELECT COALESCE(SUM(ABS(sl.amount_minor)), 0)::text AS total_minor,
            COUNT(*)::text                               AS line_count
       FROM statement_lines sl
@@ -134,23 +162,19 @@ export async function getManagementPnl(periodMonth: string): Promise<ManagementP
        AND s.period_month = ${periodMonth}::date
        AND sl.line_type = 'management_fee'
   `);
-  const commissionRow = rowsOf<{ total_minor: string; line_count: string }>(commissionRows)[0];
-  const commissionEarnedMinor = BigInt(commissionRow?.total_minor ?? "0");
-  const commissionLineCount = Number(commissionRow?.line_count ?? "0");
-
-  // -----------------------------------------------------------------
-  // 2) Management-borne costs — expense_lines cost_bearer='management' for the
-  //    period. Org-scoped via villa→project, project, or payroll_run. Grouped
-  //    by staff (payroll lines) or expense_type (non-payroll), so the breakdown
-  //    table reads "by staff / role / category".
-  // -----------------------------------------------------------------
-  const costRows = await db.execute<{
-    label: string;
-    category: string;
-    source: string;
-    cost_minor: string;
-    line_count: string;
-  }>(sql`
+      // ---------------------------------------------------------------
+      // 2) Management-borne costs — expense_lines cost_bearer='management' for the
+      //    period. Org-scoped via villa→project, project, or payroll_run. Grouped
+      //    by staff (payroll lines) or expense_type (non-payroll), so the breakdown
+      //    table reads "by staff / role / category".
+      // ---------------------------------------------------------------
+      const costRows = await cdb.execute<{
+        label: string;
+        category: string;
+        source: string;
+        cost_minor: string;
+        line_count: string;
+      }>(sql`
     SELECT COALESCE(st.full_name || ' · ' || st.role_label,
                     el.expense_type,
                     'Management cost')              AS label,
@@ -173,13 +197,26 @@ export async function getManagementPnl(periodMonth: string): Promise<ManagementP
      ORDER BY SUM(el.amount_minor) DESC
      LIMIT 100
   `);
-  const breakdown: ManagementPnlBreakdownRow[] = rowsOf<{
-    label: string;
-    category: string;
-    source: string;
-    cost_minor: string;
-    line_count: string;
-  }>(costRows).map((r) => ({
+      return {
+        commission:
+          rowsOf<{ total_minor: string; line_count: string }>(commissionRows)[0] ?? null,
+        cost: rowsOf<{
+          label: string;
+          category: string;
+          source: string;
+          cost_minor: string;
+          line_count: string;
+        }>(costRows),
+      };
+    },
+    ["finance", "mgmt-pnl", orgId, periodMonth],
+    { revalidate: 300 },
+  )();
+
+  const commissionEarnedMinor = BigInt(commissionRow?.total_minor ?? "0");
+  const commissionLineCount = Number(commissionRow?.line_count ?? "0");
+
+  const breakdown: ManagementPnlBreakdownRow[] = costRowsData.map((r) => ({
     label: r.label?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ?? "Management cost",
     category: r.category ?? "Management cost",
     source: r.source === "payroll" ? "payroll" : "expense",

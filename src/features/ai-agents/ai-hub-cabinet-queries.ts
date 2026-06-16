@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -123,7 +124,8 @@ export interface AiAgentCard {
  */
 export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
   const db = getDb();
-  if (!db) {
+  const orgId = await requireOrgId().catch(() => null);
+  if (!db || !orgId) {
     return MGMT_AGENT_REGISTRY.map((a) => ({
       ...a,
       isLive: false,
@@ -133,49 +135,58 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
       platformAgentCode: null,
     }));
   }
-  const orgId = await requireOrgId();
 
-  // Legacy org_ai_agent_config
-  const legacyRows = await db.execute<{
-    agent_key: string;
-    is_enabled: boolean;
-    provider: string | null;
-    model: string | null;
-  }>(sql`
+  // PERF (Phase 4): both org-scoped reads (config/subscription toggles change
+  // rarely) are cached together per-org for 120s. Org resolved OUTSIDE the
+  // cache, passed as a key-part. Payload is plain strings/booleans — no bigint.
+  // The registry merge/Map-building runs live below on the cached rows.
+  const { legacy: legacyData, platform: platformData } = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) {
+        return {
+          legacy: [] as Array<{
+            agent_key: string;
+            is_enabled: boolean;
+            provider: string | null;
+            model: string | null;
+          }>,
+          platform: [] as Array<{
+            id: string;
+            agent_code: string;
+            display_name: string;
+            description: string | null;
+            provider: string;
+            model: string;
+            is_active: boolean;
+            has_key: boolean;
+            sub_enabled: boolean | null;
+          }>,
+        };
+      }
+      // Legacy org_ai_agent_config
+      const legacyRows = await cdb.execute<{
+        agent_key: string;
+        is_enabled: boolean;
+        provider: string | null;
+        model: string | null;
+      }>(sql`
     SELECT agent_key, is_enabled, provider, model
       FROM org_ai_agent_config
      WHERE organization_id = ${orgId}
   `);
-  const legacyByKey = new Map<
-    string,
-    { isEnabled: boolean; provider: string | null; model: string | null }
-  >();
-  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
-  for (const r of rowsOf<{
-    agent_key: string;
-    is_enabled: boolean;
-    provider: string | null;
-    model: string | null;
-  }>(legacyRows)) {
-    legacyByKey.set(r.agent_key, {
-      isEnabled: r.is_enabled,
-      provider: r.provider,
-      model: r.model,
-    });
-  }
-
-  // New platform_agent_configs + subscription
-  const platformRows = await db.execute<{
-    id: string;
-    agent_code: string;
-    display_name: string;
-    description: string | null;
-    provider: string;
-    model: string;
-    is_active: boolean;
-    has_key: boolean;
-    sub_enabled: boolean | null;
-  }>(sql`
+      // New platform_agent_configs + subscription
+      const platformRows = await cdb.execute<{
+        id: string;
+        agent_code: string;
+        display_name: string;
+        description: string | null;
+        provider: string;
+        model: string;
+        is_active: boolean;
+        has_key: boolean;
+        sub_enabled: boolean | null;
+      }>(sql`
     SELECT pa.id::text                  AS id,
            pa.agent_code                 AS agent_code,
            pa.display_name               AS display_name,
@@ -191,6 +202,43 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
             AND oas.organization_id = ${orgId}
      WHERE pa.is_active = TRUE
   `);
+      return {
+        // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+        legacy: rowsOf<{
+          agent_key: string;
+          is_enabled: boolean;
+          provider: string | null;
+          model: string | null;
+        }>(legacyRows),
+        platform: rowsOf<{
+          id: string;
+          agent_code: string;
+          display_name: string;
+          description: string | null;
+          provider: string;
+          model: string;
+          is_active: boolean;
+          has_key: boolean;
+          sub_enabled: boolean | null;
+        }>(platformRows),
+      };
+    },
+    ["ai", "agents-cabinet", orgId],
+    { revalidate: 120 },
+  )();
+
+  const legacyByKey = new Map<
+    string,
+    { isEnabled: boolean; provider: string | null; model: string | null }
+  >();
+  for (const r of legacyData) {
+    legacyByKey.set(r.agent_key, {
+      isEnabled: r.is_enabled,
+      provider: r.provider,
+      model: r.model,
+    });
+  }
+
   const platformByCode = new Map<
     string,
     {
@@ -203,18 +251,7 @@ export async function listAgentsForCabinet(): Promise<AiAgentCard[]> {
       subEnabled: boolean;
     }
   >();
-  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
-  for (const r of rowsOf<{
-    id: string;
-    agent_code: string;
-    display_name: string;
-    description: string | null;
-    provider: string;
-    model: string;
-    is_active: boolean;
-    has_key: boolean;
-    sub_enabled: boolean | null;
-  }>(platformRows)) {
+  for (const r of platformData) {
     platformByCode.set(r.agent_code, {
       id: r.id,
       displayName: r.display_name,
@@ -310,14 +347,32 @@ export async function getAiHubKpis(): Promise<AiHubKpis> {
       refusals30d: 0,
     };
   }
-  const orgId = await requireOrgId();
-  const rows = await db.execute<{
-    agents_live: string;
-    runs_30d: string;
-    avg_latency: string | null;
-    token_spend_mtd: string;
-    refusals_30d: string;
-  }>(sql`
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) {
+    return {
+      agentsLive: 0,
+      agentsTotal: MGMT_AGENT_REGISTRY.length,
+      runs30d: 0,
+      avgLatencyMs: null,
+      tokenSpendMtdUsdMinor: 0n,
+      refusals30d: 0,
+    };
+  }
+  // PERF (Phase 4): cache only the raw text KPI row per-org for 60s; org
+  // resolved OUTSIDE the cache, passed as a key-part. token_spend_mtd is cast
+  // ::text so the cached row is bigint-free — BigInt()/Number() coercions run
+  // live below.
+  const r = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const rows = await cdb.execute<{
+        agents_live: string;
+        runs_30d: string;
+        avg_latency: string | null;
+        token_spend_mtd: string;
+        refusals_30d: string;
+      }>(sql`
     SELECT
       -- live = platform-managed + key + subscribed, plus legacy flagged
       (
@@ -397,14 +452,20 @@ export async function getAiHubKpis(): Promise<AiHubKpis> {
         ) all_refusals
       ) AS refusals_30d
   `);
-  // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
-  const r = rowsOf<{
-    agents_live: string;
-    runs_30d: string;
-    avg_latency: string | null;
-    token_spend_mtd: string;
-    refusals_30d: string;
-  }>(rows)[0];
+      // SHAPE-FIX-1: rowsOf() handles postgres-js's Array return shape.
+      return (
+        rowsOf<{
+          agents_live: string;
+          runs_30d: string;
+          avg_latency: string | null;
+          token_spend_mtd: string;
+          refusals_30d: string;
+        }>(rows)[0] ?? null
+      );
+    },
+    ["ai", "hub-kpis", orgId],
+    { revalidate: 60 },
+  )();
 
   return {
     agentsLive: Number(r?.agents_live ?? "0"),
