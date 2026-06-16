@@ -1,12 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { bookingRelocationCandidates } from "@/lib/db/schema/owner-stays";
+import {
+  bookingRelocationCandidates,
+  ownerStayRequests,
+} from "@/lib/db/schema/owner-stays";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   applyRelocationCandidateSchema,
   reviewRelocationCandidateSchema,
@@ -52,6 +56,27 @@ export async function approveRelocationCandidateAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: bookingRelocationCandidates has no org column; anchor it via its
+  // parent owner_stay_request's org. A cross-org candidate id reads as not-found
+  // so another org's relocation candidate can't be approved. Mirrors
+  // listRelocationCandidates' transitive scope.
+  const [candidate] = await db
+    .select({ id: bookingRelocationCandidates.id })
+    .from(bookingRelocationCandidates)
+    .innerJoin(
+      ownerStayRequests,
+      eq(ownerStayRequests.id, bookingRelocationCandidates.ownerStayRequestId),
+    )
+    .where(
+      and(
+        eq(bookingRelocationCandidates.id, parsed.data.id),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!candidate) return { ok: false, error: "Candidate not found." };
 
   await db
     .update(bookingRelocationCandidates)
@@ -88,6 +113,26 @@ export async function rejectRelocationCandidateAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: bookingRelocationCandidates has no org column; anchor it via its
+  // parent owner_stay_request's org so a cross-org candidate id reads as
+  // not-found and can't be rejected. Mirrors listRelocationCandidates' scope.
+  const [candidate] = await db
+    .select({ id: bookingRelocationCandidates.id })
+    .from(bookingRelocationCandidates)
+    .innerJoin(
+      ownerStayRequests,
+      eq(ownerStayRequests.id, bookingRelocationCandidates.ownerStayRequestId),
+    )
+    .where(
+      and(
+        eq(bookingRelocationCandidates.id, parsed.data.id),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!candidate) return { ok: false, error: "Candidate not found." };
 
   await db
     .update(bookingRelocationCandidates)

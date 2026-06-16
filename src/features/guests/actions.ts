@@ -73,9 +73,20 @@ async function transition(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  const [before] = await db.select().from(guests).where(eq(guests.id, id)).limit(1);
+  // TENANCY (0176): guests carry organization_id. Scope both the read and the
+  // write so a cross-org guest id reads as "not found" and can never be
+  // archived/unarchived from another tenant.
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(guests)
+    .where(and(eq(guests.id, id), eq(guests.organizationId, organizationId)))
+    .limit(1);
   if (!before) return { ok: false, error: "Guest not found." };
-  await db.update(guests).set({ status: next }).where(eq(guests.id, id));
+  await db
+    .update(guests)
+    .set({ status: next })
+    .where(and(eq(guests.id, id), eq(guests.organizationId, organizationId)));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action,

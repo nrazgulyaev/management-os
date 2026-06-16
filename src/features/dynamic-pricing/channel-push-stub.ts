@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   channelPushEvents,
@@ -25,13 +25,23 @@ export async function simulateChannelPushForRatePlan(args: {
     | "stop_sell_update"
     | "min_stay_update";
   createdBy: string | null;
+  /** Caller's org (server-derived). The rule set must belong to it. */
+  organizationId: string;
 }): Promise<{ id: string | null; eventCode: string }> {
   const db = getDb();
   if (!db) return { id: null, eventCode: "" };
+  // Resolve org ONCE: the rule set must belong to the caller's org. A cross-org
+  // ruleSetId resolves to nothing → no read of another tenant's rule set and no
+  // event written. The channel_push_events insert is then stamped with this org.
   const [ruleSet] = await db
     .select()
     .from(pricingRuleSets)
-    .where(eq(pricingRuleSets.id, args.ruleSetId))
+    .where(
+      and(
+        eq(pricingRuleSets.id, args.ruleSetId),
+        eq(pricingRuleSets.organizationId, args.organizationId),
+      ),
+    )
     .limit(1);
   if (!ruleSet) return { id: null, eventCode: "" };
   // Build a representative payload using the dynamic calendar for the
@@ -62,6 +72,7 @@ export async function simulateChannelPushForRatePlan(args: {
         ),
       ),
       channelKey: args.channelKey,
+      organizationId: args.organizationId,
     });
     payload.cells = cal.cells.map((c) => ({
       date: c.date,
@@ -73,6 +84,7 @@ export async function simulateChannelPushForRatePlan(args: {
   }
   const eventCode = `CPE-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
   const insert: NewChannelPushEvent = {
+    organizationId: args.organizationId,
     eventCode,
     eventType: args.eventType,
     channelKey: args.channelKey,

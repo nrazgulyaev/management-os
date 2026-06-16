@@ -428,8 +428,16 @@ export async function recordPortalInviteAction(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY (0173): owners is org-scoped. Without the org predicate a cross-org
+  // ownerId would leak that owner's email into the caller's audit log. Scope the
+  // load like the sibling actions and not-found on mismatch.
+  const organizationId = await requireOrgId();
 
-  const [owner] = await db.select().from(owners).where(eq(owners.id, d.ownerId)).limit(1);
+  const [owner] = await db
+    .select()
+    .from(owners)
+    .where(and(eq(owners.id, d.ownerId), eq(owners.organizationId, organizationId)))
+    .limit(1);
   if (!owner) return { ok: false, error: "Owner not found." };
 
   const me = await getCurrentAppUser();

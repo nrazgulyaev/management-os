@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { bookings } from "@/lib/db/schema/bookings";
 import {
@@ -10,6 +10,7 @@ import {
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   automationRuleIdSchema,
   bookingIdSchema,
@@ -33,12 +34,14 @@ export async function createBookingAutomationRuleAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
 
   const [row] = await db
     .insert(bookingAutomationRules)
     .values({
+      organizationId,
       ruleName: d.ruleName,
       triggerEvent: d.triggerEvent,
       taskCategory: d.taskCategory,
@@ -84,6 +87,7 @@ export async function updateBookingAutomationRuleAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
 
@@ -103,7 +107,13 @@ export async function updateBookingAutomationRuleAction(
       priority: d.priority,
       assignedTo: d.assignedTo ?? null,
     })
-    .where(eq(bookingAutomationRules.id, parsedId.data.id));
+    // TENANCY: an attacker-supplied rule id from another org matches no row.
+    .where(
+      and(
+        eq(bookingAutomationRules.id, parsedId.data.id),
+        eq(bookingAutomationRules.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -124,6 +134,22 @@ export async function runBookingAutomationActionForBooking(
   await requirePermission("automation.write");
   const parsed = bookingIdSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing booking id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  // TENANCY: verify the booking belongs to the caller's org before running
+  // automation (which materialises operation_tasks into the booking's org).
+  const [owned] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.id, parsed.data.bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Booking not found." };
   const results = await runBookingAutomationForBooking(parsed.data.bookingId);
   const me = await getCurrentAppUser();
   await recordAuditEvent({
@@ -152,10 +178,13 @@ export async function runBookingAutomationForRecentBookingsAction(
   await requirePermission("automation.write");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
 
+  // TENANCY: only run automation over the caller's own recent bookings.
   const recent = await db
     .select({ id: bookings.id })
     .from(bookings)
+    .where(eq(bookings.organizationId, organizationId))
     .orderBy(bookings.createdAt)
     .limit(50);
   for (const b of recent) {
@@ -171,8 +200,9 @@ export async function seedDefaultBookingAutomationRulesAction(
   _formData: FormData,
 ): Promise<ActionResult> {
   await requirePermission("automation.write");
+  const organizationId = await requireOrgId();
   const { createDefaultBookingAutomationRulesIfMissing } = await import("./services");
-  await createDefaultBookingAutomationRulesIfMissing();
+  await createDefaultBookingAutomationRulesIfMissing(organizationId);
   revalidatePath("/dashboard/integrations/automation");
   return { ok: true };
 }

@@ -6,6 +6,7 @@ import { listResponsibilityScopes } from "@/features/responsibility-scopes/servi
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { listAppUsers } from "@/features/auth/users-service";
+import { requireOrgId } from "@/features/auth/require-org";
 import { ResponsibilityScopeForm } from "@/components/responsibility-scopes/scope-form";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 
@@ -13,8 +14,9 @@ export const metadata = { title: "Responsibility scopes" };
 export const dynamic = "force-dynamic";
 
 export default async function ResponsibilityScopesPage() {
+  const organizationId = await requireOrgId();
   const [scopes, villas, projects, users] = await Promise.all([
-    listResponsibilityScopes({ status: "active" }),
+    listResponsibilityScopes({ organizationId, status: "active" }),
     listVillas(),
     listProjects(),
     listAppUsers(),

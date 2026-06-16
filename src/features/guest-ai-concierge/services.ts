@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestAiConciergeMessages,
   guestAiConciergeRuns,
@@ -192,6 +193,7 @@ export async function listAdminSessions(opts?: {
 }): Promise<AdminSessionRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
 
   const counts = db.$with("counts").as(
     db
@@ -222,9 +224,15 @@ export async function listAdminSessions(opts?: {
     )
     .leftJoin(counts, eq(counts.sessionId, guestAiConciergeSessions.id))
     .where(
-      opts?.status
-        ? eq(guestAiConciergeSessions.status, opts.status)
-        : undefined,
+      and(
+        or(
+          isNull(guestAiConciergeSessions.organizationId),
+          eq(guestAiConciergeSessions.organizationId, organizationId),
+        ),
+        opts?.status
+          ? eq(guestAiConciergeSessions.status, opts.status)
+          : undefined,
+      ),
     )
     .orderBy(desc(guestAiConciergeSessions.lastMessageAt))
     .limit(opts?.limit ?? 100);
@@ -243,6 +251,7 @@ export async function getAdminSessionDetail(id: string): Promise<{
 }> {
   const db = getDb();
   if (!db) return { session: null, messages: [], runs: [] };
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       s: guestAiConciergeSessions,
@@ -262,7 +271,15 @@ export async function getAdminSessionDetail(id: string): Promise<{
       bookings,
       eq(bookings.id, guestAiConciergeSessions.bookingId),
     )
-    .where(eq(guestAiConciergeSessions.id, id))
+    .where(
+      and(
+        eq(guestAiConciergeSessions.id, id),
+        or(
+          isNull(guestAiConciergeSessions.organizationId),
+          eq(guestAiConciergeSessions.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!row) return { session: null, messages: [], runs: [] };
 
@@ -293,6 +310,7 @@ export async function countSessionsByStatus(): Promise<{
 }> {
   const db = getDb();
   if (!db) return { active: 0, archived: 0, refused: 0 };
+  const organizationId = await requireOrgId();
   const [agg] = await db
     .select({
       active: sql<number>`count(*) filter (where ${guestAiConciergeSessions.status} = 'active')`,
@@ -300,9 +318,19 @@ export async function countSessionsByStatus(): Promise<{
       refused: sql<number>`(
         SELECT count(*) FROM ${guestAiConciergeMessages}
          WHERE ${guestAiConciergeMessages.safetyStatus} = 'refused'
+           AND (
+             ${guestAiConciergeMessages.organizationId} IS NULL
+             OR ${guestAiConciergeMessages.organizationId} = ${organizationId}
+           )
       )`,
     })
-    .from(guestAiConciergeSessions);
+    .from(guestAiConciergeSessions)
+    .where(
+      or(
+        isNull(guestAiConciergeSessions.organizationId),
+        eq(guestAiConciergeSessions.organizationId, organizationId),
+      ),
+    );
   return {
     active: Number(agg?.active ?? 0),
     archived: Number(agg?.archived ?? 0),

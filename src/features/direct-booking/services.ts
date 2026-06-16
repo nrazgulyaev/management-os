@@ -231,6 +231,7 @@ export interface DirectBookingMetrics {
 }
 
 export async function getDirectBookingMetrics(
+  organizationId: string,
   now: Date = new Date(),
 ): Promise<DirectBookingMetrics> {
   const db = getDb();
@@ -261,7 +262,9 @@ export async function getDirectBookingMetrics(
         active: sql<number>`COUNT(*) FILTER (WHERE ${directBookingHolds.status} = 'active')::int`,
         expiringSoon: sql<number>`COUNT(*) FILTER (WHERE ${directBookingHolds.status} = 'active' AND ${directBookingHolds.expiresAt} <= ${inFiveMinIso}::timestamptz)::int`,
       })
-      .from(directBookingHolds),
+      .from(directBookingHolds)
+      // TENANCY: hub KPI tiles count only the caller's tenant volume.
+      .where(eq(directBookingHolds.organizationId, organizationId)),
     db
       .select({
         submitted: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'submitted')::int`,
@@ -270,7 +273,8 @@ export async function getDirectBookingMetrics(
         total: sql<number>`COUNT(*)::int`,
         converted: sql<number>`COUNT(*) FILTER (WHERE ${directBookingRequests.status} = 'converted')::int`,
       })
-      .from(directBookingRequests),
+      .from(directBookingRequests)
+      .where(eq(directBookingRequests.organizationId, organizationId)),
   ]);
 
   const total = reqAgg?.total ?? 0;

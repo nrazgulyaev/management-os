@@ -20,6 +20,7 @@ import {
 } from "@/lib/db/schema/operations";
 import { ownerStatements } from "@/lib/db/schema/finance";
 import { guestJourneyEvents } from "@/lib/db/schema/guest-journey";
+import { owners } from "@/lib/db/schema/ownership";
 import { villas } from "@/lib/db/schema/projects";
 import { maskGuestName } from "@/features/owner-intelligence/calendar-pure";
 import {
@@ -54,13 +55,22 @@ import {
 
 interface OwnerScope {
   ownerId: string;
+  /** Org anchor for the owner_visible_events insert (column is nullable; we
+   *  stamp it when known). Derived from the caller's org or the owner row. */
+  organizationId: string | null;
   villaIds: string[];
   projectIds: string[];
 }
 
-async function loadOwnerScope(ownerId: string): Promise<OwnerScope> {
+async function loadOwnerScope(
+  ownerId: string,
+  organizationId: string | null,
+): Promise<OwnerScope> {
   const db = getDb();
-  if (!db) return { ownerId, villaIds: [], projectIds: [] };
+  if (!db) return { ownerId, organizationId, villaIds: [], projectIds: [] };
+  // TENANCY: when an org is supplied (request path), constrain the owner's
+  // shares to that org so a foreign ownerId resolves to an empty scope. The
+  // cron path passes null (per-owner iteration, owner already org-bound).
   const rows = await db
     .select({
       villaId: ownershipShares.villaId,
@@ -71,6 +81,9 @@ async function loadOwnerScope(ownerId: string): Promise<OwnerScope> {
       and(
         eq(ownershipShares.ownerId, ownerId),
         eq(ownershipShares.status, "active"),
+        ...(organizationId
+          ? [eq(ownershipShares.organizationId, organizationId)]
+          : []),
       ),
     );
   // Owners that participate in a pool (project-level share) see the
@@ -91,7 +104,7 @@ async function loadOwnerScope(ownerId: string): Promise<OwnerScope> {
       if (!villaIds.includes(v.id)) villaIds.push(v.id);
     }
   }
-  return { ownerId, villaIds, projectIds };
+  return { ownerId, organizationId, villaIds, projectIds };
 }
 
 interface DraftRow {
@@ -488,10 +501,14 @@ export async function rebuildOwnerVisibleEventsForOwner(
   ownerId: string,
   from: string,
   to: string,
+  /** When supplied (request path) the owner's shares are constrained to this
+   *  org and the org is stamped onto owner_visible_events. The cron passes the
+   *  owner's own org (resolved per-owner) so the projection stays org-anchored. */
+  organizationId: string | null = null,
 ): Promise<{ inserted: number }> {
   const db = getDb();
   if (!db) return { inserted: 0 };
-  const scope = await loadOwnerScope(ownerId);
+  const scope = await loadOwnerScope(ownerId, organizationId);
   if (scope.villaIds.length === 0 && scope.projectIds.length === 0) {
     return { inserted: 0 };
   }
@@ -527,6 +544,7 @@ export async function rebuildOwnerVisibleEventsForOwner(
   await db.insert(ownerVisibleEvents).values(
     filtered.map((d) => ({
       ownerId,
+      organizationId: scope.organizationId,
       villaId: d.villaId,
       projectId: d.projectId,
       sourceType: d.sourceType,
@@ -547,24 +565,35 @@ export async function rebuildOwnerVisibleEventsForVilla(
   villaId: string,
   from: string,
   to: string,
+  /** Request path supplies the verified org (the villa was confirmed in-org by
+   *  the action). The per-owner shares are then constrained to that org. */
+  organizationId: string | null = null,
 ): Promise<{ insertedByOwner: number; ownersTouched: number }> {
   const db = getDb();
   if (!db) return { insertedByOwner: 0, ownersTouched: 0 };
-  const owners = await db
+  const ownerRows = await db
     .selectDistinct({ ownerId: ownershipShares.ownerId })
     .from(ownershipShares)
     .where(
       and(
         eq(ownershipShares.status, "active"),
         eq(ownershipShares.villaId, villaId),
+        ...(organizationId
+          ? [eq(ownershipShares.organizationId, organizationId)]
+          : []),
       ),
     );
   let inserted = 0;
-  for (const o of owners) {
-    const out = await rebuildOwnerVisibleEventsForOwner(o.ownerId, from, to);
+  for (const o of ownerRows) {
+    const out = await rebuildOwnerVisibleEventsForOwner(
+      o.ownerId,
+      from,
+      to,
+      organizationId,
+    );
     inserted += out.inserted;
   }
-  return { insertedByOwner: inserted, ownersTouched: owners.length };
+  return { insertedByOwner: inserted, ownersTouched: ownerRows.length };
 }
 
 export async function rebuildOwnerVisibleEventsForAllOwners(
@@ -573,14 +602,26 @@ export async function rebuildOwnerVisibleEventsForAllOwners(
 ): Promise<{ ownersProcessed: number; inserted: number }> {
   const db = getDb();
   if (!db) return { ownersProcessed: 0, inserted: 0 };
-  const owners = await db
-    .selectDistinct({ ownerId: ownershipShares.ownerId })
+  // Cron path: iterate every owner across every org. Each owner carries its own
+  // org on the owners row — resolve it per owner so owner_visible_events get
+  // stamped with the correct org (and shares stay constrained to that org).
+  const ownerRows = await db
+    .selectDistinct({
+      ownerId: ownershipShares.ownerId,
+      organizationId: owners.organizationId,
+    })
     .from(ownershipShares)
+    .innerJoin(owners, eq(owners.id, ownershipShares.ownerId))
     .where(eq(ownershipShares.status, "active"));
   let inserted = 0;
-  for (const o of owners) {
-    const out = await rebuildOwnerVisibleEventsForOwner(o.ownerId, from, to);
+  for (const o of ownerRows) {
+    const out = await rebuildOwnerVisibleEventsForOwner(
+      o.ownerId,
+      from,
+      to,
+      o.organizationId ?? null,
+    );
     inserted += out.inserted;
   }
-  return { ownersProcessed: owners.length, inserted };
+  return { ownersProcessed: ownerRows.length, inserted };
 }

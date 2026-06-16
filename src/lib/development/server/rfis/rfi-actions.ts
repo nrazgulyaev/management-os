@@ -55,7 +55,9 @@ export async function composeRfi(
   const discipline = parsed.discipline as (typeof RFI_DISCIPLINES)[number];
 
   // Route first so routedToContactId / routedByAgent land on the insert.
-  const routed = await routeRfi({ projectId: parsed.projectId, discipline });
+  // Pass the server-derived org so the router scopes the contact_roles read to
+  // this tenant (the projectId is client-supplied and not pre-validated here).
+  const routed = await routeRfi({ organizationId, projectId: parsed.projectId, discipline });
 
   // Per-project sequence for the ref. The router does not write; the unique
   // rfis.ref constraint is the backstop against a racing duplicate.

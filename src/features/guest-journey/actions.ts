@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestJourneyRules,
@@ -9,6 +9,9 @@ import {
   guestJourneyEvents,
 } from "@/lib/db/schema/guest-journey";
 import { ownerCalendarPreferences } from "@/lib/db/schema/owner-intelligence";
+import { owners, ownershipShares } from "@/lib/db/schema/ownership";
+import { villas, projects } from "@/lib/db/schema/projects";
+import { bookings } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { listOwnerIdsForCurrentUser } from "@/features/notifications/services";
@@ -33,7 +36,6 @@ import {
   runPostStayReviewRequests,
 } from "./runner";
 import {
-  rebuildOwnerVisibleEventsForAllOwners,
   rebuildOwnerVisibleEventsForOwner,
   rebuildOwnerVisibleEventsForVilla,
 } from "./owner-events-rebuild";
@@ -166,6 +168,30 @@ export async function archiveGuestJourneyRuleAction(
   return setRuleStatus(parsed.data.id, "archived", "guest_journey.manage");
 }
 
+/**
+ * TENANCY: confirm a client-supplied bookingId belongs to the caller's org
+ * before any journey dispatch. bookings.organization_id is NOT NULL (0155); a
+ * foreign bookingId resolves to false → "not found".
+ */
+async function bookingBelongsToCurrentOrg(
+  bookingId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const organizationId = await requireOrgId();
+  const [row] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .where(
+      and(
+        eq(bookings.id, bookingId),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
+
 export async function runJourneyRuleNowAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -176,6 +202,9 @@ export async function runJourneyRuleNowAction(
     ruleId: formData.get("ruleId"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!(await bookingBelongsToCurrentOrg(parsed.data.bookingId))) {
+    return { ok: false, error: "Booking not found." };
+  }
   await ensureJourneyRunsForBooking(parsed.data.bookingId);
   const out = await runGuestJourneyRuleForBooking(
     parsed.data.bookingId,
@@ -206,6 +235,9 @@ export async function generateJourneySuggestionsForBookingAction(
     bookingId: formData.get("bookingId"),
   });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
+  if (!(await bookingBelongsToCurrentOrg(parsed.data.bookingId))) {
+    return { ok: false, error: "Booking not found." };
+  }
   const out = await runnerGenerate(parsed.data.bookingId);
   const me = await getCurrentAppUser();
   await recordAuditEvent({
@@ -359,11 +391,31 @@ export async function refreshOwnerVisibleEventsAction(
   }
   const me = await getCurrentAppUser();
   const v = parsed.data;
+  const organizationId = await requireOrgId();
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
   if (v.ownerId) {
+    // TENANCY: the ownerId is client-supplied. owners.organization_id is the
+    // only org anchor an owner has (no project/villa FK) — confirm it belongs
+    // to the caller's org before rebuilding that owner's projection, else a
+    // foreign ownerId would rebuild (and leak via owner_visible_events) the
+    // real villas of another tenant's owner.
+    const [ownedOwner] = await db
+      .select({ id: owners.id })
+      .from(owners)
+      .where(
+        and(
+          eq(owners.id, v.ownerId),
+          eq(owners.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!ownedOwner) return { ok: false, error: "Owner not found." };
     const out = await rebuildOwnerVisibleEventsForOwner(
       v.ownerId,
       v.from,
       v.to,
+      organizationId,
     );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
@@ -377,10 +429,26 @@ export async function refreshOwnerVisibleEventsAction(
     return { ok: true, inserted: out.inserted };
   }
   if (v.villaId) {
+    // TENANCY: the villaId is client-supplied. Villas anchor org via their
+    // project — confirm villa → project.organization_id matches the caller's
+    // org before rebuilding the events of that villa's owners.
+    const [ownedVilla] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          eq(villas.id, v.villaId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!ownedVilla) return { ok: false, error: "Villa not found." };
     const out = await rebuildOwnerVisibleEventsForVilla(
       v.villaId,
       v.from,
       v.to,
+      organizationId,
     );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
@@ -396,7 +464,35 @@ export async function refreshOwnerVisibleEventsAction(
       ownersTouched: out.ownersTouched,
     };
   }
-  const out = await rebuildOwnerVisibleEventsForAllOwners(v.from, v.to);
+  // TENANCY (write-flow IDOR): the prior fall-through (neither ownerId nor
+  // villaId supplied) called rebuildOwnerVisibleEventsForAllOwners(from,to)
+  // with NO org boundary, so one tenant's button rebuilt EVERY tenant's
+  // owner-visible events. Scope the sweep to the caller's org: resolve only
+  // this org's active owners and rebuild per-owner, threading the verified org
+  // so each owner's shares stay constrained and events are stamped correctly.
+  const ownerRows = await db
+    .selectDistinct({ ownerId: ownershipShares.ownerId })
+    .from(ownershipShares)
+    .where(
+      and(
+        eq(ownershipShares.status, "active"),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    );
+  let insertedAll = 0;
+  for (const o of ownerRows) {
+    const r = await rebuildOwnerVisibleEventsForOwner(
+      o.ownerId,
+      v.from,
+      v.to,
+      organizationId,
+    );
+    insertedAll += r.inserted;
+  }
+  const out = {
+    ownersProcessed: ownerRows.length,
+    inserted: insertedAll,
+  };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner_visible_events.rebuild.all",
@@ -450,13 +546,45 @@ export async function updateOwnerCalendarPreferencesAction(
 
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY (write-flow IDOR): the admin path lets a manage-permission holder
+  // edit ANY ownerId; without an org filter that selects/overwrites another
+  // tenant's preferences row by id. Resolve the caller org and confirm the
+  // owner belongs to it BEFORE touching the row. owners.organizationId is a
+  // nullable backfill anchor (migration 0173) so we fail open on NULL but
+  // reject a confirmed foreign org. The verified org then scopes the
+  // existing-row lookup/UPDATE and is stamped on INSERT.
+  const organizationId = await requireOrgId();
+  const [owner] = await db
+    .select({ id: owners.id })
+    .from(owners)
+    .where(
+      and(
+        eq(owners.id, v.ownerId),
+        or(
+          isNull(owners.organizationId),
+          eq(owners.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!owner) return { ok: false, error: "Owner not found." };
+
   const [existing] = await db
     .select()
     .from(ownerCalendarPreferences)
-    .where(eq(ownerCalendarPreferences.ownerId, v.ownerId))
+    .where(
+      and(
+        eq(ownerCalendarPreferences.ownerId, v.ownerId),
+        or(
+          isNull(ownerCalendarPreferences.organizationId),
+          eq(ownerCalendarPreferences.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   const values = {
     ownerId: v.ownerId,
+    organizationId,
     defaultCurrency: v.defaultCurrency ?? "USD",
     showGuestNames: v.showGuestNames ?? true,
     showGuestCountry: v.showGuestCountry ?? true,
@@ -469,7 +597,15 @@ export async function updateOwnerCalendarPreferencesAction(
     await db
       .update(ownerCalendarPreferences)
       .set(values)
-      .where(eq(ownerCalendarPreferences.id, existing.id));
+      .where(
+        and(
+          eq(ownerCalendarPreferences.id, existing.id),
+          or(
+            isNull(ownerCalendarPreferences.organizationId),
+            eq(ownerCalendarPreferences.organizationId, organizationId),
+          ),
+        ),
+      );
   } else {
     await db.insert(ownerCalendarPreferences).values(values);
   }

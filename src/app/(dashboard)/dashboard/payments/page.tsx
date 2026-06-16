@@ -9,6 +9,7 @@ import {
   listPaymentProviderAccounts,
   listPaymentWebhookEvents,
 } from "@/features/direct-booking/deposits";
+import { requireOrgId } from "@/features/auth/require-org";
 import { requireCabinetAccess } from "@/features/keystone/access";
 import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
@@ -50,16 +51,17 @@ function fmtTime(d: Date | string): string {
 export default async function PaymentsHub() {
   const { allowed } = await requireCabinetAccess("finance");
   if (!allowed) return <CabinetGate cabinet="Payments" />;
+  const organizationId = await requireOrgId();
   const [m, providers, webhooks] = await Promise.all([
-    getDepositMetrics(),
+    getDepositMetrics(organizationId),
     safeQuery(
       "payments.listProviderAccounts",
-      listPaymentProviderAccounts(),
+      listPaymentProviderAccounts(organizationId),
       [] as Awaited<ReturnType<typeof listPaymentProviderAccounts>>,
     ),
     safeQuery(
       "payments.listWebhookEvents",
-      listPaymentWebhookEvents({ limit: 10 }),
+      listPaymentWebhookEvents({ limit: 10, organizationId }),
       [] as Awaited<ReturnType<typeof listPaymentWebhookEvents>>,
     ),
   ]);

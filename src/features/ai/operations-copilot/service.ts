@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   aiAssistantRuns,
@@ -129,11 +129,32 @@ export async function generateOperationsCopilotSummary(opts?: {
   const latencyMs = Date.now() - start;
 
   // Mark prior summaries inactive so the dashboard always shows the
-  // newest one.
+  // newest one. TENANCY — ai_operations_summaries has no org column of
+  // its own, so scope the archive by the run anchor: only archive THIS
+  // org's (and platform/null-org) active summaries. Without this, one
+  // tenant's refresh would archive every other org's active summary.
   await db
     .update(aiOperationsSummaries)
     .set({ status: "archived" })
-    .where(eq(aiOperationsSummaries.status, "active"));
+    .where(
+      and(
+        eq(aiOperationsSummaries.status, "active"),
+        inArray(
+          aiOperationsSummaries.runId,
+          db
+            .select({ id: aiAssistantRuns.id })
+            .from(aiAssistantRuns)
+            .where(
+              organizationId
+                ? or(
+                    eq(aiAssistantRuns.organizationId, organizationId),
+                    isNull(aiAssistantRuns.organizationId),
+                  )
+                : isNull(aiAssistantRuns.organizationId),
+            ),
+        ),
+      ),
+    );
 
   const [summaryRow] = await db
     .insert(aiOperationsSummaries)
@@ -234,20 +255,34 @@ function mapSummary(
 export async function getLatestOperationsSummary(): Promise<OperationsSummaryRow | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY — ai_operations_summaries has no org column; anchor via
+  // runId -> ai_assistant_runs.organizationId. Show the caller's org rows
+  // plus null-org (platform / un-attributed) rows. leftJoin so a summary
+  // with a null runId still surfaces under the isNull branch.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : isNull(aiAssistantRuns.organizationId);
   const [row] = await db
-    .select()
+    .select({ s: aiOperationsSummaries })
     .from(aiOperationsSummaries)
-    .where(eq(aiOperationsSummaries.status, "active"))
+    .leftJoin(aiAssistantRuns, eq(aiAssistantRuns.id, aiOperationsSummaries.runId))
+    .where(and(eq(aiOperationsSummaries.status, "active"), orgFilter))
     .orderBy(desc(aiOperationsSummaries.createdAt))
     .limit(1);
-  if (row) return mapSummary(row);
-  // No active row — fall back to the most recent of any status.
+  if (row) return mapSummary(row.s);
+  // No active row — fall back to the most recent of any status (org-scoped).
   const [latest] = await db
-    .select()
+    .select({ s: aiOperationsSummaries })
     .from(aiOperationsSummaries)
+    .leftJoin(aiAssistantRuns, eq(aiAssistantRuns.id, aiOperationsSummaries.runId))
+    .where(orgFilter)
     .orderBy(desc(aiOperationsSummaries.createdAt))
     .limit(1);
-  return latest ? mapSummary(latest) : null;
+  return latest ? mapSummary(latest.s) : null;
 }
 
 export async function listOperationsSummaries(opts?: {
@@ -255,12 +290,24 @@ export async function listOperationsSummaries(opts?: {
 }): Promise<OperationsSummaryRow[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY — anchor via runId -> ai_assistant_runs.organizationId (same
+  // null-org-visible pattern as listAssistantRuns). leftJoin so null-runId
+  // summaries remain visible under the isNull branch.
+  const orgId = await requireOrgId().catch(() => null);
+  const orgFilter = orgId
+    ? or(
+        eq(aiAssistantRuns.organizationId, orgId),
+        isNull(aiAssistantRuns.organizationId),
+      )
+    : isNull(aiAssistantRuns.organizationId);
   const rows = await db
-    .select()
+    .select({ s: aiOperationsSummaries })
     .from(aiOperationsSummaries)
+    .leftJoin(aiAssistantRuns, eq(aiAssistantRuns.id, aiOperationsSummaries.runId))
+    .where(orgFilter)
     .orderBy(desc(aiOperationsSummaries.createdAt))
     .limit(opts?.limit ?? 30);
-  return rows.map(mapSummary);
+  return rows.map((r) => mapSummary(r.s));
 }
 
 // -----------------------------------------------------------------------------

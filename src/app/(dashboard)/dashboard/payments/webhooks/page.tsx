@@ -2,6 +2,7 @@ import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
 import { Badge } from "@/components/ui/badge";
 import { listPaymentWebhookEvents } from "@/features/direct-booking/deposits";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Payment webhooks" };
 export const dynamic = "force-dynamic";
@@ -27,7 +28,8 @@ function fmtDateTime(d: Date | string): string {
 }
 
 export default async function WebhooksPage() {
-  const rows = await listPaymentWebhookEvents({ limit: 200 });
+  const organizationId = await requireOrgId();
+  const rows = await listPaymentWebhookEvents({ limit: 200, organizationId });
   return (
     <>
       <div className="page-header" style={{ marginBottom: 0 }}>

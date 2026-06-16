@@ -15,6 +15,7 @@ import "server-only";
 import { and, desc, eq, isNotNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { documents } from "@/lib/db/schema/documents";
+import { getOwnerOrgId } from "@/features/owner-portal/owner-context";
 import type { DocKind, DocStatus } from "@/components/owner-portal/doc-row";
 
 export interface OwnerDocument {
@@ -140,6 +141,25 @@ export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocuments
     };
   }
 
+  // TENANCY: resolve the owner's org from its villa-ownership chain. The
+  // `visibleToOwner = true` branch is an org-wide boolean (no owner/entity
+  // predicate), so without an org bound it returns EVERY owner-visible
+  // document across ALL tenants. When the org can't be resolved (orphan
+  // owner), drop the global branch entirely so we never leak cross-tenant.
+  const organizationId = await getOwnerOrgId(ownerId);
+
+  const ownerTaggedScope = and(
+    eq(documents.entityType, "owner"),
+    eq(documents.entityId, ownerId),
+  );
+  // Org-bounded "visible to owner" branch — only included when we have an org.
+  const orgVisibleScope = organizationId
+    ? and(
+        eq(documents.visibleToOwner, true),
+        eq(documents.organizationId, organizationId),
+      )
+    : null;
+
   const rows = await db
     .select({
       id: documents.id,
@@ -155,11 +175,8 @@ export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocuments
     .from(documents)
     .where(
       and(
-        // Ownership scope: either tagged to this owner OR globally visible.
-        or(
-          and(eq(documents.entityType, "owner"), eq(documents.entityId, ownerId)),
-          eq(documents.visibleToOwner, true),
-        ),
+        // Ownership scope: tagged to this owner, OR org-bounded owner-visible.
+        orgVisibleScope ? or(ownerTaggedScope, orgVisibleScope) : ownerTaggedScope,
         eq(documents.status, "active"),
       ),
     )

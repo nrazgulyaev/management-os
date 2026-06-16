@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestAiConciergeMessages,
   guestAiHandoffs,
@@ -41,7 +42,16 @@ export async function listHandoffs(opts?: {
 }): Promise<AdminHandoffRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  const organizationId = await requireOrgId();
+  // Tenancy: guest_ai_handoffs.organization_id is a nullable 0154 backfill
+  // anchor. NULL = pre-threading row (shared); set-but-mismatched = another
+  // tenant's row (excluded). Mirrors the acknowledge/resolve write guards.
+  const filters = [
+    or(
+      isNull(guestAiHandoffs.organizationId),
+      eq(guestAiHandoffs.organizationId, organizationId),
+    ),
+  ];
   if (opts?.status) filters.push(eq(guestAiHandoffs.status, opts.status));
   if (opts?.priority)
     filters.push(eq(guestAiHandoffs.priority, opts.priority));
@@ -88,6 +98,7 @@ export async function getHandoffDetail(
 ): Promise<AdminHandoffDetail | null> {
   const db = getDb();
   if (!db) return null;
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select({
       h: guestAiHandoffs,
@@ -107,7 +118,17 @@ export async function getHandoffDetail(
       serviceRequests,
       eq(serviceRequests.id, guestAiHandoffs.serviceRequestId),
     )
-    .where(eq(guestAiHandoffs.id, id))
+    // Tenancy: nullable 0154 anchor — NULL allowed (pre-threading),
+    // set-but-mismatched returns null (cross-org → notFound on the page).
+    .where(
+      and(
+        eq(guestAiHandoffs.id, id),
+        or(
+          isNull(guestAiHandoffs.organizationId),
+          eq(guestAiHandoffs.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   return {
@@ -128,6 +149,7 @@ export async function listHandoffsForSession(
 ): Promise<AdminHandoffRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       h: guestAiHandoffs,
@@ -148,7 +170,16 @@ export async function listHandoffsForSession(
       serviceRequests,
       eq(serviceRequests.id, guestAiHandoffs.serviceRequestId),
     )
-    .where(eq(guestAiHandoffs.guestAiConciergeSessionId, sessionId))
+    // Tenancy: nullable 0154 anchor — NULL allowed, set-but-mismatched excluded.
+    .where(
+      and(
+        eq(guestAiHandoffs.guestAiConciergeSessionId, sessionId),
+        or(
+          isNull(guestAiHandoffs.organizationId),
+          eq(guestAiHandoffs.organizationId, organizationId),
+        ),
+      ),
+    )
     .orderBy(desc(guestAiHandoffs.createdAt));
   return rows.map((r) => ({
     ...r.h,
@@ -176,6 +207,7 @@ export async function countHandoffsByStatus(): Promise<{
       resolved: 0,
       urgent: 0,
     };
+  const organizationId = await requireOrgId();
   const [agg] = await db
     .select({
       created: sql<number>`count(*) filter (where ${guestAiHandoffs.status} = 'created')`,
@@ -184,7 +216,14 @@ export async function countHandoffsByStatus(): Promise<{
       resolved: sql<number>`count(*) filter (where ${guestAiHandoffs.status} = 'resolved')`,
       urgent: sql<number>`count(*) filter (where ${guestAiHandoffs.priority} = 'urgent' and ${guestAiHandoffs.status} not in ('resolved','cancelled'))`,
     })
-    .from(guestAiHandoffs);
+    .from(guestAiHandoffs)
+    // Tenancy: nullable 0154 anchor — count this org's rows + shared NULL rows.
+    .where(
+      or(
+        isNull(guestAiHandoffs.organizationId),
+        eq(guestAiHandoffs.organizationId, organizationId),
+      ),
+    );
   return {
     created: Number(agg?.created ?? 0),
     linked: Number(agg?.linked ?? 0),

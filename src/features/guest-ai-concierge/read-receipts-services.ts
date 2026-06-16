@@ -1,7 +1,8 @@
 import "server-only";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestAiHandoffReplies,
   guestAiHandoffReplyReads,
@@ -228,6 +229,7 @@ export interface FirstStaffReadStat {
 export async function medianFirstStaffReadSeconds(): Promise<FirstStaffReadStat> {
   const db = getDb();
   if (!db) return { medianSec: null, samples: 0 };
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       created: guestAiHandoffReplies.createdAt,
@@ -241,7 +243,15 @@ export async function medianFirstStaffReadSeconds(): Promise<FirstStaffReadStat>
         eq(guestAiHandoffReplyReads.readerType, "staff"),
       ),
     )
-    .where(eq(guestAiHandoffReplies.authorType, "guest"))
+    .where(
+      and(
+        eq(guestAiHandoffReplies.authorType, "guest"),
+        or(
+          isNull(guestAiHandoffReplies.organizationId),
+          eq(guestAiHandoffReplies.organizationId, organizationId),
+        ),
+      ),
+    )
     .groupBy(guestAiHandoffReplies.id, guestAiHandoffReplies.createdAt);
   const durations: number[] = [];
   for (const r of rows) {

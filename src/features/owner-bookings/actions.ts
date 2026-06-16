@@ -5,6 +5,7 @@ import { z } from "zod";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   rebuildOwnerBookingSummariesForAllOwners,
   rebuildOwnerBookingSummaryForBooking,
@@ -52,7 +53,13 @@ export async function rebuildOwnerBookingSummaryForBookingAction(
   });
   if (!parsed.success) return { ok: false, error: "Invalid bookingId" };
   const me = await getCurrentAppUser();
-  const out = await rebuildOwnerBookingSummaryForBooking(parsed.data.bookingId);
+  // TENANCY: scope the rebuild to the caller's org so a foreign bookingId
+  // can't trigger a cross-tenant owner-projection recompute.
+  const organizationId = await requireOrgId();
+  const out = await rebuildOwnerBookingSummaryForBooking(
+    parsed.data.bookingId,
+    organizationId,
+  );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "owner_booking.projection.rebuild_booking",
@@ -75,8 +82,12 @@ export async function rebuildOwnerBookingSummaryForDirectRequestAction(
   });
   if (!parsed.success) return { ok: false, error: "Invalid requestId" };
   const me = await getCurrentAppUser();
+  // TENANCY: scope the rebuild to the caller's org so a foreign requestId
+  // can't trigger a cross-tenant owner-projection recompute.
+  const organizationId = await requireOrgId();
   const out = await rebuildOwnerBookingSummaryForDirectRequest(
     parsed.data.requestId,
+    organizationId,
   );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

@@ -336,11 +336,18 @@ export async function markStaffReadAction(
   formData: FormData,
 ): Promise<{ ok: boolean }> {
   await requirePermission("guest_ai.handoff.read");
+  const organizationId = await requireOrgId();
   const parsed = markReadSchema.safeParse({
     handoffId: formData.get("handoffId"),
   });
   if (!parsed.success) return { ok: false };
-  await markStaffReadAt({ handoffId: parsed.data.handoffId });
+  // Tenancy guard: markStaffReadAt verifies the handoff belongs to this org
+  // (NULL anchor allowed, set-but-mismatched rejected) before mutating any
+  // staff read-receipt state — a cross-tenant handoffId becomes a no-op.
+  await markStaffReadAt({
+    handoffId: parsed.data.handoffId,
+    organizationId,
+  });
   revalidatePath(`/dashboard/guest-ai/handoffs/${parsed.data.handoffId}`);
   return { ok: true };
 }

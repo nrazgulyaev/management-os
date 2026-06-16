@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { guestAiHandoffs } from "@/lib/db/schema/guest-ai-concierge";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { hasPermission } from "@/features/auth/permission-matrix";
 import { openConciergeSseStream } from "@/features/realtime/sse";
 import {
@@ -45,10 +46,22 @@ export async function GET(
       { status: 503 },
     );
   }
+  // Tenancy: the handoff must belong to the caller's org (a null org is
+  // a legacy/unbackfilled row). Without this, any staff with the read
+  // permission could open another tenant's handoff stream by id.
+  const organizationId = await requireOrgId();
   const [exists] = await db
     .select({ id: guestAiHandoffs.id })
     .from(guestAiHandoffs)
-    .where(eq(guestAiHandoffs.id, id))
+    .where(
+      and(
+        eq(guestAiHandoffs.id, id),
+        or(
+          isNull(guestAiHandoffs.organizationId),
+          eq(guestAiHandoffs.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!exists) {
     return NextResponse.json(
@@ -57,7 +70,7 @@ export async function GET(
     );
   }
 
-  const cursor: StreamCursor = await seedGuestCursor(id);
+  const cursor: StreamCursor = await seedGuestCursor(id, organizationId);
   const lastEventId = request.headers.get("last-event-id");
   const resumed = parseLastEventId(lastEventId);
 
@@ -73,6 +86,7 @@ export async function GET(
         cursor: cur,
         canSeeNotes,
         appUserId: ctx.appUser?.id ?? null,
+        organizationId,
       });
       return { events: result.events, cursor: result.cursor };
     },

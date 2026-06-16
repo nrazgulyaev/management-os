@@ -285,15 +285,35 @@ async function loadVillaExpenses(
   });
 }
 
-async function resolveProjectId(
+/**
+ * Resolve the villa's project_id, but ONLY when that villa belongs to `orgId`
+ * (villa→project→organizations). Returns:
+ *   { ok: true, projectId } when the villa is in the caller's org,
+ *   { ok: false } when the villa does not exist OR belongs to another org.
+ *
+ * TENANCY-FINANCE: this is the org boundary for generateStatementForOwnerVilla.
+ * villas/ownership_shares/bookings carry no organization_id, so a foreign villaId
+ * would otherwise build a statement from another org's bookings/expenses and
+ * stamp it with the CALLER's organization_id. The cross-org write hole is closed
+ * upstream in generateAllPendingStatements (its target list is org-scoped); this
+ * guard prevents regression for any other caller that passes unverified ids.
+ */
+async function resolveProjectIdForOrg(
   db: NonNullable<ReturnType<typeof getDb>>,
+  orgId: string,
   villaId: string,
-): Promise<string | null> {
+): Promise<{ ok: true; projectId: string | null } | { ok: false }> {
   const rows = await db.execute<{ project_id: string | null }>(sql`
-    SELECT project_id::text AS project_id FROM villas WHERE id = ${villaId}::uuid LIMIT 1
+    SELECT v.project_id::text AS project_id
+      FROM villas v
+      JOIN projects p ON p.id = v.project_id
+     WHERE v.id = ${villaId}::uuid
+       AND p.organization_id = ${orgId}::uuid
+     LIMIT 1
   `);
   const r = rowsOf<{ project_id: string | null }>(rows)[0];
-  return r?.project_id ?? null;
+  if (!r) return { ok: false };
+  return { ok: true, projectId: r.project_id ?? null };
 }
 
 /**
@@ -485,6 +505,14 @@ export async function generateStatementForOwnerVilla(
   const db = getDb();
   if (!db) throw new Error("DB not configured");
 
+  // TENANCY-FINANCE — org boundary FIRST: reject when this villa is not in the
+  // caller's org. loadContext/loadBookings carry no org predicate, so without
+  // this a foreign (ownerId, villaId) pair would build a statement from another
+  // org's bookings/expenses and stamp it with `orgId`.
+  const villaScope = await resolveProjectIdForOrg(db, orgId, villaId);
+  if (!villaScope.ok) return null;
+  const projectId = villaScope.projectId;
+
   const ctx = await loadContext(db, orgId, ownerId, villaId);
   if (!ctx) return null;
   // Commission precedence: explicit caller override → the persisted per-owner
@@ -496,7 +524,6 @@ export async function generateStatementForOwnerVilla(
   // when ALPHAVANTAGE_API_KEY is missing or the API is rate-limited.
   const { getUsdToIdr } = await import("@/features/integrations/fx-service");
   const fxUsdToIdr = (await getUsdToIdr().catch(() => FX_USD_TO_IDR_FALLBACK)) || FX_USD_TO_IDR_FALLBACK;
-  const projectId = await resolveProjectId(db, villaId);
   const bookings = await loadBookings(db, villaId, periodMonth, fxUsdToIdr);
   if (bookings.length === 0) return null;
   const expenses = await loadVillaExpenses(db, orgId, projectId, periodMonth);
@@ -706,12 +733,21 @@ export async function generateAllPendingStatements(
   if (!db) return [];
   const orgId = await requireOrgId();
   // Every owner × villa with an active ownership_share AND at least
-  // one booking that lands in the requested month.
+  // one booking that lands in the requested month — SCOPED to the caller's org.
+  // TENANCY-FINANCE: ownership_shares/bookings carry no organization_id, so the
+  // org boundary is enforced by joining villa→project and requiring
+  // p.organization_id = orgId (mirroring the per-org cron loop in
+  // src/app/api/cron/statements-monthly/route.ts). Without this an operator could
+  // materialise another tenant's owner/villa statements (+ booking-derived
+  // financials) stamped with their OWN organization_id.
   const rows = await db.execute<{ owner_id: string; villa_id: string }>(sql`
     SELECT DISTINCT os.owner_id::text AS owner_id, b.villa_id::text AS villa_id
       FROM ownership_shares os
       JOIN bookings b ON b.villa_id = os.villa_id
-     WHERE os.status = 'active'
+      JOIN villas v ON v.id = b.villa_id
+      JOIN projects p ON p.id = v.project_id
+     WHERE p.organization_id = ${orgId}::uuid
+       AND os.status = 'active'
        AND b.status IN ('confirmed','checked_in','checked_out')
        AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
   `);

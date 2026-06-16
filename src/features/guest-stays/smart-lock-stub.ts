@@ -1,12 +1,13 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, exists, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   smartLockAccessCodes,
   type SmartLockAccessCode,
 } from "@/lib/db/schema/guest-stays";
 import { bookings } from "@/lib/db/schema/bookings";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   deriveStubLockCode,
   deriveStubLockWindow,
@@ -148,16 +149,36 @@ export async function revokeStubSmartLockCode(
 ): Promise<{ ok: boolean; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "db unavailable" };
-  await db
+
+  // TENANCY: smart_lock_access_codes has no organization_id; its tenant is the
+  // parent booking. Scope the UPDATE to the caller's org via the booking
+  // lineage so a cross-org code id can never be flipped (defence-in-depth on
+  // top of the caller's pre-resolution; also closes any future direct caller).
+  const organizationId = await requireOrgId();
+  const result = await db
     .update(smartLockAccessCodes)
     .set({
       status: "revoked",
       revokedAt: new Date(),
       revokedBy: actorUserId,
     })
-    .where(eq(smartLockAccessCodes.id, id));
+    .where(
+      and(
+        eq(smartLockAccessCodes.id, id),
+        exists(
+          db
+            .select({ one: sql`1` })
+            .from(bookings)
+            .where(
+              and(
+                eq(bookings.id, smartLockAccessCodes.bookingId),
+                eq(bookings.organizationId, organizationId),
+              ),
+            ),
+        ),
+      ),
+    )
+    .returning({ id: smartLockAccessCodes.id });
+  if (result.length === 0) return { ok: false, reason: "not found" };
   return { ok: true };
 }
-
-// Suppress unused-import warnings (kept for future helpers).
-export const _drizzle = { sql };

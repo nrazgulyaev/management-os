@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { processPendingAttachments } from "./metadata-strip";
 
 export type StripActionResult =
@@ -18,9 +19,13 @@ export type StripActionResult =
 
 export async function runMetadataStripPendingAction(): Promise<StripActionResult> {
   await requirePermission("guest_ai.handoff.attachments.write");
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   try {
-    const result = await processPendingAttachments({ limit: 200 });
+    const result = await processPendingAttachments({
+      organizationId,
+      limit: 200,
+    });
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "guest_ai.handoff.attachment.metadata_sweep",

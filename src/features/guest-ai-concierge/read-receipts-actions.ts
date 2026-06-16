@@ -12,6 +12,7 @@ import { getStayByToken } from "@/features/guest-stays/services";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   guestMarkReadSchema,
   staffMarkReadSchema,
@@ -81,6 +82,26 @@ export async function markStaffRepliesReadAction(
     handoffId: formData.get("handoffId"),
   });
   if (!parsed.success) return { ok: false };
+
+  // Tenancy: verify the target handoff belongs to the caller's org
+  // before mutating its read receipts / unread counter. A handoff with
+  // a different (non-null) org is a cross-tenant write attempt.
+  const organizationId = await requireOrgId();
+  const db = getDb();
+  if (!db) return { ok: false };
+  const [handoff] = await db
+    .select({ organizationId: guestAiHandoffs.organizationId })
+    .from(guestAiHandoffs)
+    .where(eq(guestAiHandoffs.id, parsed.data.handoffId))
+    .limit(1);
+  if (!handoff) return { ok: false };
+  if (
+    handoff.organizationId !== null &&
+    handoff.organizationId !== organizationId
+  ) {
+    return { ok: false };
+  }
+
   const me = await getCurrentAppUser();
   const result = await recordStaffReadReceipts({
     handoffId: parsed.data.handoffId,

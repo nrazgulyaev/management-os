@@ -174,6 +174,9 @@ export async function preloadCountLinesForLocation(
 
   await db.insert(inventoryCountLines).values(
     stocks.map((s) => ({
+      // TENANCY: stamp the caller's org so updateInventoryCountLineAction
+      // (which filters eq(line.organizationId, org)) can find these lines.
+      organizationId,
       countId,
       itemId: s.itemId,
       expectedQuantity: s.quantity,

@@ -11,7 +11,7 @@ import {
 } from "@/lib/db/schema/maintenance-intelligence";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { operationTasks } from "@/lib/db/schema/operations";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -144,11 +144,19 @@ export async function createVillaMaintenancePlanAction(
   const me = await getCurrentAppUser();
   const organizationId = await requireOrgId();
 
+  // TENANCY: the villaId is client-supplied. Anchor org via projects so a
+  // foreign villa reads as "not found" before we insert a plan stamped to our
+  // org but pointing at someone else's villa.
   const [v] = await db
     .select({ projectId: villas.projectId })
     .from(villas)
-    .where(eq(villas.id, parsed.data.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(and(
+      eq(villas.id, parsed.data.villaId),
+      eq(projects.organizationId, organizationId),
+    ))
     .limit(1);
+  if (!v) return { ok: false, error: "Villa not found." };
 
   // First due_at = now + interval (treat creation as "starts fresh").
   const nextDueAt = calculateNextDueAt({
@@ -202,10 +210,15 @@ export async function pauseVillaMaintenancePlanAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // TENANCY: scope the update so a foreign plan id is a no-op (not a leak).
   await db
     .update(villaMaintenancePlans)
     .set({ status: "paused", updatedAt: new Date() })
-    .where(eq(villaMaintenancePlans.id, parsed.data.id));
+    .where(and(
+      eq(villaMaintenancePlans.id, parsed.data.id),
+      eq(villaMaintenancePlans.organizationId, organizationId),
+    ));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "maintenance_intelligence.plan.pause",
@@ -226,10 +239,15 @@ export async function archiveVillaMaintenancePlanAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // TENANCY: scope the update so a foreign plan id is a no-op (not a leak).
   await db
     .update(villaMaintenancePlans)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(villaMaintenancePlans.id, parsed.data.id));
+    .where(and(
+      eq(villaMaintenancePlans.id, parsed.data.id),
+      eq(villaMaintenancePlans.organizationId, organizationId),
+    ));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "maintenance_intelligence.plan.archive",
@@ -556,10 +574,15 @@ export async function acknowledgeRiskEventAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // TENANCY: scope the update so a foreign risk id is a no-op (not a leak).
   await db
     .update(maintenanceRiskEvents)
     .set({ status: "acknowledged" })
-    .where(eq(maintenanceRiskEvents.id, parsed.data.id));
+    .where(and(
+      eq(maintenanceRiskEvents.id, parsed.data.id),
+      eq(maintenanceRiskEvents.organizationId, organizationId),
+    ));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "maintenance_risk.acknowledge",
@@ -583,10 +606,15 @@ export async function resolveRiskEventAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // TENANCY: scope the update so a foreign risk id is a no-op (not a leak).
   await db
     .update(maintenanceRiskEvents)
     .set({ status: "resolved", resolvedAt: new Date() })
-    .where(eq(maintenanceRiskEvents.id, parsed.data.id));
+    .where(and(
+      eq(maintenanceRiskEvents.id, parsed.data.id),
+      eq(maintenanceRiskEvents.organizationId, organizationId),
+    ));
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "maintenance_risk.resolve",

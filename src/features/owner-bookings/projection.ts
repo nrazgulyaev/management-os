@@ -405,6 +405,14 @@ export async function rebuildOwnerBookingSummariesForOwner(
 
 export async function rebuildOwnerBookingSummaryForBooking(
   bookingId: string,
+  /**
+   * TENANCY (write-flow IDOR): the caller's org. The action passes
+   * `await requireOrgId()`; the booking lookup is scoped to it so an
+   * attacker can't trigger a recompute of another tenant's owner
+   * projection rows by passing a foreign bookingId. Null preserves
+   * legacy unscoped behavior for non-tenant callers (none today).
+   */
+  organizationId: string | null = null,
 ): Promise<RebuildOutcome> {
   const db = getDb();
   if (!db) return EMPTY;
@@ -415,7 +423,14 @@ export async function rebuildOwnerBookingSummaryForBooking(
       checkOut: bookings.checkOut,
     })
     .from(bookings)
-    .where(eq(bookings.id, bookingId))
+    .where(
+      organizationId
+        ? and(
+            eq(bookings.id, bookingId),
+            eq(bookings.organizationId, organizationId),
+          )
+        : eq(bookings.id, bookingId),
+    )
     .limit(1);
   if (!row) return EMPTY;
   const owners = await db
@@ -440,6 +455,14 @@ export async function rebuildOwnerBookingSummaryForBooking(
 
 export async function rebuildOwnerBookingSummaryForDirectRequest(
   requestId: string,
+  /**
+   * TENANCY (write-flow IDOR): the caller's org. direct_booking_requests
+   * carries organization_id, so the action passes `await requireOrgId()`
+   * and the lookup is scoped to it; a foreign requestId reads as not found
+   * and triggers no cross-tenant projection rebuild. Null preserves legacy
+   * unscoped behavior for non-tenant callers (none today).
+   */
+  organizationId: string | null = null,
 ): Promise<RebuildOutcome> {
   const db = getDb();
   if (!db) return EMPTY;
@@ -449,7 +472,14 @@ export async function rebuildOwnerBookingSummaryForDirectRequest(
       holdId: directBookingRequests.holdId,
     })
     .from(directBookingRequests)
-    .where(eq(directBookingRequests.id, requestId))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingRequests.id, requestId),
+            eq(directBookingRequests.organizationId, organizationId),
+          )
+        : eq(directBookingRequests.id, requestId),
+    )
     .limit(1);
   if (!row) return EMPTY;
   const owners = await db

@@ -1,13 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { guestAiHandoffReplyAttachments } from "@/lib/db/schema/guest-ai-concierge";
+import {
+  guestAiHandoffReplyAttachments,
+  guestAiHandoffs,
+} from "@/lib/db/schema/guest-ai-concierge";
 
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   hashIpForLog,
   hashStayToken,
@@ -152,6 +156,9 @@ export async function createGuestReplyAttachmentUploadAction(
     .values({
       replyId: pre.reply.id,
       handoffId: pre.handoff.id,
+      // Stamp org on insert (nullable 0154 anchor). Inherit the handoff's
+      // org when threaded, else anchor to the stay token's org.
+      organizationId: pre.handoff.organizationId ?? stay.organizationId,
       serviceRequestId: pre.handoff.serviceRequestId,
       storageBucket: signed.bucket,
       storagePath: signed.path,
@@ -300,6 +307,7 @@ export async function createStaffReplyAttachmentUploadAction(
   },
 ): Promise<RequestUploadResult> {
   await requirePermission("guest_ai.handoff.attachments.write");
+  const organizationId = await requireOrgId();
   const parsed = staffAttachmentUploadRequestSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -315,11 +323,15 @@ export async function createStaffReplyAttachmentUploadAction(
   });
   if (!meta.ok) return { ok: false, error: humaniseValidation(meta.reason) };
 
+  // TENANCY: preflight resolves the reply/handoff by id; pass orgId so a
+  // cross-org handoff is rejected (nullable 0154 anchor → NULL allowed,
+  // set-but-mismatched rejected) before we ever mint a storage token or insert.
   const pre = await preflightAttachment({
     replyId: v.replyId,
     expectedHandoffId: v.handoffId,
     uploader: "staff",
     visibility: v.visibility,
+    orgId: organizationId,
   });
   if (!pre.ok) return { ok: false, error: humanisePreflight(pre.reason) };
 
@@ -339,6 +351,9 @@ export async function createStaffReplyAttachmentUploadAction(
     .values({
       replyId: pre.reply.id,
       handoffId: pre.handoff.id,
+      // Stamp org on insert (nullable 0154 anchor). Inherit the handoff's
+      // org when threaded, else anchor to the verified caller's org.
+      organizationId: pre.handoff.organizationId ?? organizationId,
       serviceRequestId: pre.handoff.serviceRequestId,
       storageBucket: signed.bucket,
       storagePath: signed.path,
@@ -382,6 +397,7 @@ export async function registerStaffReplyAttachmentUploadedAction(
   input: { attachmentId: string },
 ): Promise<SimpleResult> {
   await requirePermission("guest_ai.handoff.attachments.write");
+  const organizationId = await requireOrgId();
   const parsed = registerUploadedSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
@@ -393,6 +409,10 @@ export async function registerStaffReplyAttachmentUploadedAction(
     .where(eq(guestAiHandoffReplyAttachments.id, parsed.data.attachmentId))
     .limit(1);
   if (!att || att.uploadedByType !== "staff") {
+    return { ok: false, error: "Attachment not found." };
+  }
+  // TENANCY: reject cross-org attachments (selected by client-supplied id).
+  if (!(await staffAttachmentInOrg(att.handoffId, organizationId))) {
     return { ok: false, error: "Attachment not found." };
   }
   await db
@@ -418,6 +438,7 @@ export async function deleteStaffReplyAttachmentAction(
   input: { attachmentId: string },
 ): Promise<SimpleResult> {
   await requirePermission("guest_ai.handoff.attachments.write");
+  const organizationId = await requireOrgId();
   const parsed = staffDeleteAttachmentSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
@@ -429,6 +450,10 @@ export async function deleteStaffReplyAttachmentAction(
     .where(eq(guestAiHandoffReplyAttachments.id, parsed.data.attachmentId))
     .limit(1);
   if (!att) return { ok: false, error: "Attachment not found." };
+  // TENANCY: reject cross-org deletes before touching storage / the row.
+  if (!(await staffAttachmentInOrg(att.handoffId, organizationId))) {
+    return { ok: false, error: "Attachment not found." };
+  }
   await deleteStorageObject(att.storagePath);
   await db
     .update(guestAiHandoffReplyAttachments)
@@ -447,6 +472,35 @@ export async function deleteStaffReplyAttachmentAction(
 // =============================================================================
 // Helpers used internally to keep the action surface symmetric.
 // =============================================================================
+
+/**
+ * TENANCY guard for staff attachment mutations. Confirms the attachment's
+ * parent handoff belongs to `organizationId`. guest_ai_handoffs.organization_id
+ * is a nullable 0154 backfill anchor — NULL = pre-threading (allowed),
+ * set-but-mismatched = another tenant's handoff (rejected). Returns true when
+ * the caller may mutate the attachment.
+ */
+async function staffAttachmentInOrg(
+  handoffId: string,
+  organizationId: string,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return false;
+  const [row] = await db
+    .select({ id: guestAiHandoffs.id })
+    .from(guestAiHandoffs)
+    .where(
+      and(
+        eq(guestAiHandoffs.id, handoffId),
+        or(
+          isNull(guestAiHandoffs.organizationId),
+          eq(guestAiHandoffs.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  return Boolean(row);
+}
 
 function humaniseValidation(reason: string | null): string {
   switch (reason) {

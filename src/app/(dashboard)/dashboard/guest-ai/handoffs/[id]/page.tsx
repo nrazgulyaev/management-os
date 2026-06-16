@@ -25,6 +25,7 @@ import { formatBytes } from "@/features/guest-ai-concierge/attachments-pure";
 import { RealtimeHandoffAdminClient } from "@/components/guest-ai/realtime-handoff-admin-client";
 import { hasPermission } from "@/features/auth/permission-matrix";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Concierge AI handoff" };
 export const dynamic = "force-dynamic";
@@ -62,9 +63,17 @@ export default async function HandoffDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const organizationId = await requireOrgId();
   const detail = await getHandoffDetail(id);
   if (!detail) notFound();
   const { handoff, serviceRequest } = detail;
+  // Tenancy gate: getHandoffDetail is not org-scoped, so a cross-org id would
+  // otherwise render another tenant's thread. The reply timeline read below is
+  // org-scoped, but block the whole page (and its state mutations) up front
+  // when the handoff carries a set-but-mismatched org anchor.
+  if (handoff.organizationId && handoff.organizationId !== organizationId) {
+    notFound();
+  }
   const transcript = parseSnapshot(handoff.lastMessagesJson);
   const flags = parseSafetyFlags(handoff.safetyFlags);
   const isOpen =
@@ -83,7 +92,7 @@ export default async function HandoffDetailPage({
     : allReplies.filter((r) => r.visibility !== "internal_only");
   // Mark staff-side read on view (best-effort).
   if (handoff.staffUnreadCount && handoff.staffUnreadCount > 0) {
-    await markStaffReadAt({ handoffId: id });
+    await markStaffReadAt({ handoffId: id, organizationId });
   }
   await recordStaffReadReceipts({
     handoffId: id,

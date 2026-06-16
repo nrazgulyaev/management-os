@@ -32,7 +32,7 @@ export async function GET(
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
   const { id } = await params;
-  const result = await getDocumentSignedUrl(id);
+  const result = await getDocumentSignedUrl(id, user.organizationId);
   if (!result.ok || !result.signedUrl) {
     return NextResponse.json(
       { error: result.error ?? "Unable to generate signed URL" },

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   directBookingDepositEvents,
@@ -29,26 +29,59 @@ import type { ProviderKey } from "@/features/payments/provider-types";
 
 export async function getDepositById(
   id: string,
+  /**
+   * TENANCY: when provided, a deposit owned by another org returns null so
+   * the by-id detail page renders notFound. NULL-org legacy rows (migration
+   * 0151 backfill) stay visible. Internal callers that already re-guard the
+   * deposit's org may omit it.
+   */
+  organizationId?: string,
 ): Promise<DirectBookingDeposit | null> {
   const db = getDb();
   if (!db) return null;
   const [row] = await db
     .select()
     .from(directBookingDeposits)
-    .where(eq(directBookingDeposits.id, id))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingDeposits.id, id),
+            or(
+              eq(directBookingDeposits.organizationId, organizationId),
+              isNull(directBookingDeposits.organizationId),
+            ),
+          )
+        : eq(directBookingDeposits.id, id),
+    )
     .limit(1);
   return row ?? null;
 }
 
 export async function getDepositForRequest(
   requestId: string,
+  /**
+   * TENANCY: when provided, a deposit whose org differs from the caller is
+   * not returned (defence-in-depth for callers whose parent request id may
+   * not be org-verified upstream). NULL-org legacy rows stay visible.
+   */
+  organizationId?: string,
 ): Promise<DirectBookingDeposit | null> {
   const db = getDb();
   if (!db) return null;
   const [row] = await db
     .select()
     .from(directBookingDeposits)
-    .where(eq(directBookingDeposits.requestId, requestId))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingDeposits.requestId, requestId),
+            or(
+              eq(directBookingDeposits.organizationId, organizationId),
+              isNull(directBookingDeposits.organizationId),
+            ),
+          )
+        : eq(directBookingDeposits.requestId, requestId),
+    )
     .orderBy(desc(directBookingDeposits.createdAt))
     .limit(1);
   return row ?? null;
@@ -77,10 +110,19 @@ export interface DepositRow {
 export async function listDirectBookingDeposits(opts?: {
   status?: DepositStatus;
   limit?: number;
+  /** TENANCY: scope to one org (+ NULL legacy). Page passes requireOrgId(). */
+  organizationId?: string;
 }): Promise<DepositRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const filters = [];
+  if (opts?.organizationId)
+    filters.push(
+      or(
+        eq(directBookingDeposits.organizationId, opts.organizationId),
+        isNull(directBookingDeposits.organizationId),
+      ),
+    );
   if (opts?.status)
     filters.push(eq(directBookingDeposits.status, opts.status));
   const rows = await db
@@ -111,30 +153,59 @@ export async function listDirectBookingDeposits(opts?: {
 export async function listDepositEvents(
   depositId: string,
   limit = 100,
+  /**
+   * TENANCY: when provided, a foreign deposit's timeline never loads. NULL-org
+   * legacy events stay visible. The [id] page passes requireOrgId().
+   */
+  organizationId?: string,
 ): Promise<DirectBookingDepositEvent[]> {
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(directBookingDepositEvents)
-    .where(eq(directBookingDepositEvents.depositId, depositId))
+    .where(
+      organizationId
+        ? and(
+            eq(directBookingDepositEvents.depositId, depositId),
+            or(
+              eq(directBookingDepositEvents.organizationId, organizationId),
+              isNull(directBookingDepositEvents.organizationId),
+            ),
+          )
+        : eq(directBookingDepositEvents.depositId, depositId),
+    )
     .orderBy(desc(directBookingDepositEvents.createdAt))
     .limit(limit);
 }
 
-export async function listPaymentProviderAccounts(): Promise<
-  PaymentProviderAccount[]
-> {
+export async function listPaymentProviderAccounts(
+  /** TENANCY: scope to one org (+ NULL legacy). PSP creds are sensitive. */
+  organizationId?: string,
+): Promise<PaymentProviderAccount[]> {
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(paymentProviderAccounts)
+    .where(
+      organizationId
+        ? or(
+            eq(paymentProviderAccounts.organizationId, organizationId),
+            isNull(paymentProviderAccounts.organizationId),
+          )
+        : undefined,
+    )
     .orderBy(paymentProviderAccounts.providerKey);
 }
 
 export async function getActiveProviderAccount(
   providerKey: ProviderKey,
+  /**
+   * TENANCY: when provided, a deposit can never attach to another org's
+   * active PSP account. NULL-org legacy accounts stay usable.
+   */
+  organizationId?: string,
 ): Promise<PaymentProviderAccount | null> {
   const db = getDb();
   if (!db) return null;
@@ -145,6 +216,14 @@ export async function getActiveProviderAccount(
       and(
         eq(paymentProviderAccounts.providerKey, providerKey),
         eq(paymentProviderAccounts.status, "active"),
+        ...(organizationId
+          ? [
+              or(
+                eq(paymentProviderAccounts.organizationId, organizationId),
+                isNull(paymentProviderAccounts.organizationId),
+              ),
+            ]
+          : []),
       ),
     )
     .limit(1);
@@ -153,12 +232,22 @@ export async function getActiveProviderAccount(
 
 export async function listPaymentWebhookEvents(opts?: {
   limit?: number;
+  /** TENANCY: scope to one org (+ NULL legacy). Pages pass requireOrgId(). */
+  organizationId?: string;
 }): Promise<PaymentWebhookEvent[]> {
   const db = getDb();
   if (!db) return [];
   return db
     .select()
     .from(paymentWebhookEvents)
+    .where(
+      opts?.organizationId
+        ? or(
+            eq(paymentWebhookEvents.organizationId, opts.organizationId),
+            isNull(paymentWebhookEvents.organizationId),
+          )
+        : undefined,
+    )
     .orderBy(desc(paymentWebhookEvents.createdAt))
     .limit(opts?.limit ?? 200);
 }
@@ -248,8 +337,6 @@ export async function ensureDepositForRequest(
   const policy = input.policy ?? DEFAULT_DEPOSIT_POLICY;
   const amount = calculateDepositAmount(input.totalMinor, policy);
   const providerKey: ProviderKey = input.providerKey ?? "manual_stub";
-  const providerAccount = await getActiveProviderAccount(providerKey);
-  const code = await pickUniqueDepositCode(db);
 
   // TENANCY-FINANCE-DOCS — copy the parent request's org onto the deposit
   // (guest/public flow has no operator session; the request row is the anchor).
@@ -259,6 +346,13 @@ export async function ensureDepositForRequest(
     .where(eq(directBookingRequests.id, input.requestId))
     .limit(1);
   const organizationId = parentRequest?.organizationId ?? null;
+
+  // TENANCY: a deposit can only attach to its own org's active PSP account.
+  const providerAccount = await getActiveProviderAccount(
+    providerKey,
+    organizationId ?? undefined,
+  );
+  const code = await pickUniqueDepositCode(db);
 
   // Create the deposit row first so the provider has a stable id.
   const [inserted] = await db
@@ -360,7 +454,10 @@ export interface DepositMetrics {
   currency: string | null;
 }
 
-export async function getDepositMetrics(): Promise<DepositMetrics> {
+export async function getDepositMetrics(
+  /** TENANCY: scope KPI counts/sums to one org (+ NULL legacy). */
+  organizationId?: string,
+): Promise<DepositMetrics> {
   const db = getDb();
   if (!db) {
     return {
@@ -385,7 +482,15 @@ export async function getDepositMetrics(): Promise<DepositMetrics> {
       totalMinor: sql<string | null>`SUM(${directBookingDeposits.amountMinor}) FILTER (WHERE ${directBookingDeposits.status} IN ('paid','manually_marked_paid'))::text`,
       currency: sql<string | null>`MIN(${directBookingDeposits.currency}) FILTER (WHERE ${directBookingDeposits.status} IN ('paid','manually_marked_paid'))`,
     })
-    .from(directBookingDeposits);
+    .from(directBookingDeposits)
+    .where(
+      organizationId
+        ? or(
+            eq(directBookingDeposits.organizationId, organizationId),
+            isNull(directBookingDeposits.organizationId),
+          )
+        : undefined,
+    );
 
   const total = agg?.totalMinor ? BigInt(agg.totalMinor) : 0n;
   return {

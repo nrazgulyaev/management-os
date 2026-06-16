@@ -10,6 +10,7 @@ import {
 import { getDepositMetrics } from "@/features/direct-booking/deposits";
 import { getReconciliationMetrics } from "@/features/direct-booking/finance-reconciliation";
 import { adminHoldStatusLabel } from "@/features/direct-booking/hold-pure";
+import { requireOrgId } from "@/features/auth/require-org";
 import { trace } from "@/lib/observability/perf";
 
 export const metadata = { title: "Direct bookings" };
@@ -24,10 +25,15 @@ function money(minor: bigint, currency: string | null): string {
 }
 
 export default async function DirectBookingsHub() {
+  const organizationId = await requireOrgId();
   const [m, dep, recon, holds] = await Promise.all([
-    trace(PAGE, "getDirectBookingMetrics", () => getDirectBookingMetrics()),
-    trace(PAGE, "getDepositMetrics", () => getDepositMetrics()),
-    trace(PAGE, "getReconciliationMetrics", () => getReconciliationMetrics()),
+    trace(PAGE, "getDirectBookingMetrics", () =>
+      getDirectBookingMetrics(organizationId),
+    ),
+    trace(PAGE, "getDepositMetrics", () => getDepositMetrics(organizationId)),
+    trace(PAGE, "getReconciliationMetrics", () =>
+      getReconciliationMetrics(organizationId),
+    ),
     trace(PAGE, "listDirectBookingHolds", () =>
       listDirectBookingHolds({ status: "active", limit: 12 }),
     ),

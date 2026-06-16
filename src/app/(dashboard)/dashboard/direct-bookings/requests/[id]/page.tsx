@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getRequestDetailById } from "@/features/direct-booking/services";
 import { getDepositForRequest } from "@/features/direct-booking/deposits";
+import { requireOrgId } from "@/features/auth/require-org";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
 import {
   ApproveRequestForm,
@@ -75,7 +76,11 @@ export default async function DirectBookingRequestDetailPage({
   const ctx = await getCurrentUserContext();
   const canOverrideConvert = hasPermission(ctx, "direct_booking.manage");
   const { request: r, hold, villaCode, events, booking } = detail;
-  const deposit = await getDepositForRequest(r.id);
+  // TENANCY: defence-in-depth — scope the deposit read to the caller's org so a
+  // cross-org request id (parent loader is not org-gated) cannot surface a
+  // foreign deposit's amount/status.
+  const organizationId = await requireOrgId();
+  const deposit = await getDepositForRequest(r.id, organizationId);
   const db = getDb();
   let guestSnapshot: typeof directBookingGuestStatusSnapshots.$inferSelect | null =
     null;

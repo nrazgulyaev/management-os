@@ -145,11 +145,20 @@ export async function recordUtilityReadingAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: scope the account load to the caller's org so a foreign account id
+  // reads as not-found — prevents writing a reading/risk-event into another
+  // tenant's account and reading back its thresholds/villa.
+  const organizationId = await requireOrgId();
 
   const [account] = await db
     .select()
     .from(utilityAccounts)
-    .where(eq(utilityAccounts.id, parsed.data.utilityAccountId))
+    .where(
+      and(
+        eq(utilityAccounts.id, parsed.data.utilityAccountId),
+        eq(utilityAccounts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!account) return { ok: false, error: "Account not found." };
 
@@ -248,6 +257,9 @@ export async function createUtilityPaymentReminderAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: scope the account load to the caller's org so a payment reminder
+  // cannot be minted against another tenant's account.
+  const organizationId = await requireOrgId();
 
   const [account] = await db
     .select({
@@ -255,7 +267,12 @@ export async function createUtilityPaymentReminderAction(
       organizationId: utilityAccounts.organizationId,
     })
     .from(utilityAccounts)
-    .where(eq(utilityAccounts.id, parsed.data.utilityAccountId))
+    .where(
+      and(
+        eq(utilityAccounts.id, parsed.data.utilityAccountId),
+        eq(utilityAccounts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!account) return { ok: false, error: "Account not found." };
 

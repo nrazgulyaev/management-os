@@ -105,10 +105,13 @@ export async function composeWeeklyReport(
   const windowEnd = new Date(`${weekEnding}T23:59:59.999Z`);
 
   // --- Project name + operating currency ---
+  // TENANCY: validate the project belongs to the agent's org up front. The
+  // downstream fact reads are then scoped (org column on each table) so a
+  // foreign projectId can never compose another tenant's weekly facts.
   const [projectRow] = await db
     .select({ name: projects.name })
     .from(projects)
-    .where(eq(projects.id, input.projectId))
+    .where(and(eq(projects.id, input.projectId), eq(projects.organizationId, input.organizationId)))
     .limit(1);
   if (!projectRow) return null;
 
@@ -126,7 +129,12 @@ export async function composeWeeklyReport(
   const milestoneRows = await db
     .select()
     .from(milestones)
-    .where(eq(milestones.projectId, input.projectId))
+    .where(
+      and(
+        eq(milestones.organizationId, input.organizationId),
+        eq(milestones.projectId, input.projectId),
+      ),
+    )
     .orderBy(asc(milestones.targetDate));
 
   const milestoneFacts: WeeklyMilestoneFact[] = milestoneRows
@@ -159,7 +167,12 @@ export async function composeWeeklyReport(
   const revisionRows = await db
     .select()
     .from(boqRevisions)
-    .where(eq(boqRevisions.projectId, input.projectId))
+    .where(
+      and(
+        eq(boqRevisions.organizationId, input.organizationId),
+        eq(boqRevisions.projectId, input.projectId),
+      ),
+    )
     .orderBy(asc(boqRevisions.version));
 
   const boqMovements: WeeklyBoqFact[] = [];
@@ -192,6 +205,7 @@ export async function composeWeeklyReport(
       .from(boqDocuments)
       .where(
         and(
+          eq(boqDocuments.organizationId, input.organizationId),
           eq(boqDocuments.projectId, input.projectId),
           eq(boqDocuments.status, "approved"),
         ),
@@ -219,7 +233,12 @@ export async function composeWeeklyReport(
   const rfiRows = await db
     .select()
     .from(rfis)
-    .where(eq(rfis.projectId, input.projectId))
+    .where(
+      and(
+        eq(rfis.organizationId, input.organizationId),
+        eq(rfis.projectId, input.projectId),
+      ),
+    )
     .orderBy(desc(rfis.openedAt));
 
   const rfiFacts: WeeklyRfiFact[] = rfiRows
@@ -246,6 +265,7 @@ export async function composeWeeklyReport(
     .from(siteReports)
     .where(
       and(
+        eq(siteReports.organizationId, input.organizationId),
         eq(siteReports.projectId, input.projectId),
         gte(siteReports.reportDate, weekStart),
         lte(siteReports.reportDate, weekEnding),

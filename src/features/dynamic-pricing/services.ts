@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, gte, lt, lte, sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   channelPushEvents,
   pricingChannelRules,
@@ -17,7 +18,7 @@ import {
   type NewPricingQuoteLog,
   type PricingRuleSet,
 } from "@/lib/db/schema/dynamic-pricing";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { bookings } from "@/lib/db/schema/bookings";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
 import { ownerStayRequests } from "@/lib/db/schema/owner-stays";
@@ -46,13 +47,19 @@ export async function listPricingRuleSets(opts?: {
 }): Promise<PricingRuleSet[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  // TENANCY (0153): pricing_rule_sets carries organization_id. Scope every
+  // list read to the caller's org so the rule-sets / channel-push pages never
+  // surface another tenant's rule sets.
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(pricingRuleSets.organizationId, organizationId),
+  ];
   if (opts?.status) filters.push(eq(pricingRuleSets.status, opts.status));
   if (opts?.scope) filters.push(eq(pricingRuleSets.scopeType, opts.scope));
   return db
     .select()
     .from(pricingRuleSets)
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(pricingRuleSets.priority, pricingRuleSets.name);
 }
 
@@ -61,10 +68,17 @@ export async function getPricingRuleSetById(
 ): Promise<PricingRuleSet | null> {
   const db = getDb();
   if (!db) return null;
+  // Org-scoped detail loader: a cross-org id resolves to null (→ notFound()).
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(pricingRuleSets)
-    .where(eq(pricingRuleSets.id, id))
+    .where(
+      and(
+        eq(pricingRuleSets.id, id),
+        eq(pricingRuleSets.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -76,20 +90,45 @@ export async function getPricingRuleSetById(
  */
 export async function getApplicablePricingRuleSet(
   villaId: string,
+  organizationId?: string,
 ): Promise<PricingRuleSet | null> {
   const db = getDb();
   if (!db) return null;
-  const [villa] = await db
-    .select({ id: villas.id, projectId: villas.projectId })
-    .from(villas)
-    .where(eq(villas.id, villaId))
-    .limit(1);
+  // When an org is supplied (dashboard / operator entrypoints), resolve the
+  // villa THROUGH its project and require the project to belong to that org —
+  // villas carry no org column, so the parent project is the tenancy anchor.
+  // A cross-org villaId then yields no villa → no rule set. The public quote
+  // path (no org arg) stays org-agnostic by design (prices only, no PII).
+  const [villa] = organizationId
+    ? await db
+        .select({ id: villas.id, projectId: villas.projectId })
+        .from(villas)
+        .innerJoin(projects, eq(projects.id, villas.projectId))
+        .where(
+          and(
+            eq(villas.id, villaId),
+            eq(projects.organizationId, organizationId),
+          ),
+        )
+        .limit(1)
+    : await db
+        .select({ id: villas.id, projectId: villas.projectId })
+        .from(villas)
+        .where(eq(villas.id, villaId))
+        .limit(1);
   if (!villa) return null;
 
   const candidates = await db
     .select()
     .from(pricingRuleSets)
-    .where(eq(pricingRuleSets.status, "active"))
+    .where(
+      organizationId
+        ? and(
+            eq(pricingRuleSets.status, "active"),
+            eq(pricingRuleSets.organizationId, organizationId),
+          )
+        : eq(pricingRuleSets.status, "active"),
+    )
     .orderBy(pricingRuleSets.priority);
 
   const villaScoped = candidates.filter(
@@ -106,7 +145,10 @@ export async function getApplicablePricingRuleSet(
   return global[0] ?? null;
 }
 
-export async function listPricingRulesForSet(ruleSetId: string): Promise<{
+export async function listPricingRulesForSet(
+  ruleSetId: string,
+  organizationId?: string,
+): Promise<{
   dayOfWeek: typeof pricingDayOfWeekRules.$inferSelect[];
   occupancy: typeof pricingOccupancyRules.$inferSelect[];
   closeOut: typeof pricingCloseOutRules.$inferSelect[];
@@ -125,36 +167,83 @@ export async function listPricingRulesForSet(ruleSetId: string): Promise<{
       stopSell: [],
     };
   }
+  // Each rule family carries organization_id (0153). When an org is supplied
+  // (page entrypoints with a client ruleSetId) AND it into every sub-query so
+  // a foreign rule set's rules never leak. When omitted (loadBundle, reached
+  // from the org-agnostic public quote with an already-resolved rule set) the
+  // ruleSetId filter alone suffices.
   const [dow, occ, close, channels, minStay, stopSell] = await Promise.all([
     db
       .select()
       .from(pricingDayOfWeekRules)
-      .where(eq(pricingDayOfWeekRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingDayOfWeekRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingDayOfWeekRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingDayOfWeekRules.weekday),
     db
       .select()
       .from(pricingOccupancyRules)
-      .where(eq(pricingOccupancyRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingOccupancyRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingOccupancyRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingOccupancyRules.occupancyMin),
     db
       .select()
       .from(pricingCloseOutRules)
-      .where(eq(pricingCloseOutRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingCloseOutRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingCloseOutRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingCloseOutRules.daysBeforeCheckinMin),
     db
       .select()
       .from(pricingChannelRules)
-      .where(eq(pricingChannelRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingChannelRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingChannelRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingChannelRules.channelKey),
     db
       .select()
       .from(pricingMinStayRules)
-      .where(eq(pricingMinStayRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingMinStayRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingMinStayRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingMinStayRules.priority),
     db
       .select()
       .from(pricingStopSellRules)
-      .where(eq(pricingStopSellRules.ruleSetId, ruleSetId))
+      .where(
+        and(
+          eq(pricingStopSellRules.ruleSetId, ruleSetId),
+          organizationId
+            ? eq(pricingStopSellRules.organizationId, organizationId)
+            : undefined,
+        ),
+      )
       .orderBy(pricingStopSellRules.startsOn),
   ]);
   return {
@@ -293,6 +382,7 @@ export async function getVillaRateOverridesByDate(
   villaId: string,
   startIso: string,
   endIso: string,
+  organizationId?: string,
 ): Promise<Record<string, bigint>> {
   const db = getDb();
   if (!db) return {};
@@ -307,6 +397,12 @@ export async function getVillaRateOverridesByDate(
         eq(villaRateOverrides.villaId, villaId),
         gte(villaRateOverrides.stayDate, startIso),
         lt(villaRateOverrides.stayDate, endIso),
+        // villa_rate_overrides carries organization_id (0153). When an org is
+        // supplied (dashboard / operator entrypoints) AND it in so a cross-org
+        // villaId yields no overrides. The public quote path passes no org.
+        organizationId
+          ? eq(villaRateOverrides.organizationId, organizationId)
+          : undefined,
       ),
     );
   const out: Record<string, bigint> = {};
@@ -322,12 +418,16 @@ export async function listVillaRateOverrides(
 ): Promise<VillaRateOverrideRow[]> {
   const db = getDb();
   if (!db) return [];
+  // Dashboard-only list view — hard-scope to the caller's org (no public /
+  // cron caller exists).
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(villaRateOverrides)
     .where(
       and(
         eq(villaRateOverrides.villaId, villaId),
+        eq(villaRateOverrides.organizationId, organizationId),
         gte(villaRateOverrides.stayDate, startIso),
         lt(villaRateOverrides.stayDate, endIso),
       ),
@@ -348,6 +448,13 @@ export interface QuoteDynamicStayInput {
   checkOut: string;
   channelKey?: string;
   publicQuote?: boolean;
+  /**
+   * When set (dashboard / operator callers), the villa must resolve in this
+   * org or the quote returns the empty stay — closes the raw `?villa=` IDOR on
+   * the pricing pages. When omitted (public /api/v1/quote), the quote stays
+   * org-agnostic by design (prices only, no PII).
+   */
+  organizationId?: string;
 }
 
 export interface QuoteDynamicStayResult {
@@ -361,7 +468,10 @@ export async function quoteDynamicStay(
   input: QuoteDynamicStayInput,
 ): Promise<QuoteDynamicStayResult> {
   const channelKey = input.channelKey ?? "direct";
-  const ruleSet = await getApplicablePricingRuleSet(input.villaId);
+  const ruleSet = await getApplicablePricingRuleSet(
+    input.villaId,
+    input.organizationId,
+  );
   if (!ruleSet) {
     return {
       stay: emptyStay(input.checkIn, input.checkOut, "USD"),
@@ -441,6 +551,7 @@ export async function quoteDynamicStay(
     input.villaId,
     input.checkIn,
     input.checkOut,
+    input.organizationId,
   );
 
   const stay = quoteStay({
@@ -481,6 +592,8 @@ export interface QuoteCalendarInput {
   startDate: string;
   days: number;
   channelKey?: string;
+  /** See QuoteDynamicStayInput.organizationId — dashboard callers pass it. */
+  organizationId?: string;
 }
 
 export interface QuoteCalendarCell {
@@ -496,7 +609,10 @@ export interface QuoteCalendarCell {
 export async function quoteDynamicCalendar(
   input: QuoteCalendarInput,
 ): Promise<{ ruleSet: PricingRuleSet | null; cells: QuoteCalendarCell[] }> {
-  const ruleSet = await getApplicablePricingRuleSet(input.villaId);
+  const ruleSet = await getApplicablePricingRuleSet(
+    input.villaId,
+    input.organizationId,
+  );
   if (!ruleSet) return { ruleSet: null, cells: [] };
   const start = parseIsoDate(input.startDate);
   if (!start) return { ruleSet, cells: [] };
@@ -509,6 +625,7 @@ export async function quoteDynamicCalendar(
     checkOut: isoDay(end),
     channelKey: input.channelKey,
     publicQuote: false,
+    organizationId: input.organizationId,
   });
   for (const n of result.stay.nightly) {
     cells.push({
@@ -544,13 +661,18 @@ export async function listQuoteLogs(opts?: {
 }): Promise<typeof pricingQuoteLogs.$inferSelect[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  // pricing_quote_logs carries organization_id (0153). Scope the logs page to
+  // the caller's org so quote observability never spans tenants.
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(pricingQuoteLogs.organizationId, organizationId),
+  ];
   if (opts?.villaId) filters.push(eq(pricingQuoteLogs.villaId, opts.villaId));
   if (opts?.publicOnly) filters.push(eq(pricingQuoteLogs.publicQuote, true));
   return db
     .select()
     .from(pricingQuoteLogs)
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(pricingQuoteLogs.createdAt))
     .limit(opts?.limit ?? 200);
 }
@@ -560,9 +682,24 @@ export async function createQuoteLog(
 ): Promise<string | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY (0153): pricing_quote_logs.organization_id was previously left
+  // NULL on insert (reached from the public /api/v1/quote + direct-booking
+  // flows, none of which pass an org). Stamp it by resolving the villa's org
+  // through projects.organization_id so every quote log is tenant-attributable
+  // and the org-scoped logs reader can see it.
+  let organizationId = input.organizationId ?? null;
+  if (!organizationId && input.villaId) {
+    const [owner] = await db
+      .select({ organizationId: projects.organizationId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(eq(villas.id, input.villaId))
+      .limit(1);
+    organizationId = owner?.organizationId ?? null;
+  }
   const [row] = await db
     .insert(pricingQuoteLogs)
-    .values(input)
+    .values({ ...input, organizationId })
     .returning({ id: pricingQuoteLogs.id });
   return row?.id ?? null;
 }
@@ -574,14 +711,19 @@ export async function listChannelPushEvents(opts?: {
 }): Promise<ChannelPushEvent[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  // channel_push_events carries organization_id (0153). Scope the channel-push
+  // page to the caller's org so events never span tenants.
+  const organizationId = await requireOrgId();
+  const filters: ReturnType<typeof eq>[] = [
+    eq(channelPushEvents.organizationId, organizationId),
+  ];
   if (opts?.channelKey)
     filters.push(eq(channelPushEvents.channelKey, opts.channelKey));
   if (opts?.status) filters.push(eq(channelPushEvents.status, opts.status));
   return db
     .select()
     .from(channelPushEvents)
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(channelPushEvents.createdAt))
     .limit(opts?.limit ?? 200);
 }
@@ -618,6 +760,10 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
   // rows over the wire.
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const sinceIso = since.toISOString();
+  // Hub metrics must reflect ONLY the caller's tenant — every count /
+  // aggregate gets a WHERE organization_id = <org>, and the villas
+  // NOT-EXISTS scopes through projects.organization_id.
+  const organizationId = await requireOrgId();
 
   const [[ruleSetCounts], [pricingActivity], [villaCounts]] = await Promise.all([
     // 1. pricing_rule_sets aggregate.
@@ -626,7 +772,8 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
         active: sql<number>`COUNT(*) FILTER (WHERE ${pricingRuleSets.status} = 'active')::int`,
         paused: sql<number>`COUNT(*) FILTER (WHERE ${pricingRuleSets.status} = 'paused')::int`,
       })
-      .from(pricingRuleSets),
+      .from(pricingRuleSets)
+      .where(eq(pricingRuleSets.organizationId, organizationId)),
 
     // 2. pricing_quote_logs + channel_push_events + stop-sell sum in
     // a single round-trip via three FILTER aggregates over a CROSS
@@ -637,9 +784,11 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
         (SELECT COUNT(*)::int FROM ${pricingQuoteLogs}
          WHERE ${pricingQuoteLogs.publicQuote} = true
            AND ${pricingQuoteLogs.createdAt} >= ${sinceIso}::timestamptz
+           AND ${pricingQuoteLogs.organizationId} = ${organizationId}::uuid
         ) AS public_quotes_24h,
         (SELECT COUNT(*)::int FROM ${channelPushEvents}
          WHERE ${channelPushEvents.status} = 'simulated'
+           AND ${channelPushEvents.organizationId} = ${organizationId}::uuid
         ) AS simulated_pushes,
         COALESCE((
           SELECT SUM(
@@ -650,17 +799,23 @@ export async function getPricingHubMetrics(): Promise<PricingHubMetrics> {
           )::int
           FROM ${pricingStopSellRules}
           WHERE ${pricingStopSellRules.status} = 'active'
+            AND ${pricingStopSellRules.organizationId} = ${organizationId}::uuid
         ), 0) AS stop_sell_nights
     `),
 
     // 3. villas-missing-rule-set: NOT EXISTS for an active rule-set
-    // covering each villa (global scope OR matching villa scope).
+    // covering each villa (global scope OR matching villa scope). Scope
+    // the villas to the caller's org through projects.organization_id,
+    // and the rule-set subquery to the same org.
     db.execute(sql`
       SELECT COUNT(*)::int AS missing
         FROM ${villas} v
-       WHERE NOT EXISTS (
+        JOIN ${projects} p ON p.id = v.project_id
+       WHERE p.organization_id = ${organizationId}::uuid
+         AND NOT EXISTS (
          SELECT 1 FROM ${pricingRuleSets} rs
           WHERE rs.status = 'active'
+            AND rs.organization_id = ${organizationId}::uuid
             AND (rs.scope_type = 'global' OR (rs.scope_type = 'villa' AND rs.villa_id = v.id))
        )
     `),
@@ -704,6 +859,10 @@ export async function countPricingRulesPerSet(): Promise<
   const out = new Map<string, RuleSetRuleCounts>();
   const db = getDb();
   if (!db) return out;
+  // Each rule family carries organization_id (0153). Scope every grouped
+  // count to the caller's org so the rule-sets list never tallies a foreign
+  // tenant's rules.
+  const organizationId = await requireOrgId();
   const grouped = await Promise.all([
     db
       .select({
@@ -712,6 +871,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingDayOfWeekRules)
+      .where(eq(pricingDayOfWeekRules.organizationId, organizationId))
       .groupBy(pricingDayOfWeekRules.ruleSetId, pricingDayOfWeekRules.status),
     db
       .select({
@@ -720,6 +880,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingOccupancyRules)
+      .where(eq(pricingOccupancyRules.organizationId, organizationId))
       .groupBy(pricingOccupancyRules.ruleSetId, pricingOccupancyRules.status),
     db
       .select({
@@ -728,6 +889,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingCloseOutRules)
+      .where(eq(pricingCloseOutRules.organizationId, organizationId))
       .groupBy(pricingCloseOutRules.ruleSetId, pricingCloseOutRules.status),
     db
       .select({
@@ -736,6 +898,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingChannelRules)
+      .where(eq(pricingChannelRules.organizationId, organizationId))
       .groupBy(pricingChannelRules.ruleSetId, pricingChannelRules.status),
     db
       .select({
@@ -744,6 +907,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingMinStayRules)
+      .where(eq(pricingMinStayRules.organizationId, organizationId))
       .groupBy(pricingMinStayRules.ruleSetId, pricingMinStayRules.status),
     db
       .select({
@@ -752,6 +916,7 @@ export async function countPricingRulesPerSet(): Promise<
         n: sql<number>`count(*)::int`,
       })
       .from(pricingStopSellRules)
+      .where(eq(pricingStopSellRules.organizationId, organizationId))
       .groupBy(pricingStopSellRules.ruleSetId, pricingStopSellRules.status),
   ]);
   for (const rows of grouped) {
