@@ -631,6 +631,7 @@ export async function createPayoutLineAction(
       organizationId,
     })
     .returning({ id: payoutLines.id });
+  if (!row) return { ok: false, error: "Could not create the payout line." };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "finance.payout_line.create",

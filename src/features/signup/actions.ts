@@ -182,83 +182,140 @@ export async function signupAction(
   }
   const authUserId = created.data.user.id;
 
-  // 3) Create the organization with trial state set.
+  // From here on the DB provisioning steps (org + app_user + role grants)
+  // are wrapped in try/catch so a failure part-way through does NOT leave a
+  // half-built tenant behind (an orphaned auth user + org would also block a
+  // retry on the same email). We track the ids created in THIS attempt and,
+  // on failure, do BEST-EFFORT cleanup of ONLY those just-created resources.
+  // Mirrors the canonical /api/onboarding/start intent (which rolls back the
+  // auth user on any post-create failure); we additionally unwind the rows
+  // this action inserts directly (it does not use provision_app_user).
   const now = new Date();
-  const orgCode = await generateOrgCode(data.organizationName);
   const products = productInputToSlugs(data.product);
   const trialEndsAt = computeTrialEndsAt(now, TRIAL_DURATION_DAYS_DEFAULT);
 
-  const [createdOrg] = await db
-    .insert(organizations)
-    .values({
-      organizationCode: orgCode,
-      name: data.organizationName,
-      organizationType: "developer_client",
-      productsEnabled: products,
-      trialStartedAt: now,
-      trialEndsAt,
-      trialStatus: "active",
-    })
-    .returning({ id: organizations.id });
+  let createdOrgId: string | null = null;
+  let appUserId: string | null = null;
 
-  // 4) Provision app_users row.
-  const [appUser] = await db
-    .insert(appUsers)
-    .values({
-      authUserId,
-      email: emailLower,
-      fullName: data.organizationName,
-      organizationId: createdOrg.id,
-      status: "active",
-    })
-    .returning({ id: appUsers.id });
+  // Best-effort rollback of ONLY the resources created in this attempt.
+  // Deletes children first (app_user) then parent (org), then the auth user.
+  // Each step is independently guarded so one failure does not abort the rest.
+  const rollback = async (): Promise<void> => {
+    if (appUserId) {
+      try {
+        await db.delete(appUsers).where(eq(appUsers.id, appUserId));
+      } catch (cleanupErr) {
+        console.error("[signup] rollback app_user failed", cleanupErr);
+      }
+    }
+    if (createdOrgId) {
+      try {
+        await db.delete(organizations).where(eq(organizations.id, createdOrgId));
+      } catch (cleanupErr) {
+        console.error("[signup] rollback organization failed", cleanupErr);
+      }
+    }
+    try {
+      await admin.auth.admin.deleteUser(authUserId);
+    } catch (cleanupErr) {
+      console.error("[signup] rollback auth user failed", cleanupErr);
+    }
+  };
 
-  // 5) Assign super_admin role via the SECURITY DEFINER helper (handles
-  //    RLS bootstrap + UNIQUE NULLS NOT DISTINCT).
-  await db.execute(
-    sql`SELECT public.assign_user_role(${appUser.id}::uuid, ${"super_admin"}::text, NULL::text, NULL::uuid)`,
-  );
+  try {
+    // 3) Create the organization with trial state set.
+    const orgCode = await generateOrgCode(data.organizationName);
+    const [createdOrg] = await db
+      .insert(organizations)
+      .values({
+        organizationCode: orgCode,
+        name: data.organizationName,
+        organizationType: "developer_client",
+        productsEnabled: products,
+        trialStartedAt: now,
+        trialEndsAt,
+        trialStatus: "active",
+      })
+      .returning({ id: organizations.id });
+    createdOrgId = createdOrg.id;
 
-  // 5b) CABINET ACCESS — assign_user_role only writes `user_roles` (the RLS
-  //     bypass flag). Cabinet routing (Stage 5.F) reads `app_user_roles`; a
-  //     user with no app_user_roles row lands without a cabinet. The
-  //     canonical onboarding path (provision_app_user, migration 0087) grants
-  //     BOTH — internal 'super_admin' AND cabinet 'admin'. signupAction did
-  //     its own app_users insert + assign_user_role and so never created the
-  //     cabinet grant. Mirror provision_app_user's idempotent company_wide
-  //     'admin' grant here so a freshly-provisioned tenant admin has cabinet
-  //     access. Idempotent via the same NOT-EXISTS guard provision_app_user
-  //     uses (a fresh signup never has a row, but this stays re-run-safe and
-  //     respects the partial-unique-primary index).
-  const [existingCabinetRole] = await db
-    .select({ id: appUserRoles.id })
-    .from(appUserRoles)
-    .where(
-      and(
-        eq(appUserRoles.userId, appUser.id),
-        eq(appUserRoles.roleKey, "admin"),
-        eq(appUserRoles.scope, "company_wide"),
-        eq(appUserRoles.isActive, true),
-      ),
-    )
-    .limit(1);
-  if (!existingCabinetRole) {
-    await db.insert(appUserRoles).values({
-      userId: appUser.id,
-      roleKey: "admin",
-      scope: "company_wide",
-      isPrimary: true,
-      isActive: true,
-    });
+    // 4) Provision app_users row.
+    const [appUser] = await db
+      .insert(appUsers)
+      .values({
+        authUserId,
+        email: emailLower,
+        fullName: data.organizationName,
+        organizationId: createdOrg.id,
+        status: "active",
+      })
+      .returning({ id: appUsers.id });
+    appUserId = appUser.id;
+
+    // 5) Assign super_admin role via the SECURITY DEFINER helper (handles
+    //    RLS bootstrap + UNIQUE NULLS NOT DISTINCT).
+    await db.execute(
+      sql`SELECT public.assign_user_role(${appUser.id}::uuid, ${"super_admin"}::text, NULL::text, NULL::uuid)`,
+    );
+
+    // 5b) CABINET ACCESS — assign_user_role only writes `user_roles` (the RLS
+    //     bypass flag). Cabinet routing (Stage 5.F) reads `app_user_roles`; a
+    //     user with no app_user_roles row lands without a cabinet. The
+    //     canonical onboarding path (provision_app_user, migration 0087) grants
+    //     BOTH — internal 'super_admin' AND cabinet 'admin'. signupAction did
+    //     its own app_users insert + assign_user_role and so never created the
+    //     cabinet grant. Mirror provision_app_user's idempotent company_wide
+    //     'admin' grant here so a freshly-provisioned tenant admin has cabinet
+    //     access. Idempotent via the same NOT-EXISTS guard provision_app_user
+    //     uses (a fresh signup never has a row, but this stays re-run-safe and
+    //     respects the partial-unique-primary index).
+    const [existingCabinetRole] = await db
+      .select({ id: appUserRoles.id })
+      .from(appUserRoles)
+      .where(
+        and(
+          eq(appUserRoles.userId, appUser.id),
+          eq(appUserRoles.roleKey, "admin"),
+          eq(appUserRoles.scope, "company_wide"),
+          eq(appUserRoles.isActive, true),
+        ),
+      )
+      .limit(1);
+    if (!existingCabinetRole) {
+      await db.insert(appUserRoles).values({
+        userId: appUser.id,
+        roleKey: "admin",
+        scope: "company_wide",
+        isPrimary: true,
+        isActive: true,
+      });
+    }
+  } catch (err) {
+    // Provisioning failed part-way — unwind only what this attempt created so
+    // the customer isn't left with garbage rows / a blocked retry, then return
+    // a friendly error. NOTE: redirect()/revalidatePath() live OUTSIDE this
+    // try/catch — redirect throws NEXT_REDIRECT and must never be caught here.
+    console.error("[signup] provisioning failed; rolling back", err);
+    await rollback();
+    return {
+      ok: false,
+      error: "Could not finish setting up your workspace. Please try again.",
+    };
   }
 
-  // 6) Welcome email (no-op until 10.L wires Resend).
-  await sendEmail(emailLower, welcomeEmailTemplate, {
-    recipientName: data.organizationName,
-    organizationName: data.organizationName,
-    dashboardUrl: `https://arconique.com${landingPathFor(products)}`,
-    trialEndsOn: trialEndsAt.toISOString().slice(0, 10),
-  });
+  // 6) Welcome email (no-op until 10.L wires Resend). Non-critical: a send
+  //    failure must NOT roll back the now-provisioned tenant (mirrors how the
+  //    canonical path treats email) — log and proceed.
+  try {
+    await sendEmail(emailLower, welcomeEmailTemplate, {
+      recipientName: data.organizationName,
+      organizationName: data.organizationName,
+      dashboardUrl: `https://arconique.com${landingPathFor(products)}`,
+      trialEndsOn: trialEndsAt.toISOString().slice(0, 10),
+    });
+  } catch (emailErr) {
+    console.error("[signup] welcome email failed (non-critical)", emailErr);
+  }
 
   // 7) Sign the user in so the session cookie is set and the user lands
   //    straight in their workspace — no second login after signup. The
@@ -291,12 +348,12 @@ export async function signupAction(
   //    failed auto-sign-in (which falls back to /login above) never logs a
   //    bogus "login_succeeded".
   await recordSecurityEvent({
-    appUserId: appUser.id,
+    appUserId,
     eventType: "login_succeeded",
     severity: "info",
     metadata: {
       via: "signup",
-      organizationId: createdOrg.id,
+      organizationId: createdOrgId,
       products,
     },
   });

@@ -283,7 +283,13 @@ export default async function TeamSettingsPage() {
             </tr>
           </thead>
           <tbody>
-            {userRows.map((u) => {
+            {userRows.length === 0 ? (
+              <TableEmpty colSpan={7}>
+                No members yet. Invite a teammate above and they will appear
+                here once they accept.
+              </TableEmpty>
+            ) : (
+              userRows.map((u) => {
               const userActiveRoles = rolesByUser.get(u.id) ?? [];
               const userInternalRoles = internalRolesByUser.get(u.id) ?? [];
               return (
@@ -342,7 +348,8 @@ export default async function TeamSettingsPage() {
                   </td>
                 </tr>
               );
-            })}
+              })
+            )}
           </tbody>
         </table>
       </div>

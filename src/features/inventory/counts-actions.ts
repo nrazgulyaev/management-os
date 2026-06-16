@@ -76,6 +76,7 @@ export async function createInventoryCountAction(
       notes: parsed.data.notes && parsed.data.notes !== "" ? parsed.data.notes : null,
     })
     .returning({ id: inventoryCounts.id });
+  if (!row) return { ok: false, error: "Could not create the count." };
 
   await preloadCountLinesForLocation(row.id, parsed.data.locationId);
 
