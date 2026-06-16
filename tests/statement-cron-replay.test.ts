@@ -1,43 +1,35 @@
 /**
  * CRON-CONVERGENCE replay proof.
  *
- * The monthly cron (src/app/api/cron/statements-monthly/route.ts) runs the
- * FORMULA generator (statement-generation.ts → generateStatementForOwnerVilla).
- * The task asked: can the configurable LEDGER engine (statement-generator.ts →
- * generateOwnerStatement) — configured to "reproduce-cron" (revenueSource=
- * 'bookings', taxMode='formula' 11, reserveMode='formula' 3, mgmtMode='formula'
- * 20, all includes on, IDR) — produce the IDENTICAL net on identical synthetic
- * inputs? If byte-exact, repoint the cron. If not, leave the cron and report the
- * divergence so a human decides.
+ * The monthly cron (src/app/api/cron/statements-monthly/route.ts) historically
+ * ran the FORMULA generator (statement-generation.ts →
+ * generateStatementForOwnerVilla). This test proves the canonical LEDGER engine
+ * (statement-generator.ts → generateOwnerStatement), configured to the
+ * "reproduce-cron" StatementSettings (revenueSource='bookings', taxMode='formula'
+ * 11, reserveMode='formula' 3, mgmtMode='formula' = the owner's commission%, all
+ * includes on, IDR), produces the IDENTICAL net AND the same line breakdown on
+ * identical synthetic inputs — PER (owner, VILLA), with posted owner-chargeable
+ * expense_lines included. Because it is byte-exact across the representative
+ * cases, the cron IS repointed to the engine.
  *
  * Both generators are DB-bound, so this test replicates their PURE arithmetic
  * (the exact rounding steps each one performs) on the same synthetic bookings /
- * expenses, and compares the nets. The configurable-engine side uses the SAME
- * shared pure helpers the live generator calls (computeStatementNet +
- * formulaDeductionMagnitudeMinor from statement-net-pure.ts), so its arithmetic
- * is the real thing, not a re-derivation.
+ * dev-expenses / expense_lines, and compares the nets + line magnitudes. The
+ * engine side uses the SAME shared pure helpers the live engine calls
+ * (computeStatementNet + formulaDeductionMagnitudeMinor from statement-net-pure),
+ * so its arithmetic is the real thing, not a re-derivation. The expense_lines
+ * port replicates loadOwnerChargeableExpenseLines's single-step
+ * `Math.round(amount * perVillaFactor * sharePctFactor)`.
  *
- * RESULT (see assertions): the two paths CONVERGE on the constrained
- * single-villa / no-expense_lines / realistic-magnitude case, but DIVERGE on:
- *   (1) tax/reserve/mgmt rounding — the formula generator rounds via float
- *       `Math.round(Number(gross) * 0.11)`; the engine rounds via BigInt half-up
- *       `(gross*pctMilli + denom/2)/denom`. At realistic IDR-minor magnitudes
- *       these AGREE, but the float path is NOT byte-exact: beyond 2^53 minor
- *       units `Number(gross)` loses integer precision and the nets differ by 1.
- *       (Theoretical at production scale, but it means equivalence cannot be
- *       PROVEN — only observed for a bounded magnitude range.)
- *   (2) expense_lines — the formula generator ALSO deducts
- *       loadOwnerChargeableExpenseLines (posted owner-chargeable expense_lines,
- *       incl. payroll staff costs + shared-pool complex costs); the engine's
- *       bookings port reads ONLY dev_transactions, so any expense_line widens
- *       the net gap.
- *   (3) per-villa vs per-owner aggregation — the formula generator emits ONE
- *       statement per (owner, villa) and rounds tax/reserve/mgmt on PER-VILLA
- *       gross; the engine emits ONE statement per (owner, period) and rounds on
- *       the SUMMED gross. Σ round(gᵢ·p) ≠ round(Σgᵢ·p).
+ * GRANULARITY (founder decision 2): the engine is always called PER (owner,
+ * VILLA) with villaId set, so it rounds tax/reserve/mgmt on THAT villa's gross —
+ * identical to the per-villa formula generator. The old per-villa-vs-per-owner
+ * aggregation divergence does not arise on the repointed path.
  *
- * Because exact equivalence cannot be proven across these, the cron is NOT
- * repointed (a divergence test asserts they differ on a realistic case).
+ * ROUNDING (founder decision 3): BigInt half-up (formulaDeductionMagnitudeMinor)
+ * is canonical; the formula generator's float Math.round is the legacy. At
+ * realistic IDR-minor magnitudes they are byte-identical (asserted below); the
+ * BigInt path is the source of truth where they would differ past 2^53.
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -59,23 +51,37 @@ interface SynthDevExpense {
 }
 interface SynthExpenseLine {
   amountIdrMinor: bigint;
+  /** 1 for villa-attributed, 1/villaCount for project-pool shared lines. */
   perVillaFactor: number;
 }
 
 const TAX_PCT = 0.11;
 const RESERVE_PCT = 0.03;
-const COMMISSION_PCT = 0.2; // 20% mgmt — the formula generator's default.
+const COMMISSION_FRACTION = 0.2; // 20% mgmt — the formula generator's default.
+
+/** Detailed result so the test can compare the line breakdown, not just net. */
+interface Breakdown {
+  grossMinor: bigint;
+  channelFeeMinor: bigint;
+  expenseMinor: bigint;
+  taxMinor: bigint;
+  reserveMinor: bigint;
+  mgmtMinor: bigint;
+  net: bigint;
+}
 
 // ---------------------------------------------------------------------------
 // (a) FORMULA generator math — copied step-for-step from statement-generation.ts
-//     generateStatementForOwnerVilla (one owner × ONE villa).
+//     generateStatementForOwnerVilla (one owner × ONE villa), INCLUDING the
+//     owner-chargeable expense_lines (loadOwnerChargeableExpenseLines) it deducts.
 // ---------------------------------------------------------------------------
-function formulaGeneratorNet(
+function formulaGenerator(
   sharePercent: number,
+  commissionFraction: number,
   bookings: SynthBooking[],
   devExpenses: SynthDevExpense[],
   expenseLines: SynthExpenseLine[],
-): bigint {
+): Breakdown {
   const sharePctFactor = sharePercent / 100;
 
   let grossMinor = 0n;
@@ -91,7 +97,8 @@ function formulaGeneratorNet(
   for (const e of devExpenses) {
     expenseMinor += BigInt(Math.round(Number(e.amountIdrMinor) * sharePctFactor));
   }
-  // STAFF-COST-MODEL phase 2: the formula generator ALSO deducts expense_lines.
+  // STAFF-COST-MODEL phase 2: the formula generator ALSO deducts expense_lines,
+  // single-step `Math.round(amount * perVillaFactor * sharePctFactor)`.
   for (const e of expenseLines) {
     const ownerShare = BigInt(
       Math.round(Number(e.amountIdrMinor) * e.perVillaFactor * sharePctFactor),
@@ -102,30 +109,29 @@ function formulaGeneratorNet(
 
   const taxMinor = BigInt(Math.round(Number(grossMinor) * TAX_PCT));
   const reserveMinor = BigInt(Math.round(Number(grossMinor) * RESERVE_PCT));
-  const operatorFeeMinor = BigInt(Math.round(Number(grossMinor) * COMMISSION_PCT));
+  const mgmtMinor = BigInt(Math.round(Number(grossMinor) * commissionFraction));
 
-  return (
-    grossMinor -
-    channelFeeMinor -
-    expenseMinor -
-    taxMinor -
-    reserveMinor -
-    operatorFeeMinor
-  );
+  const net =
+    grossMinor - channelFeeMinor - expenseMinor - taxMinor - reserveMinor - mgmtMinor;
+  return { grossMinor, channelFeeMinor, expenseMinor, taxMinor, reserveMinor, mgmtMinor, net };
 }
 
 // ---------------------------------------------------------------------------
 // (b) Configurable ENGINE math — the reproduce-cron config path of
-//     statement-generator.ts. Revenue/channel-fee/dev-expense share-split is the
-//     SAME per-booking Math.round the engine's bookings port performs; tax /
-//     reserve / mgmt use the SHARED formulaDeductionMagnitudeMinor + the SHARED
-//     computeStatementNet the live engine calls. expense_lines are NOT read.
+//     statement-generator.ts, called PER (owner, VILLA) with villaId set. Revenue
+//     / channel-fee / dev-expense / expense_line share-split is the SAME
+//     per-line Math.round the engine's bookings + expense_line ports perform;
+//     tax / reserve / mgmt use the SHARED formulaDeductionMagnitudeMinor + the
+//     SHARED computeStatementNet the live engine calls. expense_lines ARE read
+//     (the ported loadOwnerChargeableExpenseLines path).
 // ---------------------------------------------------------------------------
-function configurableEngineNet(
+function configurableEngine(
   sharePercent: number,
+  commissionFraction: number,
   bookings: SynthBooking[],
   devExpenses: SynthDevExpense[],
-): bigint {
+  expenseLines: SynthExpenseLine[],
+): Breakdown {
   const sharePctFactor = sharePercent / 100;
 
   let grossRevenueMinor = 0n;
@@ -145,12 +151,24 @@ function configurableEngineNet(
       Math.round(Number(e.amountIdrMinor) * sharePctFactor),
     );
   }
+  // Ported expense_lines: same single-step round as the formula generator.
+  for (const e of expenseLines) {
+    const ownerShare = BigInt(
+      Math.round(Number(e.amountIdrMinor) * e.perVillaFactor * sharePctFactor),
+    );
+    if (ownerShare === 0n) continue;
+    totalExpensesMinor += ownerShare;
+  }
 
+  // mgmtPct = commission FRACTION × 100 (reproduceCronStatementSettings).
   const totalTaxesMinor = formulaDeductionMagnitudeMinor(grossRevenueMinor, 11);
   const totalReservesMinor = formulaDeductionMagnitudeMinor(grossRevenueMinor, 3);
-  const managementFeeMinor = formulaDeductionMagnitudeMinor(grossRevenueMinor, 20);
+  const managementFeeMinor = formulaDeductionMagnitudeMinor(
+    grossRevenueMinor,
+    commissionFraction * 100,
+  );
 
-  return computeStatementNet({
+  const net = computeStatementNet({
     grossRevenueMinor,
     totalFeesMinor,
     totalExpensesMinor,
@@ -158,120 +176,194 @@ function configurableEngineNet(
     totalReservesMinor,
     managementFeeMinor,
   });
+  return {
+    grossMinor: grossRevenueMinor,
+    channelFeeMinor: totalFeesMinor,
+    expenseMinor: totalExpensesMinor,
+    taxMinor: totalTaxesMinor,
+    reserveMinor: totalReservesMinor,
+    mgmtMinor: managementFeeMinor,
+    net,
+  };
 }
 
-// ---------------------------------------------------------------------------
-// CONVERGENT case — single villa, 100% share, no expense_lines, gross chosen so
-// 11% / 3% / 20% land on clean minor units (no float-boundary rounding). Here
-// the two paths AGREE.
-// ---------------------------------------------------------------------------
-test("CONVERGES on the constrained no-expense_line / clean-rounding case", () => {
+/** Assert two breakdowns are byte-identical (net AND every component). */
+function assertExact(label: string, f: Breakdown, e: Breakdown) {
+  assert.equal(f.grossMinor, e.grossMinor, `${label}: gross`);
+  assert.equal(f.channelFeeMinor, e.channelFeeMinor, `${label}: channel fee`);
+  assert.equal(f.expenseMinor, e.expenseMinor, `${label}: expenses`);
+  assert.equal(f.taxMinor, e.taxMinor, `${label}: tax`);
+  assert.equal(f.reserveMinor, e.reserveMinor, `${label}: reserve`);
+  assert.equal(f.mgmtMinor, e.mgmtMinor, `${label}: mgmt fee`);
+  assert.equal(f.net, e.net, `${label}: NET`);
+}
+
+// ===========================================================================
+// REPRESENTATIVE REALISTIC CASES — engine (per-villa, reproduce-cron config,
+// with expense_lines) === formula generator, EXACTLY.
+// ===========================================================================
+
+// (1) Single villa, 100% share, no fees/expenses.
+test("EXACT: single villa, plain bookings", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 100_000_000n, channelFeeIdrMinor: 0n },
+    { grossIdrMinor: 50_000_000n, channelFeeIdrMinor: 0n },
+  ];
+  const f = formulaGenerator(100, COMMISSION_FRACTION, bookings, [], []);
+  const e = configurableEngine(100, COMMISSION_FRACTION, bookings, [], []);
+  assertExact("single villa", f, e);
+  // gross 150M, tax 16.5M, reserve 4.5M, mgmt 30M → net 99M.
+  assert.equal(f.net, 99_000_000n);
+});
+
+// (2) Villa WITH channel fees.
+test("EXACT: villa with channel fees", () => {
   const bookings: SynthBooking[] = [
     { grossIdrMinor: 100_000_000n, channelFeeIdrMinor: 5_000_000n },
     { grossIdrMinor: 50_000_000n, channelFeeIdrMinor: 2_500_000n },
   ];
-  const devExpenses: SynthDevExpense[] = [{ amountIdrMinor: 10_000_000n }];
-
-  const formula = formulaGeneratorNet(100, bookings, devExpenses, []);
-  const engine = configurableEngineNet(100, bookings, devExpenses);
-
-  // gross 150M, fee 7.5M, expense 10M, tax 16.5M, reserve 4.5M, mgmt 30M
-  //  → net = 150 - 7.5 - 10 - 16.5 - 4.5 - 30 = 81.5M.
-  assert.equal(formula, 81_500_000n);
-  assert.equal(engine, 81_500_000n);
-  assert.equal(formula, engine, "constrained case must converge");
+  const f = formulaGenerator(100, COMMISSION_FRACTION, bookings, [], []);
+  const e = configurableEngine(100, COMMISSION_FRACTION, bookings, [], []);
+  assertExact("channel fees", f, e);
+  // gross 150M, fee 7.5M, tax 16.5M, reserve 4.5M, mgmt 30M → net 91.5M.
+  assert.equal(f.net, 91_500_000n);
 });
 
-// ---------------------------------------------------------------------------
-// DIVERGENCE (1) — float vs BigInt rounding of the tax/reserve/mgmt deductions.
-// At realistic IDR-minor magnitudes the two rounding methods AGREE (so this is
-// not the operative blocker), BUT the formula generator's float path is not
-// byte-exact: once gross exceeds 2^53 minor units, Number(gross) loses integer
-// precision and Math.round disagrees with the exact-rational BigInt half-up by 1
-// minor unit. Equivalence therefore cannot be PROVEN for all inputs — only
-// observed within a bounded magnitude range.
-// ---------------------------------------------------------------------------
-test("tax/reserve/mgmt rounding: agrees at realistic scale, NOT byte-exact beyond 2^53", () => {
-  // Realistic IDR-minor gross: float and BigInt half-up agree.
-  const realistic = 12_345_678_900n; // ~123M IDR
-  assert.equal(
-    BigInt(Math.round(Number(realistic) * TAX_PCT)),
-    formulaDeductionMagnitudeMinor(realistic, 11),
-  );
-
-  // Astronomical gross past 2^53 (≈9.007e15): Number() loses precision and the
-  // float tax disagrees with the exact BigInt half-up by 1 minor unit.
-  // The tax DEDUCTION itself is off by one minor unit between the two paths,
-  // proving the formula generator's float rounding is not byte-exact with the
-  // engine's BigInt half-up. (At this magnitude the reserve/mgmt float errors
-  // happen to offset the tax error in the whole-statement net, so we assert at
-  // the deduction level where the non-equivalence is unambiguous.)
-  const huge = 123_456_789_012_345_678n;
-  const floatTax = BigInt(Math.round(Number(huge) * TAX_PCT));
-  const bigTax = formulaDeductionMagnitudeMinor(huge, 11);
-  assert.equal(floatTax, 13_580_246_791_358_024n);
-  assert.equal(bigTax, 13_580_246_791_358_025n);
-  assert.notEqual(
-    floatTax,
-    bigTax,
-    "float tax loses precision past 2^53 → not byte-exact with BigInt half-up; equivalence is NOT provable across all magnitudes",
-  );
+// (3) Villa with dev_transactions expenses.
+test("EXACT: villa with dev_transactions expenses", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 100_000_000n, channelFeeIdrMinor: 5_000_000n },
+  ];
+  const devExpenses: SynthDevExpense[] = [
+    { amountIdrMinor: 10_000_000n },
+    { amountIdrMinor: 3_250_000n },
+  ];
+  const f = formulaGenerator(100, COMMISSION_FRACTION, bookings, devExpenses, []);
+  const e = configurableEngine(100, COMMISSION_FRACTION, bookings, devExpenses, []);
+  assertExact("dev expenses", f, e);
 });
 
-// ---------------------------------------------------------------------------
-// DIVERGENCE (2) — expense_lines the formula generator deducts but the engine's
-// bookings port does not read.
-// ---------------------------------------------------------------------------
-test("DIVERGES when posted owner-chargeable expense_lines exist (engine omits them)", () => {
+// (4) Villa with posted owner-chargeable expense_lines (perVillaFactor = 1).
+//     This is the gap that previously DIVERGED — now the engine reads them too.
+test("EXACT: villa with posted owner-chargeable expense_lines", () => {
   const bookings: SynthBooking[] = [
     { grossIdrMinor: 100_000_000n, channelFeeIdrMinor: 0n },
   ];
   const expenseLines: SynthExpenseLine[] = [
-    { amountIdrMinor: 8_000_000n, perVillaFactor: 1 }, // e.g. payroll staff cost
+    { amountIdrMinor: 8_000_000n, perVillaFactor: 1 }, // payroll staff cost
+    { amountIdrMinor: 1_234_567n, perVillaFactor: 1 },
   ];
-
-  const formula = formulaGeneratorNet(100, bookings, [], expenseLines);
-  const engine = configurableEngineNet(100, bookings, []);
-
-  // The formula net is 8M lower (it deducted the expense_line); the engine never
-  // saw it.
-  assert.equal(
-    formula,
-    engine - 8_000_000n,
-    "formula deducts the expense_line, the engine bookings port does not",
-  );
-  assert.notEqual(formula, engine);
+  const f = formulaGenerator(100, COMMISSION_FRACTION, bookings, [], expenseLines);
+  const e = configurableEngine(100, COMMISSION_FRACTION, bookings, [], expenseLines);
+  assertExact("expense_lines", f, e);
+  // The engine now ALSO deducts the 9,234,567 expense_lines → nets match.
+  assert.equal(f.expenseMinor, 9_234_567n);
+  assert.equal(e.expenseMinor, 9_234_567n);
 });
 
-// ---------------------------------------------------------------------------
-// DIVERGENCE (3) — per-villa (formula: 1 statement/villa, tax on per-villa gross)
-// vs per-owner aggregate (engine: 1 statement, tax on summed gross). Σround(gᵢ·p)
-// ≠ round(Σgᵢ·p).
-// ---------------------------------------------------------------------------
-test("DIVERGES on multi-villa owners (per-villa vs per-owner tax rounding)", () => {
-  // Two villas with gross that each individually round tax 'up' but whose sum
-  // rounds 'down' — classic Σround ≠ roundΣ.
-  const villaA: SynthBooking[] = [{ grossIdrMinor: 5n, channelFeeIdrMinor: 0n }];
-  const villaB: SynthBooking[] = [{ grossIdrMinor: 5n, channelFeeIdrMinor: 0n }];
+// (5) <100% ownership share (per-line Math.round share-split on every input).
+test("EXACT: villa with <100% ownership share", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 100_000_001n, channelFeeIdrMinor: 5_000_003n },
+    { grossIdrMinor: 33_333_333n, channelFeeIdrMinor: 1_111_111n },
+  ];
+  const devExpenses: SynthDevExpense[] = [{ amountIdrMinor: 7_777_777n }];
+  const expenseLines: SynthExpenseLine[] = [
+    { amountIdrMinor: 2_500_005n, perVillaFactor: 1 },
+  ];
+  const share = 37.5; // co-owned villa
+  const f = formulaGenerator(share, COMMISSION_FRACTION, bookings, devExpenses, expenseLines);
+  const e = configurableEngine(share, COMMISSION_FRACTION, bookings, devExpenses, expenseLines);
+  assertExact("partial share", f, e);
+});
 
-  // FORMULA: one statement per villa, summed.
-  const formulaTotal =
-    formulaGeneratorNet(100, villaA, [], []) +
-    formulaGeneratorNet(100, villaB, [], []);
+// (6) Project-pool shared expense_line (perVillaFactor = 1/villaCount).
+test("EXACT: villa with a project-pool shared expense_line", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 80_000_000n, channelFeeIdrMinor: 4_000_000n },
+  ];
+  const villaCount = 4;
+  const expenseLines: SynthExpenseLine[] = [
+    // complex-wide line, apportioned 1/4 to this villa, then × share.
+    { amountIdrMinor: 20_000_000n, perVillaFactor: 1 / villaCount },
+    { amountIdrMinor: 6_666_666n, perVillaFactor: 1 / villaCount },
+  ];
+  const share = 50;
+  const f = formulaGenerator(share, COMMISSION_FRACTION, bookings, [], expenseLines);
+  const e = configurableEngine(share, COMMISSION_FRACTION, bookings, [], expenseLines);
+  assertExact("project pool", f, e);
+});
 
-  // ENGINE: one statement on the owner's combined villa shares.
-  const engineCombined = configurableEngineNet(
-    100,
-    [...villaA, ...villaB],
-    [],
-  );
+// (7) Non-default owner commission% (e.g. 18.5%) — mgmt fraction→pct path.
+test("EXACT: non-default owner commission percentage", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 123_456_700n, channelFeeIdrMinor: 6_172_835n },
+  ];
+  const commission = 0.185; // 18.5%
+  const f = formulaGenerator(100, commission, bookings, [], []);
+  const e = configurableEngine(100, commission, bookings, [], []);
+  assertExact("commission 18.5%", f, e);
+});
 
-  // tax on 5 minor: round(5*0.11)=round(0.55)=1 per villa → 2 total (formula);
-  // tax on 10 minor: round(10*0.11)=round(1.1)=1 (engine). Same for reserve/mgmt.
-  // The aggregation changes the rounded deductions → different net.
+// (8) Combined realistic statement — bookings + fees + dev + villa & pool
+//     expense_lines + partial share. The full reproduce-cron shape.
+test("EXACT: combined realistic statement (every input together)", () => {
+  const bookings: SynthBooking[] = [
+    { grossIdrMinor: 145_000_000n, channelFeeIdrMinor: 7_250_000n },
+    { grossIdrMinor: 62_500_000n, channelFeeIdrMinor: 3_125_000n },
+    { grossIdrMinor: 19_999_999n, channelFeeIdrMinor: 999_999n },
+  ];
+  const devExpenses: SynthDevExpense[] = [
+    { amountIdrMinor: 12_345_678n },
+    { amountIdrMinor: 4_500_000n },
+  ];
+  const expenseLines: SynthExpenseLine[] = [
+    { amountIdrMinor: 9_000_000n, perVillaFactor: 1 }, // villa payroll
+    { amountIdrMinor: 15_000_000n, perVillaFactor: 1 / 3 }, // shared-pool
+  ];
+  const share = 62.5;
+  const f = formulaGenerator(share, COMMISSION_FRACTION, bookings, devExpenses, expenseLines);
+  const e = configurableEngine(share, COMMISSION_FRACTION, bookings, devExpenses, expenseLines);
+  assertExact("combined", f, e);
+});
+
+// ===========================================================================
+// ROUNDING NOTE (founder decision 3): at realistic IDR-minor magnitudes the
+// formula generator's float Math.round is byte-identical to the engine's BigInt
+// half-up; the BigInt path is canonical where they would differ past 2^53.
+// ===========================================================================
+test("rounding: float Math.round == BigInt half-up at realistic magnitudes", () => {
+  for (const gross of [
+    12_345_678_900n,
+    99_999_999_999n,
+    150_000_000n,
+    207_500_000n,
+    1n,
+    50n,
+  ]) {
+    assert.equal(
+      BigInt(Math.round(Number(gross) * TAX_PCT)),
+      formulaDeductionMagnitudeMinor(gross, 11),
+      `tax @ ${gross}`,
+    );
+    assert.equal(
+      BigInt(Math.round(Number(gross) * RESERVE_PCT)),
+      formulaDeductionMagnitudeMinor(gross, 3),
+      `reserve @ ${gross}`,
+    );
+    assert.equal(
+      BigInt(Math.round(Number(gross) * COMMISSION_FRACTION)),
+      formulaDeductionMagnitudeMinor(gross, 20),
+      `mgmt @ ${gross}`,
+    );
+  }
+
+  // Past 2^53 the float path loses integer precision; BigInt half-up is the
+  // canonical source of truth (this is WHY the engine uses BigInt). The
+  // reproduce-cron config rounds via BigInt, so the cron is now precise here.
+  const huge = 123_456_789_012_345_678n;
   assert.notEqual(
-    formulaTotal,
-    engineCombined,
-    "per-villa vs per-owner aggregation rounds the formula deductions differently",
+    BigInt(Math.round(Number(huge) * TAX_PCT)),
+    formulaDeductionMagnitudeMinor(huge, 11),
   );
 });

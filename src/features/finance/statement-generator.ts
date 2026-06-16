@@ -31,7 +31,9 @@ import {
   assertStatementLinesMatchNet,
   formulaDeductionMagnitudeMinor,
 } from "./statement-net-pure";
-import { getStatementSettings } from "./statement-settings";
+import { getStatementSettings, type StatementSettings } from "./statement-settings";
+import { requireOrgId } from "@/features/auth/require-org";
+import { resolveOrCreatePeriod } from "./statement-generation";
 
 // -----------------------------------------------------------------------------
 // Public API
@@ -54,11 +56,68 @@ export type GenerateInput = {
    * statement created without this is invisible to Issue/Approve/Mark-paid.
    */
   organizationId: string;
+  /**
+   * CRON-CONVERGENCE — a fixed StatementSettings to use INSTEAD of resolving the
+   * org's stored ledger settings via getStatementSettings(). When provided the
+   * generator does NOT touch org_statement_settings; when absent it resolves the
+   * scoped ledger settings exactly as before (the manual "Issue statement" path).
+   *
+   * The monthly cron passes the "reproduce-cron" config (revenueSource='bookings',
+   * tax/reserve/mgmt='formula' 11/3/owner-commission%, all includes on, IDR) so it
+   * deterministically reproduces the legacy FORMULA generator WITHOUT mutating any
+   * org's ledger configuration. customDeductions must be [] in that config — the
+   * formula generator has no custom-deduction concept.
+   */
+  settingsOverride?: StatementSettings;
 };
 
 export type GenerateOutput =
   | { ok: true; statementId: string; statementCode: string; created: boolean }
   | { ok: false; reason: string };
+
+/**
+ * CRON-CONVERGENCE — the fixed "reproduce-cron" StatementSettings that makes the
+ * canonical engine deterministically reproduce the legacy FORMULA generator
+ * (statement-generation.ts). Passed as `settingsOverride` so the cron NEVER reads
+ * or mutates the org's stored ledger settings.
+ *
+ *   revenueSource 'bookings'  → gross from bookings + channel fee + dev_transactions
+ *                                + posted owner-chargeable expense_lines.
+ *   tax/reserve   'formula'   → 11% / 3% of per-villa gross (BigInt half-up).
+ *   mgmt          'formula'   → the OWNER's commission% of per-villa gross.
+ *   all includes on, IDR, NO custom deductions (the formula generator has none).
+ *
+ * @param commissionFraction the owner's operator commission as a FRACTION in
+ *   [0,1] (owners.commission_pct, migration 0169); NULL → 0.2 (20% default),
+ *   matching statement-generation.ts. Converted to a 0–100 percentage for
+ *   mgmtPct because formulaDeductionMagnitudeMinor expects a percentage.
+ */
+export function reproduceCronStatementSettings(
+  commissionFraction: number | null | undefined,
+): StatementSettings {
+  const fraction =
+    commissionFraction === null || commissionFraction === undefined
+      ? 0.2
+      : commissionFraction;
+  return {
+    includeFees: true,
+    includeExpenses: true,
+    includeManagementFee: true,
+    taxMode: "formula",
+    taxPct: 11,
+    taxLabel: "Tax",
+    reserveMode: "formula",
+    reservePct: 3,
+    reserveLabel: "Reserve",
+    mgmtMode: "formula",
+    // owner commission FRACTION → percentage for formulaDeductionMagnitudeMinor.
+    mgmtPct: fraction * 100,
+    mgmtLabel: "Management fee",
+    revenueSource: "bookings",
+    statementCurrency: "IDR",
+    customDeductions: [],
+  };
+}
 
 /**
  * Pinned fallback USD→IDR rate, mirroring statement-generation.ts. Only used
@@ -191,10 +250,17 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   // owner. Returns DEFAULTS (all includes true, tax/reserve/mgmt='ledger',
   // revenue from the ledger) when no row exists → an org WITHOUT a settings row
   // behaves EXACTLY as today.
-  const settings = await getStatementSettings({
-    ownerId: input.ownerId,
-    projectId: input.projectId ?? headlineProjectId,
-  });
+  // CRON-CONVERGENCE: when the caller passes a fixed settingsOverride (the cron's
+  // reproduce-cron config) use it verbatim and DO NOT read org_statement_settings
+  // — so the cron reproduces the legacy formula generator without depending on, or
+  // mutating, the org's stored ledger settings. The manual "Issue statement" path
+  // passes no override → resolves the scoped ledger settings exactly as before.
+  const settings =
+    input.settingsOverride ??
+    (await getStatementSettings({
+      ownerId: input.ownerId,
+      projectId: input.projectId ?? headlineProjectId,
+    }));
 
   // Currency: explicit input precedence (callers may force a currency), else the
   // org's configured statement currency. Replaces the old hardcoded "USD".
@@ -606,6 +672,163 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
             currency,
             owner_visible: true,
           });
+        }
+      }
+
+      // 3) Posted owner-chargeable expense_lines (loadOwnerChargeableExpenseLines
+      //    port). CRON-CONVERGENCE: until now the bookings port read ONLY
+      //    dev_transactions, so posted owner-chargeable expense_lines (payroll
+      //    staff costs + shared-pool complex costs) never reached the cron
+      //    statement — the legacy formula generator DID deduct them. Replicated
+      //    FAITHFULLY from statement-generation.ts loadOwnerChargeableExpenseLines:
+      //    same raw SQL, same status='posted'/owner_chargeable filters, same
+      //    villa-attributed (owner|shared_pool) + project_pool(shared_pool) split,
+      //    same `Math.round(amount * perVillaFactor * sharePctFactor)` SINGLE-step
+      //    rounding and the same 15,800 FX fallback (expense_lines have no
+      //    fx_rate column). Org-scoped via villa→project→organizations, exactly
+      //    like loadVillaExpenses.
+      if (settings.includeExpenses) {
+        const expenseLineToIdrMinor = (
+          amountMinorRaw: string,
+          curr: string,
+        ): bigint => {
+          let amountIdrMinor = BigInt(amountMinorRaw ?? "0");
+          if (curr !== "IDR") {
+            const fx = FX_USD_TO_IDR_FALLBACK;
+            amountIdrMinor = BigInt(
+              Math.round((Number(amountIdrMinor) / 100) * fx * 100),
+            );
+          }
+          return amountIdrMinor;
+        };
+
+        // 3a) Villa-attributed owner-chargeable lines (owner|shared_pool bearer);
+        //     perVillaFactor = 1.
+        const villaExpLineRows = await db.execute<{
+          id: string;
+          description: string;
+          expense_type: string;
+          amount_minor: string;
+          currency: string;
+        }>(sql`
+          SELECT el.id::text          AS id,
+                 el.description        AS description,
+                 el.expense_type       AS expense_type,
+                 el.amount_minor::text AS amount_minor,
+                 el.currency           AS currency
+            FROM expense_lines el
+            JOIN villas v ON v.id = el.villa_id
+            JOIN projects p ON p.id = v.project_id
+           WHERE el.villa_id = ${villaId}::uuid
+             AND p.organization_id = ${input.organizationId}::uuid
+             AND el.status = 'posted'
+             AND el.owner_chargeable = true
+             AND el.cost_bearer IN ('owner','shared_pool')
+             AND date_trunc('month', el.expense_date)::date = ${periodMonth}::date
+           ORDER BY el.expense_date ASC
+           LIMIT 200
+        `);
+        for (const e of rowsOf<{
+          id: string;
+          description: string;
+          expense_type: string;
+          amount_minor: string;
+          currency: string;
+        }>(villaExpLineRows)) {
+          const amountIdrMinor = expenseLineToIdrMinor(e.amount_minor, e.currency);
+          // perVillaFactor = 1 for villa-attributed lines → single-step round.
+          const ownerShare = BigInt(Math.round(Number(amountIdrMinor) * sharePctFactor));
+          if (ownerShare === 0n) continue;
+          totalExpensesMinor += ownerShare;
+          const categoryKey = e.expense_type ?? "expense";
+          const desc =
+            e.description?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ??
+            "Expense";
+          pushLine({
+            line_type: "expense",
+            source_table: "expense_lines",
+            source_id: e.id,
+            category: categoryKey,
+            description: `${categoryKey} · ${desc}`,
+            amount_minor: -ownerShare,
+            currency,
+            owner_visible: true,
+          });
+        }
+
+        // 3b) Shared-pool complex-wide lines (no villa_id; allocation_scope
+        //     project_pool, cost_bearer shared_pool). Apportion equally across the
+        //     project's villas (perVillaFactor = 1/villaCount) then × this owner's
+        //     villa share. countVillasInProject is org-scoped, matching the
+        //     formula generator.
+        if (projectId) {
+          const villaCountRows = await db.execute<{ n: string }>(sql`
+            SELECT count(*)::text AS n
+              FROM villas v
+              JOIN projects p ON p.id = v.project_id
+             WHERE v.project_id = ${projectId}::uuid
+               AND p.organization_id = ${input.organizationId}::uuid
+          `);
+          const villaCount = Math.max(
+            1,
+            Number(rowsOf<{ n: string }>(villaCountRows)[0]?.n ?? "1"),
+          );
+          const perVillaFactor = 1 / villaCount;
+
+          const poolExpLineRows = await db.execute<{
+            id: string;
+            description: string;
+            expense_type: string;
+            amount_minor: string;
+            currency: string;
+          }>(sql`
+            SELECT el.id::text          AS id,
+                   el.description        AS description,
+                   el.expense_type       AS expense_type,
+                   el.amount_minor::text AS amount_minor,
+                   el.currency           AS currency
+              FROM expense_lines el
+              JOIN projects p ON p.id = el.project_id
+             WHERE el.project_id = ${projectId}::uuid
+               AND p.organization_id = ${input.organizationId}::uuid
+               AND el.status = 'posted'
+               AND el.owner_chargeable = true
+               AND el.allocation_scope = 'project_pool'
+               AND el.cost_bearer = 'shared_pool'
+               AND date_trunc('month', el.expense_date)::date = ${periodMonth}::date
+             ORDER BY el.expense_date ASC
+             LIMIT 200
+          `);
+          for (const e of rowsOf<{
+            id: string;
+            description: string;
+            expense_type: string;
+            amount_minor: string;
+            currency: string;
+          }>(poolExpLineRows)) {
+            const amountIdrMinor = expenseLineToIdrMinor(e.amount_minor, e.currency);
+            // SINGLE-step round of amount × perVillaFactor × share, exactly as the
+            // formula generator (NOT nested rounding via allocateBySharePercent).
+            const ownerShare = BigInt(
+              Math.round(Number(amountIdrMinor) * perVillaFactor * sharePctFactor),
+            );
+            if (ownerShare === 0n) continue;
+            totalExpensesMinor += ownerShare;
+            const categoryKey = `${e.expense_type ?? "expense"} (shared)`;
+            const desc =
+              e.description?.replace(/^\[DEMO\] /, "").replace(/^\[DEMO2\] /, "") ??
+              "Shared cost";
+            pushLine({
+              line_type: "expense",
+              source_table: "expense_lines",
+              source_id: e.id,
+              category: categoryKey,
+              description: `${categoryKey} · ${desc}`,
+              amount_minor: -ownerShare,
+              currency,
+              owner_visible: true,
+            });
+          }
         }
       }
     }
@@ -1232,6 +1455,104 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   });
 
   return { ok: true, statementId, statementCode, created };
+}
+
+/**
+ * CRON-CONVERGENCE — resolve a single owner's operator commission FRACTION
+ * (owners.commission_pct, migration 0169) so the reproduce-cron mgmt formula
+ * matches the legacy generator's per-owner commission. Org-scoped: NULL org
+ * (pre-threading) rows are allowed; a foreign-org owner returns NULL → 0.2
+ * default. Returns NULL when unset (caller defaults to 20%).
+ */
+async function resolveOwnerCommissionFraction(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  orgId: string,
+  ownerId: string,
+): Promise<number | null> {
+  const rows = await db.execute<{ commission_pct: string | null }>(sql`
+    SELECT o.commission_pct::text AS commission_pct
+      FROM owners o
+     WHERE o.id = ${ownerId}::uuid
+       AND (o.organization_id IS NULL OR o.organization_id = ${orgId}::uuid)
+     LIMIT 1
+  `);
+  const raw = rowsOf<{ commission_pct: string | null }>(rows)[0]?.commission_pct;
+  return raw !== null && raw !== undefined && raw !== "" ? Number(raw) : null;
+}
+
+/**
+ * CRON-CONVERGENCE — engine-backed replacement for
+ * statement-generation.ts `generateAllPendingStatements`. Same org-scoped target
+ * query (every owner × villa with an active share + a booking in the month) but
+ * each (owner, villa) is generated via the CANONICAL engine with the
+ * reproduce-cron settingsOverride (byte-exact net, Σ(lines)==net invariant,
+ * BigInt half-up). The org's stored ledger settings are NOT read or mutated.
+ */
+export async function generateAllPendingStatementsViaEngine(
+  periodMonth: string,
+): Promise<Array<{ ownerId: string; villaId: string; statementId: string }>> {
+  const db = getDb();
+  if (!db) return [];
+  const orgId = await requireOrgId();
+  const periodId = await resolveOrCreatePeriod(db, periodMonth);
+
+  const rows = await db.execute<{ owner_id: string; villa_id: string }>(sql`
+    SELECT DISTINCT os.owner_id::text AS owner_id, b.villa_id::text AS villa_id
+      FROM ownership_shares os
+      JOIN bookings b ON b.villa_id = os.villa_id
+      JOIN villas v ON v.id = b.villa_id
+      JOIN projects p ON p.id = v.project_id
+     WHERE p.organization_id = ${orgId}::uuid
+       AND os.status = 'active'
+       AND b.status IN ('confirmed','checked_in','checked_out')
+       AND date_trunc('month', b.check_in)::date = ${periodMonth}::date
+  `);
+  const targets = rowsOf<{ owner_id: string; villa_id: string }>(rows);
+
+  const out: Array<{ ownerId: string; villaId: string; statementId: string }> = [];
+  for (const t of targets) {
+    const commissionFraction = await resolveOwnerCommissionFraction(
+      db,
+      orgId,
+      t.owner_id,
+    );
+    const gen = await generateOwnerStatement({
+      organizationId: orgId,
+      ownerId: t.owner_id,
+      villaId: t.villa_id,
+      periodId,
+      settingsOverride: reproduceCronStatementSettings(commissionFraction),
+    });
+    if (gen.ok) {
+      out.push({ ownerId: t.owner_id, villaId: t.villa_id, statementId: gen.statementId });
+    }
+  }
+  return out;
+}
+
+/**
+ * CRON-CONVERGENCE — engine-backed single (owner, villa) regenerate, for the
+ * "regenerate this statement" action. Mirrors the reproduce-cron config so a
+ * manual monthly regenerate matches the cron exactly. `orgId` is the caller's
+ * org (already resolved + authorised by the action).
+ */
+export async function regenerateOwnerVillaViaEngine(
+  orgId: string,
+  ownerId: string,
+  villaId: string,
+  periodMonth: string,
+): Promise<GenerateOutput> {
+  const db = getDb();
+  if (!db) return { ok: false, reason: "db_missing" };
+  const periodId = await resolveOrCreatePeriod(db, periodMonth);
+  const commissionFraction = await resolveOwnerCommissionFraction(db, orgId, ownerId);
+  return generateOwnerStatement({
+    organizationId: orgId,
+    ownerId,
+    villaId,
+    periodId,
+    settingsOverride: reproduceCronStatementSettings(commissionFraction),
+  });
 }
 
 function addOne(date: string): string {

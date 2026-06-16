@@ -3,7 +3,11 @@ import { and, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { verifyCronAuthFromRequest } from "@/features/jobs/auth";
-import { generateStatementForOwnerVilla } from "@/features/finance/statement-generation";
+import { resolveOrCreatePeriod } from "@/features/finance/statement-generation";
+import {
+  generateOwnerStatement,
+  reproduceCronStatementSettings,
+} from "@/features/finance/statement-generator";
 import { ownerStatements } from "@/lib/db/schema/finance";
 import { owners } from "@/lib/db/schema/ownership";
 import { isEmailConfigured, sendEmail } from "@/features/email/email-service";
@@ -21,6 +25,15 @@ import { statementReady } from "@/features/email/templates";
  * Statements stay in `draft` state; the operator approves manually via
  * the Finance cabinet. Auto-send is intentionally NOT wired this
  * sprint — STATEMENT-1 halt condition mandates manual sign-off.
+ *
+ * CRON-CONVERGENCE: this cron now calls the CANONICAL engine
+ * (statement-generator.ts `generateOwnerStatement`) per (owner, VILLA) with the
+ * reproduce-cron `settingsOverride` (revenueSource='bookings', tax/reserve/mgmt
+ * formula 11/3/owner-commission%, IDR) instead of the legacy formula generator
+ * (`generateStatementForOwnerVilla`, now @deprecated). The override keeps the
+ * org's stored ledger settings untouched. Net is byte-exact with the legacy path
+ * (tests/statement-cron-replay.test.ts) AND the engine enforces the hard
+ * Σ(lines)==net invariant.
  */
 
 export const dynamic = "force-dynamic";
@@ -60,6 +73,12 @@ function shouldAutoSend(): boolean {
 async function runOnce(periodMonth: string): Promise<RunResult[]> {
   const db = getDb();
   if (!db) return [];
+
+  // CRON-CONVERGENCE: the engine (generateOwnerStatement) requires a pre-existing
+  // periodId. Resolve (or create) the period ONCE for this run, using the SAME
+  // first-of-month anchor the legacy formula path used.
+  const periodId = await resolveOrCreatePeriod(db, periodMonth);
+
   const orgRows = await db.execute<{ id: string; name: string | null }>(sql`
     SELECT DISTINCT o.id::text AS id, o.name
       FROM organizations o
@@ -96,14 +115,38 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
     };
     for (const t of rows) {
       try {
-        const r = await generateStatementForOwnerVilla(
-          org.id,
-          t.owner_id,
-          t.villa_id,
-          periodMonth,
-          { createdBy: null },
-        );
-        if (!r) continue;
+        // CRON-CONVERGENCE: resolve the owner's operator commission FRACTION
+        // (owners.commission_pct, migration 0169; NULL → 0.2 default) so the
+        // reproduce-cron config's mgmt formula matches the legacy generator's
+        // per-owner commission. Org-scoped lookup.
+        const commRows = await db.execute<{ commission_pct: string | null }>(sql`
+          SELECT o.commission_pct::text AS commission_pct
+            FROM owners o
+           WHERE o.id = ${t.owner_id}::uuid
+             AND (o.organization_id IS NULL OR o.organization_id = ${org.id}::uuid)
+           LIMIT 1
+        `);
+        const commRaw = rowsOf<{ commission_pct: string | null }>(commRows)[0]
+          ?.commission_pct;
+        const commissionFraction =
+          commRaw !== null && commRaw !== undefined && commRaw !== ""
+            ? Number(commRaw)
+            : null;
+
+        // Call the CANONICAL engine per (owner, VILLA) with the reproduce-cron
+        // settingsOverride — byte-exact with the legacy formula generator (proven
+        // by tests/statement-cron-replay.test.ts) but enforcing Σ(lines)==net +
+        // BigInt half-up rounding. settingsOverride means the org's stored ledger
+        // settings are NOT read or mutated.
+        const gen = await generateOwnerStatement({
+          organizationId: org.id,
+          ownerId: t.owner_id,
+          villaId: t.villa_id,
+          periodId,
+          settingsOverride: reproduceCronStatementSettings(commissionFraction),
+        });
+        if (!gen.ok) continue;
+        const r = { statementId: gen.statementId };
         result.generated++;
 
         // EMAIL-1-CRON: optional auto-approve + auto-send.
@@ -135,6 +178,19 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
               )
               .limit(1);
             if (ownerRow?.email && ownerRow.email.includes("@")) {
+              // The engine snapshots net_to_owner_usd_minor on the statement row;
+              // read it back for the email (the formula generator used to return
+              // it inline). Org-scoped by the statement id we just created.
+              const [stmtRow] = await db
+                .select({ netToOwnerUsdMinor: ownerStatements.netToOwnerUsdMinor })
+                .from(ownerStatements)
+                .where(
+                  and(
+                    eq(ownerStatements.id, r.statementId),
+                    eq(ownerStatements.organizationId, org.id),
+                  ),
+                )
+                .limit(1);
               const monthLabel = new Date(periodMonth + "T00:00:00Z").toLocaleString(
                 "en",
                 { month: "long", year: "numeric", timeZone: "UTC" },
@@ -143,7 +199,9 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
                 ownerFirstName: ownerRow.name?.split(" ")[0] ?? "there",
                 monthLabel,
                 villaCode: null,
-                netToOwnerUsdMinor: r.netToOwnerUsdMinor,
+                // reproduce-cron config is IDR → the engine always snapshots a
+                // USD net; coalesce defensively for the non-null template type.
+                netToOwnerUsdMinor: stmtRow?.netToOwnerUsdMinor ?? 0n,
                 portalUrl: "https://management.arconique.com/owner/statements",
               });
               const send = await sendEmail({
