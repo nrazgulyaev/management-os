@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -43,12 +44,19 @@ export async function getOperationsKpis(): Promise<OperationsKpis> {
   // zeros on an anon probe.
   const orgId = await requireOrgId().catch(() => null);
   if (!orgId) return EMPTY;
-  const rows = await db.execute<{
-    turnovers: string;
-    arrivals: string;
-    tickets_open: string;
-    service_open: string;
-  }>(sql`
+  // PERF (Phase 4): cache only the raw text COUNT row per-org for 60s; org is
+  // resolved OUTSIDE the cache and passed as a key-part. The Number() coercions
+  // + always-0 preventiveDue/housekeepingTasks are built live below.
+  const r = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const rows = await cdb.execute<{
+        turnovers: string;
+        arrivals: string;
+        tickets_open: string;
+        service_open: string;
+      }>(sql`
     SELECT
       (SELECT COUNT(*)::text FROM bookings
         WHERE check_out = CURRENT_DATE
@@ -66,12 +74,18 @@ export async function getOperationsKpis(): Promise<OperationsKpis> {
           AND villa_id IN (SELECT id FROM villas
                            WHERE project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId}))), '0') AS service_open
   `);
-  const r = rowsOf<{
-    turnovers: string;
-    arrivals: string;
-    tickets_open: string;
-    service_open: string;
-  }>(rows)[0];
+      return (
+        rowsOf<{
+          turnovers: string;
+          arrivals: string;
+          tickets_open: string;
+          service_open: string;
+        }>(rows)[0] ?? null
+      );
+    },
+    ["ops", "kpis", orgId],
+    { revalidate: 60 },
+  )();
   return {
     turnoversToday: Number(r?.turnovers ?? "0"),
     arrivalsToday: Number(r?.arrivals ?? "0"),
@@ -102,13 +116,21 @@ export interface VillaStatusTile {
 export async function getVillaStatusBoard(): Promise<VillaStatusTile[]> {
   const db = getDb();
   if (!db) return [];
-  const orgId = await requireOrgId();
-  const rows = await db.execute<{
-    id: string;
-    unit_code: string;
-    status: string;
-    has_active_booking: string;
-  }>(sql`
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
+  // PERF (Phase 4): cache the raw villa rows (id/unit_code/status text +
+  // has_active_booking text-bool) per-org for 60s; org resolved OUTSIDE the
+  // cache, passed as a key-part. The state-derivation switch runs live below.
+  const rows = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return [];
+      const r = await cdb.execute<{
+        id: string;
+        unit_code: string;
+        status: string;
+        has_active_booking: string;
+      }>(sql`
     SELECT v.id::text                          AS id,
            v.unit_code                           AS unit_code,
            v.status                              AS status,
@@ -125,12 +147,17 @@ export async function getVillaStatusBoard(): Promise<VillaStatusTile[]> {
        AND v.project_id IN (SELECT id FROM projects WHERE organization_id = ${orgId})
      ORDER BY v.unit_code ASC
   `);
-  return rowsOf<{
-    id: string;
-    unit_code: string;
-    status: string;
-    has_active_booking: string;
-  }>(rows).map((r) => {
+      return rowsOf<{
+        id: string;
+        unit_code: string;
+        status: string;
+        has_active_booking: string;
+      }>(r);
+    },
+    ["ops", "villa-status-board", orgId],
+    { revalidate: 60 },
+  )();
+  return rows.map((r) => {
     let state: VillaState;
     if (r.has_active_booking === "true") state = "occupied";
     else if (r.status === "cleaning") state = "cleaning";

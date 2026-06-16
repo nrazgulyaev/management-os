@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 // SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
@@ -58,14 +59,29 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
   // TENANCY-FINANCE — scope every leg to the caller's org. bookings and
   // ownership_shares both carry organization_id; without these predicates
   // this aggregate scans (and leaks counts for) every tenant.
-  const orgId = await requireOrgId();
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) {
+    return {
+      statementsPendingCount: 0,
+      payoutsAwaitingCount: 0,
+      totalNetMtdIdrMinor: 0n,
+      avgStatementCycleDays: null,
+    };
+  }
   // Statement tables are empty in DEMO-2. Approximate "pending statements"
   // by counting distinct owner × villa × month combinations that had
   // bookings in the current month — that's what *would* generate.
-  const rows = await db.execute<{
-    pending_statements: string;
-    revenue_mtd: string;
-  }>(sql`
+  // PERF (Phase 4): cache only the raw text row per-org for 120s; org resolved
+  // OUTSIDE the cache, passed as a key-part. netMtdUsd arithmetic +
+  // usdToIdrMinor() (→bigint) run live below — the cached row has zero bigint.
+  const r = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const rows = await cdb.execute<{
+        pending_statements: string;
+        revenue_mtd: string;
+      }>(sql`
     SELECT
       (SELECT COUNT(DISTINCT (os.owner_id, b.villa_id))::text
          FROM bookings b
@@ -81,10 +97,16 @@ export async function getFinanceKpis(): Promise<FinanceKpis> {
           AND b.check_in >= date_trunc('month', CURRENT_DATE)::date
           AND b.organization_id = ${orgId}::uuid), '0') AS revenue_mtd
   `);
-  const r = rowsOf<{
-    pending_statements: string;
-    revenue_mtd: string;
-  }>(rows)[0];
+      return (
+        rowsOf<{
+          pending_statements: string;
+          revenue_mtd: string;
+        }>(rows)[0] ?? null
+      );
+    },
+    ["finance", "kpis", orgId],
+    { revalidate: 120 },
+  )();
   const grossMtdUsd = Number(r?.revenue_mtd ?? "0");
   const netMtdUsd = grossMtdUsd * (1 - OPERATOR_COMMISSION - CHANNEL_FEE_PCT - TAX_PCT - EXPENSE_PCT);
   return {
