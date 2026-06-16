@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 
@@ -33,19 +34,38 @@ export interface OwnerVillaRow {
 }
 
 export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
-  const db = getDb();
-  if (!db) return [];
-  const rows = await db.execute<{
-    villa_id: string;
-    villa_code: string | null;
-    villa_name: string | null;
-    project_name: string | null;
-    share_percent: string;
-    mtd_net_usd: string;
-    mtd_nights: string;
-    mtd_revenue_usd: string;
-    bedrooms: number;
-  }>(sql`
+  // PERF (Phase 4): ownerId is resolved from the session by the page/layout
+  // (OUTSIDE this fn) → correct per-owner cache key-part, cache callback never
+  // touches cookies. It renders in owner/layout.tsx on EVERY owner navigation,
+  // so caching the MTD aggregate for 120s removes it from the steady-state
+  // render. Only the raw `::text` rows are cached (every aggregate column is
+  // COALESCE(...::text) → no bigint); the occupancy/ADR/BigInt() maths runs
+  // live below, outside the cache.
+  const data = await unstable_cache(
+    async (): Promise<{
+      villa_id: string;
+      villa_code: string | null;
+      villa_name: string | null;
+      project_name: string | null;
+      share_percent: string;
+      mtd_net_usd: string;
+      mtd_nights: string;
+      mtd_revenue_usd: string;
+      bedrooms: number;
+    }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        villa_id: string;
+        villa_code: string | null;
+        villa_name: string | null;
+        project_name: string | null;
+        share_percent: string;
+        mtd_net_usd: string;
+        mtd_nights: string;
+        mtd_revenue_usd: string;
+        bedrooms: number;
+      }>(sql`
     WITH mtd AS (
       SELECT b.villa_id,
              SUM(b.gross_amount) FILTER (WHERE b.currency = 'USD') AS revenue_usd_units,
@@ -75,20 +95,24 @@ export async function listMyVillas(ownerId: string): Promise<OwnerVillaRow[]> {
        AND os.status = 'active'
      ORDER BY v.unit_code ASC
   `);
-  // SHAPE-FIX: postgres-js returns db.execute() as an Array; the old
-  // `.rows ?? []` accessor read undefined and silently dropped every row
-  // (the "0 villas" bug). rowsOf<T>() handles the real shape.
-  const data = rowsOf<{
-    villa_id: string;
-    villa_code: string | null;
-    villa_name: string | null;
-    project_name: string | null;
-    share_percent: string;
-    mtd_net_usd: string;
-    mtd_nights: string;
-    mtd_revenue_usd: string;
-    bedrooms: number;
-  }>(rows);
+      // SHAPE-FIX: postgres-js returns db.execute() as an Array; the old
+      // `.rows ?? []` accessor read undefined and silently dropped every row
+      // (the "0 villas" bug). rowsOf<T>() handles the real shape.
+      return rowsOf<{
+        villa_id: string;
+        villa_code: string | null;
+        villa_name: string | null;
+        project_name: string | null;
+        share_percent: string;
+        mtd_net_usd: string;
+        mtd_nights: string;
+        mtd_revenue_usd: string;
+        bedrooms: number;
+      }>(rows);
+    },
+    ["owner", "my-villas", ownerId],
+    { revalidate: 120 },
+  )();
 
   const dayOfMonth = new Date().getUTCDate();
   return data.map((r) => {
@@ -452,64 +476,83 @@ export async function getOwnerDashboardKpis(ownerId: string): Promise<OwnerDashb
     otaPct: 0,
   };
   if (!db) return empty;
-  const latestStmtRow = await db.execute<{
-    period_month: string;
-    net_usd_minor: string | null;
-    net_idr_minor: string;
-  }>(sql`
-    SELECT period_month::text             AS period_month,
-           net_to_owner_usd_minor::text   AS net_usd_minor,
-           net_payout_minor::text         AS net_idr_minor
-      FROM owner_statements
-     WHERE owner_id = ${ownerId}::uuid
-     ORDER BY period_month DESC NULLS LAST, created_at DESC
-     LIMIT 1
-  `);
-  const ls = rowsOf<{
-    period_month: string; net_usd_minor: string | null; net_idr_minor: string;
-  }>(latestStmtRow)[0];
 
-  // 30-day occupancy + ADR + channel mix across owner's villas.
-  const opsRow = await db.execute<{
-    bookings_30d: string;
-    nights_30d: string;
-    revenue_30d_usd: string;
-    villa_count: string;
-    direct_units: string;
-    ota_units: string;
-  }>(sql`
-    WITH my_villas AS (
-      SELECT villa_id FROM ownership_shares
-       WHERE owner_id = ${ownerId}::uuid AND status = 'active'
-    ),
-    last30 AS (
-      SELECT b.id, b.villa_id, b.nights,
-             b.gross_amount,
-             b.currency,
-             CASE WHEN bc.key = 'demo2-direct' OR bc.key = 'direct' THEN 'direct' ELSE 'ota' END AS channel_class
-        FROM bookings b
-        LEFT JOIN booking_channels bc ON bc.id = b.channel_id
-       WHERE b.villa_id IN (SELECT villa_id FROM my_villas)
-         AND b.status IN ('confirmed','checked_in','checked_out')
-         AND b.check_in >= (CURRENT_DATE - INTERVAL '30 days')
-    )
-    SELECT
-      COALESCE(COUNT(*)::text, '0')                                                 AS bookings_30d,
-      COALESCE(SUM(nights)::text, '0')                                              AS nights_30d,
-      COALESCE(SUM(CASE WHEN currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS revenue_30d_usd,
-      (SELECT COUNT(*)::text FROM my_villas)                                        AS villa_count,
-      COALESCE(SUM(CASE WHEN channel_class = 'direct' AND currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS direct_units,
-      COALESCE(SUM(CASE WHEN channel_class = 'ota'    AND currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS ota_units
-      FROM last30
-  `);
-  const r = rowsOf<{
-    bookings_30d: string;
-    nights_30d: string;
-    revenue_30d_usd: string;
-    villa_count: string;
-    direct_units: string;
-    ota_units: string;
-  }>(opsRow)[0];
+  // PERF (Phase 4): ownerId is resolved from the session by the page (OUTSIDE
+  // this fn) → correct per-owner cache key-part, cache callback never touches
+  // cookies. Both reads (latest statement + the 30-day ops rollup) are cached
+  // together per-owner for 120s. Every cached column is `::text` (period_month,
+  // net_*_minor, nights, revenue, units) → NO bigint in the payload; the
+  // BigInt()/idrMinorToUsdMinor/occupancy & ADR maths runs live below.
+  const cached = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const latestStmtRow = await cdb.execute<{
+        period_month: string;
+        net_usd_minor: string | null;
+        net_idr_minor: string;
+      }>(sql`
+        SELECT period_month::text             AS period_month,
+               net_to_owner_usd_minor::text   AS net_usd_minor,
+               net_payout_minor::text         AS net_idr_minor
+          FROM owner_statements
+         WHERE owner_id = ${ownerId}::uuid
+         ORDER BY period_month DESC NULLS LAST, created_at DESC
+         LIMIT 1
+      `);
+      const lsRow = rowsOf<{
+        period_month: string; net_usd_minor: string | null; net_idr_minor: string;
+      }>(latestStmtRow)[0] ?? null;
+
+      // 30-day occupancy + ADR + channel mix across owner's villas.
+      const opsRow = await cdb.execute<{
+        bookings_30d: string;
+        nights_30d: string;
+        revenue_30d_usd: string;
+        villa_count: string;
+        direct_units: string;
+        ota_units: string;
+      }>(sql`
+        WITH my_villas AS (
+          SELECT villa_id FROM ownership_shares
+           WHERE owner_id = ${ownerId}::uuid AND status = 'active'
+        ),
+        last30 AS (
+          SELECT b.id, b.villa_id, b.nights,
+                 b.gross_amount,
+                 b.currency,
+                 CASE WHEN bc.key = 'demo2-direct' OR bc.key = 'direct' THEN 'direct' ELSE 'ota' END AS channel_class
+            FROM bookings b
+            LEFT JOIN booking_channels bc ON bc.id = b.channel_id
+           WHERE b.villa_id IN (SELECT villa_id FROM my_villas)
+             AND b.status IN ('confirmed','checked_in','checked_out')
+             AND b.check_in >= (CURRENT_DATE - INTERVAL '30 days')
+        )
+        SELECT
+          COALESCE(COUNT(*)::text, '0')                                                 AS bookings_30d,
+          COALESCE(SUM(nights)::text, '0')                                              AS nights_30d,
+          COALESCE(SUM(CASE WHEN currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS revenue_30d_usd,
+          (SELECT COUNT(*)::text FROM my_villas)                                        AS villa_count,
+          COALESCE(SUM(CASE WHEN channel_class = 'direct' AND currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS direct_units,
+          COALESCE(SUM(CASE WHEN channel_class = 'ota'    AND currency = 'USD' THEN gross_amount ELSE 0 END)::text,'0') AS ota_units
+          FROM last30
+      `);
+      const opsR = rowsOf<{
+        bookings_30d: string;
+        nights_30d: string;
+        revenue_30d_usd: string;
+        villa_count: string;
+        direct_units: string;
+        ota_units: string;
+      }>(opsRow)[0] ?? null;
+
+      return { ls: lsRow, ops: opsR };
+    },
+    ["owner", "dashboard-kpis", ownerId],
+    { revalidate: 120 },
+  )();
+  const ls = cached?.ls ?? null;
+  const r = cached?.ops ?? null;
 
   const villaCount = Number(r?.villa_count ?? "0");
   const nights = Number(r?.nights_30d ?? "0");

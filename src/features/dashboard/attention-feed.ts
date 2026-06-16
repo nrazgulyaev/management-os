@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -65,10 +66,9 @@ const SEVERITY_RANK: Record<AttentionSeverity, number> = {
 // ---------------------------------------------------------------------------
 
 /** Overdue (past auto-ack) or disputed owner statements. */
-async function statementItems(): Promise<AttentionItem[]> {
+async function statementItems(organizationId: string): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
-  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     code: string;
@@ -114,10 +114,9 @@ async function statementItems(): Promise<AttentionItem[]> {
 }
 
 /** Open maintenance SLA breaches (resolved_at IS NULL). */
-async function slaBreachItems(): Promise<AttentionItem[]> {
+async function slaBreachItems(organizationId: string): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
-  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     ticket_id: string;
     breached_at: string;
@@ -155,10 +154,9 @@ async function slaBreachItems(): Promise<AttentionItem[]> {
 }
 
 /** Owner-stay requests awaiting an operator decision. */
-async function ownerStayItems(): Promise<AttentionItem[]> {
+async function ownerStayItems(organizationId: string): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
-  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     owner_name: string | null;
@@ -214,10 +212,9 @@ async function channelConflictItems(): Promise<AttentionItem[]> {
 }
 
 /** Unpaid (issued / partial) capital calls. */
-async function capitalCallItems(): Promise<AttentionItem[]> {
+async function capitalCallItems(organizationId: string): Promise<AttentionItem[]> {
   const db = getDb();
   if (!db) return [];
-  const organizationId = await requireOrgId();
   const rows = rowsOf<{
     id: string;
     ref: string;
@@ -302,17 +299,35 @@ export interface AttentionFeed {
  * `limit` (default 12) plus the full counts.
  */
 export async function getAttentionFeed(limit = 12): Promise<AttentionFeed> {
+  // PERF (Phase 4): org is resolved OUTSIDE the cache (requireOrgId reads
+  // cookies, which the cache callback cannot) and passed as a key-part +
+  // down to each org-scoped source. Anonymous probe → empty feed.
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return { items: [], total: 0, counts: { critical: 0, high: 0, medium: 0 } };
+
   // DB-POOL-FANOUT-1 — bound concurrency (3) so the feed's per-source
   // queries don't over-subscribe the pool on top of whatever else the
   // render is doing. Each source is already wrapped in safeSource (never
   // throws), so a slow/timed-out source degrades to [] rather than
   // stalling the whole feed.
-  const groups = await mapPool(
-    [statementItems, slaBreachItems, ownerStayItems, channelConflictItems, capitalCallItems],
-    3,
-    (src) => safeSource(src),
-  );
-  const all = groups.flat();
+  //
+  // PERF (Phase 4): the four direct-DB sources (all org-scoped via the
+  // passed orgId, all AttentionItem[] = plain strings, NO bigint) are
+  // cached together per-org for 60s. The channel-conflict source is kept
+  // OUTSIDE the cache because listBookingConflicts() resolves the org from
+  // cookies internally — which the cache callback is forbidden from doing.
+  const cachedDbGroups = await unstable_cache(
+    async (): Promise<AttentionItem[][]> =>
+      mapPool(
+        [statementItems, slaBreachItems, ownerStayItems, capitalCallItems],
+        3,
+        (src) => safeSource(() => src(orgId)),
+      ),
+    ["dash", "attention-feed", orgId],
+    { revalidate: 60 },
+  )();
+  const conflictGroup = await safeSource(channelConflictItems);
+  const all = [...cachedDbGroups.flat(), ...conflictGroup];
 
   all.sort((a, b) => {
     const rank = SEVERITY_RANK[a.severity] - SEVERITY_RANK[b.severity];

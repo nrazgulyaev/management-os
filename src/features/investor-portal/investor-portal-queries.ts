@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 
@@ -45,14 +46,23 @@ export async function getInvestorDashboard(
       averageProfitSharePct: 0,
     };
   }
-  const row = await db.execute<{
-    total_committed: string;
-    total_drawn: string;
-    total_distributed: string;
-    current_nav: string;
-    projects_count: string;
-    avg_profit_share: string;
-  }>(sql`
+  // PERF (Phase 4): investorId is already resolved from the session by the
+  // page (OUTSIDE this fn), so it's the correct per-investor cache key-part —
+  // the cache callback never touches cookies. Only the raw `::text` row is
+  // cached (every money column is cast to ::text → no bigint); all
+  // BigInt()/Number() conversions run live below, outside the cache.
+  const r = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const row = await cdb.execute<{
+        total_committed: string;
+        total_drawn: string;
+        total_distributed: string;
+        current_nav: string;
+        projects_count: string;
+        avg_profit_share: string;
+      }>(sql`
     WITH my_commitments AS (
       SELECT c.id, c.project_id, c.committed_amount_usd_minor,
              c.profit_share_percent
@@ -93,14 +103,20 @@ export async function getInvestorDashboard(
       COALESCE((SELECT COUNT(DISTINCT project_id)::text FROM my_commitments), '0') AS projects_count,
       COALESCE((SELECT AVG(profit_share_percent)::text FROM my_commitments), '0') AS avg_profit_share
   `);
-  const r = rowsOf<{
-    total_committed: string;
-    total_drawn: string;
-    total_distributed: string;
-    current_nav: string;
-    projects_count: string;
-    avg_profit_share: string;
-  }>(row)[0];
+      return (
+        rowsOf<{
+          total_committed: string;
+          total_drawn: string;
+          total_distributed: string;
+          current_nav: string;
+          projects_count: string;
+          avg_profit_share: string;
+        }>(row)[0] ?? null
+      );
+    },
+    ["investor", "dashboard-kpis", investorId],
+    { revalidate: 300 },
+  )();
   return {
     totalCommittedUsdMinor: BigInt(r?.total_committed ?? "0"),
     totalDrawnUsdMinor: BigInt(r?.total_drawn ?? "0"),

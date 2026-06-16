@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 // SHAPE-FIX-1 / DAILY-DIGEST P0.5 — rowsOf handles postgres-js Array shape.
@@ -111,51 +112,116 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
   const db = getDb();
   if (!db) return EMPTY;
 
-  const snapsRow = await db.execute<SnapshotRow>(sql`
-    SELECT total_cash_on_hand_minor::text AS cash,
-           total_receivables_minor::text AS receivables,
-           COALESCE(payables_due_next_30_days_minor, 0)::text AS pay30,
-           COALESCE(payables_overdue_minor, 0)::text AS pay_overdue,
-           COALESCE(cash_at_30_days_minor, 0)::text AS cash_30,
-           COALESCE(cash_at_60_days_minor, 0)::text AS cash_60,
-           COALESCE(cash_at_90_days_minor, 0)::text AS cash_90,
-           unclassified_transactions_count::text AS unclassified,
-           base_currency AS currency
-      FROM executive_metrics_snapshots
-     WHERE scope = 'company_wide' AND project_id IS NULL
-     ORDER BY snapshot_date DESC LIMIT 2
-  `);
-  const snapRows = rowsOf<SnapshotRow>(snapsRow);
+  // PERF (Phase 4): the chattiest single dev-side loader (~6 sequential
+  // round-trips). Only the RAW `::text`/numeric-as-text rows are cached; the
+  // rowToSnapshot/Number() mapping runs live outside, so the cached payload
+  // carries no bigint.
+  //
+  // TENANCY: executive_metrics_snapshots + dev_transactions are org-owning
+  // (organization_id) — scope them by the caller's org (the sibling getCfoSnapshot
+  // does the same). agent_outputs + dev_invoices have NO organization_id column
+  // (global dev-os tables) so they stay unscoped. orgId is resolved ABOVE the
+  // cache (requireOrgId reads cookies, which are banned inside a cache callback)
+  // and is BOTH a key-part and interpolated into the scoped WHEREs.
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return EMPTY;
+  const cached = await unstable_cache(
+    async () => {
+      const cdb = getDb();
+      if (!cdb) return null;
+      const snapsRow = await cdb.execute<SnapshotRow>(sql`
+        SELECT total_cash_on_hand_minor::text AS cash,
+               total_receivables_minor::text AS receivables,
+               COALESCE(payables_due_next_30_days_minor, 0)::text AS pay30,
+               COALESCE(payables_overdue_minor, 0)::text AS pay_overdue,
+               COALESCE(cash_at_30_days_minor, 0)::text AS cash_30,
+               COALESCE(cash_at_60_days_minor, 0)::text AS cash_60,
+               COALESCE(cash_at_90_days_minor, 0)::text AS cash_90,
+               unclassified_transactions_count::text AS unclassified,
+               base_currency AS currency
+          FROM executive_metrics_snapshots
+         WHERE scope = 'company_wide' AND project_id IS NULL
+           AND organization_id = ${orgId}
+         ORDER BY snapshot_date DESC LIMIT 2
+      `);
+      const txRows = await cdb.execute<{
+        id: string;
+        transaction_code: string;
+        direction: string;
+        description: string;
+        counterparty_name: string | null;
+        amount_minor: string;
+        currency: string;
+        transaction_date: string;
+      }>(sql`
+        SELECT id::text, transaction_code, direction, description,
+               counterparty_name, amount_minor::text, currency,
+               transaction_date::text
+          FROM dev_transactions
+         WHERE organization_id = ${orgId}
+         ORDER BY transaction_date DESC, transaction_code DESC
+         LIMIT 8
+      `);
+      const taxRows = await cdb.execute<{
+        output_code: string;
+        title: string;
+        summary: string;
+        status: string;
+        created_at: string;
+      }>(sql`
+        SELECT output_code, title, summary, status, created_at::text
+          FROM agent_outputs
+         WHERE agent_key = 'tax_assistant'
+         ORDER BY created_at DESC LIMIT 3
+      `);
+      const qsRow = await cdb.execute<{ output_code: string }>(sql`
+        SELECT output_code FROM agent_outputs
+         WHERE agent_key = 'qs_cost_analyst'
+         ORDER BY created_at DESC LIMIT 1
+      `);
+      const pendingRow = await cdb.execute<{ n: string }>(sql`
+        SELECT COUNT(*)::text AS n FROM agent_outputs
+         WHERE agent_key = 'tax_assistant'
+           AND status = 'awaiting_review'
+      `);
+      const invRow = await cdb.execute<{ n: string }>(sql`
+        SELECT COUNT(*)::text AS n FROM dev_invoices
+         WHERE status IN ('issued', 'sent')
+      `);
+      return {
+        snapRows: rowsOf<SnapshotRow>(snapsRow),
+        txRows: rowsOf<{
+          id: string;
+          transaction_code: string;
+          direction: string;
+          description: string;
+          counterparty_name: string | null;
+          amount_minor: string;
+          currency: string;
+          transaction_date: string;
+        }>(txRows),
+        taxRows: rowsOf<{
+          output_code: string;
+          title: string;
+          summary: string;
+          status: string;
+          created_at: string;
+        }>(taxRows),
+        qsRow: rowsOf<{ output_code: string }>(qsRow),
+        pendingRow: rowsOf<{ n: string }>(pendingRow),
+        invRow: rowsOf<{ n: string }>(invRow),
+      };
+    },
+    ["dev", "cfo-cabinet", orgId],
+    { revalidate: 120 },
+  )();
+  if (!cached) return EMPTY;
+
+  const snapRows = cached.snapRows;
   const latest = snapRows[0] ? rowToSnapshot(snapRows[0]) : null;
   const previous = snapRows[1] ? rowToSnapshot(snapRows[1]) : null;
 
-  const txRows = await db.execute<{
-    id: string;
-    transaction_code: string;
-    direction: string;
-    description: string;
-    counterparty_name: string | null;
-    amount_minor: string;
-    currency: string;
-    transaction_date: string;
-  }>(sql`
-    SELECT id::text, transaction_code, direction, description,
-           counterparty_name, amount_minor::text, currency,
-           transaction_date::text
-      FROM dev_transactions
-     ORDER BY transaction_date DESC, transaction_code DESC
-     LIMIT 8
-  `);
-  const recentTransactions: CfoCabinetRecentTransaction[] = rowsOf<{
-    id: string;
-    transaction_code: string;
-    direction: string;
-    description: string;
-    counterparty_name: string | null;
-    amount_minor: string;
-    currency: string;
-    transaction_date: string;
-  }>(txRows).map((r) => ({
+  const recentTransactions: CfoCabinetRecentTransaction[] = cached.txRows.map((r) => ({
     id: r.id,
     transactionCode: r.transaction_code,
     direction: r.direction,
@@ -166,45 +232,13 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
     transactionDate: r.transaction_date,
   }));
 
-  const taxRows = await db.execute<{
-    output_code: string;
-    title: string;
-    summary: string;
-    status: string;
-    created_at: string;
-  }>(sql`
-    SELECT output_code, title, summary, status, created_at::text
-      FROM agent_outputs
-     WHERE agent_key = 'tax_assistant'
-     ORDER BY created_at DESC LIMIT 3
-  `);
-  const recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[] = rowsOf<{
-    output_code: string;
-    title: string;
-    summary: string;
-    status: string;
-    created_at: string;
-  }>(taxRows).map((r) => ({
+  const recentTaxAssistantOutputs: CfoCabinetTaxAssistantOutput[] = cached.taxRows.map((r) => ({
     outputCode: r.output_code,
     title: r.title,
     summary: r.summary,
     status: r.status,
     createdAt: r.created_at,
   }));
-  const qsRow = await db.execute<{ output_code: string }>(sql`
-    SELECT output_code FROM agent_outputs
-     WHERE agent_key = 'qs_cost_analyst'
-     ORDER BY created_at DESC LIMIT 1
-  `);
-  const pendingRow = await db.execute<{ n: string }>(sql`
-    SELECT COUNT(*)::text AS n FROM agent_outputs
-     WHERE agent_key = 'tax_assistant'
-       AND status = 'awaiting_review'
-  `);
-  const invRow = await db.execute<{ n: string }>(sql`
-    SELECT COUNT(*)::text AS n FROM dev_invoices
-     WHERE status IN ('issued', 'sent')
-  `);
 
   return {
     latestSnapshot: latest,
@@ -217,12 +251,12 @@ export async function loadCfoCabinet(): Promise<CfoCabinetData> {
       recentTaxAssistantOutputs[0]?.outputCode ?? null,
     recentTaxAssistantOutputs,
     latestQsCostAnalystOutputCode:
-      rowsOf<{ output_code: string }>(qsRow)[0]?.output_code ?? null,
+      cached.qsRow[0]?.output_code ?? null,
     pendingTaxClassificationsCount: Number(
-      rowsOf<{ n: string }>(pendingRow)[0]?.n ?? "0",
+      cached.pendingRow[0]?.n ?? "0",
     ),
     invoicesAwaitingPaymentCount: Number(
-      rowsOf<{ n: string }>(invRow)[0]?.n ?? "0",
+      cached.invRow[0]?.n ?? "0",
     ),
   };
 }

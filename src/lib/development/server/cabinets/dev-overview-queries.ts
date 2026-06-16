@@ -1,5 +1,6 @@
 import "server-only";
 
+import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -10,6 +11,13 @@ import { requireOrgId } from "@/features/auth/require-org";
  * The `/development-os/page.tsx` cabinet needs three reads: projects
  * rollup, team roster, and the latest qs-cost-analyst agent run for
  * the AI band. All org-scoped via requireOrgId() (TENANT-1).
+ *
+ * PERF (Phase 4): the two slowest-changing Command Center rollups
+ * (getActiveProjectsRollup, getTeamRoster) are cached per-org via
+ * unstable_cache. Same two rules as getPortfolioMetrics: org is resolved
+ * OUTSIDE the cache (requireOrgId reads cookies, banned inside) and passed
+ * as a key-part; only the raw `::text` rows are cached (no bigint), with
+ * the Number()/initials mapping done live outside.
  */
 
 export interface OverviewProjectRow {
@@ -22,41 +30,54 @@ export interface OverviewProjectRow {
 }
 
 export async function getActiveProjectsRollup(): Promise<OverviewProjectRow[]> {
-  const db = getDb();
-  if (!db) return [];
-  const orgId = await requireOrgId();
-  const rows = await db.execute<{
-    id: string;
-    project_code: string;
-    name: string;
-    status: string;
-    management_status: string;
-    villa_count: string;
-  }>(sql`
-    SELECT p.id::text                                AS id,
-           p.project_code                             AS project_code,
-           p.name                                     AS name,
-           p.status                                   AS status,
-           p.management_status                        AS management_status,
-           COUNT(v.id)::text                          AS villa_count
-      FROM projects p
-      LEFT JOIN villas v ON v.project_id = p.id
-     WHERE p.organization_id = ${orgId}
-       AND p.status IN ('active','planning','under_construction','managed')
-     GROUP BY p.id, p.project_code, p.name, p.status, p.management_status
-     ORDER BY p.project_code
-     LIMIT 12
-  `);
-  return (
-    rowsOf<{
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
+  const data = await unstable_cache(
+    async (): Promise<{
       id: string;
       project_code: string;
       name: string;
       status: string;
       management_status: string;
       villa_count: string;
-    }>(rows)
-  ).map((r) => ({
+    }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        id: string;
+        project_code: string;
+        name: string;
+        status: string;
+        management_status: string;
+        villa_count: string;
+      }>(sql`
+        SELECT p.id::text                                AS id,
+               p.project_code                             AS project_code,
+               p.name                                     AS name,
+               p.status                                   AS status,
+               p.management_status                        AS management_status,
+               COUNT(v.id)::text                          AS villa_count
+          FROM projects p
+          LEFT JOIN villas v ON v.project_id = p.id
+         WHERE p.organization_id = ${orgId}
+           AND p.status IN ('active','planning','under_construction','managed')
+         GROUP BY p.id, p.project_code, p.name, p.status, p.management_status
+         ORDER BY p.project_code
+         LIMIT 12
+      `);
+      return rowsOf<{
+        id: string;
+        project_code: string;
+        name: string;
+        status: string;
+        management_status: string;
+        villa_count: string;
+      }>(rows);
+    },
+    ["dev", "active-projects-rollup", orgId],
+    { revalidate: 120 },
+  )();
+  return data.map((r) => ({
     projectId: r.id,
     projectCode: r.project_code,
     name: r.name,
@@ -75,36 +96,47 @@ export interface TeamRosterRow {
 }
 
 export async function getTeamRoster(): Promise<TeamRosterRow[]> {
-  const db = getDb();
-  if (!db) return [];
-  const orgId = await requireOrgId();
-  const rows = await db.execute<{
-    id: string;
-    full_name: string;
-    email: string;
-    role_key: string | null;
-  }>(sql`
-    SELECT u.id::text                                AS id,
-           u.full_name                                AS full_name,
-           u.email                                    AS email,
-           MIN(r.key)                                 AS role_key
-      FROM app_users u
-      LEFT JOIN user_roles ur ON ur.user_id = u.id
-      LEFT JOIN roles      r  ON r.id = ur.role_id
-     WHERE u.organization_id = ${orgId}
-       AND u.status = 'active'
-     GROUP BY u.id, u.full_name, u.email
-     ORDER BY u.full_name
-     LIMIT 12
-  `);
-  return (
-    rowsOf<{
+  const orgId = await requireOrgId().catch(() => null);
+  if (!orgId) return [];
+  const data = await unstable_cache(
+    async (): Promise<{
       id: string;
       full_name: string;
       email: string;
       role_key: string | null;
-    }>(rows)
-  ).map((r) => ({
+    }[]> => {
+      const db = getDb();
+      if (!db) return [];
+      const rows = await db.execute<{
+        id: string;
+        full_name: string;
+        email: string;
+        role_key: string | null;
+      }>(sql`
+        SELECT u.id::text                                AS id,
+               u.full_name                                AS full_name,
+               u.email                                    AS email,
+               MIN(r.key)                                 AS role_key
+          FROM app_users u
+          LEFT JOIN user_roles ur ON ur.user_id = u.id
+          LEFT JOIN roles      r  ON r.id = ur.role_id
+         WHERE u.organization_id = ${orgId}
+           AND u.status = 'active'
+         GROUP BY u.id, u.full_name, u.email
+         ORDER BY u.full_name
+         LIMIT 12
+      `);
+      return rowsOf<{
+        id: string;
+        full_name: string;
+        email: string;
+        role_key: string | null;
+      }>(rows);
+    },
+    ["dev", "team-roster", orgId],
+    { revalidate: 300 },
+  )();
+  return data.map((r) => ({
     userId: r.id,
     fullName: r.full_name,
     email: r.email,
