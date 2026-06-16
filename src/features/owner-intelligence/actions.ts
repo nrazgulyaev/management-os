@@ -9,6 +9,7 @@ import {
   villaHealthSnapshots,
 } from "@/lib/db/schema/owner-intelligence";
 import { villas, projects } from "@/lib/db/schema/projects";
+import { owners, ownershipShares } from "@/lib/db/schema/ownership";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -51,14 +52,46 @@ export async function updateOwnerCalendarPreferencesAction(
   const me = await getCurrentAppUser();
   const v = parsed.data;
 
+  // TENANCY (write-flow IDOR): the client supplies ownerId. Resolve the caller
+  // org and confirm the owner belongs to it BEFORE touching the preferences
+  // row; otherwise a tenant could read/overwrite another tenant's owner
+  // calendar preferences by id. owners.organizationId is a nullable backfill
+  // anchor (migration 0173) so we fail open on NULL but reject a confirmed
+  // foreign org. The verified org is then stamped on insert and scopes the
+  // existing-row lookup/update.
+  const organizationId = await requireOrgId();
+  const [owner] = await db
+    .select({ id: owners.id })
+    .from(owners)
+    .where(
+      and(
+        eq(owners.id, v.ownerId),
+        or(
+          isNull(owners.organizationId),
+          eq(owners.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!owner) return { ok: false, error: "Owner not found." };
+
   const [existing] = await db
     .select()
     .from(ownerCalendarPreferences)
-    .where(eq(ownerCalendarPreferences.ownerId, v.ownerId))
+    .where(
+      and(
+        eq(ownerCalendarPreferences.ownerId, v.ownerId),
+        or(
+          isNull(ownerCalendarPreferences.organizationId),
+          eq(ownerCalendarPreferences.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
 
   const values = {
     ownerId: v.ownerId,
+    organizationId,
     defaultCurrency: v.defaultCurrency ?? "USD",
     showGuestNames: v.showGuestNames ?? true,
     showGuestCountry: v.showGuestCountry ?? true,
@@ -375,7 +408,16 @@ export async function refreshOwnerVisibleEventsAction(
   _formData?: FormData,
 ): Promise<ActionResult & { inserted?: number; ownersProcessed?: number }> {
   await requirePermission("owner_calendar.manage");
-  const { rebuildOwnerVisibleEventsForAllOwners } = await import(
+  // TENANCY (write-flow IDOR): the prior version called
+  // rebuildOwnerVisibleEventsForAllOwners(from,to) with NO org boundary, so a
+  // single tenant's button recomputed EVERY tenant's owner-visible events.
+  // Scope the sweep to the caller's org: resolve only this org's active owners
+  // and rebuild per-owner, threading the verified org so each owner's shares
+  // stay constrained and the events are stamped with the right org.
+  const organizationId = await requireOrgId();
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const { rebuildOwnerVisibleEventsForOwner } = await import(
     "@/features/guest-journey/owner-events-rebuild"
   );
   // Default window: -90d .. +120d around today.
@@ -384,7 +426,27 @@ export async function refreshOwnerVisibleEventsAction(
   const toDate = new Date(today.getTime() + 120 * 24 * 60 * 60 * 1000);
   const from = fromDate.toISOString().slice(0, 10);
   const to = toDate.toISOString().slice(0, 10);
-  const out = await rebuildOwnerVisibleEventsForAllOwners(from, to);
+
+  const ownerRows = await db
+    .selectDistinct({ ownerId: ownershipShares.ownerId })
+    .from(ownershipShares)
+    .where(
+      and(
+        eq(ownershipShares.status, "active"),
+        eq(ownershipShares.organizationId, organizationId),
+      ),
+    );
+  let inserted = 0;
+  for (const o of ownerRows) {
+    const r = await rebuildOwnerVisibleEventsForOwner(
+      o.ownerId,
+      from,
+      to,
+      organizationId,
+    );
+    inserted += r.inserted;
+  }
+  const out = { ownersProcessed: ownerRows.length, inserted };
   const me = await getCurrentAppUser();
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

@@ -8,6 +8,7 @@ import { taskMaterialUsage } from "@/lib/db/schema/inventory";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { createExpenseFromTaskMaterialUsage } from "./material-usage-bridge";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -24,19 +25,32 @@ export async function bridgePendingMaterialUsageAction(): Promise<
   await requirePermission("finance.bridge_material_usage");
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
+  // task_material_usage carries organization_id (0153). Scope the batch to the
+  // caller's org so a tenant only ever bridges their OWN pending usage into
+  // their own expense_lines.
   const pending = await db
     .select({ id: taskMaterialUsage.id })
     .from(taskMaterialUsage)
-    .where(eq(taskMaterialUsage.financeBridgeStatus, "pending"))
+    .where(
+      and(
+        eq(taskMaterialUsage.financeBridgeStatus, "pending"),
+        eq(taskMaterialUsage.organizationId, organizationId),
+      ),
+    )
     .limit(200);
 
   let created = 0;
   let skipped = 0;
   let failed = 0;
   for (const row of pending) {
-    const result = await createExpenseFromTaskMaterialUsage(row.id, me?.id ?? null);
+    const result = await createExpenseFromTaskMaterialUsage(
+      row.id,
+      me?.id ?? null,
+      organizationId,
+    );
     if (result.status === "created") created++;
     else if (result.status === "failed") failed++;
     else skipped++;
@@ -64,8 +78,10 @@ export async function bridgeMaterialUsageForTaskAction(
   if (!parsed.success) return { ok: false, error: "Missing taskId." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
+  // Scope by org so a foreign taskId matches nothing (no cross-org bridge).
   const usages = await db
     .select({ id: taskMaterialUsage.id })
     .from(taskMaterialUsage)
@@ -73,10 +89,11 @@ export async function bridgeMaterialUsageForTaskAction(
       and(
         eq(taskMaterialUsage.taskId, parsed.data.taskId),
         eq(taskMaterialUsage.financeBridgeStatus, "pending"),
+        eq(taskMaterialUsage.organizationId, organizationId),
       ),
     );
   for (const u of usages) {
-    await createExpenseFromTaskMaterialUsage(u.id, me?.id ?? null);
+    await createExpenseFromTaskMaterialUsage(u.id, me?.id ?? null, organizationId);
   }
 
   await recordAuditEvent({
@@ -99,8 +116,16 @@ export async function bridgeOneMaterialUsageAction(
   await requirePermission("finance.bridge_material_usage");
   const parsed = usageIdSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing usageId." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
-  const result = await createExpenseFromTaskMaterialUsage(parsed.data.usageId, me?.id ?? null);
+  // Pass org so the core scopes its by-id usage lookup — a cross-org usageId
+  // resolves to "not found" instead of bridging another tenant's material into
+  // the caller's expense_lines.
+  const result = await createExpenseFromTaskMaterialUsage(
+    parsed.data.usageId,
+    me?.id ?? null,
+    organizationId,
+  );
   if (result.status === "failed") {
     return { ok: false, error: result.reason ?? "Bridge failed" };
   }

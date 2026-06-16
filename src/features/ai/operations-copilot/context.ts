@@ -49,28 +49,54 @@ export async function buildOperationsSnapshot(
   let queuedNotifications = 0;
   if (db) {
     const since = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    // TENANCY — scope each direct counter to the caller's org. A null
+    // organizationId (system/cron) leaves the guard `undefined` so the
+    // count stays platform-wide, matching getOperationsMetrics above.
     const [c] = await db
       .select({ c: sql<number>`count(*)` })
       .from(bookings)
-      .where(eq(bookings.checkIn, todayYmd));
+      .where(
+        and(
+          eq(bookings.checkIn, todayYmd),
+          organizationId ? eq(bookings.organizationId, organizationId) : undefined,
+        ),
+      );
     todaysCheckins = Number(c?.c ?? 0);
 
     const [o] = await db
       .select({ c: sql<number>`count(*)` })
       .from(bookings)
-      .where(eq(bookings.checkOut, todayYmd));
+      .where(
+        and(
+          eq(bookings.checkOut, todayYmd),
+          organizationId ? eq(bookings.organizationId, organizationId) : undefined,
+        ),
+      );
     todaysCheckouts = Number(o?.c ?? 0);
 
     const [f] = await db
       .select({ c: sql<number>`count(*)` })
       .from(jobRuns)
-      .where(and(eq(jobRuns.status, "failed"), gte(jobRuns.startedAt, since)));
+      .where(
+        and(
+          eq(jobRuns.status, "failed"),
+          gte(jobRuns.startedAt, since),
+          organizationId ? eq(jobRuns.organizationId, organizationId) : undefined,
+        ),
+      );
     failedJobsLast24h = Number(f?.c ?? 0);
 
     const [q] = await db
       .select({ c: sql<number>`count(*)` })
       .from(notificationQueue)
-      .where(eq(notificationQueue.status, "queued"));
+      .where(
+        and(
+          eq(notificationQueue.status, "queued"),
+          organizationId
+            ? eq(notificationQueue.organizationId, organizationId)
+            : undefined,
+        ),
+      );
     queuedNotifications = Number(q?.c ?? 0);
   }
 

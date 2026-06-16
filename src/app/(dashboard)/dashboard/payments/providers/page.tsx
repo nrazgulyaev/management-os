@@ -23,11 +23,6 @@ const STATUS_TONE: Record<string, "success" | "danger" | "warning" | "neutral"> 
   };
 
 export default async function ProvidersPage() {
-  const rows = await safeQuery(
-    "payments-providers.listPaymentProviderAccounts",
-    listPaymentProviderAccounts(),
-    [] as Awaited<ReturnType<typeof listPaymentProviderAccounts>>,
-  );
   const db = getDb();
   let orgId: string | null = null;
   try {
@@ -35,6 +30,11 @@ export default async function ProvidersPage() {
   } catch {
     orgId = null;
   }
+  const rows = await safeQuery(
+    "payments-providers.listPaymentProviderAccounts",
+    listPaymentProviderAccounts(orgId ?? undefined),
+    [] as Awaited<ReturnType<typeof listPaymentProviderAccounts>>,
+  );
   const connections =
     db && orgId
       ? await safeQuery(

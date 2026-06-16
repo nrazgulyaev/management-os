@@ -20,7 +20,12 @@
  */
 
 import { z } from "zod";
-import * as XLSX from "xlsx";
+// NOTE: `xlsx` (SheetJS, ~500KB) is intentionally NOT imported at module
+// top-level. This module is imported by client components (the import
+// wizards) for its pure paste/mapping helpers; a static `import * as XLSX`
+// would drag the whole SheetJS library into the eager client bundle even
+// for code paths that never touch a spreadsheet. Instead `parseXlsx`
+// lazily `import("xlsx")` on first use (see below).
 
 // The import library operates in operator-facing (major-units, string)
 // space; the bulk action converts to BulkTransactionRow at commit
@@ -207,7 +212,8 @@ function parseCsv(raw: string): string[][] {
  * headers. Cells with formulas are evaluated by xlsx.js (no live
  * recalc — uses the cached values).
  */
-export function parseXlsx(buffer: ArrayBuffer): ParsedSheet {
+export async function parseXlsx(buffer: ArrayBuffer): Promise<ParsedSheet> {
+  const XLSX = await import("xlsx");
   const wb = XLSX.read(buffer, { type: "array" });
   const firstSheetName = wb.SheetNames[0];
   if (!firstSheetName) return { headers: [], rows: [] };

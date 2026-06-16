@@ -310,11 +310,27 @@ export async function createFulfilmentForOrderAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const v = parsed.data;
+  // Tenancy guard: guest_service_orders has no org column; anchor on the
+  // durable NOT-NULL guest_services.organization_id (order → service) so a
+  // cross-org order id reads as not-found before we mint a fulfilment for it.
   const [order] = await db
-    .select()
+    .select({
+      id: guestServiceOrders.id,
+      serviceId: guestServiceOrders.serviceId,
+      currency: guestServiceOrders.currency,
+      guestPriceMinor: guestServiceOrders.guestPriceMinor,
+      internalCostMinor: guestServiceOrders.internalCostMinor,
+    })
     .from(guestServiceOrders)
-    .where(eq(guestServiceOrders.id, v.orderId))
+    .innerJoin(guestServices, eq(guestServices.id, guestServiceOrders.serviceId))
+    .where(
+      and(
+        eq(guestServiceOrders.id, v.orderId),
+        eq(guestServices.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!order) return { ok: false, error: "Order not found." };
   const [existing] = await db
@@ -453,6 +469,10 @@ export async function assignFulfilmentStaffAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   await db
     .update(guestServiceFulfilments)
     .set({
@@ -485,6 +505,10 @@ export async function updateFulfilmentScheduleAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const ts = new Date(parsed.data.scheduledFor);
   await db
     .update(guestServiceFulfilments)
@@ -538,6 +562,10 @@ export async function updateFulfilmentEtaAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const ts = new Date(parsed.data.etaAt);
   await db
     .update(guestServiceFulfilments)
@@ -590,6 +618,10 @@ export async function transitionFulfilmentStatusAction(
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const [current] = await db
     .select()
     .from(guestServiceFulfilments)
@@ -657,6 +689,10 @@ export async function cancelFulfilmentAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const ts = new Date();
   await db
     .update(guestServiceFulfilments)
@@ -715,6 +751,10 @@ export async function requestGuestConfirmationAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   await db
     .update(guestServiceFulfilments)
     .set({ requiresGuestConfirmation: true, updatedAt: new Date() })
@@ -902,6 +942,10 @@ export async function failFulfilmentAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadFulfilmentInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const ts = new Date();
   await db
     .update(guestServiceFulfilments)
@@ -938,6 +982,13 @@ export async function issueVendorTokenAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // Tenancy guard: minting a vendor portal token grants token-gated write
+  // access to the fulfilment. Confirm it belongs to the caller's org via the
+  // durable guest_services.organization_id anchor before issuing one.
+  if (!(await loadFulfilmentInOrg(db, parsed.data.fulfilmentId, organizationId))) {
+    return { ok: false, error: "Fulfilment not found." };
+  }
   const [fulfilment] = await db
     .select()
     .from(guestServiceFulfilments)
@@ -994,6 +1045,21 @@ export async function revokeVendorTokenAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  // Tenancy guard: the token's own org is a nullable 0153 anchor, so scope via
+  // its parent fulfilment → order → guest_services org. A cross-org token id
+  // reads as not-found.
+  const [token] = await db
+    .select({ fulfilmentId: serviceVendorTokens.fulfilmentId })
+    .from(serviceVendorTokens)
+    .where(eq(serviceVendorTokens.id, parsed.data.id))
+    .limit(1);
+  if (
+    !token ||
+    !(await loadFulfilmentInOrg(db, token.fulfilmentId, organizationId))
+  ) {
+    return { ok: false, error: "Token not found." };
+  }
   await db
     .update(serviceVendorTokens)
     .set({ status: "revoked", updatedAt: new Date() })
@@ -1480,6 +1546,10 @@ export async function hideGuestServiceRatingAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadRatingInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Rating not found." };
+  }
   await db
     .update(guestServiceRatings)
     .set({ status: "hidden", updatedAt: new Date() })
@@ -1506,6 +1576,10 @@ export async function flagGuestServiceRatingAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+  if (!(await loadRatingInOrg(db, parsed.data.id, organizationId))) {
+    return { ok: false, error: "Rating not found." };
+  }
   await db
     .update(guestServiceRatings)
     .set({ status: "flagged", updatedAt: new Date() })
@@ -1683,6 +1757,42 @@ async function loadFulfilmentInOrg(
     .where(
       and(
         eq(guestServiceFulfilments.id, fulfilmentId),
+        eq(guestServices.organizationId, orgId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
+/**
+ * Tenancy guard for rating-anchored writes. guest_service_ratings has only a
+ * nullable (0153) org anchor, so we scope via the parent fulfilment → order →
+ * guest_services.organization_id chain. Returns the rating id only when it
+ * belongs to `orgId`, else null (caller maps to not-found).
+ */
+async function loadRatingInOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  ratingId: string,
+  orgId: string,
+): Promise<{ id: string } | null> {
+  const [row] = await db
+    .select({ id: guestServiceRatings.id })
+    .from(guestServiceRatings)
+    .innerJoin(
+      guestServiceFulfilments,
+      eq(guestServiceFulfilments.id, guestServiceRatings.fulfilmentId),
+    )
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(
+      and(
+        eq(guestServiceRatings.id, ratingId),
         eq(guestServices.organizationId, orgId),
       ),
     )

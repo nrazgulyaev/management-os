@@ -29,6 +29,9 @@ import type { RfiDiscipline } from "@/lib/db/schema/rfis";
 import { routingRolesFor } from "@/features/development/rfi/rfi-routing";
 
 export interface RouteRfiInput {
+  /** Caller's org, derived server-side. Scopes the contact_roles read so a
+   *  client-supplied projectId can't pull another tenant's roster. */
+  organizationId: string;
   projectId: string;
   discipline: RfiDiscipline;
 }
@@ -65,6 +68,11 @@ export async function route(input: RouteRfiInput): Promise<RouteRfiOutput> {
     .innerJoin(contacts, eq(contactRoles.contactId, contacts.id))
     .where(
       and(
+        // TENANCY: composeRfi passes a CLIENT-supplied projectId without first
+        // validating it against the caller's org. Scope the roster read by the
+        // caller's org (contact_roles carries organization_id) so a foreign
+        // projectId can't read another tenant's contacts/roles.
+        eq(contactRoles.organizationId, input.organizationId),
         eq(contactRoles.scopeProjectId, input.projectId),
         eq(contactRoles.scope, "project"),
         isNull(contactRoles.endedAt),

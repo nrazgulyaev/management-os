@@ -11,6 +11,7 @@ import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { getProjectMilestones } from "@/lib/development/server/project-milestones";
 import { safeQuery } from "@/lib/development/safe-query";
 import { composeWeeklyReport } from "@/features/ai-agents/projects/weekly-report-data";
+import { requireOrgId } from "@/features/auth/require-org";
 import { WeeklyReportCard } from "@/components/projects/weekly-report-card";
 import {
   detectScheduleVariance,
@@ -179,14 +180,17 @@ export default async function MilestonesPage({
   // renders cheap and free of per-load AI cost; the cron / a Run-now path
   // can request the LLM polish. `composeWeeklyReport` returns null when the
   // DB is unconfigured, so the card is omitted gracefully for mock data.
+  // TENANCY: composeWeeklyReport is org-scoped — it validates the project
+  // against organizationId and every fact read filters on it. Pass the REAL
+  // caller org (NOT the project id, which previously collapsed the report to
+  // null for every tenant).
+  const organizationId = await requireOrgId();
   const weeklyReport =
     detail.source === "db"
       ? await safeQuery(
           "composeWeeklyReport(project)",
           composeWeeklyReport({
-            // organizationId is only consumed by the (skipped) AI polish
-            // path; the deterministic reads are project-scoped.
-            organizationId: detail.project.realProjectId,
+            organizationId,
             projectId: detail.project.realProjectId,
             skipAiPolish: true,
           }),

@@ -20,6 +20,7 @@ import {
   type GuestStayToken,
 } from "@/lib/db/schema/guest-stays";
 import { villas } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { JourneyStage, RuleShape } from "./rules-pure";
 
 /**
@@ -49,12 +50,17 @@ export async function getJourneyHubStats(): Promise<JourneyHubStats> {
       pendingReviewRequests: 0,
     };
   }
+  // TENANCY: rules anchor on guest_journey_rules.organization_id (NOT NULL);
+  // runs / suggestions / review requests have no org column, so they anchor
+  // via an innerJoin to bookings + bookings.organization_id.
+  const organizationId = await requireOrgId();
   const rules = await db
     .select({
       status: guestJourneyRules.status,
       count: sql<number>`count(*)::int`,
     })
     .from(guestJourneyRules)
+    .where(eq(guestJourneyRules.organizationId, organizationId))
     .groupBy(guestJourneyRules.status);
   const runs = await db
     .select({
@@ -62,15 +68,29 @@ export async function getJourneyHubStats(): Promise<JourneyHubStats> {
       count: sql<number>`count(*)::int`,
     })
     .from(guestJourneyRuns)
+    .innerJoin(bookings, eq(bookings.id, guestJourneyRuns.bookingId))
+    .where(eq(bookings.organizationId, organizationId))
     .groupBy(guestJourneyRuns.status);
   const [{ count: activeSuggestions = 0 } = { count: 0 }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(guestJourneySuggestions)
-    .where(eq(guestJourneySuggestions.status, "active"));
+    .innerJoin(bookings, eq(bookings.id, guestJourneySuggestions.bookingId))
+    .where(
+      and(
+        eq(guestJourneySuggestions.status, "active"),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
   const [{ count: pendingReviewRequests = 0 } = { count: 0 }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(guestReviewRequests)
-    .where(eq(guestReviewRequests.status, "pending"));
+    .innerJoin(bookings, eq(bookings.id, guestReviewRequests.bookingId))
+    .where(
+      and(
+        eq(guestReviewRequests.status, "pending"),
+        eq(bookings.organizationId, organizationId),
+      ),
+    );
   const byRule = (status: string) =>
     rules.find((r) => r.status === status)?.count ?? 0;
   const byRun = (status: string) =>
@@ -92,13 +112,17 @@ export async function listGuestJourneyRules(opts?: {
 }): Promise<GuestJourneyRule[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [] as ReturnType<typeof eq>[];
+  // TENANCY: guest_journey_rules.organization_id is NOT NULL — scope the list.
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(guestJourneyRules.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.status) filters.push(eq(guestJourneyRules.status, opts.status));
   if (opts?.stage) filters.push(eq(guestJourneyRules.journeyStage, opts.stage));
   return db
     .select()
     .from(guestJourneyRules)
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(
       guestJourneyRules.journeyStage,
       guestJourneyRules.offsetMinutes,
@@ -112,10 +136,17 @@ export async function getGuestJourneyRule(
 ): Promise<GuestJourneyRule | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY: a cross-org rule id must read as not-found.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(guestJourneyRules)
-    .where(eq(guestJourneyRules.id, id))
+    .where(
+      and(
+        eq(guestJourneyRules.id, id),
+        eq(guestJourneyRules.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -133,7 +164,12 @@ export async function listGuestJourneyRuns(opts?: {
 }): Promise<JourneyRunRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [] as ReturnType<typeof eq>[];
+  // TENANCY: guest_journey_runs has no org column; it anchors via its booking.
+  // innerJoin bookings + bookings.organization_id scopes the list.
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(bookings.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.status) filters.push(eq(guestJourneyRuns.status, opts.status));
   if (opts?.bookingId)
     filters.push(eq(guestJourneyRuns.bookingId, opts.bookingId));
@@ -148,8 +184,8 @@ export async function listGuestJourneyRuns(opts?: {
       guestJourneyRules,
       eq(guestJourneyRules.id, guestJourneyRuns.ruleId),
     )
-    .leftJoin(bookings, eq(bookings.id, guestJourneyRuns.bookingId))
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .innerJoin(bookings, eq(bookings.id, guestJourneyRuns.bookingId))
+    .where(and(...filters))
     .orderBy(desc(guestJourneyRuns.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({
@@ -172,7 +208,11 @@ export async function listGuestJourneySuggestions(opts?: {
 }): Promise<SuggestionRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [] as ReturnType<typeof eq>[];
+  // TENANCY: suggestions have no org column; anchor via booking.
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(bookings.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.bookingId)
     filters.push(eq(guestJourneySuggestions.bookingId, opts.bookingId));
   if (opts?.status)
@@ -184,9 +224,9 @@ export async function listGuestJourneySuggestions(opts?: {
       villaCode: villas.unitCode,
     })
     .from(guestJourneySuggestions)
-    .leftJoin(bookings, eq(bookings.id, guestJourneySuggestions.bookingId))
+    .innerJoin(bookings, eq(bookings.id, guestJourneySuggestions.bookingId))
     .leftJoin(villas, eq(villas.id, guestJourneySuggestions.villaId))
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(guestJourneySuggestions.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({
@@ -255,7 +295,11 @@ export async function listGuestReviewRequests(opts?: {
 }): Promise<ReviewRequestRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [] as ReturnType<typeof eq>[];
+  // TENANCY: review requests have no org column; anchor via booking.
+  const organizationId = await requireOrgId();
+  const filters = [
+    eq(bookings.organizationId, organizationId),
+  ] as ReturnType<typeof eq>[];
   if (opts?.status) filters.push(eq(guestReviewRequests.status, opts.status));
   const rows = await db
     .select({
@@ -264,9 +308,9 @@ export async function listGuestReviewRequests(opts?: {
       villaCode: villas.unitCode,
     })
     .from(guestReviewRequests)
-    .leftJoin(bookings, eq(bookings.id, guestReviewRequests.bookingId))
+    .innerJoin(bookings, eq(bookings.id, guestReviewRequests.bookingId))
     .leftJoin(villas, eq(villas.id, guestReviewRequests.villaId))
-    .where(filters.length > 0 ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(guestReviewRequests.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({

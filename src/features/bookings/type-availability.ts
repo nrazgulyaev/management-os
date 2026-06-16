@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, eq, gte, inArray, lte, notInArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { bookings } from "@/lib/db/schema/bookings";
 import { villaCalendarBlocks } from "@/lib/db/schema/availability";
@@ -28,12 +28,11 @@ export async function listAvailableVillaTypes(
 ): Promise<AvailableVillaType[]> {
   const db = getDb();
   if (!db) return [];
-
-  // TENANCY: villas have no organization_id directly — scope via villa →
-  // project so a caller only ever sees their own org's rentable types. Every
-  // sibling in this booking flow is org-scoped; this reader was not.
   const organizationId = await requireOrgId();
 
+  // TENANCY: villas anchor org via projects — only the caller's rentable
+  // villas seed the availability map (the bookings/blocks reads below then
+  // inherit the boundary through allVillaIds).
   const villaRows = await db
     .select({
       id: villas.id,
@@ -42,12 +41,12 @@ export async function listAvailableVillaTypes(
     })
     .from(villas)
     .innerJoin(assetTypes, eq(assetTypes.id, villas.assetTypeId))
-    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .where(
       and(
+        eq(projects.organizationId, organizationId),
         notInArray(villas.status, ["archived", "out_of_service"]),
         eq(assetTypes.isRentable, true),
-        eq(projectsTable.organizationId, organizationId),
       ),
     );
   if (villaRows.length === 0) return [];

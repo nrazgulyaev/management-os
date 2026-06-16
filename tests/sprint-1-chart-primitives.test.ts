@@ -31,9 +31,31 @@ function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8");
 }
 
-const SPARK = "src/components/ui/primitives/sparkline-chart.tsx";
-const AREA = "src/components/ui/primitives/area-chart-card.tsx";
-const DONUT = "src/components/ui/primitives/donut-ratio-card.tsx";
+/**
+ * client-tax: the chart primitives were split for lazy-loading — the
+ * public named export now lives in `<base>.tsx` (a thin
+ * `next/dynamic({ ssr:false })` wrapper), the recharts render moved to
+ * `<base>-impl.tsx`, and the shared prop/tone types to `<base>-shared`.
+ * These source-inspection guards assert the primitive's distinctive
+ * content still exists, so we read the whole module set concatenated.
+ */
+function readChart(base: string): string {
+  const tsx = (suffix: string) =>
+    safeRead(`${base}${suffix}.tsx`) + "\n" + safeRead(`${base}${suffix}.ts`);
+  return tsx("") + "\n" + tsx("-impl") + "\n" + tsx("-shared");
+}
+
+function safeRead(rel: string): string {
+  try {
+    return readFileSync(resolve(ROOT, rel), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+const SPARK = "src/components/ui/primitives/sparkline-chart";
+const AREA = "src/components/ui/primitives/area-chart-card";
+const DONUT = "src/components/ui/primitives/donut-ratio-card";
 const PROFILE = "src/components/ui/primitives/profile-rail-card.tsx";
 const COMMS = "src/components/ui/primitives/comms-panel.tsx";
 const BARREL = "src/components/ui/primitives/index.ts";
@@ -56,21 +78,21 @@ test("sprint-1 — recharts is a direct dependency", () => {
 // SparklineChart
 // ----------------------------------------------------------------------------
 test("sprint-1 — SparklineChart exports component + props + tone type", () => {
-  const src = read(SPARK);
+  const src = readChart(SPARK);
   assert.match(src, /export function SparklineChart\(/);
   assert.match(src, /export interface SparklineChartProps/);
   assert.match(src, /export type SparklineTone =/);
 });
 
 test("sprint-1 — SparklineChart is a client component using recharts AreaChart", () => {
-  const src = read(SPARK);
+  const src = readChart(SPARK);
   assert.match(src, /^"use client";/m);
   assert.match(src, /from "recharts"/);
   assert.match(src, /AreaChart/);
 });
 
 test("sprint-1 — SparklineChart maps tones to --data-* tokens", () => {
-  const src = read(SPARK);
+  const src = readChart(SPARK);
   assert.match(src, /var\(--data-emerald\)/);
   assert.match(src, /var\(--data-gold\)/);
   assert.match(src, /var\(--data-sage\)/);
@@ -78,7 +100,7 @@ test("sprint-1 — SparklineChart maps tones to --data-* tokens", () => {
 });
 
 test("sprint-1 — SparklineChart short-circuits on <2 data points", () => {
-  const src = read(SPARK);
+  const src = readChart(SPARK);
   assert.match(src, /data\.length < 2[\s\S]{0,40}return null/);
 });
 
@@ -86,7 +108,7 @@ test("sprint-1 — SparklineChart short-circuits on <2 data points", () => {
 // AreaChartCard
 // ----------------------------------------------------------------------------
 test("sprint-1 — AreaChartCard exports component + props + tone + point types", () => {
-  const src = read(AREA);
+  const src = readChart(AREA);
   assert.match(src, /export function AreaChartCard\(/);
   assert.match(src, /export interface AreaChartCardProps/);
   assert.match(src, /export interface AreaChartPoint/);
@@ -95,7 +117,7 @@ test("sprint-1 — AreaChartCard exports component + props + tone + point types"
 });
 
 test("sprint-1 — AreaChartCard uses hero-card tokens (rounded-3xl + shadow-soft-card + gradient bg)", () => {
-  const src = read(AREA);
+  const src = readChart(AREA);
   assert.match(src, /rounded-3xl/);
   assert.match(src, /shadow-soft-card/);
   assert.match(src, /bg-gradient-emerald-soft/);
@@ -103,7 +125,7 @@ test("sprint-1 — AreaChartCard uses hero-card tokens (rounded-3xl + shadow-sof
 });
 
 test("sprint-1 — AreaChartCard positions pinned tooltip at the series peak", () => {
-  const src = read(AREA);
+  const src = readChart(AREA);
   // The peak is located by iterating the data and tracking the max.
   assert.match(src, /peakIndex/);
   // Capsule positioned absolutely with the computed peak percentage.
@@ -115,21 +137,21 @@ test("sprint-1 — AreaChartCard positions pinned tooltip at the series peak", (
 // DonutRatioCard
 // ----------------------------------------------------------------------------
 test("sprint-1 — DonutRatioCard exports component + props + tone type", () => {
-  const src = read(DONUT);
+  const src = readChart(DONUT);
   assert.match(src, /export function DonutRatioCard\(/);
   assert.match(src, /export interface DonutRatioCardProps/);
   assert.match(src, /export type DonutTone =/);
 });
 
 test("sprint-1 — DonutRatioCard uses recharts PieChart with inner radius (donut shape)", () => {
-  const src = read(DONUT);
+  const src = readChart(DONUT);
   assert.match(src, /from "recharts"/);
   assert.match(src, /PieChart/);
   assert.match(src, /innerRadius/);
 });
 
 test("sprint-1 — DonutRatioCard clamps ratio to [0,1]", () => {
-  const src = read(DONUT);
+  const src = readChart(DONUT);
   assert.match(src, /Math\.max\(0,\s*Math\.min\(1,/);
 });
 

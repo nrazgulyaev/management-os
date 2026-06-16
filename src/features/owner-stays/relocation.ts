@@ -133,10 +133,20 @@ export async function findRelocationCandidates(
   const db = getDb();
   if (!db) return { created: 0 };
 
+  // TENANCY: scope the parent request to the caller's org. A cross-org request
+  // id returns no row and the function early-returns { created: 0 } — without
+  // this an operator could discover/delete/insert relocation candidates against
+  // another org's request, villas and bookings.
+  const organizationId = await requireOrgId();
   const [req] = await db
     .select()
     .from(ownerStayRequests)
-    .where(eq(ownerStayRequests.id, ownerStayRequestId))
+    .where(
+      and(
+        eq(ownerStayRequests.id, ownerStayRequestId),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!req) return { created: 0 };
 
@@ -335,11 +345,26 @@ export async function applyRelocationCandidate(
 ): Promise<{ ok: boolean; bookingId?: string; toVillaId?: string; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no db" };
+  // TENANCY: bookingRelocationCandidates has no org column, so anchor it via its
+  // parent owner_stay_request's organization_id. A foreign candidate id then
+  // reads as not-found and can never re-point another org's booking to a
+  // different villa. Mirrors listRelocationCandidates' transitive scope.
+  const organizationId = await requireOrgId();
   const [c] = await db
-    .select()
+    .select({ c: bookingRelocationCandidates })
     .from(bookingRelocationCandidates)
-    .where(eq(bookingRelocationCandidates.id, candidateId))
-    .limit(1);
+    .innerJoin(
+      ownerStayRequests,
+      eq(ownerStayRequests.id, bookingRelocationCandidates.ownerStayRequestId),
+    )
+    .where(
+      and(
+        eq(bookingRelocationCandidates.id, candidateId),
+        eq(ownerStayRequests.organizationId, organizationId),
+      ),
+    )
+    .limit(1)
+    .then((rows) => rows.map((r) => r.c));
   if (!c) return { ok: false, reason: "candidate not found" };
   if (c.candidateStatus !== "approved") {
     return {

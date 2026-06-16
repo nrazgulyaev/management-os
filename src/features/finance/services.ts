@@ -416,8 +416,24 @@ export async function listReserveMovements(): Promise<WithSource<ReserveMovement
 export async function listManagementFeeRules(): Promise<WithSource<ManagementFeeRuleRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const rows = await db.select().from(managementFeeRules).orderBy(desc(managementFeeRules.startsOn));
-  return rows.map((r) => ({
+  // TENANCY-FINANCE — management_fee_rules has no organization_id. Anchor org via
+  // the rule's villa (→ its project) or its own project_id, mirroring
+  // listExpenseLines. Rules with neither anchor cannot be scoped and are excluded
+  // (otherwise every tenant's fee percentages/amounts would list globally).
+  const organizationId = await requireOrgId();
+  const villaProject = alias(projects, "villa_project_mfr");
+  const ruleProject = alias(projects, "rule_project_mfr");
+  const rows = await db
+    .select({ r: managementFeeRules })
+    .from(managementFeeRules)
+    .leftJoin(villas, eq(villas.id, managementFeeRules.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(ruleProject, eq(ruleProject.id, managementFeeRules.projectId))
+    .where(
+      sql`COALESCE(${villaProject.organizationId}, ${ruleProject.organizationId}) = ${organizationId}`,
+    )
+    .orderBy(desc(managementFeeRules.startsOn));
+  return rows.map(({ r }) => ({
     source: "db" as const,
     id: r.id,
     ruleName: r.ruleName,

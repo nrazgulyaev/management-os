@@ -130,9 +130,37 @@ export interface BridgeCreateResult {
 export async function createExpenseFromTaskMaterialUsage(
   usageId: string,
   actorUserId: string | null = null,
+  // TENANCY (0153): when an org is supplied (tenant actions) the by-id usage
+  // lookup is scoped to it — a cross-org usageId resolves to "not found" so a
+  // tenant can never bridge another org's material into their expense_lines.
+  // The platform-wide bridge cron passes NO org (org-agnostic sweep); the org
+  // is then taken from the usage row itself. Either way the link insert is
+  // STAMPED with an org (previously the links were born org-less).
+  organizationId?: string,
 ): Promise<BridgeCreateResult> {
   const db = getDb();
   if (!db) return { status: "failed", reason: "DB unavailable" };
+
+  // Load the usage FIRST (org-scoped when an org is supplied) so a cross-org
+  // usageId cannot even read another tenant's link status below.
+  const [usage] = await db
+    .select()
+    .from(taskMaterialUsage)
+    .where(
+      organizationId
+        ? and(
+            eq(taskMaterialUsage.id, usageId),
+            eq(taskMaterialUsage.organizationId, organizationId),
+          )
+        : eq(taskMaterialUsage.id, usageId),
+    )
+    .limit(1);
+  if (!usage) return { status: "failed", reason: "usage row not found" };
+
+  // Org to stamp on the link: the caller's org when supplied, else the usage
+  // row's own org (cron sweep). Falls back to null only for legacy unbackfilled
+  // rows.
+  const linkOrgId = organizationId ?? usage.organizationId ?? null;
 
   // Already linked?
   const [existingLink] = await db
@@ -163,13 +191,6 @@ export async function createExpenseFromTaskMaterialUsage(
       };
     }
   }
-
-  const [usage] = await db
-    .select()
-    .from(taskMaterialUsage)
-    .where(eq(taskMaterialUsage.id, usageId))
-    .limit(1);
-  if (!usage) return { status: "failed", reason: "usage row not found" };
 
   const [item] = await db
     .select()
@@ -202,6 +223,7 @@ export async function createExpenseFromTaskMaterialUsage(
       taskInfo: { villaId: task.villaId, projectId: task.projectId, bookingId: task.bookingId },
       movementId: usage.movementId,
       actorUserId,
+      organizationId: linkOrgId,
     });
   }
 
@@ -222,6 +244,7 @@ export async function createExpenseFromTaskMaterialUsage(
       taskInfo: { villaId: task.villaId, projectId: task.projectId, bookingId: task.bookingId },
       movementId: usage.movementId,
       actorUserId,
+      organizationId: linkOrgId,
     });
   }
 
@@ -236,6 +259,7 @@ export async function createExpenseFromTaskMaterialUsage(
       taskInfo: { villaId: task.villaId, projectId: task.projectId, bookingId: task.bookingId },
       movementId: usage.movementId,
       actorUserId,
+      organizationId: linkOrgId,
     });
   }
 
@@ -264,6 +288,7 @@ export async function createExpenseFromTaskMaterialUsage(
   const [link] = await db
     .insert(financeMaterialUsageLinks)
     .values({
+      organizationId: linkOrgId,
       taskMaterialUsageId: usageId,
       inventoryMovementId: usage.movementId,
       expenseLineId: expense.id,
@@ -304,6 +329,8 @@ interface UpsertLinkArgs {
   };
   movementId: string | null;
   actorUserId: string | null;
+  /** Org to stamp on the link (caller's org or the usage row's own org). */
+  organizationId: string | null;
 }
 
 async function upsertLink(usageId: string, args: UpsertLinkArgs): Promise<BridgeCreateResult> {
@@ -312,6 +339,7 @@ async function upsertLink(usageId: string, args: UpsertLinkArgs): Promise<Bridge
   const [link] = await db
     .insert(financeMaterialUsageLinks)
     .values({
+      organizationId: args.organizationId,
       taskMaterialUsageId: usageId,
       inventoryMovementId: args.movementId,
       villaId: args.taskInfo.villaId,

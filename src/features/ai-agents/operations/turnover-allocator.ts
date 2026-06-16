@@ -21,6 +21,7 @@ import "server-only";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { turnovers } from "@/lib/db/schema/turnovers";
+import { villas, projects } from "@/lib/db/schema/projects";
 import {
   allocateTurnovers,
   type AllocCleaner,
@@ -49,13 +50,25 @@ export async function run(input: TurnoverAllocatorInput): Promise<TurnoverAlloca
 
   // 1) Today's UNASSIGNED turnovers, with next-booking date as the
   //    deadline used only to order ties deterministically.
+  //    TENANCY: turnovers has no organization_id — scope via villa → project
+  //    (like turnover-queries.ts) so this org's agent only sees/assigns its own
+  //    turnovers. The update loop below is then safe: every a.turnoverId came
+  //    from this org-scoped read.
   const pending = await db
     .select({
       id: turnovers.id,
       deadline: sql<string | null>`${turnovers.turnoverDate}::text`,
     })
     .from(turnovers)
-    .where(and(eq(turnovers.turnoverDate, sql`CURRENT_DATE`), isNull(turnovers.assigneeUserId)))
+    .innerJoin(villas, eq(villas.id, turnovers.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(turnovers.turnoverDate, sql`CURRENT_DATE`),
+        isNull(turnovers.assigneeUserId),
+        eq(projects.organizationId, input.organizationId),
+      ),
+    )
     .orderBy(asc(turnovers.createdAt));
 
   if (pending.length === 0) return { assigned: [], unassignable: [] };

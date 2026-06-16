@@ -212,7 +212,14 @@ export async function listAvailableVillas(opts: {
   const db = getDb();
   if (!db) return [];
 
-  const villaFilters = [eq(villas.status, "active")];
+  // TENANCY — villas anchor their org via projects. Inner-join projects and
+  // require the caller's org so the unfiltered base set (no projectId) can't
+  // leak villas from other tenants.
+  const organizationId = await requireOrgId();
+  const villaFilters = [
+    eq(villas.status, "active"),
+    eq(projectsTable.organizationId, organizationId),
+  ];
   if (opts.projectId) villaFilters.push(eq(villas.projectId, opts.projectId));
 
   const allVillas = await db
@@ -223,7 +230,7 @@ export async function listAvailableVillas(opts: {
       projectName: projectsTable.name,
     })
     .from(villas)
-    .leftJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
     .where(and(...villaFilters))
     .orderBy(asc(villas.unitCode));
 

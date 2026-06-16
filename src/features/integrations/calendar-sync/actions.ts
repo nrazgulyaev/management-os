@@ -14,6 +14,7 @@ import { villas, projects } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { assertPublicUrl } from "@/lib/net/safe-url";
 import {
   calendarEventIdSchema,
@@ -44,12 +45,31 @@ export async function createCalendarFeedAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
+
+  // TENANCY: a feed SSRF-fetches and materialises events/bookings against its
+  // villa. Verify the client-supplied villa belongs to the caller's org
+  // (villa → project.organization_id) before attaching, and stamp the org on
+  // the row so all downstream reads/writes are scoped.
+  const [villaOk] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, d.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villaOk) return { ok: false, error: "Villa not found." };
 
   const [row] = await db
     .insert(channelCalendarFeeds)
     .values({
+      organizationId,
       villaId: d.villaId,
       projectId: d.projectId ?? null,
       bookingChannelId: d.bookingChannelId ?? null,
@@ -99,8 +119,27 @@ export async function editCalendarFeedAction(
   }
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
+
+  // TENANCY: verify the (re-pointable) villa belongs to the caller's org so a
+  // feed can't be aimed at another tenant's villa.
+  const [villaOk] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, d.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villaOk) return { ok: false, error: "Villa not found." };
+
+  // Scope the UPDATE to the caller's org — a cross-org feed id reads as "not
+  // found" and can never have its URL / villa re-written.
   const [row] = await db
     .update(channelCalendarFeeds)
     .set({
@@ -112,7 +151,12 @@ export async function editCalendarFeedAction(
       feedType: d.feedType,
       syncIntervalMinutes: d.syncIntervalMinutes ?? 180,
     })
-    .where(eq(channelCalendarFeeds.id, id))
+    .where(
+      and(
+        eq(channelCalendarFeeds.id, id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    )
     .returning({ id: channelCalendarFeeds.id });
   if (!row) return { ok: false, error: "Feed not found." };
   await recordAuditEvent({
@@ -135,12 +179,18 @@ async function setFeedStatus(
   if (!parsed.success) return { ok: false, error: "Missing feed id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [before] = await db
     .select()
     .from(channelCalendarFeeds)
-    .where(eq(channelCalendarFeeds.id, parsed.data.id))
+    .where(
+      and(
+        eq(channelCalendarFeeds.id, parsed.data.id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Feed not found." };
   if (before.status === next) return { ok: true };
@@ -148,7 +198,12 @@ async function setFeedStatus(
   await db
     .update(channelCalendarFeeds)
     .set({ status: next })
-    .where(eq(channelCalendarFeeds.id, parsed.data.id));
+    .where(
+      and(
+        eq(channelCalendarFeeds.id, parsed.data.id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `integrations.calendar_feed.${next}`,
@@ -440,10 +495,20 @@ export async function syncAllActiveCalendarFeedsAction(): Promise<
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
+  // TENANCY: scope "sync all" to the caller's org. Without this a single tenant
+  // clicking "Sync all" would fetch/upsert/rewrite EVERY org's feeds + events
+  // platform-wide. The cron (runCalendarSyncJob) is the all-orgs path; this
+  // button is per-tenant.
+  const organizationId = await requireOrgId();
   const feeds = await db
     .select({ id: channelCalendarFeeds.id })
     .from(channelCalendarFeeds)
-    .where(eq(channelCalendarFeeds.status, "active"));
+    .where(
+      and(
+        eq(channelCalendarFeeds.status, "active"),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    );
 
   // Per-feed try/catch so one bad feed (malformed iCal, network timeout,
   // PG constraint violation in the upsert path, etc.) doesn't kill the
@@ -495,6 +560,25 @@ export async function syncCalendarFeedAction(
   await requirePermission("bookings.sync");
   const parsed = feedIdSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing feed id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  // TENANCY: scope the tenant-facing entry point (the internal syncCalendarFeed
+  // is also called by the cron per-feed, so the org check lives here). Verify
+  // the feed belongs to the caller's org before fetching/rewriting it.
+  const organizationId = await requireOrgId();
+  const [ownFeed] = await db
+    .select({ id: channelCalendarFeeds.id })
+    .from(channelCalendarFeeds)
+    .where(
+      and(
+        eq(channelCalendarFeeds.id, parsed.data.id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownFeed) return { ok: false, error: "Feed not found." };
+
   const result = await syncCalendarFeed(parsed.data.id);
   if (result.error) return { ok: false, error: result.error };
 
@@ -623,6 +707,30 @@ export async function materialiseCalendarEventAction(
   await requirePermission("bookings.conflict.manage");
   const parsed = calendarEventIdSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Missing event id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  // TENANCY: the event's org is derived from its feed/villa, not the caller —
+  // so without this gate a tenant could pass another org's event id and create
+  // a confirmed booking + stamp event.bookingId in that other org. Require the
+  // event's parent feed to belong to the caller's org before materialising.
+  const organizationId = await requireOrgId();
+  const [ownEvent] = await db
+    .select({ id: channelCalendarEvents.id })
+    .from(channelCalendarEvents)
+    .innerJoin(
+      channelCalendarFeeds,
+      eq(channelCalendarFeeds.id, channelCalendarEvents.feedId),
+    )
+    .where(
+      and(
+        eq(channelCalendarEvents.id, parsed.data.id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownEvent) return { ok: false, error: "Calendar event not found." };
+
   const result = await materialiseCalendarEventAsBooking(parsed.data.id);
   if (result.error) return { ok: false, error: result.error };
 
@@ -649,7 +757,27 @@ export async function ignoreCalendarEventAction(
   if (!parsed.success) return { ok: false, error: "Missing event id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
+
+  // TENANCY: scope the UPDATE so a tenant can't mark another org's event as
+  // ignored. Match on the event's own org and its parent feed's org so the
+  // guard holds even where one column was left unthreaded on legacy rows.
+  const [scoped] = await db
+    .select({ id: channelCalendarEvents.id })
+    .from(channelCalendarEvents)
+    .innerJoin(
+      channelCalendarFeeds,
+      eq(channelCalendarFeeds.id, channelCalendarEvents.feedId),
+    )
+    .where(
+      and(
+        eq(channelCalendarEvents.id, parsed.data.id),
+        eq(channelCalendarFeeds.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!scoped) return { ok: false, error: "Calendar event not found." };
 
   await db
     .update(channelCalendarEvents)
@@ -678,12 +806,18 @@ export async function resolveBookingConflictAction(
   if (!parsed.success) return { ok: false, error: "Missing conflict id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
 
   const [before] = await db
     .select()
     .from(bookingConflicts)
-    .where(eq(bookingConflicts.id, parsed.data.id))
+    .where(
+      and(
+        eq(bookingConflicts.id, parsed.data.id),
+        eq(bookingConflicts.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!before) return { ok: false, error: "Conflict not found." };
 
@@ -694,7 +828,12 @@ export async function resolveBookingConflictAction(
       resolvedBy: me?.id ?? null,
       resolvedAt: new Date(),
     })
-    .where(eq(bookingConflicts.id, parsed.data.id));
+    .where(
+      and(
+        eq(bookingConflicts.id, parsed.data.id),
+        eq(bookingConflicts.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -718,10 +857,29 @@ export async function acknowledgeBookingConflictAction(
   if (!parsed.success) return { ok: false, error: "Missing conflict id." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+
+  const [before] = await db
+    .select({ id: bookingConflicts.id })
+    .from(bookingConflicts)
+    .where(
+      and(
+        eq(bookingConflicts.id, parsed.data.id),
+        eq(bookingConflicts.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!before) return { ok: false, error: "Conflict not found." };
+
   await db
     .update(bookingConflicts)
     .set({ status: "acknowledged" })
-    .where(eq(bookingConflicts.id, parsed.data.id));
+    .where(
+      and(
+        eq(bookingConflicts.id, parsed.data.id),
+        eq(bookingConflicts.organizationId, organizationId),
+      ),
+    );
   revalidatePath("/dashboard/integrations/conflicts");
   return { ok: true };
 }

@@ -21,6 +21,33 @@ function read(rel: string): string {
   return readFileSync(resolve(ROOT, rel), "utf8");
 }
 
+function safeRead(rel: string): string {
+  try {
+    return readFileSync(resolve(ROOT, rel), "utf8");
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * client-tax: HatchedBarChart was split for lazy-loading — the public
+ * named export lives in `hatched-bar-chart.tsx` (a thin
+ * `next/dynamic({ ssr:false })` wrapper), the recharts render moved to
+ * `hatched-bar-chart-impl.tsx`, and the shared types to
+ * `hatched-bar-chart-shared.ts`. These source-inspection guards assert
+ * the chart's distinctive content still exists across that module set.
+ */
+function readBarChart(): string {
+  const base = "src/components/award/hatched-bar-chart";
+  return (
+    safeRead(`${base}.tsx`) +
+    "\n" +
+    safeRead(`${base}-impl.tsx`) +
+    "\n" +
+    safeRead(`${base}-shared.ts`)
+  );
+}
+
 const HERO = "src/components/award/hero-greeting-ai.tsx";
 const HERO_INPUT = "src/components/award/hero-greeting-ai-input.tsx";
 const DONUT = "src/components/award/half-donut-gauge.tsx";
@@ -77,7 +104,7 @@ test("sprint-4 — HalfDonutGauge ships as pure SVG (no recharts import)", () =>
 
 test("sprint-4 — HatchedBarChart uses Recharts BarChart with a custom shape", () => {
   assert.ok(existsSync(resolve(ROOT, BAR)));
-  const src = read(BAR);
+  const src = readBarChart();
   assert.match(src, /^"use client";/m);
   assert.match(src, /from "recharts"/);
   assert.match(src, /BarChart/);
@@ -87,7 +114,7 @@ test("sprint-4 — HatchedBarChart uses Recharts BarChart with a custom shape", 
 });
 
 test("sprint-4 — HatchedBarChart highlightIndex renders an inline caption chip", () => {
-  const src = read(BAR);
+  const src = readBarChart();
   // The custom shape draws a chip with the highlight label.
   assert.match(src, /highlightLabel/);
   assert.match(src, /<rect[\s\S]{0,300}rx=\{10\}/);

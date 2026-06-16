@@ -1,12 +1,14 @@
 import "server-only";
 
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   authMfaFactors,
   authMfaRecoveryCodes,
   type AuthMfaFactor,
 } from "@/lib/db/schema/security";
+import { appUsers } from "@/lib/db/schema/identity";
 import { mfaIssuer } from "@/lib/env";
 import {
   buildOtpauthUrl,
@@ -52,6 +54,17 @@ export async function startMfaEnrolment(input: {
   const account = input.email;
   const secret = generateTotpSecret();
   const blob = encryptForStorage(secret);
+  // TENANCY: resolve the enrolling user's org so the factor is stamped. Without
+  // this the new factor lands org=NULL and (via the reader's isNull tolerance)
+  // surfaces to EVERY org's MFA admin page. app_users.organization_id is NOT
+  // NULL, so a missing row means the user id is bogus — refuse enrolment.
+  const [userRow] = await db
+    .select({ organizationId: appUsers.organizationId })
+    .from(appUsers)
+    .where(eq(appUsers.id, input.appUserId))
+    .limit(1);
+  if (!userRow) return null;
+  const organizationId = userRow.organizationId;
   // Reset any prior pending factor so the user can restart enrolment
   // cleanly (verified factors stay).
   await db
@@ -66,6 +79,7 @@ export async function startMfaEnrolment(input: {
     .insert(authMfaFactors)
     .values({
       appUserId: input.appUserId,
+      organizationId,
       factorType: "totp",
       status: "pending",
       issuer,
@@ -131,9 +145,22 @@ export async function verifyMfaEnrolment(input: {
   await db
     .delete(authMfaRecoveryCodes)
     .where(eq(authMfaRecoveryCodes.appUserId, input.appUserId));
+  // TENANCY: stamp the same org the factor carries so the codes are org-anchored
+  // (startMfaEnrolment now stamps the factor; fall back to app_users for any
+  // pre-backfill factor that is still NULL).
+  let organizationId = factor.organizationId;
+  if (!organizationId) {
+    const [userRow] = await db
+      .select({ organizationId: appUsers.organizationId })
+      .from(appUsers)
+      .where(eq(appUsers.id, input.appUserId))
+      .limit(1);
+    organizationId = userRow?.organizationId ?? null;
+  }
   for (const code of codes) {
     await db.insert(authMfaRecoveryCodes).values({
       appUserId: input.appUserId,
+      organizationId,
       codeHash: hashRecoveryCode(code),
       status: "active",
     });
@@ -351,7 +378,9 @@ export async function revokeMfaFactorAsAdmin(input: {
   return { ok: true, appUserId: factor.appUserId };
 }
 
-export async function listMfaFactorsForAdmin(): Promise<
+export async function listMfaFactorsForAdmin(
+  organizationId?: string,
+): Promise<
   Array<
     Pick<
       AuthMfaFactor,
@@ -361,6 +390,11 @@ export async function listMfaFactorsForAdmin(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: every factor is now org-stamped — startMfaEnrolment stamps new
+  // rows and migration 0180 backfills legacy NULL-org factors from
+  // app_users.organization_id. Scope strictly by org (no isNull tolerance) so a
+  // factor can never leak across tenants on the admin page.
+  const orgId = organizationId ?? (await requireOrgId());
   const rows = await db
     .select({
       id: authMfaFactors.id,
@@ -373,6 +407,7 @@ export async function listMfaFactorsForAdmin(): Promise<
       createdAt: authMfaFactors.createdAt,
     })
     .from(authMfaFactors)
+    .where(eq(authMfaFactors.organizationId, orgId))
     .orderBy(desc(authMfaFactors.createdAt))
     .limit(200);
   return rows;
@@ -380,6 +415,7 @@ export async function listMfaFactorsForAdmin(): Promise<
 
 export async function listSecurityEventsForAdmin(
   limit = 100,
+  organizationId?: string,
 ): Promise<
   Array<{
     id: string;
@@ -394,9 +430,18 @@ export async function listSecurityEventsForAdmin(
   const db = getDb();
   if (!db) return [];
   const { authSecurityEvents } = await import("@/lib/db/schema/security");
+  // TENANCY (migration 0154): org column is a nullable backfill anchor. Scope
+  // to the caller's org; tolerate NULL pre-backfill rows.
+  const orgId = organizationId ?? (await requireOrgId());
   const rows = await db
     .select()
     .from(authSecurityEvents)
+    .where(
+      or(
+        eq(authSecurityEvents.organizationId, orgId),
+        isNull(authSecurityEvents.organizationId),
+      ),
+    )
     .orderBy(desc(authSecurityEvents.createdAt))
     .limit(limit);
   return rows.map((r) => ({

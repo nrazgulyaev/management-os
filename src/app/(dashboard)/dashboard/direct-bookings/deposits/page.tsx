@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingDeposits } from "@/features/direct-booking/deposits";
+import { requireOrgId } from "@/features/auth/require-org";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
 import { ExpireDepositNowButton } from "@/components/direct-booking/reconcile-buttons";
 
@@ -26,7 +27,8 @@ export default async function DepositsPage({
   const sp = (await searchParams) ?? {};
   type DepStatus = Parameters<typeof adminDepositStatusLabel>[0];
   const status = (sp.status as DepStatus | undefined) || undefined;
-  const rows = await listDirectBookingDeposits({ status, limit: 200 });
+  const organizationId = await requireOrgId();
+  const rows = await listDirectBookingDeposits({ status, limit: 200, organizationId });
   return (
     <>
       <div className="page-header">

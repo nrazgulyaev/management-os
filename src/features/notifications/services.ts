@@ -131,7 +131,10 @@ export async function listNotifications(opts?: {
 }): Promise<WithSource<NotificationRow>[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: scope the queue to the caller's org (the /dashboard/jobs page
+  // reads this with no org arg).
+  const organizationId = await requireOrgId();
+  const filters = [eq(notificationQueue.organizationId, organizationId)];
   if (opts?.status) filters.push(eq(notificationQueue.status, opts.status));
   if (opts?.channel) filters.push(eq(notificationQueue.channel, opts.channel));
   if (opts?.templateKey) filters.push(eq(notificationQueue.templateKey, opts.templateKey));
@@ -139,7 +142,7 @@ export async function listNotifications(opts?: {
   const rows = await db
     .select()
     .from(notificationQueue)
-    .where(filters.length ? filters.reduce((a, b) => a && b) : undefined)
+    .where(and(...filters))
     .orderBy(desc(notificationQueue.createdAt))
     .limit(opts?.limit ?? 200);
   return rows.map((r) => ({ source: "db" as const, ...mapNotification(r) }));
@@ -148,10 +151,15 @@ export async function listNotifications(opts?: {
 export async function getNotificationById(id: string): Promise<NotificationRow | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY: a cross-org id resolves to null instead of leaking the row.
+  const organizationId = await requireOrgId();
   const [r] = await db
     .select()
     .from(notificationQueue)
-    .where(eq(notificationQueue.id, id))
+    .where(and(
+      eq(notificationQueue.id, id),
+      eq(notificationQueue.organizationId, organizationId),
+    ))
     .limit(1);
   return r ? mapNotification(r) : null;
 }

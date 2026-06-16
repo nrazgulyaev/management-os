@@ -2,7 +2,7 @@
 
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   guestAiConciergeSessions,
@@ -219,6 +219,9 @@ export async function submitHandoffAction(
       guestAiConciergeSessionId: sessionId,
       guestStayTokenId: stay.tokenId,
       bookingId: stay.bookingId,
+      // Stamp org on insert (nullable 0154 anchor) so dashboard reads no longer
+      // depend on the isNull pre-threading fallback for new handoffs.
+      organizationId: stay.organizationId,
       serviceRequestId: srRow!.id,
       handoffType,
       status: "linked_to_request",
@@ -498,19 +501,46 @@ export async function archiveSessionAction(
   formData: FormData,
 ): Promise<AdminActionResult> {
   await requirePermission("guest_ai.manage");
+  const organizationId = await requireOrgId();
   const id = formData.get("id");
   if (typeof id !== "string" || id.length < 16)
     return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // Tenancy: guest_ai_concierge_sessions.organization_id is a nullable 0154
+  // backfill anchor. NULL = pre-threading (allowed); set-but-mismatched =
+  // another tenant's session (rejected as not-found). Scope the UPDATE so a
+  // cross-org session id never flips to archived.
+  const [session] = await db
+    .select({ id: guestAiConciergeSessions.id })
+    .from(guestAiConciergeSessions)
+    .where(
+      and(
+        eq(guestAiConciergeSessions.id, id),
+        or(
+          isNull(guestAiConciergeSessions.organizationId),
+          eq(guestAiConciergeSessions.organizationId, organizationId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!session) return { ok: false, error: "Session not found." };
   await db
     .update(guestAiConciergeSessions)
     .set({
       status: "archived",
       updatedAt: new Date(),
     })
-    .where(eq(guestAiConciergeSessions.id, id));
+    .where(
+      and(
+        eq(guestAiConciergeSessions.id, id),
+        or(
+          isNull(guestAiConciergeSessions.organizationId),
+          eq(guestAiConciergeSessions.organizationId, organizationId),
+        ),
+      ),
+    );
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "guest_ai.session.archive",

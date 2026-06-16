@@ -3,6 +3,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listVillas } from "@/features/villas/services";
 import { quoteDynamicStay } from "@/features/dynamic-pricing/services";
 import { buildStayPricingExplanation } from "@/features/dynamic-pricing/explainer";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Pricing quote tester" };
 export const dynamic = "force-dynamic";
@@ -22,6 +23,8 @@ export default async function PricingQuoteTesterPage({
   const villaId = sp.villa ?? villas[0]?.id;
   const channel = sp.channel ?? "direct";
   const haveDates = !!(sp.checkIn && sp.checkOut);
+  // Pass org so a raw ?villa= for another tenant resolves to no rule set.
+  const organizationId = await requireOrgId();
 
   const result =
     villaId && haveDates
@@ -31,6 +34,7 @@ export default async function PricingQuoteTesterPage({
           checkOut: sp.checkOut!,
           channelKey: channel,
           publicQuote: false,
+          organizationId,
         })
       : null;
 

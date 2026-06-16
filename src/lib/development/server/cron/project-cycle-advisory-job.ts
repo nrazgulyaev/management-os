@@ -8,7 +8,6 @@ import {
   type ProjectCycleInput,
 } from "../project-cycle/cycle-helpers";
 import { projectCycleRecommendations } from "@/lib/db/schema/project-cycle";
-import { getOrganizationByCode } from "../organizations/organization-queries";
 
 /**
  * Stage 5.B.2 — Project Cycle Advisory (Monday 06:00).
@@ -48,14 +47,22 @@ export async function runDevOsProjectCycleAdvisory(
   );
 
   // Active projects with their completion estimates.
+  // TODO tenancy: this read (and the cash/capacity/payroll reads above/below)
+  // is platform-wide — it aggregates across every org's projects into a single
+  // recommendation. Making the cron produce ONE recommendation PER org is a
+  // separate follow-up; for now we at least stamp the insert (below) with a
+  // derived org so the row is visible under the org-scoped reader instead of
+  // landing org=NULL.
   const projectsRows = await db.execute<{
     id: string;
+    organization_id: string | null;
     expected_completion: string | null;
     progress_pct: string;
     monthly_burn: string;
   }>(sql`
     SELECT
       p.id::text,
+      p.organization_id::text AS organization_id,
       p.expected_handover::text AS expected_completion,
       p.construction_progress_pct::text AS progress_pct,
       0::text AS monthly_burn
@@ -66,10 +73,19 @@ export async function runDevOsProjectCycleAdvisory(
   const projectRows =
     rowsOf<{
         id: string;
+        organization_id: string | null;
         expected_completion: string | null;
         progress_pct: string;
         monthly_burn: string;
       }>(projectsRows);
+
+  // Derive the org to stamp on the recommendation from the project rows being
+  // processed (projects.organization_id is NOT NULL). The same bug fixed in
+  // generateCycleRecommendation: an unstamped (NULL-org) row is written but
+  // invisible under the org-scoped project-cycle reader.
+  const recommendationOrgId = projectRows.find(
+    (r) => r.organization_id,
+  )?.organization_id ?? null;
 
   const now = new Date();
   const oneYearFromNow = new Date(
@@ -136,21 +152,6 @@ export async function runDevOsProjectCycleAdvisory(
 
   const advisory = computeProjectCycleAdvisory(context);
 
-  // TENANCY — company-wide cron with no session/project; anchor the
-  // recommendation row to the platform default org (mirrors migration 0151
-  // backfill + the sibling cashflow-autogenerate cron). Without this the row
-  // lands `organization_id = NULL` and is invisible to every org-scoped
-  // reader (orphaned), or worse leaks across tenants on an unscoped read.
-  const defaultOrg = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!defaultOrg) {
-    return {
-      status: "failed",
-      summary: "No ARCONIQUE_DEFAULT org — cannot scope the recommendation.",
-      metrics: { generated: 0 },
-      error: "default org missing",
-    };
-  }
-
   const countRows = rowsOf<{ count: string }>(
     await db.execute<{ count: string }>(sql`
       SELECT COUNT(*)::text AS count FROM project_cycle_recommendations
@@ -161,7 +162,7 @@ export async function runDevOsProjectCycleAdvisory(
   const code = `PCR-${year}-${seq}`;
 
   await db.insert(projectCycleRecommendations).values({
-    organizationId: defaultOrg.id,
+    organizationId: recommendationOrgId,
     recommendationCode: code,
     generatedForDate: now.toISOString().slice(0, 10),
     generatedByAgent: "project_cycle_intelligence_cron",

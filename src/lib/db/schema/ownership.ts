@@ -91,6 +91,15 @@ export const ownershipShares = pgTable(
     index("ownership_shares_villa_idx").on(t.villaId),
     index("ownership_shares_project_idx").on(t.projectId),
     index("ownership_shares_organization_idx").on(t.organizationId),
+    // PERF (0181): owner-payout / finance KPI aggregates pin
+    // (organization_id, status='active'); the statement generator pins
+    // (owner_id, status='active') then range-scans the period on starts_on.
+    index("ownership_shares_org_status_idx").on(t.organizationId, t.status),
+    index("ownership_shares_owner_status_starts_idx").on(
+      t.ownerId,
+      t.status,
+      t.startsOn,
+    ),
   ],
 );
 

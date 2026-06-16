@@ -321,6 +321,10 @@ export interface QueueGuestNotificationInput {
   publicActionHref?: string | null;
   severity?: "info" | "success" | "warning" | "critical";
   dedupeKey: string;
+  // TENANCY: the org the notification belongs to. Admin actions pass the
+  // verified caller org; token/stage-transition callers omit it and we derive
+  // it from the hold so the row is always stamped (forgot-to-stamp fix).
+  organizationId?: string | null;
 }
 
 export async function queueDirectBookingGuestNotification(
@@ -328,6 +332,18 @@ export async function queueDirectBookingGuestNotification(
 ): Promise<{ ok: boolean; id?: string; reason?: string }> {
   const db = getDb();
   if (!db) return { ok: false, reason: "no_db" };
+  // TENANCY: resolve the owning org. Prefer the caller-supplied (verified) org;
+  // otherwise derive it from the hold so the inserted notification is always
+  // stamped to the right tenant.
+  let organizationId = input.organizationId ?? null;
+  if (!organizationId && input.holdId) {
+    const [holdRow] = await db
+      .select({ organizationId: directBookingHolds.organizationId })
+      .from(directBookingHolds)
+      .where(eq(directBookingHolds.id, input.holdId))
+      .limit(1);
+    organizationId = holdRow?.organizationId ?? null;
+  }
   // Belt-and-braces sanitisation: strip any banned key the caller
   // accidentally passed through.
   const sanitised = sanitizeGuestNotificationPayload({
@@ -343,6 +359,7 @@ export async function queueDirectBookingGuestNotification(
     const [row] = await db
       .insert(directBookingGuestNotifications)
       .values({
+        organizationId,
         holdId: input.holdId,
         requestId: input.requestId,
         depositId: input.depositId,

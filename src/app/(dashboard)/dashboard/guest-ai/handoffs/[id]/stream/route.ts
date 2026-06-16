@@ -1,8 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { guestAiHandoffs } from "@/lib/db/schema/guest-ai-concierge";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 import { hasPermission } from "@/features/auth/permission-matrix";
 import { openConciergeSseStream } from "@/features/realtime/sse";
 import {
@@ -36,19 +37,6 @@ export async function GET(
       { status: 403 },
     );
   }
-  // TENANCY (cross-org IDOR): the SSE poller (pollAdminEvents) filters only by
-  // handoffId, so this route is the ONLY org boundary. Without scoping the
-  // existence check to the caller's org, a signed-in operator with
-  // guest_ai.handoff.read could stream another org's handoff by guessing its
-  // id. Derive the org from the authenticated principal — never trust the
-  // client-supplied [id] alone.
-  const orgId = ctx.appUser?.organizationId ?? null;
-  if (!orgId) {
-    return NextResponse.json(
-      { ok: false, error: "forbidden" },
-      { status: 403 },
-    );
-  }
   const canSeeNotes = hasPermission(ctx, "guest_ai.handoff.notes.read");
 
   const db = getDb();
@@ -58,13 +46,20 @@ export async function GET(
       { status: 503 },
     );
   }
+  // Tenancy: the handoff must belong to the caller's org (a null org is
+  // a legacy/unbackfilled row). Without this, any staff with the read
+  // permission could open another tenant's handoff stream by id.
+  const organizationId = await requireOrgId();
   const [exists] = await db
     .select({ id: guestAiHandoffs.id })
     .from(guestAiHandoffs)
     .where(
       and(
         eq(guestAiHandoffs.id, id),
-        eq(guestAiHandoffs.organizationId, orgId),
+        or(
+          isNull(guestAiHandoffs.organizationId),
+          eq(guestAiHandoffs.organizationId, organizationId),
+        ),
       ),
     )
     .limit(1);
@@ -75,7 +70,7 @@ export async function GET(
     );
   }
 
-  const cursor: StreamCursor = await seedGuestCursor(id);
+  const cursor: StreamCursor = await seedGuestCursor(id, organizationId);
   const lastEventId = request.headers.get("last-event-id");
   const resumed = parseLastEventId(lastEventId);
 
@@ -91,6 +86,7 @@ export async function GET(
         cursor: cur,
         canSeeNotes,
         appUserId: ctx.appUser?.id ?? null,
+        organizationId,
       });
       return { events: result.events, cursor: result.cursor };
     },

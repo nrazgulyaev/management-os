@@ -1,10 +1,12 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, isNull, or } from "drizzle-orm";
 import { getDb, requireDb } from "@/lib/db/client";
 import { auditEvents, type NewAuditEvent } from "@/lib/db/schema/audit";
 import { appUsers } from "@/lib/db/schema/identity";
 import { headers } from "next/headers";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 
 export type AuditEventInput = Omit<NewAuditEvent, "id" | "createdAt"> & {
@@ -58,8 +60,19 @@ export async function recordAuditEvent(
       ip ??= h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
       ua ??= h.get("user-agent") ?? null;
     }
+    // TENANCY (migration 0154) — stamp the actor's org so the tenant audit
+    // view (listAuditEvents) can filter by org. When the caller already
+    // supplied organizationId (e.g. finance writes), keep it; otherwise
+    // derive it from the current actor. Unattributed/system writes stay
+    // null-org (visible to every tenant via the read's isNull branch).
+    let organizationId = event.organizationId ?? null;
+    if (organizationId == null) {
+      const me = await getCurrentAppUser().catch(() => null);
+      organizationId = me?.organizationId ?? null;
+    }
     await writer.insert(auditEvents).values({
       ...event,
+      organizationId,
       ipAddress: ip ?? null,
       userAgent: ua ?? null,
     });
@@ -123,6 +136,17 @@ export async function listAuditEvents(opts?: {
   if (!db) return fallbackAudit;
 
   const limit = opts?.limit ?? 100;
+  // TENANCY (migration 0154) — scope to the caller's org. Keep null-org
+  // (platform-global / pre-0154 / system) rows visible so the timeline does
+  // not silently drop un-attributed events. Detail filters (entityType/Id)
+  // are applied by callers via getAuditEventById / booking-scoped queries.
+  const organizationId = await requireOrgId().catch(() => null);
+  const orgFilter = organizationId
+    ? or(
+        eq(auditEvents.organizationId, organizationId),
+        isNull(auditEvents.organizationId),
+      )
+    : undefined;
   const rows = await db
     .select({
       e: auditEvents,
@@ -131,6 +155,7 @@ export async function listAuditEvents(opts?: {
     })
     .from(auditEvents)
     .leftJoin(appUsers, eq(appUsers.id, auditEvents.actorUserId))
+    .where(orgFilter)
     .orderBy(desc(auditEvents.createdAt))
     .limit(limit);
 

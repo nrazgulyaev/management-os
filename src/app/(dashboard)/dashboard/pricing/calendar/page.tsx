@@ -2,6 +2,7 @@ import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listVillas } from "@/features/villas/services";
 import { quoteDynamicCalendar } from "@/features/dynamic-pricing/services";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Pricing calendar" };
 export const dynamic = "force-dynamic";
@@ -17,8 +18,10 @@ export default async function PricingCalendarPage({
   const channelKey = sp.channel ?? "direct";
   const from = sp.from ?? new Date().toISOString().slice(0, 10);
   const days = Math.max(1, Math.min(60, Number(sp.days ?? 14)));
+  // Pass org so a raw ?villa= for another tenant resolves to no rule set.
+  const organizationId = await requireOrgId();
   const cal = villaId
-    ? await quoteDynamicCalendar({ villaId, startDate: from, days, channelKey })
+    ? await quoteDynamicCalendar({ villaId, startDate: from, days, channelKey, organizationId })
     : { ruleSet: null, cells: [] };
   const bookable = cal.cells.filter((c) => c.available).length;
   return (

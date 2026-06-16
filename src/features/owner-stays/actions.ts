@@ -133,6 +133,31 @@ export async function archiveOwnerStayPolicyAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: a policy anchors org via its project_id → projects.organization_id
+  // (or is global when project_id is null). Confirm in-org before archiving so a
+  // cross-org policy id is a no-op not-found, matching removeEquivalenceMemberAction.
+  const [policy] = await db
+    .select({
+      id: ownerStayPolicies.id,
+      projectId: ownerStayPolicies.projectId,
+      projectOrgId: projects.organizationId,
+    })
+    .from(ownerStayPolicies)
+    .leftJoin(projects, eq(projects.id, ownerStayPolicies.projectId))
+    .where(
+      and(
+        eq(ownerStayPolicies.id, parsed.data.id),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(ownerStayPolicies.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!policy) return { ok: false, error: "Policy not found." };
+
   await db
     .update(ownerStayPolicies)
     .set({ status: "archived", updatedAt: new Date() })
@@ -168,7 +193,64 @@ export async function updateOwnerStayPolicyAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
   const d = parsed.data;
+
+  // TENANCY: confirm the existing policy is in this org (project in-org OR global
+  // null-project) BEFORE the full re-set — otherwise a cross-org policy id could
+  // be re-written, including re-pointing project_id/villa_id into another org.
+  const [existing] = await db
+    .select({
+      id: ownerStayPolicies.id,
+      projectId: ownerStayPolicies.projectId,
+      projectOrgId: projects.organizationId,
+    })
+    .from(ownerStayPolicies)
+    .leftJoin(projects, eq(projects.id, ownerStayPolicies.projectId))
+    .where(
+      and(
+        eq(ownerStayPolicies.id, id),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(ownerStayPolicies.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!existing) return { ok: false, error: "Policy not found." };
+
+  // TENANCY: the UPDATE re-points project_id / villa_id from client input — a
+  // verified-in-org existing policy could otherwise be re-anchored to another
+  // tenant's project/villa. Validate each supplied FK is in this org (or null)
+  // BEFORE the .set(), mirroring addEquivalenceMemberAction's villa guard.
+  if (d.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, d.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!proj) return { ok: false, error: "Project not found." };
+  }
+  if (d.villaId) {
+    const [villa] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          eq(villas.id, d.villaId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!villa) return { ok: false, error: "Villa not found." };
+  }
+
   const [row] = await db
     .update(ownerStayPolicies)
     .set({
@@ -670,6 +752,40 @@ export async function addEquivalenceMemberAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: confirm the parent group is in this org (project in-org OR global
+  // null-project) before attaching a member, so a cross-org group id can't have
+  // a villa grafted onto it. Mirrors removeEquivalenceMemberAction's guard.
+  const [group] = await db
+    .select({ id: villaEquivalenceGroups.id })
+    .from(villaEquivalenceGroups)
+    .leftJoin(projects, eq(projects.id, villaEquivalenceGroups.projectId))
+    .where(
+      and(
+        eq(villaEquivalenceGroups.id, parsed.data.groupId),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(villaEquivalenceGroups.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!group) return { ok: false, error: "Group not found." };
+
+  // ...and that the villa being attached belongs to this org (via its project).
+  const [villa] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, parsed.data.villaId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!villa) return { ok: false, error: "Villa not found." };
 
   await db
     .insert(villaEquivalenceGroupMembers)
@@ -789,6 +905,44 @@ export async function updateEquivalenceGroupAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: confirm the group is in this org (project in-org OR global
+  // null-project) before renaming/re-pointing it, so a cross-org group id is a
+  // no-op not-found. Mirrors removeEquivalenceMemberAction's guard.
+  const [existing] = await db
+    .select({ id: villaEquivalenceGroups.id })
+    .from(villaEquivalenceGroups)
+    .leftJoin(projects, eq(projects.id, villaEquivalenceGroups.projectId))
+    .where(
+      and(
+        eq(villaEquivalenceGroups.id, id),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(villaEquivalenceGroups.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!existing) return { ok: false, error: "Group not found." };
+
+  // TENANCY: the UPDATE re-points project_id from client input — an in-org
+  // group could otherwise be re-anchored to another tenant's project. Validate
+  // the new project is in this org (or null/global) BEFORE the .set().
+  if (parsed.data.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, parsed.data.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!proj) return { ok: false, error: "Project not found." };
+  }
+
   const [row] = await db
     .update(villaEquivalenceGroups)
     .set({
@@ -820,6 +974,27 @@ export async function archiveEquivalenceGroupAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: confirm the group is in this org (project in-org OR global
+  // null-project) before flipping it to archived, so a cross-org group id is a
+  // no-op not-found. Mirrors removeEquivalenceMemberAction's guard.
+  const [existing] = await db
+    .select({ id: villaEquivalenceGroups.id })
+    .from(villaEquivalenceGroups)
+    .leftJoin(projects, eq(projects.id, villaEquivalenceGroups.projectId))
+    .where(
+      and(
+        eq(villaEquivalenceGroups.id, id),
+        or(
+          eq(projects.organizationId, organizationId),
+          isNull(villaEquivalenceGroups.projectId),
+        ),
+      ),
+    )
+    .limit(1);
+  if (!existing) return { ok: false, error: "Group not found." };
+
   const [row] = await db
     .update(villaEquivalenceGroups)
     .set({ status: "archived" })

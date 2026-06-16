@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or, type SQL } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { documents } from "@/lib/db/schema/documents";
@@ -189,11 +189,24 @@ export interface SignedUrlResult {
 
 export async function getDocumentSignedUrl(
   documentId: string,
+  // TENANCY: callers that hold an app_user org pass it so a foreign documentId
+  // reads as not-found. Optional — the buyer-portal route has no org context
+  // and re-verifies the doc via buyerCanAccessDocument() before calling here.
+  organizationId?: string,
 ): Promise<SignedUrlResult> {
   const admin = getSupabaseAdmin();
   if (!admin) return { ok: false, error: "Supabase admin client not configured" };
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+
+  // Legacy rows predate documents.organization_id (nullable) — widen so
+  // un-backfilled docs stay reachable, but a doc owned by another org is blocked.
+  const orgPredicate: SQL | undefined = organizationId
+    ? or(
+        isNull(documents.organizationId),
+        eq(documents.organizationId, organizationId),
+      )
+    : undefined;
 
   const [doc] = await db
     .select({
@@ -203,7 +216,7 @@ export async function getDocumentSignedUrl(
       status: documents.status,
     })
     .from(documents)
-    .where(eq(documents.id, documentId))
+    .where(and(eq(documents.id, documentId), orgPredicate))
     .limit(1);
   if (!doc) return { ok: false, error: "Document not found" };
   if (doc.status !== "active") return { ok: false, error: "Document archived" };
@@ -225,20 +238,32 @@ export interface DeleteDocumentResult {
   error?: string;
 }
 
-export async function deleteDocument(documentId: string): Promise<DeleteDocumentResult> {
+export async function deleteDocument(
+  documentId: string,
+  // TENANCY: required — the deletion both removes the storage object and the
+  // row, so it must be gated to the caller's org. Legacy nullable-org rows are
+  // widened in so they remain deletable by their owning tenant.
+  organizationId: string,
+): Promise<DeleteDocumentResult> {
   const admin = getSupabaseAdmin();
   const db = getDb();
   if (!db) return { ok: false, error: "DB not configured" };
+  const orgPredicate = or(
+    isNull(documents.organizationId),
+    eq(documents.organizationId, organizationId),
+  );
   const [doc] = await db
     .select({ bucket: documents.storageBucket, path: documents.storagePath })
     .from(documents)
-    .where(eq(documents.id, documentId))
+    .where(and(eq(documents.id, documentId), orgPredicate))
     .limit(1);
   if (!doc) return { ok: false, error: "Document not found" };
   if (admin && doc.bucket && doc.path) {
     await admin.storage.from(doc.bucket).remove([doc.path]).catch(() => null);
   }
-  await db.delete(documents).where(eq(documents.id, documentId));
+  await db
+    .delete(documents)
+    .where(and(eq(documents.id, documentId), orgPredicate));
   return { ok: true };
 }
 
@@ -256,9 +281,19 @@ export interface DocumentListRow {
 export async function listDocumentsByEntity(
   entityType: DocumentEntityType,
   entityId: string,
+  // TENANCY: optional org scope — when wired into a tenant surface, pass the
+  // caller's org so the listing cannot enumerate another tenant's documents.
+  // Legacy nullable-org rows are widened in.
+  organizationId?: string,
 ): Promise<DocumentListRow[]> {
   const db = getDb();
   if (!db) return [];
+  const orgPredicate: SQL | undefined = organizationId
+    ? or(
+        isNull(documents.organizationId),
+        eq(documents.organizationId, organizationId),
+      )
+    : undefined;
   return db
     .select({
       id: documents.id,
@@ -276,6 +311,7 @@ export async function listDocumentsByEntity(
         eq(documents.entityType, entityType),
         eq(documents.entityId, entityId),
         eq(documents.status, "active"),
+        orgPredicate,
       ),
     );
 }

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   villaGuideSections,
@@ -9,6 +9,7 @@ import {
   villaEmergencyContacts,
   villaNeighborhoodPlaces,
 } from "@/lib/db/schema/villa-guides";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
@@ -21,6 +22,50 @@ import {
   upsertWifiSchema,
 } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
+
+// -----------------------------------------------------------------------------
+// TENANCY helper for the no-org guide tables.
+//
+// `villa_wifi_credentials`, `villa_emergency_contacts` and
+// `villa_neighborhood_places` have NO organization_id column — they anchor org
+// via villaId/projectId -> projects.organizationId. Before mutating an existing
+// row we must verify the row's villa or project belongs to the caller's org.
+// Returns true when the (villaId | projectId) pair resolves to `organizationId`.
+// -----------------------------------------------------------------------------
+async function anchorBelongsToOrg(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  organizationId: string,
+  anchor: { villaId: string | null; projectId: string | null },
+): Promise<boolean> {
+  if (anchor.villaId) {
+    const [row] = await db
+      .select({ orgId: projects.organizationId })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          eq(villas.id, anchor.villaId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (row) return true;
+  }
+  if (anchor.projectId) {
+    const [row] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, anchor.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (row) return true;
+  }
+  return false;
+}
 
 // -----------------------------------------------------------------------------
 // Sections
@@ -64,7 +109,10 @@ export async function upsertGuideSectionAction(
   let sectionId: string | undefined;
   try {
     if (parsed.data.id) {
-      await db
+      // TENANCY: villa_guide_sections.organization_id is NOT NULL — gate the
+      // update so an admin in tenant A cannot rewrite tenant B's section.
+      const organizationId = await requireOrgId();
+      const [updated] = await db
         .update(villaGuideSections)
         .set({
           title: parsed.data.title,
@@ -74,8 +122,15 @@ export async function upsertGuideSectionAction(
           updatedBy: me?.id ?? null,
           updatedAt: new Date(),
         })
-        .where(eq(villaGuideSections.id, parsed.data.id));
-      sectionId = parsed.data.id;
+        .where(
+          and(
+            eq(villaGuideSections.id, parsed.data.id),
+            eq(villaGuideSections.organizationId, organizationId),
+          ),
+        )
+        .returning({ id: villaGuideSections.id });
+      if (!updated) return { ok: false, error: "Section not found." };
+      sectionId = updated.id;
     } else {
       const organizationId = await requireOrgId();
       const [row] = await db
@@ -136,10 +191,20 @@ export async function archiveGuideSectionAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
-  await db
+  // TENANCY: gate the archive to the caller's org so a foreign section cannot
+  // be archived cross-tenant.
+  const organizationId = await requireOrgId();
+  const [archived] = await db
     .update(villaGuideSections)
     .set({ status: "archived", updatedAt: new Date(), updatedBy: me?.id ?? null })
-    .where(eq(villaGuideSections.id, parsed.data.id));
+    .where(
+      and(
+        eq(villaGuideSections.id, parsed.data.id),
+        eq(villaGuideSections.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: villaGuideSections.id });
+  if (!archived) return { ok: false, error: "Section not found." };
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: "villa_guide.section.archive",
@@ -192,6 +257,21 @@ export async function upsertWifiAction(
 
   let wifiId: string | undefined;
   if (parsed.data.id) {
+    // TENANCY: villa_wifi_credentials has NO organization_id — verify the
+    // existing row's villa/project belongs to the caller's org before updating.
+    const organizationId = await requireOrgId();
+    const [existing] = await db
+      .select({
+        villaId: villaWifiCredentials.villaId,
+        projectId: villaWifiCredentials.projectId,
+      })
+      .from(villaWifiCredentials)
+      .where(eq(villaWifiCredentials.id, parsed.data.id))
+      .limit(1);
+    if (!existing) return { ok: false, error: "WiFi credential not found." };
+    if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+      return { ok: false, error: "WiFi credential not found." };
+
     const updates: Record<string, unknown> = {
       networkName: parsed.data.networkName,
       instructionsMd: parsed.data.instructionsMd ?? null,
@@ -279,6 +359,21 @@ export async function upsertEmergencyContactAction(
 
   let contactId: string | undefined;
   if (parsed.data.id) {
+    // TENANCY: villa_emergency_contacts has NO organization_id — verify the
+    // existing row's villa/project belongs to the caller's org before updating.
+    const organizationId = await requireOrgId();
+    const [existing] = await db
+      .select({
+        villaId: villaEmergencyContacts.villaId,
+        projectId: villaEmergencyContacts.projectId,
+      })
+      .from(villaEmergencyContacts)
+      .where(eq(villaEmergencyContacts.id, parsed.data.id))
+      .limit(1);
+    if (!existing) return { ok: false, error: "Contact not found." };
+    if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+      return { ok: false, error: "Contact not found." };
+
     await db
       .update(villaEmergencyContacts)
       .set({
@@ -369,6 +464,21 @@ export async function upsertNeighborhoodPlaceAction(
 
   let placeId: string | undefined;
   if (parsed.data.id) {
+    // TENANCY: villa_neighborhood_places has NO organization_id — verify the
+    // existing row's villa/project belongs to the caller's org before updating.
+    const organizationId = await requireOrgId();
+    const [existing] = await db
+      .select({
+        villaId: villaNeighborhoodPlaces.villaId,
+        projectId: villaNeighborhoodPlaces.projectId,
+      })
+      .from(villaNeighborhoodPlaces)
+      .where(eq(villaNeighborhoodPlaces.id, parsed.data.id))
+      .limit(1);
+    if (!existing) return { ok: false, error: "Place not found." };
+    if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+      return { ok: false, error: "Place not found." };
+
     await db
       .update(villaNeighborhoodPlaces)
       .set({
@@ -438,6 +548,20 @@ export async function archiveEmergencyContactAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: villa_emergency_contacts has NO organization_id — verify the row's
+  // villa/project belongs to the caller's org before archiving.
+  const organizationId = await requireOrgId();
+  const [existing] = await db
+    .select({
+      villaId: villaEmergencyContacts.villaId,
+      projectId: villaEmergencyContacts.projectId,
+    })
+    .from(villaEmergencyContacts)
+    .where(eq(villaEmergencyContacts.id, parsed.data.id))
+    .limit(1);
+  if (!existing) return { ok: false, error: "Contact not found." };
+  if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+    return { ok: false, error: "Contact not found." };
   const [row] = await db
     .update(villaEmergencyContacts)
     .set({ status: "archived", updatedAt: new Date() })
@@ -465,6 +589,20 @@ export async function archiveNeighborhoodPlaceAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: villa_neighborhood_places has NO organization_id — verify the row's
+  // villa/project belongs to the caller's org before archiving.
+  const organizationId = await requireOrgId();
+  const [existing] = await db
+    .select({
+      villaId: villaNeighborhoodPlaces.villaId,
+      projectId: villaNeighborhoodPlaces.projectId,
+    })
+    .from(villaNeighborhoodPlaces)
+    .where(eq(villaNeighborhoodPlaces.id, parsed.data.id))
+    .limit(1);
+  if (!existing) return { ok: false, error: "Place not found." };
+  if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+    return { ok: false, error: "Place not found." };
   const [row] = await db
     .update(villaNeighborhoodPlaces)
     .set({ status: "archived", updatedAt: new Date() })
@@ -492,6 +630,20 @@ export async function archiveWifiCredentialAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  // TENANCY: villa_wifi_credentials has NO organization_id — verify the row's
+  // villa/project belongs to the caller's org before archiving.
+  const organizationId = await requireOrgId();
+  const [existing] = await db
+    .select({
+      villaId: villaWifiCredentials.villaId,
+      projectId: villaWifiCredentials.projectId,
+    })
+    .from(villaWifiCredentials)
+    .where(eq(villaWifiCredentials.id, parsed.data.id))
+    .limit(1);
+  if (!existing) return { ok: false, error: "WiFi credential not found." };
+  if (!(await anchorBelongsToOrg(db, organizationId, existing)))
+    return { ok: false, error: "WiFi credential not found." };
   const [row] = await db
     .update(villaWifiCredentials)
     .set({ status: "archived", updatedAt: new Date(), updatedBy: me?.id ?? null })
