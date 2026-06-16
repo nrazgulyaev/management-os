@@ -26,6 +26,10 @@ import {
   type ShareInput,
 } from "./allocation";
 import { percentOfMinor } from "@/lib/money";
+import {
+  computeStatementNet,
+  assertStatementLinesMatchNet,
+} from "./statement-net-pure";
 
 // -----------------------------------------------------------------------------
 // Public API
@@ -53,6 +57,13 @@ export type GenerateInput = {
 export type GenerateOutput =
   | { ok: true; statementId: string; statementCode: string; created: boolean }
   | { ok: false; reason: string };
+
+/**
+ * Pinned fallback USD→IDR rate, mirroring statement-generation.ts. Only used
+ * when the live fx-service is unconfigured or rate-limited. Snapshotted onto
+ * the statement row so net_to_owner_usd_minor stays stable across re-renders.
+ */
+const FX_USD_TO_IDR_FALLBACK = 15_800;
 
 /**
  * Deterministic owner-statement generator.
@@ -432,7 +443,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: f.id,
       category: f.feeType,
       description: f.description,
-      amount_minor: amount,
+      // Deduction line: SIGNED negative so Σ(lines) == net (canonical model).
+      amount_minor: -amount,
       currency,
       owner_visible: true,
     });
@@ -451,7 +463,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         source_id: f.id,
         category: f.feeType,
         description: f.description,
-        amount_minor: amount,
+        // Deduction line: SIGNED negative (canonical model).
+        amount_minor: -amount,
         currency,
         owner_visible: true,
       });
@@ -472,7 +485,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: e.id,
       category: e.expenseType,
       description: e.description,
-      amount_minor: amount,
+      // Deduction line: SIGNED negative (canonical model). The expense_allocations
+      // row below keeps its POSITIVE magnitude — only the statement line is signed.
+      amount_minor: -amount,
       currency,
       owner_visible: true,
     });
@@ -501,7 +516,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: e.id,
       category: `${e.expenseType} (shared)`,
       description: `Shared · ${e.description}`,
-      amount_minor: alloc.amountMinor,
+      // Deduction line: SIGNED negative (canonical model).
+      amount_minor: -alloc.amountMinor,
       currency,
       owner_visible: true,
     });
@@ -528,7 +544,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: t.id,
       category: t.taxType,
       description: t.description,
-      amount_minor: amount,
+      // Deduction line: SIGNED negative (canonical model).
+      amount_minor: -amount,
       currency,
       owner_visible: t.ownerVisible,
     });
@@ -538,6 +555,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   for (const r of reservesVilla) {
     if (!r.villaId) continue;
     const sign = r.movementType === "release" ? -1n : 1n;
+    // `amount` carries the release sign: contribution = +magnitude (sets money
+    // aside), release = −magnitude (returns money). totalReservesMinor keeps
+    // this signed value; computeStatementNet SUBTRACTS it (a contribution
+    // reduces net, a release adds it back).
     const amount = applyVillaShare(BigInt(r.amountMinor), r.villaId) * sign;
     if (amount === 0n) continue;
     totalReservesMinor += amount;
@@ -547,7 +568,10 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: r.id,
       category: `${r.reserveType}_${r.movementType}`,
       description: r.description,
-      amount_minor: amount,
+      // SIGNED line: contribution (+magnitude) → −magnitude (reduces net),
+      // release (−magnitude) → +magnitude (adds back). Mirrors the net's
+      // `- totalReservesMinor`, keeping Σ(lines) == net.
+      amount_minor: -amount,
       currency,
       owner_visible: true,
     });
@@ -565,7 +589,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       source_id: m.id,
       category: "management_fee",
       description: m.description,
-      amount_minor: amount,
+      // Deduction line: SIGNED negative (canonical model).
+      amount_minor: -amount,
       currency,
       owner_visible: true,
     });
@@ -597,7 +622,14 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         rule.feeModel === "percent_of_gross"
           ? grossRevenueMinor
           : rule.feeModel === "percent_of_net"
-            ? grossRevenueMinor + totalFeesMinor + totalExpensesMinor + totalTaxesMinor
+            ? // "% of net" = % of the net BEFORE the management fee itself.
+              // Deduction totals are positive magnitudes → SUBTRACT them (the
+              // old code added them, inflating the base + the fee).
+              grossRevenueMinor -
+              totalFeesMinor -
+              totalExpensesMinor -
+              totalTaxesMinor -
+              totalReservesMinor
             : 0n;
       let amt = 0n;
       if (rule.feePercent !== null && (rule.feeModel === "percent_of_gross" || rule.feeModel === "percent_of_net")) {
@@ -605,17 +637,19 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       } else if (rule.feeModel === "fixed_monthly" && rule.fixedAmountMinor !== null) {
         amt = BigInt(rule.fixedAmountMinor);
       }
-      // Fees are negative for owners — store as negative.
-      const signed = -amt;
-      if (signed !== 0n) {
-        managementFeeMinor = signed;
+      // Accumulate the management fee as a POSITIVE MAGNITUDE (consistent with
+      // the other deduction totals + the summary column); the net SUBTRACTS it
+      // and the statement LINE carries the negative sign.
+      if (amt !== 0n) {
+        managementFeeMinor = amt;
         pushLine({
           line_type: "management_fee",
           source_table: "management_fee_rules",
           source_id: rule.id,
           category: "management_fee",
           description: `${rule.ruleName} · ${rule.feeModel}`,
-          amount_minor: signed,
+          // Deduction line: SIGNED negative (canonical model).
+          amount_minor: -amt,
           currency,
           owner_visible: true,
         });
@@ -623,13 +657,53 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
     }
   }
 
-  const netPayoutMinor =
-    grossRevenueMinor +
-    totalFeesMinor +
-    totalExpensesMinor +
-    totalTaxesMinor +
-    totalReservesMinor +
-    managementFeeMinor;
+  // MONEY-CORRECTNESS — canonical ledger net (mirrors statement-generation.ts):
+  // deductions are stored as positive magnitudes and SUBTRACTED. The prior code
+  // SUMMED them, adding positive expenses/fees/taxes to the payout → overpaying
+  // owners. Computed via the shared pure function so the invariant is testable.
+  const netPayoutMinor = computeStatementNet({
+    grossRevenueMinor,
+    totalFeesMinor,
+    totalExpensesMinor,
+    totalTaxesMinor,
+    totalReservesMinor,
+    managementFeeMinor,
+  });
+
+  // SAFETY NET — Σ(signed statement lines) MUST reconcile to the net. Throws
+  // loudly before any money row is written if a sign/accumulator ever drifts.
+  const linesSignedTotalMinor = linesToInsert.reduce<bigint>(
+    (acc, l) => acc + l.amount_minor,
+    0n,
+  );
+  assertStatementLinesMatchNet(linesSignedTotalMinor, netPayoutMinor);
+
+  // -----------------------------------------------------------------
+  // 3b) FX snapshot + net-to-owner in USD (MISSING-USD fix).
+  //
+  // The owner portal + the monthly cron email render `net_to_owner_usd_minor`
+  // and `fx_rate_snapshot`; leaving them NULL made those views show nothing.
+  // Resolve + snapshot the live USD→IDR rate exactly like statement-generation.ts
+  // (getUsdToIdr() with the pinned 15,800 fallback) and convert with the SAME
+  // direction/units:
+  //   - USD statement → net is already USD minor (identity).
+  //   - IDR statement → USD minor = round(netIdrMinor / 100 / fxUsdToIdr * 100).
+  //   - other currency → no canonical pair to convert through; leave USD NULL
+  //     but still snapshot the rate.
+  const { getUsdToIdr } = await import("@/features/integrations/fx-service");
+  const fxUsdToIdr =
+    (await getUsdToIdr().catch(() => FX_USD_TO_IDR_FALLBACK)) || FX_USD_TO_IDR_FALLBACK;
+  const fxRateSnapshot = String(fxUsdToIdr);
+  let netToOwnerUsdMinor: bigint | null;
+  if (currency === "USD") {
+    netToOwnerUsdMinor = netPayoutMinor;
+  } else if (currency === "IDR") {
+    netToOwnerUsdMinor = BigInt(
+      Math.round((Number(netPayoutMinor) / 100) / fxUsdToIdr * 100),
+    );
+  } else {
+    netToOwnerUsdMinor = null;
+  }
 
   // -----------------------------------------------------------------
   // 4) Compute occupancy / ADR / RevPAR
@@ -717,6 +791,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         totalReservesMinor,
         managementFeeMinor,
         netPayoutMinor,
+        fxRateSnapshot,
+        netToOwnerUsdMinor,
         occupancyRate: occupancyRate === null ? null : occupancyRate.toFixed(3),
         adrMinor: adrMinor ?? null,
         revparMinor: revparMinor ?? null,
@@ -754,6 +830,8 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         totalReservesMinor,
         managementFeeMinor,
         netPayoutMinor,
+        fxRateSnapshot,
+        netToOwnerUsdMinor,
         occupancyRate: occupancyRate === null ? null : occupancyRate.toFixed(3),
         adrMinor: adrMinor ?? null,
         revparMinor: revparMinor ?? null,

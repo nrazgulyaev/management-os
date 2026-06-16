@@ -13,6 +13,12 @@ import type { ActionResult } from "@/features/projects/actions";
 export interface PayoutLineFormOption {
   id: string;
   label: string;
+  /**
+   * Optional currency. When a batch carries one and is selected, the line's
+   * currency is locked to it (a batch total is single-currency; the server
+   * action rejects a mismatch). Owners options leave this undefined.
+   */
+  currency?: string;
 }
 
 /**
@@ -37,7 +43,15 @@ export function PayoutLineForm({
     { onSuccess },
   );
   const [currency, setCurrency] = useState("USD");
+  const [batchId, setBatchId] = useState("");
   const errs = state && !state.ok ? state.fieldErrors ?? {} : {};
+
+  // When a batch is selected, lock the line currency to the batch currency — a
+  // batch total is single-currency and createPayoutLineAction rejects a
+  // mismatch. Currency stays free when the line is left unbatched.
+  const selectedBatch = batchId ? batches.find((b) => b.id === batchId) : undefined;
+  const lockedCurrency = selectedBatch?.currency;
+  const effectiveCurrency = lockedCurrency ?? currency;
 
   return (
     <form action={submitAction}>
@@ -82,22 +96,43 @@ export function PayoutLineForm({
             label="Amount"
             name="amountMinor"
             required
-            currency={currency}
+            currency={effectiveCurrency}
             error={errs.amountMinor?.[0]}
           />
-          <Field label="Currency" required error={errs.currency?.[0]}>
-            <select
-              name="currency"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className={selectCls}
-            >
-              {["USD", "IDR", "EUR", "GBP", "AUD", "SGD"].map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+          <Field
+            label="Currency"
+            required
+            error={errs.currency?.[0]}
+            hint={lockedCurrency ? "Locked to the selected batch's currency." : undefined}
+          >
+            {/* A disabled <select> is not submitted, so when locked we render a
+                read-only display + a hidden input carrying the batch currency. */}
+            {lockedCurrency ? (
+              <>
+                <input type="hidden" name="currency" value={lockedCurrency} />
+                <select
+                  value={lockedCurrency}
+                  disabled
+                  aria-label="Currency (locked to batch)"
+                  className={selectCls}
+                >
+                  <option value={lockedCurrency}>{lockedCurrency}</option>
+                </select>
+              </>
+            ) : (
+              <select
+                name="currency"
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className={selectCls}
+              >
+                {["USD", "IDR", "EUR", "GBP", "AUD", "SGD"].map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            )}
           </Field>
         </div>
 
@@ -107,7 +142,12 @@ export function PayoutLineForm({
             error={errs.payoutBatchId?.[0]}
             hint="Attach to an existing payout batch, or leave unbatched."
           >
-            <select name="payoutBatchId" defaultValue="" className={selectCls}>
+            <select
+              name="payoutBatchId"
+              value={batchId}
+              onChange={(e) => setBatchId(e.target.value)}
+              className={selectCls}
+            >
               <option value="">— Unbatched —</option>
               {batches.map((b) => (
                 <option key={b.id} value={b.id}>
