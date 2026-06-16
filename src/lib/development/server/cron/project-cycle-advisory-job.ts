@@ -8,6 +8,7 @@ import {
   type ProjectCycleInput,
 } from "../project-cycle/cycle-helpers";
 import { projectCycleRecommendations } from "@/lib/db/schema/project-cycle";
+import { getOrganizationByCode } from "../organizations/organization-queries";
 
 /**
  * Stage 5.B.2 — Project Cycle Advisory (Monday 06:00).
@@ -135,6 +136,21 @@ export async function runDevOsProjectCycleAdvisory(
 
   const advisory = computeProjectCycleAdvisory(context);
 
+  // TENANCY — company-wide cron with no session/project; anchor the
+  // recommendation row to the platform default org (mirrors migration 0151
+  // backfill + the sibling cashflow-autogenerate cron). Without this the row
+  // lands `organization_id = NULL` and is invisible to every org-scoped
+  // reader (orphaned), or worse leaks across tenants on an unscoped read.
+  const defaultOrg = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+  if (!defaultOrg) {
+    return {
+      status: "failed",
+      summary: "No ARCONIQUE_DEFAULT org — cannot scope the recommendation.",
+      metrics: { generated: 0 },
+      error: "default org missing",
+    };
+  }
+
   const countRows = rowsOf<{ count: string }>(
     await db.execute<{ count: string }>(sql`
       SELECT COUNT(*)::text AS count FROM project_cycle_recommendations
@@ -145,6 +161,7 @@ export async function runDevOsProjectCycleAdvisory(
   const code = `PCR-${year}-${seq}`;
 
   await db.insert(projectCycleRecommendations).values({
+    organizationId: defaultOrg.id,
     recommendationCode: code,
     generatedForDate: now.toISOString().slice(0, 10),
     generatedByAgent: "project_cycle_intelligence_cron",

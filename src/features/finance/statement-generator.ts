@@ -105,6 +105,13 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   const periodStart = period.periodStart;
   const periodEnd = period.periodEnd;
 
+  // TENANCY/VISIBILITY: the owner-portal statements list filters
+  // `period_month IS NOT NULL` (and orders by it), so a statement created
+  // without it is INVISIBLE to the owner. The sibling generator
+  // (statement-generation.ts) stores a first-of-month date anchor; mirror
+  // that here by truncating the period's start date to its first-of-month.
+  const periodMonth = `${periodStart.slice(0, 7)}-01`;
+
   const sharesRaw = await db
     .select({
       s: ownershipShares,
@@ -700,6 +707,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
       .set({
         villaId: headlineVillaId,
         projectId: headlineProjectId,
+        periodMonth,
         managementModel,
         currency,
         grossRevenueMinor,
@@ -735,6 +743,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         villaId: headlineVillaId,
         projectId: headlineProjectId,
         periodId: input.periodId,
+        periodMonth,
         statementCode,
         managementModel,
         currency,

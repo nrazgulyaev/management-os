@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { userResponsibilityScopes } from "@/lib/db/schema/availability";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -84,6 +84,7 @@ export async function editResponsibilityScopeAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
   const patch: Record<string, unknown> = { updatedAt: new Date() };
   if (parsed.data.roleKey !== undefined) patch.roleKey = parsed.data.roleKey;
@@ -95,10 +96,16 @@ export async function editResponsibilityScopeAction(
   if (parsed.data.scopeType !== undefined)
     patch.scopeType = parsed.data.scopeType;
 
+  // TENANCY: AND the org guard so a foreign-org scope id matches no row.
   await db
     .update(userResponsibilityScopes)
     .set(patch)
-    .where(eq(userResponsibilityScopes.id, parsed.data.id));
+    .where(
+      and(
+        eq(userResponsibilityScopes.id, parsed.data.id),
+        eq(userResponsibilityScopes.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -124,11 +131,18 @@ export async function archiveResponsibilityScopeAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // TENANCY: AND the org guard so a foreign-org scope id matches no row.
   await db
     .update(userResponsibilityScopes)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(userResponsibilityScopes.id, parsed.data.id));
+    .where(
+      and(
+        eq(userResponsibilityScopes.id, parsed.data.id),
+        eq(userResponsibilityScopes.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

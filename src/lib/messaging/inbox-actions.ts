@@ -17,8 +17,9 @@ import {
 } from "./service";
 import { requireDb } from "@/lib/db/client";
 import { conversationThreads, type MessagingChannel } from "@/lib/db/schema/messaging";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { requireOrgId } from "@/features/auth/require-org";
+import { requireInternalUser } from "@/features/auth/permissions";
 import { envKeyForChannel } from "./channel-env";
 
 /**
@@ -270,9 +271,20 @@ export async function setRuleActiveAction(
  * can call a single import for "load + mark read" semantics.
  */
 export async function touchThreadAsRead(threadId: string) {
+  // TENANCY: this is an exported "use server" action — a direct endpoint
+  // reachable with a client-supplied threadId. Authenticate, then scope the
+  // UPDATE by org so a caller can only clear the unread count on a thread in
+  // their own organization. conversation_threads.organization_id is NOT NULL.
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(conversationThreads)
     .set({ unreadCount: 0, updatedAt: new Date() })
-    .where(eq(conversationThreads.id, threadId));
+    .where(
+      and(
+        eq(conversationThreads.id, threadId),
+        eq(conversationThreads.organizationId, organizationId),
+      ),
+    );
 }

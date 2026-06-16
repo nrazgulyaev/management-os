@@ -223,6 +223,26 @@ export async function sendOutboundMessage(
   const db = requireDb();
   const provider = selectMessagingProvider(input.channel, input.credentials);
 
+  // Tenant boundary: `threadId` arrives from the caller (a client form /
+  // body), and the DB role bypasses RLS. Confirm the thread belongs to
+  // `organizationId` BEFORE inserting a message or rolling up thread
+  // state — otherwise a caller could pre-insert into / mutate another
+  // org's thread by guessing its id (write-IDOR). A cross-org or missing
+  // id reads as "not found".
+  const [ownedThread] = await db
+    .select({ id: conversationThreads.id })
+    .from(conversationThreads)
+    .where(
+      and(
+        eq(conversationThreads.id, input.threadId),
+        eq(conversationThreads.organizationId, input.organizationId),
+      ),
+    )
+    .limit(1);
+  if (!ownedThread) {
+    return { ok: false, error: "thread not found" };
+  }
+
   // Pre-insert the message in `pending` status so we have a row to
   // update with the external ID after dispatch. This also lets the
   // composer optimistic-render before the network round-trip lands.

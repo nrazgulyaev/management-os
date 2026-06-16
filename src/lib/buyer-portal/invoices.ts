@@ -1,8 +1,8 @@
 import "server-only";
 
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, invoices } from "@/lib/db/schema/sales";
 
 /**
@@ -60,23 +60,46 @@ export async function getBuyerInvoices(
   const db = getDb();
   if (!db) return [];
 
-  // 1. The buyer's assigned villas.
+  // 0. Resolve the buyer's own org so the assignment → group → invoice chain
+  //    is bounded to the buyer's tenant (defence-in-depth: the shared
+  //    `invoices` / `contract_groups` tables are never read cross-org).
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, buyerId))
+    .limit(1);
+  if (!buyer) return [];
+  const orgId = buyer.organizationId;
+
+  // 1. The buyer's assigned villas (org-bounded).
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = [...new Set(assignments.map((a) => a.unitId))];
   if (unitIds.length === 0) return [];
 
-  // 2. Contract groups for those villas.
+  // 2. Contract groups for those villas (org-bounded).
   const groups = await db
     .select({ id: contractGroups.id })
     .from(contractGroups)
-    .where(inArray(contractGroups.villaId, unitIds));
+    .where(
+      and(
+        eq(contractGroups.organizationId, orgId),
+        inArray(contractGroups.villaId, unitIds),
+      ),
+    );
   const groupIds = groups.map((g) => g.id);
   if (groupIds.length === 0) return [];
 
-  // 3. Issued invoices for those groups — drafts are hidden.
+  // 3. Issued invoices for those groups — drafts are hidden. The `invoices`
+  //    table has no own org column, but `groupIds` is already the org-bounded
+  //    set of the buyer's contract groups, so this is tenant-safe by FK.
   const rows = await db
     .select({
       id: invoices.id,

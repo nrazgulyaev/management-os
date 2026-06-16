@@ -174,8 +174,13 @@ export async function GET(request: NextRequest) {
   };
 
   // Log to pricing_quote_logs (best-effort, public_quote=true).
+  // TENANCY: stamp organizationId from the resolved rule set (the row's
+  // parent) so this inline write is never org=NULL. The rule set is the
+  // org-anchored entity that produced this quote; mis-stamping is
+  // impossible because it was selected for this villa server-side.
   if (dynamic?.ruleSet) {
     await createQuoteLog({
+      organizationId: dynamic.ruleSet.organizationId,
       villaId: parsed.data.villaId,
       projectId: null,
       channelKey,

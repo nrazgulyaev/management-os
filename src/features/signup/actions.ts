@@ -1,12 +1,13 @@
 "use server";
 
 import { z } from "zod";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getDb } from "@/lib/db/client";
 import { organizations } from "@/lib/db/schema/saas";
 import { appUsers } from "@/lib/db/schema/identity";
+import { appUserRoles } from "@/lib/db/schema/role-cabinets";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { type ProductSlug } from "@/lib/products";
@@ -217,6 +218,39 @@ export async function signupAction(
   await db.execute(
     sql`SELECT public.assign_user_role(${appUser.id}::uuid, ${"super_admin"}::text, NULL::text, NULL::uuid)`,
   );
+
+  // 5b) CABINET ACCESS — assign_user_role only writes `user_roles` (the RLS
+  //     bypass flag). Cabinet routing (Stage 5.F) reads `app_user_roles`; a
+  //     user with no app_user_roles row lands without a cabinet. The
+  //     canonical onboarding path (provision_app_user, migration 0087) grants
+  //     BOTH — internal 'super_admin' AND cabinet 'admin'. signupAction did
+  //     its own app_users insert + assign_user_role and so never created the
+  //     cabinet grant. Mirror provision_app_user's idempotent company_wide
+  //     'admin' grant here so a freshly-provisioned tenant admin has cabinet
+  //     access. Idempotent via the same NOT-EXISTS guard provision_app_user
+  //     uses (a fresh signup never has a row, but this stays re-run-safe and
+  //     respects the partial-unique-primary index).
+  const [existingCabinetRole] = await db
+    .select({ id: appUserRoles.id })
+    .from(appUserRoles)
+    .where(
+      and(
+        eq(appUserRoles.userId, appUser.id),
+        eq(appUserRoles.roleKey, "admin"),
+        eq(appUserRoles.scope, "company_wide"),
+        eq(appUserRoles.isActive, true),
+      ),
+    )
+    .limit(1);
+  if (!existingCabinetRole) {
+    await db.insert(appUserRoles).values({
+      userId: appUser.id,
+      roleKey: "admin",
+      scope: "company_wide",
+      isPrimary: true,
+      isActive: true,
+    });
+  }
 
   // 6) Welcome email (no-op until 10.L wires Resend).
   await sendEmail(emailLower, welcomeEmailTemplate, {

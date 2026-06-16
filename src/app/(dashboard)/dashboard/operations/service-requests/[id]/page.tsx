@@ -5,6 +5,7 @@ import { ServiceRequestStatusPill } from "@/components/operations/task-status-pi
 import { PriorityPill } from "@/components/operations/priority-pill";
 import { ServiceRequestActions } from "@/components/operations/service-request-actions";
 import { listServiceRequests } from "@/features/operations/services";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Service request" };
@@ -16,8 +17,10 @@ export default async function ServiceRequestDetail({
 }) {
   const { id } = await params;
   // listServiceRequests has the joined villa info and uses the same filter
-  // path; cheaper than adding a one-shot service for now.
-  const all = await listServiceRequests({ limit: 1000 });
+  // path; cheaper than adding a one-shot service for now. Org-scoped so a
+  // foreign-org request id resolves to not-found (no cross-tenant detail IDOR).
+  const organizationId = await requireOrgId();
+  const all = await listServiceRequests({ limit: 1000, organizationId });
   const sr = all.find((r) => r.id === id);
   if (!sr) notFound();
 

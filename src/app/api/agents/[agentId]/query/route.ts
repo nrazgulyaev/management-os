@@ -120,6 +120,7 @@ export async function POST(
 function inferenceCodeToStatus(code: string): number {
   switch (code) {
     case "AGENT_NOT_FOUND":
+    case "THREAD_NOT_FOUND":
       return 404;
     case "AGENT_INACTIVE":
     case "NOT_SUBSCRIBED":

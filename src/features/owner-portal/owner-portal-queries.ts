@@ -350,11 +350,17 @@ export async function getMyStatementDetail(
     amountIdrMinor: BigInt(l.amount_minor ?? "0"),
   }));
 
-  const [y, m] = sr.period_month.split("-").map(Number);
-  const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
-    month: "long",
-    year: "numeric",
-  });
+  // period_month is nullable (the mgmt-side generator persists periodId only,
+  // and issued/approved rows can carry NULL). Guard the formatter so a direct
+  // statement read can't crash on `.split("-")`.
+  let monthLabel = "—";
+  if (sr.period_month) {
+    const [y, m] = sr.period_month.split("-").map(Number);
+    monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
+      month: "long",
+      year: "numeric",
+    });
+  }
 
   return {
     statementId: sr.id,
@@ -548,7 +554,12 @@ export async function listMyDistributions(ownerId: string): Promise<Distribution
   // lifecycle marks that with status 'paid' (the old filter used a
   // non-existent 'sent' status and surfaced nothing).
   const rows = await listMyStatements(ownerId, { statusFilter: "paid", limit: 50 });
-  const yearStart = new Date(new Date().getUTCFullYear(), 0, 1)
+  // Build the YTD boundary in UTC. The previous `new Date(year, 0, 1)` used the
+  // server's *local* time for Jan 1, so `.toISOString()` could shift it back to
+  // Dec 31 of the prior year in any UTC-negative timezone — which then pulled
+  // last December's paid distribution into this year's YTD total. period_month
+  // is already a UTC date string, so compare against a UTC-anchored Jan 1.
+  const yearStart = new Date(Date.UTC(new Date().getUTCFullYear(), 0, 1))
     .toISOString()
     .slice(0, 10);
   const ytd = rows

@@ -1,6 +1,6 @@
 "use server";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { requireInternalUser } from "@/features/auth/permissions";
@@ -65,11 +65,17 @@ export async function decryptConnectionCredentials(
   connectionId: string,
 ): Promise<ChannelCredentials | null> {
   await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const [row] = await db
     .select({ credentials: channelConnections.credentials })
     .from(channelConnections)
-    .where(eq(channelConnections.id, connectionId))
+    .where(
+      and(
+        eq(channelConnections.id, connectionId),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row?.credentials) return null;
   if (!isEncryptedBlob(row.credentials)) {
@@ -207,11 +213,17 @@ export async function testChannelConnection(
   connectionId: string,
 ): Promise<{ ok: boolean; connected: boolean; details: Record<string, unknown> }> {
   await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const [row] = await db
     .select()
     .from(channelConnections)
-    .where(eq(channelConnections.id, connectionId))
+    .where(
+      and(
+        eq(channelConnections.id, connectionId),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) {
     return { ok: false, connected: false, details: { error: "not found" } };
@@ -245,6 +257,7 @@ export async function updateChannelConnectionStatus(
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
   }
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const archived = parsed.data.status === "archived";
   await db
@@ -255,7 +268,12 @@ export async function updateChannelConnectionStatus(
       archiveReason: archived ? (parsed.data.archiveReason ?? null) : null,
       updatedAt: new Date(),
     })
-    .where(eq(channelConnections.id, parsed.data.connectionId));
+    .where(
+      and(
+        eq(channelConnections.id, parsed.data.connectionId),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    );
   return { ok: true };
 }
 
@@ -286,11 +304,17 @@ export async function triggerManualReservationsPull(
   connectionId: string,
 ): Promise<ManualSyncResult> {
   await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const [row] = await db
     .select()
     .from(channelConnections)
-    .where(eq(channelConnections.id, connectionId))
+    .where(
+      and(
+        eq(channelConnections.id, connectionId),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) {
     return {
@@ -301,7 +325,6 @@ export async function triggerManualReservationsPull(
       error: "Connection not found",
     };
   }
-  const orgId = row.organizationId;
   const creds = await decryptConnectionCredentials(connectionId);
   const provider = selectChannelProvider(row.channel as ChannelName, creds);
 
@@ -351,7 +374,12 @@ export async function triggerManualReservationsPull(
       lastReservationSyncError: errorMessage ?? null,
       updatedAt: new Date(),
     })
-    .where(eq(channelConnections.id, connectionId));
+    .where(
+      and(
+        eq(channelConnections.id, connectionId),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    );
 
   return {
     ok: true,
@@ -385,10 +413,17 @@ function truncate(s: string, max: number): string {
 
 /** Quick total count for the channels page eyebrow. */
 export async function countActiveConnections(): Promise<number> {
+  await requireInternalUser();
+  const orgId = await resolveActiveOrgId();
   const db = requireDb();
   const [row] = await db
     .select({ c: sql<number>`count(*)::int` })
     .from(channelConnections)
-    .where(eq(channelConnections.status, "active"));
+    .where(
+      and(
+        eq(channelConnections.organizationId, orgId),
+        eq(channelConnections.status, "active"),
+      ),
+    );
   return Number(row?.c ?? 0);
 }

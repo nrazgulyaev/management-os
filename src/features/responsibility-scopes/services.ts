@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import { userResponsibilityScopes } from "@/lib/db/schema/availability";
 import { appUsers } from "@/lib/db/schema/identity";
 import { villas, projects as projectsTable } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * V9A — fine-grained responsibility scoping. A scope row narrows a
@@ -37,7 +38,10 @@ export async function listResponsibilityScopes(opts?: {
 }): Promise<ResponsibilityScopeRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters = [];
+  // TENANCY: user_responsibility_scopes has a NOT NULL organization_id — always
+  // scope the list to the caller's org so a tenant never sees foreign scopes.
+  const organizationId = await requireOrgId();
+  const filters = [eq(userResponsibilityScopes.organizationId, organizationId)];
   if (opts?.userId) filters.push(eq(userResponsibilityScopes.userId, opts.userId));
   if (opts?.projectId)
     filters.push(eq(userResponsibilityScopes.projectId, opts.projectId));

@@ -10,7 +10,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { disconnectGoogleConnection } from "@/lib/google-workspace/service";
+import { disconnectGoogleConnectionAction } from "@/lib/google-workspace/connection-actions";
 
 interface Props {
   connectionId: string | null;
@@ -37,10 +37,13 @@ export function GoogleWorkspaceActions({
     startTransition(async () => {
       setError(null);
       try {
-        await disconnectGoogleConnection({
-          organizationId,
-          connectionId,
-        });
+        // TENANCY: only the connectionId is sent — the action derives the
+        // org from the session, so the client-supplied org is never trusted.
+        const res = await disconnectGoogleConnectionAction({ connectionId });
+        if (!res.ok) {
+          setError(res.error);
+          return;
+        }
         router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));

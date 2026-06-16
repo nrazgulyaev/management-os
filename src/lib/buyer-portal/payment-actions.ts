@@ -26,7 +26,7 @@ import { z } from "zod";
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
-import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
 import { settleContractMilestonePaid } from "@/features/payments/installment-settlement";
 
@@ -44,31 +44,55 @@ export async function markBuyerInstallmentPaid(input: {
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
 
-  // 1. Resolve the buyer's villas (units) from their assignments.
+  // 0. Resolve the buyer's own org so the assignment → group → milestone
+  //    ownership chain is bounded to the buyer's tenant. The shared
+  //    settlement core then mutates by milestone id without an org check, so
+  //    this action is the sole tenant gate — every link must be org-scoped.
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, session.buyerId))
+    .limit(1);
+  if (!buyer) return { ok: false, error: "Not authenticated." };
+  const orgId = buyer.organizationId;
+
+  // 1. Resolve the buyer's villas (units) from their assignments (org-bounded).
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, session.buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, session.buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = assignments.map((a) => a.unitId);
   if (unitIds.length === 0) return { ok: false, error: "No villas assigned." };
 
-  // 2. Resolve the contract groups for those villas.
+  // 2. Resolve the contract groups for those villas (org-bounded).
   const groups = await db
     .select({ id: contractGroups.id, villaId: contractGroups.villaId })
     .from(contractGroups)
-    .where(inArray(contractGroups.villaId, unitIds));
+    .where(
+      and(
+        eq(contractGroups.organizationId, orgId),
+        inArray(contractGroups.villaId, unitIds),
+      ),
+    );
   const groupIds = groups.map((g) => g.id);
   if (groupIds.length === 0) {
     return { ok: false, error: "No contract found for your villas." };
   }
 
-  // 3. Load the milestone AND verify it belongs to one of the buyer's groups.
+  // 3. Load the milestone AND verify it belongs to one of the buyer's groups
+  //    (org-bounded; defence-in-depth against a cross-org milestone id).
   const [milestone] = await db
     .select()
     .from(contractMilestones)
     .where(
       and(
         eq(contractMilestones.id, parsed.data.milestoneId),
+        eq(contractMilestones.organizationId, orgId),
         inArray(contractMilestones.contractGroupId, groupIds),
       ),
     )

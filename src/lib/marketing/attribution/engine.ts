@@ -346,7 +346,12 @@ export async function getChannelROI(input: {
         const platformRow = await db
           .select({ platform: marketingCampaigns.platform })
           .from(marketingCampaigns)
-          .where(eq(marketingCampaigns.id, entry.campaignId))
+          .where(
+            and(
+              eq(marketingCampaigns.id, entry.campaignId),
+              eq(marketingCampaigns.organizationId, input.organizationId),
+            ),
+          )
           .limit(1);
         const ch = platformToChannel(platformRow[0]?.platform);
         revenueByChannel.set(

@@ -3,6 +3,7 @@ import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
+import { EmptyState } from "@/components/ui/empty-state";
 import { listProjects } from "@/features/projects/services";
 import { ProjectAddButton } from "@/components/projects/project-add-button";
 
@@ -44,8 +45,15 @@ export default async function ProjectsPage() {
 
       <DbStatusNotice />
 
-      <div className="pf-proj-grid">
-        {projects.map((p) => (
+      {projects.length === 0 ? (
+        <EmptyState
+          title="No projects yet"
+          description="A project groups its villas and organises reporting, ownership, and handover. Create your first project to start building your portfolio."
+          action={<ProjectAddButton />}
+        />
+      ) : (
+        <div className="pf-proj-grid">
+          {projects.map((p) => (
           <Link key={p.id} href={`/dashboard/projects/${p.slug}`} className="pf-proj group">
             <div className="tags">
               <Badge tone="outline">{p.area ?? "—"}</Badge>
@@ -61,8 +69,9 @@ export default async function ProjectsPage() {
               <Stat label="Management" value={p.managementStatus.replace("_", " ")} />
             </div>
           </Link>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

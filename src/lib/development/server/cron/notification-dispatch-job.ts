@@ -3,7 +3,7 @@ import "server-only";
 import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contacts } from "@/lib/db/schema/contacts";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import {
   contractGroups,
   contractMilestones,
@@ -72,6 +72,7 @@ export async function runDevOsNotificationDispatch(
     const candidates = await db
       .select({
         milestone: contractMilestones,
+        organizationId: contractMilestones.organizationId,
         groupContactId: contractGroups.contactId,
         villaCode: villas.unitCode,
       })
@@ -91,6 +92,11 @@ export async function runDevOsNotificationDispatch(
 
     for (const cand of candidates) {
       for (const rule of preInvoiceRules) {
+        // TENANCY: a rule may only fire against entities in its own org.
+        // The candidate scan is cross-org (all-org cron sweep), so without
+        // this guard org A's rule/template would dispatch to org B's buyer
+        // and log the delivery under org A.
+        if (cand.organizationId !== rule.organizationId) continue;
         const result = await dispatchOnce({
           handle,
           rule,
@@ -122,10 +128,13 @@ export async function runDevOsNotificationDispatch(
     const candidates = await db
       .select({
         reservation: reservations,
+        // reservations has no org column — org is anchored via project.
+        organizationId: projects.organizationId,
         villaCode: villas.unitCode,
       })
       .from(reservations)
       .innerJoin(villas, eq(villas.id, reservations.villaId))
+      .innerJoin(projects, eq(projects.id, villas.projectId))
       .where(
         and(
           eq(reservations.status, "active"),
@@ -144,6 +153,9 @@ export async function runDevOsNotificationDispatch(
         ),
       );
       for (const rule of reservationRules) {
+        // TENANCY: only dispatch a rule against reservations in its own org
+        // (the candidate scan above is cross-org for the all-org sweep).
+        if (cand.organizationId !== rule.organizationId) continue;
         const result = await dispatchOnce({
           handle,
           rule,

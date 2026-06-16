@@ -1,0 +1,33 @@
+{
+  "unscopedDbFiles": [
+    "src/features/attachments/actions.ts",
+    "src/features/channels/actions.ts",
+    "src/features/channels/services.ts",
+    "src/features/direct-booking/guest-status-services.ts",
+    "src/features/dynamic-pricing/actions.ts",
+    "src/features/guest-journey/owner-events-rebuild.ts",
+    "src/features/guest-services/finance-bridge.ts",
+    "src/features/guest-stays/access-log.ts",
+    "src/features/guest-stays/rate-limit.ts",
+    "src/features/jobs/locks.ts",
+    "src/features/jobs/services.ts",
+    "src/features/owner-portal/generate-bundle.ts",
+    "src/features/owner-portal/payout-edit-actions.ts",
+    "src/features/owner-statements/actions.ts",
+    "src/features/security-baseline/login-throttle.ts",
+    "src/features/security-baseline/security-events.ts",
+    "src/features/villa-guides/wifi-crypto.ts",
+    "src/lib/development/ai/translator.ts",
+    "src/lib/development/pdf/render-invoice-pdf.ts",
+    "src/lib/development/server/ai/agent-runner.ts",
+    "src/lib/development/server/cron/fx-snapshot-job.ts",
+    "src/lib/development/server/cron/late-fee-accrual-job.ts",
+    "src/lib/development/server/cron/pricing-apply-job.ts",
+    "src/lib/development/server/cron/wallet-recompute-job.ts",
+    "src/lib/development/server/lead-sources/lead-source-actions.ts"
+  ],
+  "formParsedOrgFiles": [
+    "src/lib/agents/actions.ts",
+    "src/lib/agents/knowledge-actions.ts"
+  ]
+}

@@ -220,6 +220,17 @@ export async function getMessageCitations(
   chunkIds: string[],
 ): Promise<MessageCitation[]> {
   if (chunkIds.length === 0) return [];
+
+  // Auth + org scope. This is a `"use server"` action invoked from the
+  // client with client-supplied chunk ids — a direct endpoint. Without
+  // a principal + org predicate, any signed-in user could read another
+  // tenant's (or a non-subscribed org's) knowledge-base chunk text and
+  // filenames by passing arbitrary chunk UUIDs. We scope to the caller's
+  // org and platform-global chunks (organization_id IS NULL), mirroring
+  // the retrieval module's (org_id IS NULL OR org_id = $) shape.
+  const me = await getCurrentAppUser();
+  if (!me) return [];
+
   const db = requireDb();
 
   // Cap to 20 — we never retrieve more than topK=5 today, but the
@@ -242,6 +253,10 @@ export async function getMessageCitations(
        safeIds.map((id) => sql`${id}::uuid`),
        sql`, `,
      )})
+       AND (
+         c.organization_id IS NULL
+         OR c.organization_id = ${me.organizationId}::uuid
+       )
   `);
 
   const list =

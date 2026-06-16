@@ -667,7 +667,12 @@ export async function listPayoutBatches(): Promise<WithSource<PayoutBatchRow>[]>
     const lines = await db
       .select()
       .from(payoutLines)
-      .where(eq(payoutLines.payoutBatchId, r.id));
+      // TENANCY-FINANCE — AND the org scope (not just the batch id) so a
+      // batch total can never be inflated by a foreign-org line that shares
+      // the same payout_batch_id. Defense-in-depth: createPayoutLineAction
+      // already org-validates batch attachment, but the totals read must not
+      // rely on that being the only write path.
+      .where(and(eq(payoutLines.payoutBatchId, r.id), eq(payoutLines.organizationId, organizationId)));
     const totalAmountMinor = lines.reduce<bigint>((acc, l) => acc + BigInt(l.amountMinor), 0n);
     result.push({
       source: "db" as const,

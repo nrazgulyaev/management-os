@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import {
   contractGroups,
   contractMilestones,
@@ -89,11 +89,26 @@ export async function getBuyerContracts(
   const db = getDb();
   if (!db) return [];
 
-  // 1. The buyer's assigned villas.
+  // 0. Resolve the buyer's own org so the entire chain is bounded to the
+  //    buyer's tenant — even if a stray cross-org assignment row exists.
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, buyerId))
+    .limit(1);
+  if (!buyer) return [];
+  const orgId = buyer.organizationId;
+
+  // 1. The buyer's assigned villas (org-bounded).
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = [...new Set(assignments.map((a) => a.unitId))];
   if (unitIds.length === 0) return [];
 
@@ -116,7 +131,12 @@ export async function getBuyerContracts(
       fullySignedAt: contractGroups.fullySignedAt,
     })
     .from(contractGroups)
-    .where(inArray(contractGroups.villaId, unitIds));
+    .where(
+      and(
+        eq(contractGroups.organizationId, orgId),
+        inArray(contractGroups.villaId, unitIds),
+      ),
+    );
   if (groups.length === 0) return [];
 
   // 4. THIS buyer's own recorded signatures across those groups. Scoped by
@@ -132,6 +152,7 @@ export async function getBuyerContracts(
     .from(contractSignatures)
     .where(
       and(
+        eq(contractSignatures.organizationId, orgId),
         eq(contractSignatures.buyerId, buyerId),
         inArray(contractSignatures.contractGroupId, groupIds),
       ),

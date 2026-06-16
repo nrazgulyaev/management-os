@@ -3,7 +3,7 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { directBookingRequests } from "@/lib/db/schema/direct-booking";
-import { villas } from "@/lib/db/schema/projects";
+import { villas, projects } from "@/lib/db/schema/projects";
 import { quoteDynamicStay } from "@/features/dynamic-pricing/services";
 import { createQuoteLog } from "@/features/dynamic-pricing/services";
 import {
@@ -183,9 +183,19 @@ export async function handleCreateHold(args: {
       body: { ok: false, reason: "no_db" },
     };
   }
+  // PUBLIC endpoint: derive the org from the resolved villa's project (NEVER
+  // from any request body field) so the hold is stamped with the correct
+  // tenant. organizationId is nullable for legacy rows; we join projects so a
+  // newly-created hold/request carries the org from the villa→project chain.
   const [villa] = await db
-    .select({ projectId: villas.projectId, name: villas.name, code: villas.unitCode })
+    .select({
+      projectId: villas.projectId,
+      name: villas.name,
+      code: villas.unitCode,
+      organizationId: projects.organizationId,
+    })
     .from(villas)
+    .leftJoin(projects, eq(projects.id, villas.projectId))
     .where(eq(villas.id, data.villaId))
     .limit(1);
   if (!villa) {
@@ -242,6 +252,7 @@ export async function handleCreateHold(args: {
     tokenPrefix,
     villaId: data.villaId,
     projectId: villa.projectId,
+    organizationId: villa.organizationId ?? null,
     quoteLogId: quoteLogId ?? null,
     checkIn: data.checkIn,
     checkOut: data.checkOut,
@@ -443,13 +454,31 @@ export async function handleSubmitHold(args: {
     organizationId: hold.organizationId,
   });
 
-  // Insert the request.
+  // Insert the request. TENANCY: stamp the org so the inquiry_submitted
+  // conversion (and every downstream org-scoped read) resolves. Prefer the
+  // hold's org (set on creation from the villa→project chain); fall back to
+  // re-deriving from the villa's project for legacy holds with a null org —
+  // NEVER from any request body field (this is a public endpoint).
   const requestCode = `DBR-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+  let resolvedOrgId: string | null = hold.organizationId ?? null;
+  if (!resolvedOrgId) {
+    const dbForOrg = getDb();
+    if (dbForOrg) {
+      const [v] = await dbForOrg
+        .select({ organizationId: projects.organizationId })
+        .from(villas)
+        .leftJoin(projects, eq(projects.id, villas.projectId))
+        .where(eq(villas.id, hold.villaId))
+        .limit(1);
+      resolvedOrgId = v?.organizationId ?? null;
+    }
+  }
   const request = await insertRequest({
     requestCode,
     holdId: hold.id,
     villaId: hold.villaId,
     projectId: hold.projectId,
+    organizationId: resolvedOrgId,
     guestId,
     guestFirstName: data.guestFirstName,
     guestLastName: data.guestLastName ?? null,

@@ -49,6 +49,12 @@ interface AnthropicResponse {
  */
 export async function callOperationsCopilot(
   userPrompt: string,
+  // TENANCY: the resolved run org (or `null` for the session-less cron run,
+  // which is the all-orgs sentinel). Threaded into executeTool so the
+  // org-scoped read tools (listServiceRequests / listMaintenanceTickets) see
+  // the same org the snapshot was built with, instead of re-resolving (and
+  // throwing) via requireOrgId() in a session-less context.
+  organizationId: string | null = null,
 ): Promise<CallCopilotResult> {
   const toolCalls: CallCopilotResult["toolCalls"] = [];
 
@@ -220,7 +226,7 @@ export async function callOperationsCopilot(
         });
         continue;
       }
-      const result = await executeTool(tu.name, tu.input);
+      const result = await executeTool(tu.name, tu.input, organizationId);
       toolCalls.push({
         toolName: tu.name,
         input: tu.input,

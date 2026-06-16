@@ -113,6 +113,11 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
     const todayIso = today.toISOString().slice(0, 10);
     const horizon = new Date(today.getTime() + 14 * 86_400_000).toISOString().slice(0, 10);
 
+    // Supplementary reads (upcoming + recentActivity) are non-critical: the
+    // home page's headline already comes from the guarded Promise.all above.
+    // Degrade each sub-read to empty on failure so a transient error (or a
+    // partially-migrated tenant missing one of these tables) can't take down
+    // the whole home page — mirroring the `.catch()` pattern on the KPI reads.
     const upcomingGuestRows = await db
       .select({
         id: bookings.id,
@@ -133,7 +138,8 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
         ),
       )
       .orderBy(asc(bookings.checkIn))
-      .limit(12);
+      .limit(12)
+      .catch(() => []);
 
     const upcomingStayRows = await db
       .select({
@@ -157,7 +163,8 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
         ),
       )
       .orderBy(asc(ownerStayRequests.requestedStart))
-      .limit(12);
+      .limit(12)
+      .catch(() => []);
 
     upcoming = [
       ...upcomingGuestRows
@@ -196,7 +203,8 @@ async function readHome(ownerId: string): Promise<OwnerHome> {
       .from(ownerActivityLog)
       .where(eq(ownerActivityLog.ownerId, ownerId))
       .orderBy(desc(ownerActivityLog.occurredAt))
-      .limit(8);
+      .limit(8)
+      .catch(() => []);
 
     recentActivity = activityRows.map((r) => ({
       id: r.id,

@@ -11,6 +11,7 @@ import {
   type ChannelReservationState,
 } from "@/lib/db/schema/channel-manager";
 import { bookingChannels, bookings, guests } from "@/lib/db/schema/bookings";
+import { requireOrgId } from "@/features/auth/require-org";
 import { decryptConnectionCredentials } from "./actions";
 import { selectChannelProvider } from "./select-provider";
 import type {
@@ -46,11 +47,17 @@ import type { ChannelReservationData } from "./types";
  *   5. For CANCELLED reservations: flip booking status, calculate
  *      refund per policy, update commission_record liability.
  *
- * RLS keeps every query org-scoped via the existing policies on
- * channel_* tables. Bookings + guests live outside the per-org scope
- * (they predate Stage 5.J multi-tenancy), so the service operates on
- * them at the application layer — `connection.organizationId` is the
- * load-bearing scope identifier.
+ * TENANCY: this is a BYPASSRLS deployment — there is NO RLS net. The
+ * cron/webhook orchestration entry points here (handleIncomingReservation,
+ * sync*ForConnection, pull*, handleWebhookForChannel) are NOT given a
+ * client org; they derive `organizationId` server-side from the
+ * connection row (`connection.organizationId`) and stamp every child
+ * insert with it — that's the load-bearing scope identifier. The
+ * operator-facing helpers reachable from the conflicts UI with a
+ * client-supplied id (resolveConflict*, listConflictPendingReservations)
+ * derive the caller's org via `requireOrgId()` and AND an
+ * `organization_id` predicate so a foreign id can't read/mutate across
+ * tenants. Bookings + guests are projected under the resolved org id.
  *
  * Errors degrade to a structured result rather than throw. Cron jobs
  * and webhook routes call this in a loop; one bad reservation must not
@@ -360,10 +367,20 @@ export async function resolveConflictByConfirmingNew(
   channelReservationId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const db = requireDb();
+  // TENANCY: this is a "use server" action reachable from the conflicts
+  // UI with a client-supplied id. BYPASSRLS means no DB-level net — derive
+  // the caller's org and scope every read/write so a foreign reservation
+  // id can't drive cross-tenant booking cancellations.
+  const orgId = await requireOrgId();
   const [row] = await db
     .select()
     .from(channelReservations)
-    .where(eq(channelReservations.id, channelReservationId))
+    .where(
+      and(
+        eq(channelReservations.id, channelReservationId),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "reservation not found" };
   if (!row.conflictPending) {
@@ -376,7 +393,12 @@ export async function resolveConflictByConfirmingNew(
     const [conflicting] = await db
       .select()
       .from(channelReservations)
-      .where(eq(channelReservations.id, row.conflictWithReservationId))
+      .where(
+        and(
+          eq(channelReservations.id, row.conflictWithReservationId),
+          eq(channelReservations.organizationId, orgId),
+        ),
+      )
       .limit(1);
     if (conflicting?.internalBookingId) {
       await db
@@ -389,7 +411,12 @@ export async function resolveConflictByConfirmingNew(
           ),
           updatedAt: new Date(),
         })
-        .where(eq(bookings.id, conflicting.internalBookingId));
+        .where(
+          and(
+            eq(bookings.id, conflicting.internalBookingId),
+            eq(bookings.organizationId, orgId),
+          ),
+        );
     }
     await db
       .update(channelReservations)
@@ -399,7 +426,12 @@ export async function resolveConflictByConfirmingNew(
         cancellationReason: "Manual conflict resolution",
         updatedAt: new Date(),
       })
-      .where(eq(channelReservations.id, row.conflictWithReservationId));
+      .where(
+        and(
+          eq(channelReservations.id, row.conflictWithReservationId),
+          eq(channelReservations.organizationId, orgId),
+        ),
+      );
   }
 
   // Now project the originally-conflicting reservation into a booking.
@@ -420,7 +452,12 @@ export async function resolveConflictByConfirmingNew(
       reservationState: "confirmed",
       updatedAt: new Date(),
     })
-    .where(eq(channelReservations.id, channelReservationId));
+    .where(
+      and(
+        eq(channelReservations.id, channelReservationId),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    );
 
   return { ok: true };
 }
@@ -429,10 +466,18 @@ export async function resolveConflictByRejectingNew(
   channelReservationId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   const db = requireDb();
+  // TENANCY: client-supplied id from the conflicts UI — scope by the
+  // caller's org (no RLS net under BYPASSRLS).
+  const orgId = await requireOrgId();
   const [row] = await db
     .select()
     .from(channelReservations)
-    .where(eq(channelReservations.id, channelReservationId))
+    .where(
+      and(
+        eq(channelReservations.id, channelReservationId),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    )
     .limit(1);
   if (!row) return { ok: false, error: "reservation not found" };
   if (!row.conflictPending) {
@@ -447,7 +492,12 @@ export async function resolveConflictByRejectingNew(
       cancellationReason: "Operator rejected during conflict resolution",
       updatedAt: new Date(),
     })
-    .where(eq(channelReservations.id, channelReservationId));
+    .where(
+      and(
+        eq(channelReservations.id, channelReservationId),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    );
   return { ok: true };
 }
 
@@ -748,6 +798,9 @@ export async function listConflictPendingReservations(): Promise<
   }>
 > {
   const db = requireDb();
+  // TENANCY: rendered by the conflicts UI for the signed-in operator —
+  // scope to their org (BYPASSRLS: no DB-level isolation).
+  const orgId = await requireOrgId();
   const rows = await db
     .select({
       id: channelReservations.id,
@@ -767,7 +820,12 @@ export async function listConflictPendingReservations(): Promise<
       channelConnections,
       eq(channelConnections.id, channelReservations.channelConnectionId),
     )
-    .where(eq(channelReservations.conflictPending, true))
+    .where(
+      and(
+        eq(channelReservations.conflictPending, true),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    )
     .orderBy(sql`${channelReservations.receivedAt} DESC`);
   return rows as Array<{
     id: string;

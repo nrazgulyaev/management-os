@@ -13,7 +13,10 @@ export default async function DeparturesPage({
   searchParams: Promise<{ date?: string }>;
 }) {
   const sp = await searchParams;
-  const date = sp.date ? new Date(sp.date) : new Date();
+  // Guard against a malformed ?date= query param: new Date("garbage") yields an
+  // Invalid Date whose .toISOString() throws RangeError and crashes the render.
+  const parsedDate = sp.date ? new Date(sp.date) : new Date();
+  const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
   const rows = await listDepartures(date);
   const dateStr = date.toISOString().slice(0, 10);
 

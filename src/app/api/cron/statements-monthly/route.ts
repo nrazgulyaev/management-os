@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { verifyCronAuthFromRequest } from "@/features/jobs/auth";
@@ -115,14 +115,24 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
               approvedAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(ownerStatements.id, r.statementId));
+            .where(
+              and(
+                eq(ownerStatements.id, r.statementId),
+                eq(ownerStatements.organizationId, org.id),
+              ),
+            );
           result.approved++;
 
           if (shouldAutoSend() && isEmailConfigured()) {
             const [ownerRow] = await db
               .select({ name: owners.displayName, email: owners.email })
               .from(owners)
-              .where(eq(owners.id, t.owner_id))
+              .where(
+                and(
+                  eq(owners.id, t.owner_id),
+                  eq(owners.organizationId, org.id),
+                ),
+              )
               .limit(1);
             if (ownerRow?.email && ownerRow.email.includes("@")) {
               const monthLabel = new Date(periodMonth + "T00:00:00Z").toLocaleString(
@@ -151,7 +161,12 @@ async function runOnce(periodMonth: string): Promise<RunResult[]> {
                     sentToEmail: ownerRow.email,
                     updatedAt: new Date(),
                   })
-                  .where(eq(ownerStatements.id, r.statementId));
+                  .where(
+                    and(
+                      eq(ownerStatements.id, r.statementId),
+                      eq(ownerStatements.organizationId, org.id),
+                    ),
+                  );
                 result.sent++;
               } else {
                 result.errors.push(

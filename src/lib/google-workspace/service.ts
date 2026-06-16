@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 /**
  * Stage 6.P5 — Google Workspace service layer.
@@ -7,11 +7,27 @@
  * the per-service providers. Mirrors the shape of the marketing
  * service (`src/lib/marketing/service.ts`) — load active provider,
  * delegate, normalize errors, return a uniform shape.
+ *
+ * TENANCY: this module is an internal SERVER-ONLY library — it must
+ * NOT carry a `"use server"` directive. With `"use server"` every
+ * export becomes a browser-invokable RPC endpoint, so a client could
+ * POST e.g. `disconnectGoogleConnection({ organizationId: "<victim>",
+ * connectionId })` and disable another tenant's Google grant (a
+ * cross-tenant write/DoS), or read another org's connections via
+ * `listGoogleConnectionsForOrg`. The exports here trust a passed
+ * `organizationId` only because every caller derives it server-side
+ * (the OAuth-callback route + settings page via `requireOrgId()`, the
+ * health-check cron by iterating its own org-scoped rows). The one
+ * client-reachable mutation (disconnect) additionally re-derives the
+ * org from the session below and is exposed to the UI exclusively
+ * through the thin `"use server"` wrapper in connection-actions.ts.
  */
 
 import { and, desc, eq } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import { oauthConnections } from "@/lib/db/schema/bulk-import";
+import { requireOrgId } from "@/features/auth/require-org";
+import { requirePermission } from "@/features/auth/permissions";
 import {
   selectGoogleCalendarProvider,
   selectGoogleDriveProvider,
@@ -165,8 +181,13 @@ export async function uploadDriveFileForUser(input: {
 // Connection management
 // ---------------------------------------------------------------------------
 
-export async function listGoogleConnectionsForOrg(input: {
-  organizationId: string;
+export async function listGoogleConnectionsForOrg(input?: {
+  /**
+   * Accepted for backwards-compat with the existing call site but NEVER
+   * trusted: the org is derived from the authenticated session below so
+   * a client can't enumerate another tenant's Google grants.
+   */
+  organizationId?: string;
 }): Promise<
   Array<{
     id: string;
@@ -179,13 +200,17 @@ export async function listGoogleConnectionsForOrg(input: {
     createdAt: Date;
   }>
 > {
+  void input;
+  // TENANCY: derive the org from the session — do NOT trust any client-
+  // supplied organizationId.
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const rows = await db
     .select()
     .from(oauthConnections)
     .where(
       and(
-        eq(oauthConnections.organizationId, input.organizationId),
+        eq(oauthConnections.organizationId, organizationId),
         eq(oauthConnections.provider, "google"),
       ),
     )
@@ -281,10 +306,21 @@ export async function persistGoogleOAuthGrant(input: {
   return { connectionId: inserted[0].id };
 }
 
+/**
+ * Soft-disconnect a Google grant (is_active = false).
+ *
+ * TENANCY: the org is derived from the authenticated session via
+ * `requireOrgId()` — NEVER from a client-supplied value — and the
+ * UPDATE WHERE is hard-scoped by that org, so a foreign connectionId
+ * is a no-op rather than a cross-tenant write. Gated by
+ * `integrations.write`. Exposed to the UI through the thin
+ * `"use server"` wrapper in connection-actions.ts.
+ */
 export async function disconnectGoogleConnection(input: {
-  organizationId: string;
   connectionId: string;
 }): Promise<void> {
+  await requirePermission("integrations.write");
+  const organizationId = await requireOrgId();
   const db = requireDb();
   await db
     .update(oauthConnections)
@@ -292,7 +328,7 @@ export async function disconnectGoogleConnection(input: {
     .where(
       and(
         eq(oauthConnections.id, input.connectionId),
-        eq(oauthConnections.organizationId, input.organizationId),
+        eq(oauthConnections.organizationId, organizationId),
       ),
     );
 }

@@ -13,7 +13,6 @@ import {
   MESSAGING_CHANNELS,
   type MessagingChannel,
 } from "@/lib/db/schema/messaging";
-import { getOrganizationByCode } from "@/lib/development/server/organizations/organization-queries";
 import {
   encryptCredentials,
   decryptCredentials,
@@ -49,14 +48,6 @@ function resolveSecret(): string {
     );
   }
   return DEV_FALLBACK_SECRET;
-}
-
-async function resolveActiveOrgId(): Promise<string> {
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) {
-    throw new Error("ARCONIQUE_DEFAULT organization not found");
-  }
-  return org.id;
 }
 
 // ---------------------------------------------------------------------------
@@ -253,7 +244,9 @@ export async function createMessageTemplate(
     return { ok: false, error: parsed.error.issues[0]?.message };
   }
   const db = requireDb();
-  const orgId = await resolveActiveOrgId();
+  // TENANCY: stamp the caller's real org, not a hardcoded ARCONIQUE_DEFAULT,
+  // so templates land in the authenticated tenant.
+  const orgId = await requireOrgId();
   try {
     const [row] = await db
       .insert(messageTemplates)
@@ -285,11 +278,23 @@ export async function archiveMessageTemplate(
   templateId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  await db
+  // TENANCY: scope by org so an internal user in org A cannot archive org B's
+  // template. message_templates.organization_id is NOT NULL (+ indexed).
+  const updated = await db
     .update(messageTemplates)
     .set({ status: "archived", updatedAt: new Date() })
-    .where(eq(messageTemplates.id, templateId));
+    .where(
+      and(
+        eq(messageTemplates.id, templateId),
+        eq(messageTemplates.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: messageTemplates.id });
+  if (updated.length === 0) {
+    return { ok: false, error: "Template not found in your organization" };
+  }
   return { ok: true };
 }
 
@@ -332,7 +337,9 @@ export async function createAutoResponseRule(
     return { ok: false, error: parsed.error.issues[0]?.message };
   }
   const db = requireDb();
-  const orgId = await resolveActiveOrgId();
+  // TENANCY: stamp the caller's real org, not a hardcoded ARCONIQUE_DEFAULT,
+  // so rules land in the authenticated tenant.
+  const orgId = await requireOrgId();
   try {
     const [row] = await db
       .insert(autoResponseRules)
@@ -362,12 +369,24 @@ export async function createAutoResponseRule(
 export async function setRuleActive(
   ruleId: string,
   isActive: boolean,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; error?: string }> {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const db = requireDb();
-  await db
+  // TENANCY: scope by org so an internal user in org A cannot toggle org B's
+  // auto-response rule. auto_response_rules.organization_id is NOT NULL (+ idx).
+  const updated = await db
     .update(autoResponseRules)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(autoResponseRules.id, ruleId));
+    .where(
+      and(
+        eq(autoResponseRules.id, ruleId),
+        eq(autoResponseRules.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: autoResponseRules.id });
+  if (updated.length === 0) {
+    return { ok: false, error: "Rule not found in your organization" };
+  }
   return { ok: true };
 }

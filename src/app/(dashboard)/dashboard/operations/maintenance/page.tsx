@@ -5,6 +5,7 @@ import { MaintenanceAddButton } from "@/components/operations/maintenance-add-bu
 import { listMaintenanceTickets } from "@/features/operations/services";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { NoItemsYet } from "@/components/ui/primitives";
 
@@ -12,8 +13,9 @@ export const metadata = { title: "Operations · Maintenance" };
 export const dynamic = "force-dynamic";
 
 export default async function MaintenancePage() {
+  const organizationId = await requireOrgId();
   const [tickets, villas, projects] = await Promise.all([
-    listMaintenanceTickets({ limit: 200 }),
+    listMaintenanceTickets({ limit: 200, organizationId }),
     listVillas(),
     listProjects(),
   ]);

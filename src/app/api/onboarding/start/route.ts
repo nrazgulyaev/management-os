@@ -233,73 +233,82 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   };
 
   try {
-    // -------- 3. Insert organizations row.
-    const [org] = await db
-      .insert(organizations)
-      .values({
-        organizationCode: orgCode,
-        name: input.org_name,
-        organizationType: "tenant",
-        primaryCurrency: "IDR",
-        primaryLanguage: "en",
-        timezone: "Asia/Makassar",
-        subscriptionTier: input.plan_code,
-      })
-      .returning({ id: organizations.id, name: organizations.name });
-    const organizationId = org.id;
+    // Steps 3-6 run inside ONE DB transaction so a failure in any later
+    // step (provision_app_user, subscription, audit) rolls back the org +
+    // app_user too — never leaving an orphaned organizations row with no
+    // user behind it. The auth user is rolled back separately in the catch
+    // below (it lives in auth.users, outside this DB transaction).
+    const { organizationId, appUserId } = await db.transaction(async (tx) => {
+      // -------- 3. Insert organizations row.
+      const [org] = await tx
+        .insert(organizations)
+        .values({
+          organizationCode: orgCode,
+          name: input.org_name,
+          organizationType: "tenant",
+          primaryCurrency: "IDR",
+          primaryLanguage: "en",
+          timezone: "Asia/Makassar",
+          subscriptionTier: input.plan_code,
+        })
+        .returning({ id: organizations.id, name: organizations.name });
+      const organizationId = org.id;
 
-    // -------- 4. Provision the app_users row + role grants atomically.
-    // Signature: (auth_user_id, email, full_name, organization_id,
-    // role_key_internal, role_key_cabinet). The new tenant's org_id
-    // was returned from step 3.
-    const provisionResult = await db.execute<{ provision_app_user: string }>(
-      sql`SELECT public.provision_app_user(
-        ${authUserId}::uuid,
-        ${input.email}::text,
-        ${input.full_name ?? input.email}::text,
-        ${organizationId}::uuid,
-        'super_admin'::text,
-        'admin'::text
-      ) AS provision_app_user`,
-    );
-    const provisionRows = rowsOf<{ provision_app_user: string }>(provisionResult);
-    const appUserId = provisionRows[0]?.provision_app_user;
-    if (!appUserId) {
-      throw new Error("provision_app_user returned no id");
-    }
+      // -------- 4. Provision the app_users row + role grants atomically.
+      // Signature: (auth_user_id, email, full_name, organization_id,
+      // role_key_internal, role_key_cabinet). The new tenant's org_id
+      // was returned from step 3.
+      const provisionResult = await tx.execute<{ provision_app_user: string }>(
+        sql`SELECT public.provision_app_user(
+          ${authUserId}::uuid,
+          ${input.email}::text,
+          ${input.full_name ?? input.email}::text,
+          ${organizationId}::uuid,
+          'super_admin'::text,
+          'admin'::text
+        ) AS provision_app_user`,
+      );
+      const provisionRows = rowsOf<{ provision_app_user: string }>(provisionResult);
+      const appUserId = provisionRows[0]?.provision_app_user;
+      if (!appUserId) {
+        throw new Error("provision_app_user returned no id");
+      }
 
-    // -------- 5. Subscription row.
-    const trialDays = 14;
-    const trialStart = new Date();
-    const trialEnd = new Date(trialStart.getTime() + trialDays * 24 * 60 * 60 * 1000);
-    await db.insert(orgSubscriptions).values({
-      organizationId,
-      planCode: input.plan_code,
-      billingCycle: "monthly",
-      status: input.plan_code === "trial" ? "trial" : "active",
-      trialStartedAt: trialStart,
-      trialEndsAt: trialEnd,
+      // -------- 5. Subscription row.
+      const trialDays = 14;
+      const trialStart = new Date();
+      const trialEnd = new Date(trialStart.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      await tx.insert(orgSubscriptions).values({
+        organizationId,
+        planCode: input.plan_code,
+        billingCycle: "monthly",
+        status: input.plan_code === "trial" ? "trial" : "active",
+        trialStartedAt: trialStart,
+        trialEndsAt: trialEnd,
+      });
+
+      // -------- 6. Audit log (org + user).
+      await tx.insert(auditEvents).values([
+        {
+          actorUserId: appUserId,
+          action: "org.create",
+          entityType: "organization",
+          entityId: organizationId,
+          after: { name: input.org_name, slug, plan: input.plan_code },
+          metadata: { source: "api/onboarding/start" },
+        },
+        {
+          actorUserId: appUserId,
+          action: "auth.user.provisioned",
+          entityType: "app_user",
+          entityId: appUserId,
+          after: { email: input.email, organization_id: organizationId },
+          metadata: { source: "api/onboarding/start", role_internal: "super_admin", role_cabinet: "admin" },
+        },
+      ]);
+
+      return { organizationId, appUserId };
     });
-
-    // -------- 6. Audit log (org + user).
-    await db.insert(auditEvents).values([
-      {
-        actorUserId: appUserId,
-        action: "org.create",
-        entityType: "organization",
-        entityId: organizationId,
-        after: { name: input.org_name, slug, plan: input.plan_code },
-        metadata: { source: "api/onboarding/start" },
-      },
-      {
-        actorUserId: appUserId,
-        action: "auth.user.provisioned",
-        entityType: "app_user",
-        entityId: appUserId,
-        after: { email: input.email, organization_id: organizationId },
-        metadata: { source: "api/onboarding/start", role_internal: "super_admin", role_cabinet: "admin" },
-      },
-    ]);
 
     // The Supabase Admin API creates the user but does NOT set a session
     // cookie on this response — the user must sign in once. Send them to

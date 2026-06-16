@@ -15,6 +15,7 @@ export interface VillaListItem {
   name: string | null;
   projectId: string;
   projectName: string;
+  projectSlug: string;
   status: VillaStatus;
   bedrooms: number;
   managementModel: "individual" | "pooled" | "hybrid";
@@ -45,6 +46,7 @@ function fromMock(): WithSource<VillaListItem>[] {
     name: v.name,
     projectId: v.projectId,
     projectName: v.project,
+    projectSlug: v.projectId,
     status: v.status,
     bedrooms: v.bedrooms,
     managementModel:
@@ -79,6 +81,7 @@ export async function listVillas(opts?: { projectId?: string }): Promise<WithSou
       name: villas.name,
       projectId: villas.projectId,
       projectName: projects.name,
+      projectSlug: projects.slug,
       status: villas.status,
       bedrooms: villas.bedrooms,
       managementModel: villas.managementModel,
@@ -100,6 +103,7 @@ export async function listVillas(opts?: { projectId?: string }): Promise<WithSou
     name: r.name,
     projectId: r.projectId,
     projectName: r.projectName,
+    projectSlug: r.projectSlug,
     status: r.status as VillaStatus,
     bedrooms: r.bedrooms,
     managementModel: r.managementModel as VillaListItem["managementModel"],
@@ -121,6 +125,7 @@ export async function getVillaById(id: string): Promise<WithSource<VillaDetail> 
       name: v.name,
       projectId: v.projectId,
       projectName: v.project,
+      projectSlug: v.projectId,
       status: v.status,
       bedrooms: v.bedrooms,
       managementModel:
@@ -148,6 +153,7 @@ export async function getVillaById(id: string): Promise<WithSource<VillaDetail> 
     .select({
       v: villas,
       pName: projects.name,
+      pSlug: projects.slug,
     })
     .from(villas)
     .innerJoin(projects, eq(projects.id, villas.projectId))
@@ -163,6 +169,7 @@ export async function getVillaById(id: string): Promise<WithSource<VillaDetail> 
     name: r.v.name,
     projectId: r.v.projectId,
     projectName: r.pName,
+    projectSlug: r.pSlug,
     status: r.v.status as VillaStatus,
     bedrooms: r.v.bedrooms,
     managementModel: r.v.managementModel as VillaDetail["managementModel"],
