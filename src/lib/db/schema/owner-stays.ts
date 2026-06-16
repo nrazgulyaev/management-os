@@ -173,6 +173,9 @@ export const ownerStayRequests = pgTable(
     index("owner_stay_requests_year_idx").on(t.ownerId, t.allowanceYear),
     index("owner_stay_requests_finance_bridge_idx").on(t.financeBridgeStatus),
     index("owner_stay_requests_organization_idx").on(t.organizationId),
+    // PERF (0181): Overview pending-count + bookings calendar filter
+    // (organization_id, status); only single-column org / status indexes exist.
+    index("owner_stay_requests_org_status_idx").on(t.organizationId, t.status),
   ],
 );
 

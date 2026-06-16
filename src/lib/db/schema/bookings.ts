@@ -118,6 +118,14 @@ export const bookings = pgTable(
     ),
     index("bookings_org_checkin_idx").on(t.organizationId, t.checkIn),
     index("bookings_is_vip_idx").on(t.isVip),
+    // PERF (0181): the statement-generator occupancy pull + per-villa
+    // portfolio subqueries filter villa_id + status IN (...) + a check_in
+    // range. bookings_villa_idx (villa_id, check_in) lacks the status leg.
+    index("bookings_villa_status_checkin_idx").on(
+      t.villaId,
+      t.status,
+      t.checkIn,
+    ),
   ],
 );
 

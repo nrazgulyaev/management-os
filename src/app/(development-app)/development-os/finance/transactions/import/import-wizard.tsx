@@ -195,7 +195,7 @@ function UploadTab({ bankAccountId }: { bankAccountId: string | null }) {
     setFileName(file.name);
     try {
       const buf = await file.arrayBuffer();
-      setParsed(parseXlsx(buf));
+      setParsed(await parseXlsx(buf));
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
       setParsed(null);

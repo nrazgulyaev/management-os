@@ -1,9 +1,15 @@
 /**
- * Sprint 1 — SparklineChart primitive.
+ * Sprint 1 — SparklineChart primitive (lazy wrapper).
  *
  * Recharts-based replacement for the hand-rolled `<Sparkline>` SVG. Lives
  * alongside the original (which stays as a zero-dep fallback) so existing
  * call-sites are untouched.
+ *
+ * client-tax: the recharts render lives in `sparkline-chart-impl.tsx` and
+ * is loaded via `next/dynamic({ ssr:false })` so the ~heavy recharts
+ * library no longer ships eagerly to every page that mounts a sparkline.
+ * The named-export API (`SparklineChart`, `SparklineChartProps`,
+ * `SparklineTone`) is unchanged, so all call-sites keep working.
  *
  * Intended use: drop into the `sparkline?: React.ReactNode` slot on
  * `<DashboardKpi>` to give every cabinet KPI a real trend line.
@@ -14,80 +20,28 @@
 
 "use client";
 
-import * as React from "react";
-import { Area, AreaChart, ResponsiveContainer } from "recharts";
-import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
+import type {
+  SparklineChartProps,
+  SparklineTone,
+} from "./sparkline-chart-shared";
 
-export type SparklineTone =
-  | "emerald"
-  | "gold"
-  | "sage"
-  | "terracotta"
-  | "stone"
-  | "ink";
+export type { SparklineChartProps, SparklineTone };
 
-const TONE_VAR: Record<SparklineTone, string> = {
-  emerald: "var(--data-emerald)",
-  gold: "var(--data-gold)",
-  sage: "var(--data-sage)",
-  terracotta: "var(--data-terracotta)",
-  stone: "var(--data-stone)",
-  ink: "var(--ink)",
-};
+const SparklineChartImpl = dynamic(
+  () => import("./sparkline-chart-impl").then((m) => m.SparklineChartImpl),
+  {
+    ssr: false,
+    // The impl owns its own wrapper div (with sizing/data attributes);
+    // until it loads we render nothing — same as the original returning
+    // null before the chart was ready.
+    loading: () => null,
+  },
+);
 
-export interface SparklineChartProps {
-  /** Numeric series, ordered oldest → newest. 0 or 1 point renders nothing. */
-  data: number[];
-  /** Stroke / fill color. Defaults to emerald. */
-  tone?: SparklineTone;
-  /** Chart height in pixels. Defaults to 32. */
-  height?: number;
-  /** Optional className passthrough (applied to the wrapper div). */
-  className?: string;
-}
-
-export function SparklineChart({
-  data,
-  tone = "emerald",
-  height = 32,
-  className,
-}: SparklineChartProps) {
-  // Stable gradient id per render so multiple sparklines on a page don't
-  // collide. React.useId is stable across SSR/hydration; must be called
-  // unconditionally before any early return (rules-of-hooks).
-  const gradientId = `sparkline-grad-${React.useId().replace(/:/g, "")}`;
-  if (!data || data.length < 2) return null;
-  const color = TONE_VAR[tone];
-  const series = data.map((v, i) => ({ i, v }));
-
-  return (
-    <div
-      className={cn("w-full", className)}
-      style={{ height }}
-      data-stage10="sparkline-chart"
-      data-tone={tone}
-    >
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={series} margin={{ top: 2, right: 2, bottom: 2, left: 2 }}>
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-              <stop offset="100%" stopColor={color} stopOpacity={0} />
-            </linearGradient>
-          </defs>
-          <Area
-            type="monotone"
-            dataKey="v"
-            stroke={color}
-            strokeWidth={1.5}
-            fill={`url(#${gradientId})`}
-            fillOpacity={1}
-            isAnimationActive={false}
-            dot={false}
-            activeDot={false}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+export function SparklineChart(props: SparklineChartProps) {
+  // The impl returns null for <2 points; mirror that early-out here so an
+  // empty series never triggers loading the recharts chunk at all.
+  if (!props.data || props.data.length < 2) return null;
+  return <SparklineChartImpl {...props} />;
 }

@@ -1,6 +1,6 @@
 import { PublicHeader } from "@/components/layout/public-header";
 import { PublicFooter } from "@/components/layout/public-footer";
-import { MotionLayer } from "@/components/motion-layer";
+import { MotionLayerLazy } from "@/components/motion-layer-lazy";
 
 export default function PublicLayout({
   children,
@@ -14,8 +14,9 @@ export default function PublicLayout({
       <PublicFooter />
       {/* Scroll-reveal / parallax / count-up engine — scoped to the public
           marketing surfaces (moved out of the global root layout so it no
-          longer taxes dashboard renders). */}
-      <MotionLayer />
+          longer taxes dashboard renders). Lazy-loaded (ssr:false) so it
+          doesn't block first paint. */}
+      <MotionLayerLazy />
     </>
   );
 }

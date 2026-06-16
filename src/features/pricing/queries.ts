@@ -17,7 +17,7 @@ import type {
   PricingCurveOverride,
   PricingCurveSeries,
   PricingCurveEvent,
-} from "@/components/pricing/pricing-curve";
+} from "@/components/pricing/pricing-curve-shared";
 
 export async function getPricingSeries(villaId: string, days: number): Promise<PricingCurveSeries> {
   void villaId;
