@@ -159,10 +159,17 @@ function toCredentials(input: CreateBankConnectionInput): BankCredentials {
 // ---------------------------------------------------------------------------
 
 export async function createBankConnectionAction(input: {
-  organizationId: string;
+  /**
+   * TENANCY: ignored. The connection is always created under the
+   * authenticated caller's org (derived via requireOrgId) — never the
+   * client-supplied value, which would be a cross-tenant write IDOR.
+   * Kept optional for caller compatibility.
+   */
+  organizationId?: string;
   data: CreateBankConnectionInput;
 }): Promise<{ ok: true; connectionId: string } | { ok: false; error: string }> {
   await requirePermission("banking.write");
+  const orgId = await requireOrgId();
   const parsed = createConnectionSchema.safeParse(input.data);
   if (!parsed.success) {
     return {
@@ -181,7 +188,7 @@ export async function createBankConnectionAction(input: {
     .from(bankConnections)
     .where(
       and(
-        eq(bankConnections.organizationId, input.organizationId),
+        eq(bankConnections.organizationId, orgId),
         eq(bankConnections.provider, parsed.data.provider),
         eq(bankConnections.externalAccountId, externalAccountId),
       ),
@@ -197,7 +204,7 @@ export async function createBankConnectionAction(input: {
   const [row] = await db
     .insert(bankConnections)
     .values({
-      organizationId: input.organizationId,
+      organizationId: orgId,
       provider: parsed.data.provider,
       externalAccountId,
       accountName: parsed.data.accountName,
@@ -399,10 +406,35 @@ export async function syncBankConnectionNowAction(args: {
   | { ok: false; error: string }
 > {
   await requirePermission("banking.write");
+  const orgId = await requireOrgId();
+  const db = requireDb();
   const me = await getCurrentAppUser();
+
+  // TENANCY: syncTransactionsForConnection resolves the connection by id
+  // alone (no org predicate) before hitting the bank API + writing
+  // bank_transactions. Confirm the connection belongs to the caller's org
+  // first so a banking.write user can't sync another tenant's connection.
+  const [owned] = await db
+    .select({ id: bankConnections.id })
+    .from(bankConnections)
+    .where(
+      and(
+        eq(bankConnections.id, args.connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Connection not found." };
+
   try {
     const { syncTransactionsForConnection } = await import("./service");
-    const result = await syncTransactionsForConnection(args.connectionId);
+    // Thread orgId so the service re-scopes the connection lookup — the
+    // existence check above already gates this, but passing expectedOrgId
+    // closes any TOCTOU window per the syncTransactionsForConnection contract.
+    const result = await syncTransactionsForConnection(
+      args.connectionId,
+      orgId,
+    );
     if (!result.ok) {
       return {
         ok: false,

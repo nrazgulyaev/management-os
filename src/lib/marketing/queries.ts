@@ -35,9 +35,14 @@ export async function listConnectionsForUi() {
 export async function listCampaignsForUi(opts: { limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: marketing_campaigns is org-owned (organization_id NOT NULL).
+  // Without this predicate the campaigns UI would list every tenant's
+  // campaigns. Scope to the caller's org like the sibling read helpers.
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(marketingCampaigns)
+    .where(eq(marketingCampaigns.organizationId, organizationId))
     .orderBy(desc(marketingCampaigns.createdAt))
     .limit(opts.limit ?? 100);
 }

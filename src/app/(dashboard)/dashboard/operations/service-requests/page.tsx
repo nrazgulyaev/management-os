@@ -5,6 +5,7 @@ import { PriorityPill } from "@/components/operations/priority-pill";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { listServiceRequests } from "@/features/operations/services";
 import { listVillas } from "@/features/villas/services";
+import { requireOrgId } from "@/features/auth/require-org";
 import { OperationsRowActions } from "@/components/dashboard/operations/operations-row-actions";
 import { ServiceRequestAddButton } from "@/components/operations/service-request-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
@@ -13,8 +14,9 @@ export const metadata = { title: "Operations · Service requests" };
 export const dynamic = "force-dynamic";
 
 export default async function ServiceRequestsPage() {
+  const organizationId = await requireOrgId();
   const [requests, villas] = await Promise.all([
-    listServiceRequests({ limit: 200 }),
+    listServiceRequests({ limit: 200, organizationId }),
     listVillas(),
   ]);
   const villaOpts = villas.map((v) => ({

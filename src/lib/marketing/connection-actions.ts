@@ -230,7 +230,12 @@ function toCredentials(input: CreateMarketingConnectionInput): MarketingCredenti
 // ---------------------------------------------------------------------------
 
 export async function createMarketingConnectionAction(input: {
-  organizationId: string;
+  /**
+   * Accepted for backwards-compat with the form payload but NEVER trusted:
+   * the org is derived from the authenticated session below. A client could
+   * otherwise write a credential-bearing connection into another tenant.
+   */
+  organizationId?: string;
   data: CreateMarketingConnectionInput;
 }): Promise<{ ok: true; connectionId: string } | { ok: false; error: string }> {
   await requirePermission("marketing.write");
@@ -243,6 +248,10 @@ export async function createMarketingConnectionAction(input: {
   }
   const db = requireDb();
   const me = await getCurrentAppUser();
+  // TENANCY: derive the org from the session — do NOT trust the client-supplied
+  // organizationId. marketing_connections.organization_id is notNull and stores
+  // encrypted credentials; binding to the caller's org stops cross-tenant writes.
+  const organizationId = await requireOrgId();
 
   const credentials = toCredentials(parsed.data);
   const externalAccountId = externalAccountIdFor(parsed.data);
@@ -254,7 +263,7 @@ export async function createMarketingConnectionAction(input: {
     .from(marketingConnections)
     .where(
       and(
-        eq(marketingConnections.organizationId, input.organizationId),
+        eq(marketingConnections.organizationId, organizationId),
         eq(marketingConnections.provider, parsed.data.provider),
         eq(marketingConnections.externalAccountId, externalAccountId),
       ),
@@ -270,7 +279,7 @@ export async function createMarketingConnectionAction(input: {
   const [row] = await db
     .insert(marketingConnections)
     .values({
-      organizationId: input.organizationId,
+      organizationId,
       provider: parsed.data.provider,
       externalAccountId,
       accountName,

@@ -11,6 +11,7 @@
 
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   marketingCampaigns,
   marketingConnections,
@@ -202,12 +203,25 @@ export async function syncCampaignsForConnection(
 export async function syncMetricsForConnection(
   connectionId: string,
   input: { since: Date; until: Date },
+  // TENANCY: when set, only sync a connection owned by this org (a foreign id
+  // reads as "connection not found" → no metric write). Mirrors
+  // syncCampaignsForConnection. The platform cron passes null; a user-facing
+  // caller must pass requireOrgId() so a body connectionId can't reach
+  // another tenant's connection/campaigns/metrics.
+  organizationId: string | null = null,
 ): Promise<{ inserted: number; updated: number; failed: number }> {
   const db = requireDb();
   const [conn] = await db
     .select()
     .from(marketingConnections)
-    .where(eq(marketingConnections.id, connectionId))
+    .where(
+      organizationId
+        ? and(
+            eq(marketingConnections.id, connectionId),
+            eq(marketingConnections.organizationId, organizationId),
+          )
+        : eq(marketingConnections.id, connectionId),
+    )
     .limit(1);
   if (!conn || conn.status !== "active") {
     return { inserted: 0, updated: 0, failed: 0 };
@@ -478,9 +492,14 @@ export async function getMarketingDashboardMetrics(
 
 export async function listMarketingConnections(): Promise<MarketingConnection[]> {
   const db = requireDb();
+  // TENANCY: marketing_connections is org-owned (organization_id NOT NULL) and
+  // holds per-tenant ad-platform credentials. Without this predicate the call
+  // would list every tenant's connections. Scope to the caller's org.
+  const organizationId = await requireOrgId();
   return db
     .select()
     .from(marketingConnections)
+    .where(eq(marketingConnections.organizationId, organizationId))
     .orderBy(desc(marketingConnections.createdAt))
     .limit(200);
 }

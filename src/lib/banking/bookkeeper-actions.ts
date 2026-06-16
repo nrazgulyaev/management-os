@@ -4,7 +4,11 @@ import { revalidatePath } from "next/cache";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
-import { bankTransactions, reconciliationRules } from "@/lib/db/schema/banking";
+import {
+  bankConnections,
+  bankTransactions,
+  reconciliationRules,
+} from "@/lib/db/schema/banking";
 import { contractGroups, invoices } from "@/lib/db/schema/sales";
 import { devCostCategories } from "@/lib/db/schema/dev-finance";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -34,7 +38,34 @@ async function resolveActiveOrgId(): Promise<string> {
 }
 
 export async function syncConnectionAction(connectionId: string): Promise<void> {
-  const r = await syncTransactionsForConnection(connectionId);
+  // TENANCY: `syncTransactionsForConnection` resolves the connection by id
+  // ALONE (no org predicate) and then hits a live bank API + writes
+  // bank_transactions. This is a "use server" endpoint taking a
+  // client-supplied connectionId, so without an org-scoped existence check
+  // any authenticated user could trigger a sync of another org's bank
+  // connection. Gate it: confirm the connection belongs to the caller's org
+  // before delegating.
+  const orgId = await resolveActiveOrgId();
+  const db = requireDb();
+  const [conn] = await db
+    .select({ id: bankConnections.id })
+    .from(bankConnections)
+    .where(
+      and(
+        eq(bankConnections.id, connectionId),
+        eq(bankConnections.organizationId, orgId),
+      ),
+    )
+    .limit(1);
+  if (!conn) {
+    console.error("syncConnectionAction: connection not found in org");
+    return;
+  }
+  // Pass orgId so the service re-scopes the connection lookup too — the
+  // existence check above already gates this, but threading expectedOrgId
+  // makes the sync safe-by-construction (no TOCTOU window) per the
+  // syncTransactionsForConnection contract.
+  const r = await syncTransactionsForConnection(connectionId, orgId);
   revalidatePath("/development-os/finance/bank-review");
   revalidatePath("/development-os/finance/reconciliation");
   if (!r.ok) console.error("syncConnectionAction:", r.error);

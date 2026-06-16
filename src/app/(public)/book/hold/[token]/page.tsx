@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { GuestShell } from "@/components/layout/guest-shell";
@@ -22,6 +22,14 @@ export default async function BookingHoldPage({
   }
   if (view.status === "cancelled") {
     return <Redirect token={token} target="cancelled" />;
+  }
+  // A hold that has already been converted to a booking (or rejected) is
+  // terminal: the checkout form below would let the guest re-submit and
+  // then fail with a confusing `hold_<status>` error. Send them to the
+  // status page, which renders the correct stage (booking confirmed /
+  // not confirmed) for these states.
+  if (view.status === "converted" || view.status === "rejected") {
+    redirect(`/book/hold/${token}/status`);
   }
   return (
     <GuestShell villaName={view.villa.label} dates={`${view.checkIn} → ${view.checkOut}`}>

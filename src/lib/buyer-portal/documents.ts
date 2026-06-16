@@ -3,7 +3,7 @@ import "server-only";
 import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { documents } from "@/lib/db/schema/documents";
-import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { villas } from "@/lib/db/schema/projects";
 
 /**
@@ -137,11 +137,27 @@ export async function getBuyerDocuments(
   const db = getDb();
   if (!db) return { groups: [], totalCount: 0 };
 
-  // 1. The buyer's assigned villas.
+  // 0. Resolve the buyer's own org so the entire chain — assignments, villas,
+  //    and the shared `documents` table — is bounded to the buyer's tenant
+  //    (defence-in-depth even if a stray cross-org assignment row exists).
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, buyerId))
+    .limit(1);
+  if (!buyer) return { groups: [], totalCount: 0 };
+  const orgId = buyer.organizationId;
+
+  // 1. The buyer's assigned villas (org-bounded).
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = [...new Set(assignments.map((a) => a.unitId))];
   if (unitIds.length === 0) return { groups: [], totalCount: 0 };
 
@@ -181,6 +197,7 @@ export async function getBuyerDocuments(
     .from(documents)
     .where(
       and(
+        eq(documents.organizationId, orgId),
         or(...entityFilters),
         eq(documents.status, "active"),
         inArray(documents.visibility, BUYER_VISIBLE),
@@ -231,6 +248,17 @@ export async function buyerCanAccessDocument(
   const db = getDb();
   if (!db) return false;
 
+  // Resolve the buyer's own org first so the document fetch + the assignment
+  // chain are both bounded to the buyer's tenant. Without this, the download
+  // route would gate access purely on entity-id collision across tenants.
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, buyerId))
+    .limit(1);
+  if (!buyer) return false;
+  const orgId = buyer.organizationId;
+
   const [doc] = await db
     .select({
       entityType: documents.entityType,
@@ -239,7 +267,9 @@ export async function buyerCanAccessDocument(
       visibility: documents.visibility,
     })
     .from(documents)
-    .where(eq(documents.id, documentId))
+    .where(
+      and(eq(documents.id, documentId), eq(documents.organizationId, orgId)),
+    )
     .limit(1);
   if (!doc) return false;
   if (doc.status !== "active") return false;
@@ -248,7 +278,12 @@ export async function buyerCanAccessDocument(
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = new Set(assignments.map((a) => a.unitId));
   if (unitIds.size === 0) return false;
 

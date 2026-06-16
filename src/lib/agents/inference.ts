@@ -185,7 +185,31 @@ export async function streamAgentResponse(
   // 5. Resolve / create thread + load history
   // -------------------------------------------------------------------
   let threadId = incomingThreadId;
-  if (!threadId) {
+  if (threadId) {
+    // Cross-tenant guard: `incomingThreadId` is client-supplied (route
+    // body). Without verifying ownership a user could pass another org's
+    // (or another user's) thread id and (a) read its conversation history
+    // below and (b) append their messages onto a foreign thread. Confirm
+    // the thread belongs to this (agent, org, user) before touching it.
+    const [own] = await db
+      .select({ id: agentThreads.id })
+      .from(agentThreads)
+      .where(
+        and(
+          eq(agentThreads.id, threadId),
+          eq(agentThreads.agentId, agentId),
+          eq(agentThreads.organizationId, organizationId),
+          eq(agentThreads.userId, userId),
+        ),
+      )
+      .limit(1);
+    if (!own) {
+      throw new AgentInferenceError(
+        "THREAD_NOT_FOUND",
+        "Thread not found for this agent.",
+      );
+    }
+  } else {
     const [created] = await db
       .insert(agentThreads)
       .values({

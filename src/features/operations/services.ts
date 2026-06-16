@@ -268,16 +268,25 @@ export async function listMaintenanceTickets(opts?: {
   status?: string;
   villaId?: string;
   limit?: number;
+  /**
+   * TENANCY: maintenance_tickets has no organization_id, so we scope via
+   * villa → project. When this is `undefined` (the default — page callers
+   * omit it) we resolve the caller's org via requireOrgId() and ALWAYS
+   * scope, so the reader can never run unscoped. A cron / system caller that
+   * legitimately wants ALL orgs must pass an explicit `null` sentinel.
+   */
   organizationId?: string | null;
 }): Promise<WithSource<MaintenanceTicketRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // `undefined` → default-scope to the caller's org (never unscoped).
+  // explicit `null` → all-orgs sentinel for cron / system callers.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const filters = [];
   if (opts?.status) filters.push(eq(maintenanceTickets.status, opts.status));
   if (opts?.villaId) filters.push(eq(maintenanceTickets.villaId, opts.villaId));
-  // TENANCY: maintenance_tickets has no organization_id — scope via villa →
-  // project when an org is supplied. Cron / un-attributed callers omit it.
-  if (opts?.organizationId) {
+  if (organizationId) {
     filters.push(
       inArray(
         maintenanceTickets.villaId,
@@ -285,7 +294,7 @@ export async function listMaintenanceTickets(opts?: {
           .select({ id: villas.id })
           .from(villas)
           .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
-          .where(eq(projectsTable.organizationId, opts.organizationId)),
+          .where(eq(projectsTable.organizationId, organizationId)),
       ),
     );
   }
@@ -329,6 +338,21 @@ export async function getMaintenanceTicketById(
   const db = getDb();
   if (!db) return null;
   const organizationId = await requireOrgId();
+  // TENANCY: maintenance_tickets has no organization_id of its own, and a
+  // ticket's villaId is OPTIONAL (a general / project-level ticket can be
+  // reported with no villa — see createMaintenanceTicketSchema). LEFT-join
+  // villa so a null-villa ticket still resolves, and scope ownership to this
+  // org via EITHER the villa's project OR the ticket's direct projectId. A
+  // cross-org ticket matches neither and reads as not-found.
+  const orgVillaIds = db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .where(eq(projectsTable.organizationId, organizationId));
+  const orgProjectIds = db
+    .select({ id: projectsTable.id })
+    .from(projectsTable)
+    .where(eq(projectsTable.organizationId, organizationId));
   const [r] = await db
     .select({
       m: maintenanceTickets,
@@ -336,15 +360,15 @@ export async function getMaintenanceTicketById(
       taskAssignedTo: operationTasks.assignedTo,
     })
     .from(maintenanceTickets)
-    // TENANCY: inner-join villa → project so a cross-org ticket id resolves
-    // to no row. maintenance_tickets has no organization_id of its own.
-    .innerJoin(villas, eq(villas.id, maintenanceTickets.villaId))
-    .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
+    .leftJoin(villas, eq(villas.id, maintenanceTickets.villaId))
     .leftJoin(operationTasks, eq(operationTasks.id, maintenanceTickets.taskId))
     .where(
       and(
         eq(maintenanceTickets.id, id),
-        eq(projectsTable.organizationId, organizationId),
+        or(
+          inArray(maintenanceTickets.villaId, orgVillaIds),
+          inArray(maintenanceTickets.projectId, orgProjectIds),
+        ),
       ),
     )
     .limit(1);
@@ -469,17 +493,26 @@ export async function listServiceRequests(opts?: {
   status?: string;
   villaId?: string;
   limit?: number;
+  /**
+   * TENANCY: service_requests has no organization_id, so we scope via villa
+   * → project. When this is `undefined` (the default — page callers omit it)
+   * we resolve the caller's org via requireOrgId() and ALWAYS scope, so the
+   * reader can never run unscoped. A cron / system caller that legitimately
+   * wants ALL orgs must pass an explicit `null` sentinel. (Rows with null
+   * villa_id are excluded under scope.)
+   */
   organizationId?: string | null;
 }): Promise<WithSource<ServiceRequestRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // `undefined` → default-scope to the caller's org (never unscoped).
+  // explicit `null` → all-orgs sentinel for cron / system callers.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const filters = [];
   if (opts?.status) filters.push(eq(serviceRequests.status, opts.status));
   if (opts?.villaId) filters.push(eq(serviceRequests.villaId, opts.villaId));
-  // TENANCY: service_requests has no organization_id — scope via villa →
-  // project when an org is supplied. Cron / un-attributed callers omit it.
-  // (Rows with null villa_id are excluded under scope.)
-  if (opts?.organizationId) {
+  if (organizationId) {
     filters.push(
       inArray(
         serviceRequests.villaId,
@@ -487,7 +520,7 @@ export async function listServiceRequests(opts?: {
           .select({ id: villas.id })
           .from(villas)
           .innerJoin(projectsTable, eq(projectsTable.id, villas.projectId))
-          .where(eq(projectsTable.organizationId, opts.organizationId)),
+          .where(eq(projectsTable.organizationId, organizationId)),
       ),
     );
   }

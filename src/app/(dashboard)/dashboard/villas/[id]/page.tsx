@@ -121,7 +121,7 @@ export default async function VillaDetailPage({
           </Link>
           <Link
             className="text-xs underline text-ink hover:text-accent"
-            href={`/dashboard/projects/${villa.projectId}`}
+            href={`/dashboard/projects/${villa.projectSlug}`}
           >
             Back to project →
           </Link>

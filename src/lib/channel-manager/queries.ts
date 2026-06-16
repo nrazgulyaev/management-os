@@ -2,6 +2,7 @@ import "server-only";
 
 import { and, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   channelConnections,
   channelReservations,
@@ -17,8 +18,13 @@ import { villas } from "@/lib/db/schema/projects";
  * Pure read queries — every write goes through `actions.ts` so the
  * encryption / audit / sync_log discipline stays in one place.
  *
- * RLS at the DB level keeps per-org isolation honest; we don't filter
- * by organization_id in these queries because the policy already does.
+ * TENANCY: this is a BYPASSRLS deployment — there is NO RLS net. Every
+ * query here derives the caller's org via `requireOrgId()` and ANDs an
+ * `organization_id` predicate. The channel_* tables all carry their own
+ * `organization_id`; `channelReservations`/`channelSyncLog` are scoped
+ * through their parent `channelConnections` (anchored on the connection
+ * row's org) so a client-supplied connection/reservation id can never
+ * read across tenants.
  */
 
 export interface ChannelConnectionListItem {
@@ -48,11 +54,14 @@ export async function listChannelConnections(filters: {
 } = {}): Promise<ChannelConnectionListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [] as ReturnType<typeof eq>[];
+  const orgId = await requireOrgId();
+  const conds = [eq(channelConnections.organizationId, orgId)] as ReturnType<
+    typeof eq
+  >[];
   if (filters.channel) conds.push(eq(channelConnections.channel, filters.channel));
   if (filters.villaId) conds.push(eq(channelConnections.villaId, filters.villaId));
   if (filters.status) conds.push(eq(channelConnections.status, filters.status));
-  const where = conds.length > 0 ? and(...conds) : undefined;
+  const where = and(...conds);
   const rows = await db
     .select({
       id: channelConnections.id,
@@ -79,10 +88,16 @@ export async function listChannelConnections(filters: {
 export async function getChannelConnectionById(id: string) {
   const db = getDb();
   if (!db) return null;
+  const orgId = await requireOrgId();
   const [row] = await db
     .select()
     .from(channelConnections)
-    .where(eq(channelConnections.id, id))
+    .where(
+      and(
+        eq(channelConnections.id, id),
+        eq(channelConnections.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -97,10 +112,16 @@ export async function listSyncLogForConnection(
 ) {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(channelSyncLog)
-    .where(eq(channelSyncLog.channelConnectionId, connectionId))
+    .where(
+      and(
+        eq(channelSyncLog.channelConnectionId, connectionId),
+        eq(channelSyncLog.organizationId, orgId),
+      ),
+    )
     .orderBy(desc(channelSyncLog.triggeredAt))
     .limit(opts.limit ?? 50);
 }
@@ -152,7 +173,10 @@ export async function listChannelReservations(
 ): Promise<ChannelReservationListItem[]> {
   const db = getDb();
   if (!db) return [];
-  const conds = [] as ReturnType<typeof eq>[];
+  const orgId = await requireOrgId();
+  const conds = [eq(channelReservations.organizationId, orgId)] as ReturnType<
+    typeof eq
+  >[];
   if (filters.channel) {
     conds.push(eq(channelConnections.channel, filters.channel));
   }
@@ -163,7 +187,7 @@ export async function listChannelReservations(
     conds.push(eq(channelReservations.reservationState, filters.state));
   }
   // Date filtering: hand-rolled SQL for date columns.
-  const where = conds.length > 0 ? and(...conds) : undefined;
+  const where = and(...conds);
 
   const search = filters.search?.trim();
   const searchClause = search
@@ -217,6 +241,7 @@ export async function listChannelReservations(
 export async function getChannelReservationById(id: string) {
   const db = getDb();
   if (!db) return null;
+  const orgId = await requireOrgId();
   const [row] = await db
     .select({
       reservation: channelReservations,
@@ -231,7 +256,12 @@ export async function getChannelReservationById(id: string) {
       eq(channelConnections.id, channelReservations.channelConnectionId),
     )
     .leftJoin(villas, eq(villas.id, channelConnections.villaId))
-    .where(eq(channelReservations.id, id))
+    .where(
+      and(
+        eq(channelReservations.id, id),
+        eq(channelReservations.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }
@@ -245,6 +275,7 @@ export async function getPerChannelSummary(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const orgId = await requireOrgId();
   const rows = await db
     .select({
       channel: channelConnections.channel,
@@ -252,6 +283,7 @@ export async function getPerChannelSummary(): Promise<
       activeCount: sql<number>`count(*) FILTER (WHERE ${channelConnections.status} = 'active')::int`,
     })
     .from(channelConnections)
+    .where(eq(channelConnections.organizationId, orgId))
     .groupBy(channelConnections.channel);
   return rows as Array<{
     channel: ChannelName;

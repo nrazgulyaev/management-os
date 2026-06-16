@@ -285,7 +285,12 @@ export async function testPaymentConnectionAction(args: {
     await db
       .update(paymentProcessorConnections)
       .set({ status: "error", updatedAt: new Date() })
-      .where(eq(paymentProcessorConnections.id, args.connectionId));
+      .where(
+        and(
+          eq(paymentProcessorConnections.id, args.connectionId),
+          eq(paymentProcessorConnections.organizationId, orgId),
+        ),
+      );
     await recordAuditEvent({
       actorUserId: me?.id ?? null,
       action: "payments.connection.test_failed",
@@ -313,7 +318,12 @@ export async function testPaymentConnectionAction(args: {
       status: nextStatus,
       updatedAt: new Date(),
     })
-    .where(eq(paymentProcessorConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(paymentProcessorConnections.id, args.connectionId),
+        eq(paymentProcessorConnections.organizationId, orgId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
@@ -368,7 +378,12 @@ export async function disconnectPaymentConnectionAction(args: {
       archiveReason: args.reason ?? "operator-initiated",
       updatedAt: new Date(),
     })
-    .where(eq(paymentProcessorConnections.id, args.connectionId));
+    .where(
+      and(
+        eq(paymentProcessorConnections.id, args.connectionId),
+        eq(paymentProcessorConnections.organizationId, orgId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

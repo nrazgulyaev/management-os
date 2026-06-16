@@ -92,9 +92,13 @@ export async function listBankTransactionsForUi(opts: {
 export async function listStatementImportsForUi(opts: { limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: statement_imports is org-owning (organization_id). Hard-scope
+  // so the bookkeeper UI cannot surface another tenant's uploads.
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(statementImports)
+    .where(eq(statementImports.organizationId, orgId))
     .orderBy(desc(statementImports.uploadedAt))
     .limit(opts.limit ?? 100);
 }
@@ -102,18 +106,26 @@ export async function listStatementImportsForUi(opts: { limit?: number } = {}) {
 export async function listReconciliationRulesForUi() {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: reconciliation_rules is org-owning (organization_id). Hard-scope
+  // so an operator only ever edits/sees their own org's auto-rules.
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(reconciliationRules)
+    .where(eq(reconciliationRules.organizationId, orgId))
     .orderBy(reconciliationRules.priority);
 }
 
 export async function listClosedPeriodsForUi(opts: { limit?: number } = {}) {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: closed_periods is org-owning (organization_id). Hard-scope so the
+  // period-close screen never lists another tenant's accounting periods.
+  const orgId = await requireOrgId();
   return db
     .select()
     .from(closedPeriods)
+    .where(eq(closedPeriods.organizationId, orgId))
     .orderBy(desc(closedPeriods.periodEnd))
     .limit(opts.limit ?? 24);
 }

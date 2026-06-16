@@ -96,7 +96,7 @@ export async function generateOperationsCopilotSummary(opts?: {
 
   if (isAiConfigured() && !isAiDryRun()) {
     const userPrompt = buildUserPrompt(snapshot);
-    const out = await callOperationsCopilot(userPrompt);
+    const out = await callOperationsCopilot(userPrompt, organizationId);
     promptTokens = out.promptTokens ?? 0;
     completionTokens = out.completionTokens ?? 0;
     totalTokens = out.totalTokens ?? promptTokens + completionTokens;

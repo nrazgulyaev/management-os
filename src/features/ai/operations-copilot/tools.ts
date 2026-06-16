@@ -50,6 +50,10 @@ const clampLimit = (n: unknown, fallback = 10): number => {
 export async function executeTool(
   name: string,
   rawInput: unknown,
+  // TENANCY: the run's org (or `null` for the session-less cron = all-orgs
+  // sentinel). Threaded into the org-scoped read tools so they don't
+  // re-resolve via requireOrgId() (which throws in a session-less context).
+  organizationId: string | null = null,
 ): Promise<ToolCallResult> {
   if (!isAllowedTool(name)) {
     return { ok: false, errorMessage: `tool '${name}' is not on the allowlist` };
@@ -92,13 +96,13 @@ export async function executeTool(
       case "listServiceRequests": {
         const status = typeof input.status === "string" ? input.status : undefined;
         const limit = clampLimit(input.limit, 10);
-        const rows = await listServiceRequests({ status, limit });
+        const rows = await listServiceRequests({ status, limit, organizationId });
         return { ok: true, output: rows };
       }
       case "listMaintenanceTickets": {
         const status = typeof input.status === "string" ? input.status : undefined;
         const limit = clampLimit(input.limit, 10);
-        const rows = await listMaintenanceTickets({ status, limit });
+        const rows = await listMaintenanceTickets({ status, limit, organizationId });
         return { ok: true, output: rows };
       }
     }

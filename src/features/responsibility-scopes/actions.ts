@@ -96,6 +96,7 @@ export async function editResponsibilityScopeAction(
   if (parsed.data.scopeType !== undefined)
     patch.scopeType = parsed.data.scopeType;
 
+  // TENANCY: AND the org guard so a foreign-org scope id matches no row.
   await db
     .update(userResponsibilityScopes)
     .set(patch)
@@ -132,6 +133,7 @@ export async function archiveResponsibilityScopeAction(
   const me = await getCurrentAppUser();
   const organizationId = await requireOrgId();
 
+  // TENANCY: AND the org guard so a foreign-org scope id matches no row.
   await db
     .update(userResponsibilityScopes)
     .set({ status: "archived", updatedAt: new Date() })

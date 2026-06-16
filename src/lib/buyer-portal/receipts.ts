@@ -2,7 +2,7 @@ import "server-only";
 
 import { and, eq, inArray, like } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
 import { documents } from "@/lib/db/schema/documents";
 
 /**
@@ -68,15 +68,31 @@ export async function getBuyerReceiptsByMilestone(
   const db = getDb();
   if (!db) return byMilestone;
 
-  // 1. The buyer's assigned villas (ownership scope).
+  // 0. Resolve the buyer's own org so the assignment chain + the shared
+  //    `documents` read are both bounded to the buyer's tenant.
+  const [buyer] = await db
+    .select({ organizationId: buyers.organizationId })
+    .from(buyers)
+    .where(eq(buyers.id, buyerId))
+    .limit(1);
+  if (!buyer) return byMilestone;
+  const orgId = buyer.organizationId;
+
+  // 1. The buyer's assigned villas (ownership scope, org-bounded).
   const assignments = await db
     .select({ unitId: buyerUnitAssignments.unitId })
     .from(buyerUnitAssignments)
-    .where(eq(buyerUnitAssignments.buyerId, buyerId));
+    .where(
+      and(
+        eq(buyerUnitAssignments.buyerId, buyerId),
+        eq(buyerUnitAssignments.organizationId, orgId),
+      ),
+    );
   const unitIds = [...new Set(assignments.map((a) => a.unitId))];
   if (unitIds.length === 0) return byMilestone;
 
-  // 2. Receipt documents scoped to those villas, with a milestone sentinel.
+  // 2. Receipt documents scoped to those villas, with a milestone sentinel
+  //    (org-bounded against the shared `documents` table).
   const rows = await db
     .select({
       id: documents.id,
@@ -87,6 +103,7 @@ export async function getBuyerReceiptsByMilestone(
     .from(documents)
     .where(
       and(
+        eq(documents.organizationId, orgId),
         eq(documents.documentType, "receipt"),
         eq(documents.entityType, "villa"),
         inArray(documents.entityId, unitIds),

@@ -1,4 +1,4 @@
-"use server";
+import "server-only";
 
 /**
  * Stage 6.P3.G — BankingService.
@@ -10,6 +10,20 @@
  * Most cron jobs + UI server actions go through here so credential
  * decryption + RLS context + auto-matcher application happen in one
  * place.
+ *
+ * TENANCY: this module is an internal SERVER-ONLY library — NOT a
+ * `"use server"` action surface. Several functions take an
+ * `organizationId` (or a bare connection/import/period id) and trust
+ * it. That is only safe because the sole callers are (a) the action
+ * wrappers in bookkeeper-actions.ts / connection-actions.ts and the
+ * statement-import _actions.ts, which derive the org server-side from
+ * `requireOrgId()` and org-scope the parent row BEFORE delegating, and
+ * (b) cron jobs that iterate their own org-scoped row sets. It must
+ * NOT carry a `"use server"` directive: that would register every
+ * exported function as a browser-invokable RPC endpoint, letting a
+ * client call e.g. `closePeriod({ organizationId: "<victim>", ... })`
+ * or `runAutoReconciliation({ organizationId: "<victim>" })` directly,
+ * a cross-tenant IDOR that bypasses the action wrappers entirely.
  */
 
 import { and, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
@@ -24,7 +38,7 @@ import {
   type ImportStatus,
   type MatchStatus,
 } from "@/lib/db/schema/banking";
-import { invoices } from "@/lib/db/schema/sales";
+import { contractGroups, invoices } from "@/lib/db/schema/sales";
 import { selectBankProvider } from "./select-provider";
 import { openCredentials } from "@/lib/secure-connection-credentials";
 import {
@@ -61,12 +75,27 @@ export interface SyncConnectionResult {
  */
 export async function syncTransactionsForConnection(
   connectionId: string,
+  /**
+   * TENANCY: when invoked from a user-facing server action the caller MUST
+   * pass its own org id. The connection is loaded by a client-supplied id, so
+   * without this an operator in org A could sync (and pull credentials/
+   * transactions for) org B's bank connection — a cross-tenant IDOR. The cron
+   * path derives connections from its own org-iterating query and omits this.
+   */
+  expectedOrgId?: string,
 ): Promise<SyncConnectionResult> {
   const db = requireDb();
   const [conn] = await db
     .select()
     .from(bankConnections)
-    .where(eq(bankConnections.id, connectionId))
+    .where(
+      expectedOrgId
+        ? and(
+            eq(bankConnections.id, connectionId),
+            eq(bankConnections.organizationId, expectedOrgId),
+          )
+        : eq(bankConnections.id, connectionId),
+    )
     .limit(1);
   if (!conn) {
     return {
@@ -609,23 +638,31 @@ async function loadActiveRules(
 }
 
 async function loadInvoiceCandidatesForOrg(
-  _organizationId: string,
+  organizationId: string,
   _cutoff: Date,
 ): Promise<MatchableInvoice[]> {
   const db = requireDb();
-  // The `invoices` table is org-scoped via the existing finance RLS;
-  // we don't need an explicit org filter here. Keep the candidate
-  // pool small (recent + not fully paid) by limiting to recent
-  // invoices.
-  // The legacy invoices schema may not have a single canonical
-  // amount column — safeQuery defensive.
+  // TENANCY: the DB role is BYPASSRLS — there is NO RLS net. The
+  // `invoices` table has no organization_id column; org isolation is
+  // ONLY via contract_groups.organization_id. Without the join below the
+  // auto-matcher would match a bank transaction against a GLOBAL pool of
+  // invoices across all tenants (data leak + corrupting writes to
+  // bankTransactions.matchedInvoiceId). Mirror listOpenInvoicesForMatch
+  // in queries.ts: inner-join contract_groups and hard-scope by org.
+  // The legacy invoices schema may not have a single canonical amount
+  // column — projectInvoice() is defensive, so we keep the wide select.
   try {
     const rows = await db
       .select()
       .from(invoices)
+      .innerJoin(
+        contractGroups,
+        eq(contractGroups.id, invoices.contractGroupId),
+      )
+      .where(eq(contractGroups.organizationId, organizationId))
       .limit(500);
     return rows
-      .map((r) => projectInvoice(r))
+      .map((r) => projectInvoice(r.invoices))
       .filter((i): i is MatchableInvoice => i != null);
   } catch {
     return [];

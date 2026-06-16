@@ -38,6 +38,25 @@ function usdToIdrMinor(usd: number): bigint {
   return BigInt(Math.round(usd * FX_USD_TO_IDR * 100));
 }
 
+/**
+ * Null-safe "Month YYYY" label from a YYYY-MM-DD period_month. The column is
+ * nullable (the mgmt-side generator in statement-generator.ts persists periodId
+ * but never period_month), so callers that read raw owner_statements rows must
+ * not assume a value — an unguarded `.split("-")` here crashed the whole
+ * Finance cabinet list/detail for any tenant that issued a statement via the
+ * mgmt "Issue statement" form. Falls back to an em-dash, mirroring
+ * dashboard-cabinet-queries.ts.
+ */
+function periodMonthLabel(periodMonth: string | null | undefined): string {
+  if (!periodMonth) return "—";
+  const [y, m] = periodMonth.split("-").map(Number);
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return "—";
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 export interface FinanceKpis {
   statementsPendingCount: number;
   payoutsAwaitingCount: number;
@@ -443,11 +462,10 @@ export async function listOwnerStatementsLive(opts?: {
     sent_at: string | null;
     sent_to_email: string | null;
   }>(rows).map((r) => {
-    const [y, m] = r.period_month.split("-").map(Number);
-    const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
-      month: "long",
-      year: "numeric",
-    });
+    // period_month is nullable (the mgmt-side generator persists periodId but
+    // NOT period_month). A NULL would crash `.split("-")` and take down the
+    // whole Finance cabinet list — guard via the null-safe label helper.
+    const monthLabel = periodMonthLabel(r.period_month);
     return {
       id: r.id,
       statementCode: r.statement_code,
@@ -579,11 +597,9 @@ export async function getOwnerStatementDetail(
     amountIdrMinor: BigInt(l.amount_minor ?? "0"),
   }));
 
-  const [y, m] = sr.period_month.split("-").map(Number);
-  const monthLabel = new Date(Date.UTC(y, m - 1, 1)).toLocaleString("en", {
-    month: "long",
-    year: "numeric",
-  });
+  // period_month is nullable (mgmt-side generator persists periodId only).
+  // Guard the formatter so a NULL value can't crash the Finance detail card.
+  const monthLabel = periodMonthLabel(sr.period_month);
 
   return {
     id: sr.id,
