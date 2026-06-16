@@ -207,7 +207,9 @@ export const approveChecklistSchema = z.object({
 // Maintenance
 // -----------------------------------------------------------------------------
 
-export const createMaintenanceTicketSchema = z.object({
+// Base shape (no refine) so `editMaintenanceTicketSchema` can `.extend()` it —
+// `.refine()` returns a ZodEffects, which has no `.extend()`.
+const maintenanceTicketBaseSchema = z.object({
   title: z.string().min(2).max(200),
   description: z.string().max(4000).optional().or(z.literal("")),
   issueCategory: maintenanceCategoryEnum,
@@ -224,6 +226,14 @@ export const createMaintenanceTicketSchema = z.object({
     .optional()
     .or(z.literal("")),
 });
+
+// A ticket with neither a villa nor a project has no org linkage its detail
+// page can scope to (reads not-found). Require at least one, mirroring the
+// refine on createPreventiveScheduleSchema below.
+export const createMaintenanceTicketSchema = maintenanceTicketBaseSchema.refine(
+  (d) => Boolean(d.villaId) || Boolean(d.projectId),
+  { path: ["villaId"], message: "Pick a villa or a project" },
+);
 
 export const updateMaintenanceTicketStatusSchema = z.object({
   id: z.string().uuid(),
@@ -322,9 +332,14 @@ export const archiveOperationTaskSchema = z.object({
   reason: z.string().max(500).optional().or(z.literal("")),
 });
 
-export const editMaintenanceTicketSchema = createMaintenanceTicketSchema.extend({
-  id: z.string().uuid(),
-});
+export const editMaintenanceTicketSchema = maintenanceTicketBaseSchema
+  .extend({
+    id: z.string().uuid(),
+  })
+  .refine((d) => Boolean(d.villaId) || Boolean(d.projectId), {
+    path: ["villaId"],
+    message: "Pick a villa or a project",
+  });
 
 export const archiveMaintenanceTicketSchema = z.object({
   id: z.string().uuid(),

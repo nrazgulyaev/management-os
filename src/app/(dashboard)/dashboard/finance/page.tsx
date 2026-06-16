@@ -187,7 +187,7 @@ function StatementDetailCard({ detail }: { detail: RealStatementDetail }) {
 }
 
 interface FinancePageProps {
-  searchParams: Promise<{ id?: string; period?: string }>;
+  searchParams: Promise<{ id?: string; period?: string; generated?: string }>;
 }
 
 export default async function FinancePage({ searchParams }: FinancePageProps) {
@@ -212,12 +212,22 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
   const approvedCount = allStatements.filter((s) => s.status === "approved").length;
   const sentCount = allStatements.filter((s) => s.status === "sent").length;
 
+  // Feedback after a "Generate all" run — distinguishes "generated 0" (no
+  // qualifying bookings for the period) from silence.
+  const generatedCount =
+    sp.generated !== undefined ? Number.parseInt(sp.generated, 10) : null;
+  const showGeneratedNotice =
+    generatedCount !== null && Number.isFinite(generatedCount);
+
   async function generateForPeriodAction(formData: FormData) {
     "use server";
     const period = (formData.get("period") as string) ?? null;
     if (!period) return;
-    await generateAllForPeriod(period);
-    redirect(`/dashboard/finance?period=${period}`);
+    // Surface the outcome so generating 0 statements (no qualifying bookings
+    // for the period) gives feedback instead of a silent no-op redirect.
+    const result = await generateAllForPeriod(period);
+    const generated = result.ok ? (result.count ?? 0) : 0;
+    redirect(`/dashboard/finance?period=${period}&generated=${generated}`);
   }
 
   return (
@@ -270,6 +280,21 @@ export default async function FinancePage({ searchParams }: FinancePageProps) {
           </form>
         </div>
       </div>
+
+      {showGeneratedNotice ? (
+        <div
+          className={`mt-[18px] rounded-md border px-3.5 py-2.5 text-[13px] ${
+            generatedCount && generatedCount > 0
+              ? "border-line bg-paper text-ink"
+              : "border-line bg-paper text-ink-3"
+          }`}
+          role="status"
+        >
+          {generatedCount && generatedCount > 0
+            ? `Generated ${generatedCount} statement${generatedCount === 1 ? "" : "s"} for ${sp.period ?? "the selected period"}.`
+            : `No statements generated for ${sp.period ?? "the selected period"} — no qualifying bookings found.`}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-[18px] mb-[18px]">
         <Kpi
