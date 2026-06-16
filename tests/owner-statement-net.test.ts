@@ -115,3 +115,68 @@ test("assertStatementLinesMatchNet THROWS when lines drift from net", async () =
     /integrity check failed/,
   );
 });
+
+test("formulaDeductionMagnitudeMinor computes a positive % of gross", async () => {
+  const { formulaDeductionMagnitudeMinor } = await import(
+    "../src/features/finance/statement-net-pure"
+  );
+
+  // 11% of gross 100,000,000 = 11,000,000 (positive magnitude).
+  assert.equal(formulaDeductionMagnitudeMinor(100_000_000n, 11), 11_000_000n);
+  // 3% of gross 100,000,000 = 3,000,000.
+  assert.equal(formulaDeductionMagnitudeMinor(100_000_000n, 3), 3_000_000n);
+
+  // Edge cases: zero / negative pct and non-positive base → 0 (never negative).
+  assert.equal(formulaDeductionMagnitudeMinor(100_000_000n, 0), 0n);
+  assert.equal(formulaDeductionMagnitudeMinor(0n, 11), 0n);
+  assert.equal(formulaDeductionMagnitudeMinor(-5n, 11), 0n);
+
+  // Fractional pct rounds half-up: 1.5% of 100 minor = 1.5 → 2.
+  assert.equal(formulaDeductionMagnitudeMinor(100n, 1.5), 2n);
+});
+
+test("FORMULA tax+reserve: signed lines reconcile to net (invariant holds)", async () => {
+  const { computeStatementNet, assertStatementLinesMatchNet, formulaDeductionMagnitudeMinor } =
+    await import("../src/features/finance/statement-net-pure");
+
+  // Mirrors statement-settings 'formula' mode: tax_pct=11, reserve_pct=3 on a
+  // gross of 100,000,000. The generator does NOT read the ledger here — it
+  // computes these magnitudes and emits ONE negative line each.
+  const grossRevenueMinor = 100_000_000n;
+  const taxMagnitude = formulaDeductionMagnitudeMinor(grossRevenueMinor, 11);
+  const reserveMagnitude = formulaDeductionMagnitudeMinor(grossRevenueMinor, 3);
+
+  assert.equal(taxMagnitude, 11_000_000n);
+  assert.equal(reserveMagnitude, 3_000_000n);
+
+  // Generator accumulators: POSITIVE magnitudes added to the running totals.
+  const totalTaxesMinor = taxMagnitude; // 11M positive
+  const totalReservesMinor = reserveMagnitude; // 3M positive (a contribution)
+
+  const net = computeStatementNet({
+    grossRevenueMinor,
+    totalFeesMinor: 0n,
+    totalExpensesMinor: 0n,
+    totalTaxesMinor,
+    totalReservesMinor,
+    managementFeeMinor: 0n,
+  });
+  // 100M - 11M - 3M = 86M.
+  assert.equal(net, 86_000_000n);
+
+  // Statement LINES as the generator pushes them in formula mode: revenue
+  // POSITIVE, tax/reserve lines the NEGATIVE of their magnitude.
+  const lines = [
+    { line_type: "revenue", amount_minor: grossRevenueMinor },
+    { line_type: "tax", amount_minor: -taxMagnitude },
+    { line_type: "reserve", amount_minor: -reserveMagnitude },
+  ];
+
+  // The formula tax line is exactly −11,000,000 and the reserve line −3,000,000.
+  assert.equal(lines[1].amount_minor, -11_000_000n);
+  assert.equal(lines[2].amount_minor, -3_000_000n);
+
+  const linesSignedTotal = lines.reduce<bigint>((acc, l) => acc + l.amount_minor, 0n);
+  assert.equal(linesSignedTotal, net, "Σ(formula lines) must equal net");
+  assert.doesNotThrow(() => assertStatementLinesMatchNet(linesSignedTotal, net));
+});
