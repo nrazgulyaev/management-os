@@ -1,8 +1,13 @@
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { StayShell } from "@/components/layout/stay-shell";
 import { StayHeader, Eyebrow } from "@/components/stay/stay-ui";
 import { Section } from "@/components/ui/section";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
+import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
+import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
+import { hashStayToken } from "@/features/guest-stays/token";
+import { RateLimitedView } from "@/components/stay/rate-limited";
 import { listGuestVisibleServices } from "@/features/guest-services/services";
 import {
   ServicesCatalog,
@@ -22,6 +27,25 @@ export default async function ServicesPage({
   searchParams?: Promise<{ service?: string }>;
 }) {
   const { token } = await params;
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+
+  // Rate limit before doing any DB work for the resolver (mirrors the stay
+  // home page `/stay/[token]`).
+  const tokenPrefix = token.slice(0, 8);
+  const rl = await rateLimitStayTokenAccess({ tokenPrefix, ip });
+  if (!rl.allowed) {
+    return <RateLimitedView blockedUntil={rl.blockedUntil.toISOString()} />;
+  }
+
+  // Verification gate (v9G): an unverified token must not reach the services
+  // catalogue or the request form. Redirect into /verify, same as page.tsx.
+  const tokenHash = hashStayToken(token);
+  const access = await canAccessStayWithoutVerification({ tokenHash });
+  if (!access.allowed) {
+    redirect(`/stay/${token}/verify`);
+  }
+
   const sp = (await searchParams) ?? {};
   const focusKey = sp.service?.trim() || null;
   const result = await getGuestStaySummaryByToken(token);

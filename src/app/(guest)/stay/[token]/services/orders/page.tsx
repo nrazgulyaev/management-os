@@ -1,10 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { notFound } from "next/navigation";
+import { headers } from "next/headers";
+import { notFound, redirect } from "next/navigation";
 import { GuestShell } from "@/components/layout/guest-shell";
 import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
+import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
+import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
+import { hashStayToken } from "@/features/guest-stays/token";
+import { RateLimitedView } from "@/components/stay/rate-limited";
 import { listFulfilmentsForStayToken } from "@/features/service-fulfilment/services";
 import {
   guestFacingFulfilmentStatus,
@@ -20,6 +25,23 @@ export default async function GuestServiceOrdersPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const hdrs = await headers();
+  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+
+  // Rate limit before any DB work (mirrors `/stay/[token]`).
+  const tokenPrefix = token.slice(0, 8);
+  const rl = await rateLimitStayTokenAccess({ tokenPrefix, ip });
+  if (!rl.allowed) {
+    return <RateLimitedView blockedUntil={rl.blockedUntil.toISOString()} />;
+  }
+
+  // Verification gate (v9G): an unverified token must not browse orders.
+  const tokenHash = hashStayToken(token);
+  const access = await canAccessStayWithoutVerification({ tokenHash });
+  if (!access.allowed) {
+    redirect(`/stay/${token}/verify`);
+  }
+
   const result = await getGuestStaySummaryByToken(token);
   if (!result.ok) notFound();
   const stay = result.summary.base;

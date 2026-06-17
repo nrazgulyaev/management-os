@@ -17,6 +17,34 @@ import type { ActionResult } from "@/features/projects/actions";
 
 const idSchema = z.string().uuid();
 
+// -----------------------------------------------------------------------------
+// Booking status state machine (E2E-HARDENING). A direct call to
+// setBookingStatusAction would otherwise accept any valid enum value, letting a
+// booking jump from e.g. `cancelled`/`no_show`/`inquiry` straight to
+// `checked_out`. This map keeps the lifecycle honest. Mirrors the
+// PAYOUT_LINE_TRANSITIONS pattern in src/features/finance/actions.ts.
+//
+// NOTE: this is a sensible default — the operator can refine it (e.g. allow
+// re-opening a cancelled inquiry) without touching the guard logic.
+const BOOKING_TRANSITIONS: Record<string, readonly string[]> = {
+  inquiry: ["tentative", "confirmed", "cancelled"],
+  tentative: ["confirmed", "cancelled", "no_show"],
+  confirmed: ["checked_in", "cancelled", "no_show"],
+  checked_in: ["checked_out"],
+  checked_out: [], // terminal
+  cancelled: [], // terminal
+  no_show: [], // terminal
+};
+
+function isAllowedTransition(
+  table: Record<string, readonly string[]>,
+  from: string,
+  to: string,
+): boolean {
+  if (from === to) return true; // idempotent re-apply is a no-op, not an attack
+  return (table[from] ?? []).includes(to);
+}
+
 export async function createBookingAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -214,6 +242,14 @@ export async function setBookingStatusAction(
     .where(and(eq(bookings.id, parsed.data.id), eq(bookings.organizationId, organizationId)))
     .limit(1);
   if (!before) return { ok: false, error: "Booking not found." };
+  // State-machine guard: refuse illegal lifecycle jumps (e.g. cancelled →
+  // checked_out). Mirrors setPayoutLineStatusAction's guard in finance.
+  if (!isAllowedTransition(BOOKING_TRANSITIONS, before.status, parsed.data.status)) {
+    return {
+      ok: false,
+      error: `Cannot move a booking from "${before.status}" to "${parsed.data.status}".`,
+    };
+  }
   await db
     .update(bookings)
     .set({ status: parsed.data.status })
