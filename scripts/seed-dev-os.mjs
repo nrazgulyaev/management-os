@@ -4753,6 +4753,48 @@ async function main() {
   }
   console.log(`✓ sales_conversation_threads (${threadCnt})`);
 
+  // 17.5b) Sales conversation messages — transcript bodies for the seeded
+  // threads (migration 0184). total_message_count is reset to match so the
+  // aggregate stays consistent with the stored transcript.
+  const sampleConvo = [
+    { dir: "inbound", sender: "Prospect", body: "Hi, saw your villa listing — is unit A3 still available?" },
+    { dir: "outbound", sender: null, body: "Hello! Yes, A3 is available. Would you like to schedule a viewing?" },
+    { dir: "inbound", sender: "Prospect", body: "What's the price and the payment plan?" },
+    { dir: "outbound", sender: null, body: "USD 285k, on a 30/40/30 milestone plan. I'll send the full breakdown." },
+    { dir: "inbound", sender: "Prospect", body: "Please do. Freehold or leasehold?" },
+    { dir: "outbound", sender: null, body: "Leasehold, 30 years extendable. Sending the brochure now." },
+  ];
+  let convoMsgCnt = 0;
+  const seededThreads = await sql`
+    SELECT id, organization_id, conversation_start_at
+      FROM sales_conversation_threads
+  `;
+  for (const th of seededThreads) {
+    const existing = await sql`
+      SELECT id FROM sales_conversation_messages WHERE thread_id = ${th.id} LIMIT 1
+    `;
+    if (existing[0]) continue;
+    const base = new Date(th.conversation_start_at).getTime();
+    for (let j = 0; j < sampleConvo.length; j++) {
+      const m = sampleConvo[j];
+      const occurredAt = new Date(base + j * 3600 * 1000).toISOString();
+      await sql`
+        INSERT INTO sales_conversation_messages (
+          organization_id, thread_id, channel_type, direction, sender_name, body, occurred_at
+        ) VALUES (
+          ${th.organization_id}, ${th.id}, 'whatsapp', ${m.dir}, ${m.sender}, ${m.body}, ${occurredAt}
+        )
+      `;
+      convoMsgCnt++;
+    }
+    await sql`
+      UPDATE sales_conversation_threads
+         SET total_message_count = ${sampleConvo.length}
+       WHERE id = ${th.id}
+    `;
+  }
+  console.log(`✓ sales_conversation_messages (${convoMsgCnt})`);
+
   // 17.6) Manager performance — 12 weekly snapshots
   let mgrPerfCnt = 0;
   if (adminUserId) {

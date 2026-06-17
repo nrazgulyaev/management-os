@@ -2,7 +2,7 @@
 
 **Question this answers:** "Доделали ли мы девелопмент-платформу и админ-платформу?"
 
-> **STATUS (2026-06-17): ALL 86 high/med gaps + 26 low CLOSED in PR #290** (Waves A–D below). The dev-OS is functionally complete; one item is a schema decision (conversation transcripts), not a bug. The audit body below is preserved as the original finding.
+> **STATUS (2026-06-17): 100% CLOSED in PR #290** — all 86 high/med gaps + 26 low + the conversation-transcript table (migration 0184). The dev-OS is functionally complete. The audit body below is preserved as the original finding.
 
 **Method:** 15 cabinet-cluster audit agents read every `page.tsx` under `src/app/(development-app)/development-os/**`, traced each surface to the server actions/queries it calls, and classified it COMPLETE vs a GAP. Every high/med GAP was then re-checked by an independent **adversarial verifier** that re-read the cited file:line and either confirmed or rejected it. This is a *completeness* audit (is the feature finished & usable), not a *does-an-action-exist* audit (that was the prior wire-up sweep).
 
@@ -127,8 +127,8 @@ Every gap in this audit is closed (or made honest). Verified each wave: `tsc` 0 
 - **Wave C — mock→real / delete orphans ✅** deleted `/strategic`, `/communications`, `/cfo/cashflow`; real org-scoped readers for `cfo/capital-calls/[id]`, `rfqs/[id]`, `platform`, project BOQ, and all 7 `/reports/*`.
 - **Wave D — LOW polish + 2 follow-ups ✅** 30 fixes — every LOW item wired or made honest (no fake data / no disabled "coming soon" left); whatsapp inbound resolver now org-stamps from the receiving business number (ingestion-safe, best-effort).
 
-### One genuine remaining item (needs a schema decision, not a bug)
-- **`marketing/conversations/[code]` per-message transcript** — there is no message table joinable to `sales_conversation_threads` today, so the page shows an honest "Transcript not yet captured" state instead of a fabricated thread. Rendering the real transcript needs **a new `sales_conversation_messages` table** (or a `conversation_thread_id` bridge column to the unified-messaging `conversation_threads`). Migration NOT written blind — founder call on whether conversation transcripts are a needed capability.
+### Conversation transcripts — BUILT (founder approved)
+- **`marketing/conversations/[code]` per-message transcript** ✅ — added **migration 0184 `sales_conversation_messages`** (org-scoped, cascades with the thread) + Drizzle schema + `listConversationMessages` (org-scoped) + `appendConversationMessage` writer (confused-deputy guard on the parent thread, bumps `total_message_count`/`last_message_at`) + a transcript render (inbound/outbound bubbles) and a "Log message" form on the page. Demo transcripts seeded in `seed-dev-os.mjs`. **Founder must run `npm run db:migrate` (applies 0184) and, for demo data, re-run `npm run seed:dev-os`.**
 
 ### Build note
 The completeness wave (+~240 files) pushed `next build` past the default ~4GB Node heap → the `build` script now sets `NODE_OPTIONS=--max-old-space-size=8192` (env/heap, not a code issue; GitHub runners have 16GB).
