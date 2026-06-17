@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, eq, desc } from "drizzle-orm";
+import { and, asc, eq, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   salesConversationThreads,
+  salesConversationMessages,
   managerPerformanceMetrics,
 } from "@/lib/db/schema/marketing";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -35,6 +36,23 @@ export async function getThreadByCode(code: string) {
     )
     .limit(1);
   return rows[0] ?? null;
+}
+
+/** Org-scoped transcript for a thread (oldest → newest). */
+export async function listConversationMessages(threadId: string) {
+  const db = getDb();
+  if (!db) return [];
+  const organizationId = await requireOrgId();
+  return db
+    .select()
+    .from(salesConversationMessages)
+    .where(
+      and(
+        eq(salesConversationMessages.threadId, threadId),
+        eq(salesConversationMessages.organizationId, organizationId),
+      ),
+    )
+    .orderBy(asc(salesConversationMessages.occurredAt));
 }
 
 export async function listManagerPerformance(opts: { managerId?: string; limit?: number } = {}) {

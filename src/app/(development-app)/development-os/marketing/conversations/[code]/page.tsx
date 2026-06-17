@@ -5,9 +5,13 @@ import { ArrowLeft } from "lucide-react";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { getThreadByCode } from "@/lib/development/server/conversation-review/conversation-queries";
+import {
+  getThreadByCode,
+  listConversationMessages,
+} from "@/lib/development/server/conversation-review/conversation-queries";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { ConsentControl } from "./_consent-control";
+import { LogMessageForm } from "./_log-message-form";
 
 export const metadata: Metadata = { title: "Conversation thread · Marketing" };
 export const dynamic = "force-dynamic";
@@ -23,6 +27,7 @@ export default async function ConversationDetailPage({
     getCurrentAppUser().catch(() => null),
   ]);
   if (!thread) notFound();
+  const messages = await listConversationMessages(thread.id);
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -75,10 +80,53 @@ export default async function ConversationDetailPage({
       </div>
       <div className="mt-[18px]">
         <div className="label mb-2.5">Transcript</div>
-        <EmptyState
-          title="Transcript not yet captured"
-          description="This thread records aggregate metadata (channels, message count, outcome) for performance and consent-gated AI analysis — the individual message bodies are not stored against it yet. Per-message capture is a planned follow-on."
-        />
+        <Card padding="default">
+          {messages.length === 0 ? (
+            <EmptyState
+              title="No messages logged yet"
+              description="Log the conversation's messages below to build the transcript. Each entry updates the thread's message count and last-activity time."
+            />
+          ) : (
+            <div className="flex flex-col gap-2.5">
+              {messages.map((m) => {
+                const outbound = m.direction === "outbound";
+                return (
+                  <div
+                    key={m.id}
+                    className={`flex ${outbound ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[78%] rounded-lg px-3 py-2 ${
+                        outbound
+                          ? "bg-ink-1 text-white"
+                          : "bg-surface-2 text-ink-1"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="text-[11px] uppercase tracking-wide opacity-70">
+                          {outbound ? "Us" : (m.senderName ?? "Prospect")}
+                        </span>
+                        <span className="text-[11px] opacity-60">
+                          {m.channelType}
+                        </span>
+                        <span className="text-[11px] opacity-60">
+                          {new Date(m.occurredAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-sm whitespace-pre-wrap break-words">
+                        {m.body}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-3.5 pt-3.5 border-t border-line">
+            <div className="label mb-2">Log a message</div>
+            <LogMessageForm threadCode={thread.threadCode} />
+          </div>
+        </Card>
       </div>
       <div className="mt-[18px]">
         <div className="label mb-2.5">Privacy & AI</div>

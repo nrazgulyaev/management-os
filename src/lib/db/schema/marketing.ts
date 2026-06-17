@@ -358,6 +358,41 @@ export const salesConversationThreads = pgTable(
   ],
 );
 
+// Per-message transcript for a sales conversation thread (migration 0184).
+// sales_conversation_threads stores only aggregate metadata; the individual
+// message bodies live here so the conversation detail page can render the
+// transcript. org-scoped; cascades with the parent thread.
+export const salesConversationMessages = pgTable(
+  "sales_conversation_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id),
+    threadId: uuid("thread_id")
+      .notNull()
+      .references(() => salesConversationThreads.id, { onDelete: "cascade" }),
+    channelType: text("channel_type").notNull().default("whatsapp"),
+    /** 'inbound' | 'outbound' */
+    direction: text("direction").notNull(),
+    senderName: text("sender_name"),
+    body: text("body").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    index("sales_conversation_messages_thread_idx").on(
+      t.threadId,
+      t.occurredAt,
+    ),
+    index("sales_conversation_messages_org_idx").on(t.organizationId),
+  ],
+);
+
 export const managerPerformanceMetrics = pgTable(
   "manager_performance_metrics",
   {
