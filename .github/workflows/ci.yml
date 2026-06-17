@@ -42,6 +42,12 @@ jobs:
       - name: Type-check
         run: npm run typecheck
 
+      - name: Tenancy guard
+        run: npm run tenancy:guard
+
+      - name: Money-correctness tests
+        run: npx tsx --test tests/owner-statement-net.test.ts tests/statement-cron-replay.test.ts
+
       - name: Lint
         run: npm run lint
 
