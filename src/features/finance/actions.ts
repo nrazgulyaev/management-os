@@ -59,9 +59,11 @@ const STATEMENT_TRANSITIONS: Record<string, readonly string[]> = {
 const PAYOUT_LINE_TRANSITIONS: Record<string, readonly string[]> = {
   pending: ["approved", "cancelled"],
   approved: ["paid", "failed", "cancelled"],
-  failed: ["approved", "cancelled"],
+  // "Reopen" — a failed or cancelled line can be sent back to `pending` to
+  // re-run the approve→paid lifecycle (e.g. after fixing the payout method).
+  failed: ["approved", "cancelled", "pending"],
   paid: [],
-  cancelled: [],
+  cancelled: ["pending"],
 };
 
 const PAYOUT_BATCH_TRANSITIONS: Record<string, readonly string[]> = {
@@ -691,6 +693,10 @@ export async function setPayoutLineStatusAction(
   }
   const updates: Record<string, unknown> = { status: parsed.data.next };
   if (parsed.data.next === "paid") updates.paidAt = new Date();
+  // Reopen (→ pending): defensively clear paidAt so a reopened line is never
+  // left marked paid. We do NOT stamp approvedBy/approvedAt — a reopened line
+  // must be re-approved explicitly before it can move to paid again.
+  if (parsed.data.next === "pending") updates.paidAt = null;
   await db
     .update(payoutLines)
     .set(updates)

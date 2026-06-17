@@ -4,7 +4,9 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
   getGuestStayTokenById,
 } from "@/features/guest-stays/services";
+import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
 import { RevokeTokenButton } from "@/components/guest-stays/revoke-token-button";
+import { ConciergeVerificationCode } from "@/components/guest-stays/concierge-verification-code";
 
 export const metadata = { title: "Guest stay token" };
 export const dynamic = "force-dynamic";
@@ -23,6 +25,11 @@ export default async function TokenDetail({
   const { id } = await params;
   const t = await getGuestStayTokenById(id);
   if (!t) notFound();
+  const ctx = await getCurrentUserContext();
+  const canManageTokens = hasPermission(ctx, "guest_stay.token.manage");
+  // Concierge code is for walk-in guests with no delivery channel; only useful
+  // while the token is active.
+  const noDeliveryChannel = !t.issuedToEmail && !t.issuedToPhone;
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -79,6 +86,31 @@ export default async function TokenDetail({
           </div>
         </Card>
       </div>
+
+      {canManageTokens && t.status === "active" && (
+        <div>
+          <div className="label mb-2.5">Verification code (concierge)</div>
+          <Card padding="default">
+            <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+              {noDeliveryChannel ? (
+                <>
+                  This token has <strong>no email and no phone</strong>, so the
+                  guest cannot receive a code automatically. Issue one here and
+                  read it to the walk-in guest in person.
+                </>
+              ) : (
+                <>
+                  This token has an email/phone, so the guest can request a code
+                  themselves. Use this only if you need to hand one over in
+                  person.
+                </>
+              )}{" "}
+              It expires like a normal code (10 minutes).
+            </p>
+            <ConciergeVerificationCode tokenId={t.id} />
+          </Card>
+        </div>
+      )}
 
       <div>
         <div className="label mb-2.5">Public URL</div>
