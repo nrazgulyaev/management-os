@@ -64,6 +64,13 @@ const PAYOUT_LINE_TRANSITIONS: Record<string, readonly string[]> = {
   cancelled: [],
 };
 
+const PAYOUT_BATCH_TRANSITIONS: Record<string, readonly string[]> = {
+  draft: ["approved", "cancelled"],
+  approved: ["paid", "cancelled"],
+  paid: [],
+  cancelled: [],
+};
+
 function isAllowedTransition(
   table: Record<string, readonly string[]>,
   from: string,
@@ -692,6 +699,59 @@ export async function setPayoutLineStatusAction(
     actorUserId: me?.id ?? null,
     action: `finance.payout_line.${parsed.data.next}`,
     entityType: "payout_line",
+    entityId: parsed.data.id,
+    before: { status: before.status },
+    after: { status: parsed.data.next },
+  });
+  revalidatePath("/dashboard/finance/payouts");
+  return { ok: true };
+}
+
+const batchSetStatusSchema = z.object({
+  id: z.string().uuid(),
+  next: z.enum(["draft", "approved", "paid", "cancelled"]),
+});
+
+export async function setPayoutBatchStatusAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("finance.approve_payout");
+  const parsed = batchSetStatusSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) return { ok: false, error: "Invalid status." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  // WRITE-FLOW-AUDIT: org-scoped load closes the cross-tenant IDOR — a
+  // foreign payout-batch id cannot be approved/paid by another org.
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(payoutBatches)
+    .where(and(eq(payoutBatches.id, parsed.data.id), eq(payoutBatches.organizationId, organizationId)))
+    .limit(1);
+  if (!before) return { ok: false, error: "Payout batch not found." };
+  // State-machine guard: only draft → approved → paid (plus cancelled).
+  if (!isAllowedTransition(PAYOUT_BATCH_TRANSITIONS, before.status, parsed.data.next)) {
+    return {
+      ok: false,
+      error: `Cannot move payout batch from "${before.status}" to "${parsed.data.next}".`,
+    };
+  }
+  const updates: Record<string, unknown> = { status: parsed.data.next };
+  if (parsed.data.next === "approved") {
+    updates.approvedBy = me?.id ?? null;
+    updates.approvedAt = new Date();
+  }
+  if (parsed.data.next === "paid") updates.paidAt = new Date();
+  await db
+    .update(payoutBatches)
+    .set(updates)
+    .where(and(eq(payoutBatches.id, parsed.data.id), eq(payoutBatches.organizationId, organizationId)));
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: `finance.payout_batch.${parsed.data.next}`,
+    entityType: "payout_batch",
     entityId: parsed.data.id,
     before: { status: before.status },
     after: { status: parsed.data.next },

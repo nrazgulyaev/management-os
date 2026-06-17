@@ -6,6 +6,7 @@ import { listOwners } from "@/features/owners/services";
 import { PayoutBatchAddButton } from "@/components/finance/payout-batch-add-button";
 import { PayoutLineAddButton } from "@/components/finance/payout-line-add-button";
 import { PayoutLineStatusButtons } from "@/components/finance/payout-line-status-buttons";
+import { PayoutBatchStatusButtons } from "@/components/finance/payout-batch-status-buttons";
 import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Payouts" };
@@ -90,6 +91,7 @@ export default async function PayoutsPage() {
                 <th scope="col">Status</th>
                 <th scope="col" className="num">Lines</th>
                 <th scope="col" className="num">Total</th>
+                <th scope="col" className="num">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -105,6 +107,9 @@ export default async function PayoutsPage() {
                   <td className="num">{b.lineCount}</td>
                   <td className="num text-terra font-medium">
                     {formatMoneyMinor(b.totalAmountMinor, b.currency)}
+                  </td>
+                  <td className="num">
+                    <PayoutBatchStatusButtons batchId={b.id} status={b.status} />
                   </td>
                 </tr>
               ))}
