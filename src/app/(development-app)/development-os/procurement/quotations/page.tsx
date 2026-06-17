@@ -12,6 +12,7 @@ import {
 } from "@/lib/db/schema/procurement";
 import { vendors } from "@/lib/db/schema/site-operations";
 import { safeQuery } from "@/lib/development/safe-query";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata: Metadata = {
   title: "Quotations · Development OS",
@@ -29,6 +30,7 @@ const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = 
 async function listAllQuotations() {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   return db
     .select({
       id: procurementQuotations.id,
@@ -50,6 +52,7 @@ async function listAllQuotations() {
       devOsPurchaseRequests,
       eq(devOsPurchaseRequests.id, procurementQuotations.purchaseRequestId),
     )
+    .where(eq(procurementQuotations.organizationId, organizationId))
     .orderBy(desc(procurementQuotations.quotedAt))
     .limit(200);
 }
