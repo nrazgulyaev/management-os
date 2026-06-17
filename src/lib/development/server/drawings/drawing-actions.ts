@@ -11,6 +11,7 @@ import {
 import { vendors } from "@/lib/db/schema/site-operations";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { recordAuditEvent } from "@/features/audit/services";
 
 const DRAWING_TYPES = [
   "architectural",
@@ -308,5 +309,86 @@ export async function logDrawingDistribution(
       notes: parsed.notes ?? null,
     })
     .returning();
+  return row;
+}
+
+const acknowledgeSchema = z.object({
+  distributionId: z.string().uuid(),
+  /** When true, clear a previously-stamped acknowledgment. */
+  clear: z.boolean().optional(),
+  acknowledgedByName: z.string().trim().min(1).max(160).nullable().optional(),
+  acknowledgmentMethod: z
+    .enum(["whatsapp", "email", "physical_print", "platform_download", "other"])
+    .nullable()
+    .optional(),
+});
+
+/**
+ * Stamp (or clear) the chain-of-custody acknowledgment on a distribution-log
+ * row. The "Acknowledged" column was previously read-only with no writer; this
+ * closes the loop so site teams can confirm a vendor received a revision.
+ */
+export async function acknowledgeDrawingDistribution(
+  input: z.input<typeof acknowledgeSchema>,
+) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = acknowledgeSchema.parse(input);
+  const db = requireDb();
+
+  // TENANCY — distributionId arrives from the client. Confirm the row belongs
+  // to the caller's org before stamping it, otherwise a forged id would let a
+  // tenant mutate another tenant's distribution record (IDOR).
+  const [existing] = await db
+    .select({
+      id: drawingDistributionLog.id,
+      acknowledgedAt: drawingDistributionLog.acknowledgedAt,
+    })
+    .from(drawingDistributionLog)
+    .where(
+      and(
+        eq(drawingDistributionLog.id, parsed.distributionId),
+        eq(drawingDistributionLog.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!existing) {
+    throw new Error("distribution record not found");
+  }
+
+  const set = parsed.clear
+    ? {
+        acknowledgedAt: null,
+        acknowledgedByName: null,
+        acknowledgmentMethod: null,
+      }
+    : {
+        acknowledgedAt: new Date(),
+        acknowledgedByName: parsed.acknowledgedByName ?? null,
+        acknowledgmentMethod: parsed.acknowledgmentMethod ?? null,
+      };
+
+  const [row] = await db
+    .update(drawingDistributionLog)
+    .set(set)
+    .where(
+      and(
+        eq(drawingDistributionLog.id, parsed.distributionId),
+        eq(drawingDistributionLog.organizationId, organizationId),
+      ),
+    )
+    .returning();
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: parsed.clear
+      ? "drawing.distribution.acknowledgment_cleared"
+      : "drawing.distribution.acknowledged",
+    entityType: "drawing_distribution_log",
+    entityId: parsed.distributionId,
+    before: { acknowledgedAt: existing.acknowledgedAt },
+    after: { acknowledgedAt: row?.acknowledgedAt ?? null },
+  });
+
   return row;
 }

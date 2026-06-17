@@ -100,13 +100,13 @@ export default async function DevCfoPage() {
           </p>
         </div>
         <div className="actions">
-          <button
-            className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
+          <Link
+            href="/development-os/finance/tax-reports"
+            className="btn btn-dark btn-sm"
+            title="Coretax / CSV exports + filing"
           >
-            Tax pack PDF ↓
-          </button>
+            Tax pack ↓
+          </Link>
           <Link
             href="/development-os/finance/transactions/quick-entry"
             className="btn btn-amber btn-sm"

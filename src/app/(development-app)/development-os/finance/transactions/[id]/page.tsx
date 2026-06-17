@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { SectionHeading } from "@/components/dashboard/primitives";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,25 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { TransactionTaxClassifyCard } from "@/components/development/finance/transaction-tax-classify-card";
 import { getDb } from "@/lib/db/client";
-import { devTransactions, devBankAccounts, devCostCategories } from "@/lib/db/schema/dev-finance";
+import {
+  devTransactions,
+  devBankAccounts,
+  devCostCategories,
+  devCommitmentsLedger,
+} from "@/lib/db/schema/dev-finance";
 import { projects } from "@/lib/db/schema/projects";
 import { listActiveTaxTypes } from "@/lib/development/server/tax/tax-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   formatCurrencyMinor,
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
+import {
+  TransactionEditControls,
+  type ProjectOption,
+  type CommitmentOption,
+} from "./_controls";
 
 export const metadata: Metadata = { title: "Transaction · Development OS" };
 export const dynamic = "force-dynamic";
@@ -78,6 +89,60 @@ export default async function TransactionDetailPage({
     4000,
   );
 
+  // Org-scoped option lists for the inline-edit drawer (split / link).
+  const organizationId = await requireOrgId();
+  const [projectRows, commitmentRows] = await Promise.all([
+    safeQuery(
+      "txn-edit-projects",
+      db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(eq(projects.organizationId, organizationId))
+        .orderBy(asc(projects.name)),
+      [],
+      4000,
+    ),
+    safeQuery(
+      "txn-edit-commitments",
+      db
+        .select({
+          id: devCommitmentsLedger.id,
+          commitmentCode: devCommitmentsLedger.commitmentCode,
+          description: devCommitmentsLedger.description,
+          amountUsdMinor: devCommitmentsLedger.amountUsdMinor,
+          status: devCommitmentsLedger.status,
+        })
+        .from(devCommitmentsLedger)
+        .where(
+          and(
+            eq(devCommitmentsLedger.organizationId, organizationId),
+            inArray(devCommitmentsLedger.status, ["open", "partially_paid"]),
+          ),
+        )
+        .orderBy(asc(devCommitmentsLedger.commitmentCode)),
+      [],
+      4000,
+    ),
+  ]);
+
+  const projectOptions: ProjectOption[] = projectRows.map((p) => ({
+    id: p.id,
+    name: p.name,
+  }));
+  const commitmentOptions: CommitmentOption[] = commitmentRows.map((c) => ({
+    id: c.id,
+    label: `${c.commitmentCode} · ${formatUsdMinor(BigInt(c.amountUsdMinor))} · ${c.description}`,
+  }));
+
+  const currentAllocation =
+    t.allocationType === "multi_project" &&
+    t.allocationMetadata != null &&
+    typeof t.allocationMetadata === "object"
+      ? (t.allocationMetadata as Record<string, number>)
+      : null;
+
+  const projNameById = new Map(projectOptions.map((p) => [p.id, p.name]));
+
   return (
     <DevelopmentShell>
       <SectionHeading
@@ -130,26 +195,54 @@ export default async function TransactionDetailPage({
             mono
           />
         </div>
-        <div className="mt-3 text-xs text-ink-tertiary">
-          Inline edit (allocation split, reconciliation, document attach) is
-          available via the <code>splitTransactionAllocation</code>,{" "}
-          <code>reconcileTransaction</code>, and{" "}
-          <code>linkTransactionToCommitmentLedger</code> server actions; UI
-          drawer for these is forthcoming.
-        </div>
+        <TransactionEditControls
+          transactionId={t.id}
+          reconciled={t.reconciledAt != null}
+          currentAllocation={currentAllocation}
+          currentCommitmentId={t.relatedCommitmentId ?? null}
+          projects={projectOptions}
+          commitments={commitmentOptions}
+        />
       </section>
 
-      {t.allocationMetadata != null && (
-        <section>
-          <div className="label">Allocation</div>
-          <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
-            Multi-project split
-          </h2>
-          <pre className="rounded-md border border-line-soft bg-surface p-4 text-xs overflow-auto">
-            {JSON.stringify(t.allocationMetadata, null, 2)}
-          </pre>
-        </section>
-      )}
+      {currentAllocation != null &&
+        Object.keys(currentAllocation).length > 0 && (
+          <section>
+            <div className="label">Allocation</div>
+            <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
+              Multi-project split
+            </h2>
+            <table className="data max-w-md">
+              <thead>
+                <tr>
+                  <th>Project</th>
+                  <th className="num">Share</th>
+                  <th className="num">USD</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(currentAllocation).map(([pid, ratio]) => (
+                  <tr key={pid}>
+                    <td>{projNameById.get(pid) ?? pid}</td>
+                    <td className="num">{(Number(ratio) * 100).toFixed(1)}%</td>
+                    <td className="num">
+                      {formatUsdMinor(
+                        BigInt(
+                          Math.round(
+                            Number(t.amountUsdMinor) * Number(ratio),
+                          ),
+                        ),
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-xs text-ink-tertiary">
+              Edit via “Split allocation” above. Shares sum to 100%.
+            </p>
+          </section>
+        )}
 
       <section>
         <div className="label">Tax</div>

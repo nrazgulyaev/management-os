@@ -87,27 +87,27 @@ export default async function AiAgentsPage() {
         subtitle="Read-only allowlists. Refuses to act on closed periods or beyond scope. Every reply tied to a run id and an audit row."
         actions={
           <>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            <Link
+              href="/development-os/settings/ai-usage"
+              className="btn btn-dark btn-sm"
+              title="Token & cost usage across agents"
             >
               Token usage
-            </button>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            </Link>
+            <Link
+              href="/development-os/ai-agents/memory"
+              className="btn btn-dark btn-sm"
+              title="Add and curate project-memory items"
             >
               Memory editor
-            </button>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            </Link>
+            <Link
+              href="/development-os/ai-agents/executive-business"
+              className="btn btn-amber btn-sm"
+              title="Open a conversational thread with the business agent"
             >
               + Conversation
-            </button>
+            </Link>
           </>
         }
       />

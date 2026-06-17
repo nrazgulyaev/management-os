@@ -38,6 +38,20 @@ type MonthlyRow = {
   cumulativeCash?: number;
 };
 
+/**
+ * Recover the forecast's opening balance from its first projection.
+ * The generator seeds `cumulative = startingCash` then writes the first
+ * month as `cumulativeCash = startingCash + net`, so the opening balance
+ * is `firstMonth.cumulativeCash − firstMonth.net`. Returns null when no
+ * projection rows exist (honest "—" rather than a false $0). Units match
+ * the sibling trough / ending-cash KPIs (cumulativeCash basis).
+ */
+function startingCashFromMonths(months: MonthlyRow[]): number | null {
+  const first = months[0];
+  if (!first) return null;
+  return Number(first.cumulativeCash ?? 0) - Number(first.net ?? 0);
+}
+
 export default async function CashflowForecastPage({
   searchParams,
 }: {
@@ -103,6 +117,7 @@ export default async function CashflowForecastPage({
     if (lo === null || c < Number(lo.cumulativeCash ?? 0)) return m;
     return lo;
   }, null);
+  const startingCash = startingCashFromMonths(months);
   const totalGaps = forecasts.reduce(
     (acc, f) =>
       acc +
@@ -140,7 +155,11 @@ export default async function CashflowForecastPage({
       <div className="cfo-kpis cfo-kpis-4">
         <Kpi
           label="Cash today"
-          value={formatMoney(headline ? 0n : null)}
+          value={
+            startingCash !== null
+              ? formatMoney(BigInt(Math.round(startingCash)))
+              : "—"
+          }
           sub="starting balance"
           tone="success"
         />

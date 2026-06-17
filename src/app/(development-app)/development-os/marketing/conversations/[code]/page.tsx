@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getThreadByCode } from "@/lib/development/server/conversation-review/conversation-queries";
 import { getCurrentAppUser } from "@/features/auth/current-user";
@@ -71,6 +72,13 @@ export default async function ConversationDetailPage({
             Messages: {thread.totalMessageCount} across {(thread.channelTypes ?? []).join(", ")}
           </p>
         </Card>
+      </div>
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Transcript</div>
+        <EmptyState
+          title="Transcript not yet captured"
+          description="This thread records aggregate metadata (channels, message count, outcome) for performance and consent-gated AI analysis — the individual message bodies are not stored against it yet. Per-message capture is a planned follow-on."
+        />
       </div>
       <div className="mt-[18px]">
         <div className="label mb-2.5">Privacy & AI</div>

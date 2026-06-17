@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
 import { AgentOutputReviewControls } from "@/components/development/agent-output-review-controls";
+import { JsonExportButtons } from "@/components/development/json-export-buttons";
 
 const STATUS_TONE: Record<
   string,
@@ -89,6 +90,12 @@ export function AgentOutputDetail({
       )}
 
       <Section title="Detailed output">
+        <div className="mb-2">
+          <JsonExportButtons
+            value={output.detailedOutput}
+            filename={`${output.outputCode}-detailed-output`}
+          />
+        </div>
         <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
           {JSON.stringify(output.detailedOutput, null, 2)}
         </pre>
@@ -96,6 +103,12 @@ export function AgentOutputDetail({
 
       {output.affectedEntities != null && (
         <Section title="Affected entities">
+          <div className="mb-2">
+            <JsonExportButtons
+              value={output.affectedEntities}
+              filename={`${output.outputCode}-affected-entities`}
+            />
+          </div>
           <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
             {JSON.stringify(output.affectedEntities, null, 2)}
           </pre>
