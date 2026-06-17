@@ -2,6 +2,8 @@
 
 **Question this answers:** "Доделали ли мы девелопмент-платформу и админ-платформу?"
 
+> **STATUS (2026-06-17): ALL 86 high/med gaps + 26 low CLOSED in PR #290** (Waves A–D below). The dev-OS is functionally complete; one item is a schema decision (conversation transcripts), not a bug. The audit body below is preserved as the original finding.
+
 **Method:** 15 cabinet-cluster audit agents read every `page.tsx` under `src/app/(development-app)/development-os/**`, traced each surface to the server actions/queries it calls, and classified it COMPLETE vs a GAP. Every high/med GAP was then re-checked by an independent **adversarial verifier** that re-read the cited file:line and either confirmed or rejected it. This is a *completeness* audit (is the feature finished & usable), not a *does-an-action-exist* audit (that was the prior wire-up sweep).
 
 ## Headline
@@ -116,8 +118,17 @@ Filters/search/pagination missing on several lists (investors, commitments, dist
 ## What IS production-deep (so this is "finish", not "rebuild")
 Per-cabinet, the verified-complete spine includes: full investor lifecycle + money moves (capital-investors — strongest), the finance hub (transactions/GL/accounting/tax/commitments/shared-costs/reconciliation/profitability/cashflow-forecast), the procurement RFQ→PO loop, warehouse stock/picks/receive/cycle-count, site-reports + QA-QC + drawings, coordination board, risk radar, marketing campaigns/connections/content-kanban, the inbox + channels cabinets, the executive monthly/quarterly/YTD surfaces, and the platform/settings admin core (orgs, approval-thresholds, notifications, ai-usage, bulk-import). The gaps are secondary surfaces, reports, and a handful of orphaned mocks.
 
-## Proposed fix waves
-- **Wave A — security + money (small, critical, mostly shipped here):** 3 leaks ✅; contract→AJB completion + revenue-recognition unblock; investor-requests + buyers UUID→names joins.
-- **Wave B — mount-existing-action CRUD (the big mechanical one, fan-out by cabinet, file-disjoint):** the 33 MISSING_CRUD + high DEAD_ENDs — each "mount a form/button over a built, tenant-safe action". Mirrors #111–118 / #267–272.
-- **Wave C — mock-data → real / delete orphans:** delete `/strategic`, `/communications`, `/cfo/cashflow` dup; real readers for `cfo/capital-calls/[id]`, `rfqs/[id]`, `platform`, `boq`; wire the 7 reports (or badge "demo" + defer).
-- **Wave D — STUB pages + LOW polish:** filters, copy, disabled-button cleanup.
+## Fix waves — ALL SHIPPED (PR #290)
+
+Every gap in this audit is closed (or made honest). Verified each wave: `tsc` 0 errors, `npm run build` green, `npm run tenancy:guard` passed.
+
+- **Wave A — security + money ✅** 3 cross-tenant leaks; contract→AJB `completeContractGroup` + `in_payment` auto-transition (unblocks deferred sale-revenue recognition); investor-requests + buyers UUID→name joins.
+- **Wave B — mount-existing-action CRUD ✅** all 33 MISSING_CRUD + high DEAD_ENDs wired to their built, tenant-safe actions (fan-out by cabinet, file-disjoint).
+- **Wave C — mock→real / delete orphans ✅** deleted `/strategic`, `/communications`, `/cfo/cashflow`; real org-scoped readers for `cfo/capital-calls/[id]`, `rfqs/[id]`, `platform`, project BOQ, and all 7 `/reports/*`.
+- **Wave D — LOW polish + 2 follow-ups ✅** 30 fixes — every LOW item wired or made honest (no fake data / no disabled "coming soon" left); whatsapp inbound resolver now org-stamps from the receiving business number (ingestion-safe, best-effort).
+
+### One genuine remaining item (needs a schema decision, not a bug)
+- **`marketing/conversations/[code]` per-message transcript** — there is no message table joinable to `sales_conversation_threads` today, so the page shows an honest "Transcript not yet captured" state instead of a fabricated thread. Rendering the real transcript needs **a new `sales_conversation_messages` table** (or a `conversation_thread_id` bridge column to the unified-messaging `conversation_threads`). Migration NOT written blind — founder call on whether conversation transcripts are a needed capability.
+
+### Build note
+The completeness wave (+~240 files) pushed `next build` past the default ~4GB Node heap → the `build` script now sets `NODE_OPTIONS=--max-old-space-size=8192` (env/heap, not a code issue; GitHub runners have 16GB).
