@@ -6,13 +6,17 @@ import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
+import { eq } from "drizzle-orm";
 import { projects } from "@/lib/db/schema/projects";
 import {
   getBudgetVsActual,
   getProjectFinancialSummary,
 } from "@/lib/development/server/budget";
+import { getCostCategories } from "@/lib/development/server/cost-categories";
+import { requireOrgId } from "@/features/auth/require-org";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { AddBudgetLineButton } from "./_budget-line-form";
 
 export const metadata: Metadata = { title: "Budget · Development OS" };
 export const dynamic = "force-dynamic";
@@ -41,10 +45,27 @@ export default async function BudgetPage({
     );
   }
 
+  const organizationId = await requireOrgId();
   const projectList = await db
     .select({ id: projects.id, name: projects.name, slug: projects.slug })
     .from(projects)
+    .where(eq(projects.organizationId, organizationId))
     .orderBy(projects.name);
+
+  const categoryRows = await safeQuery(
+    "getCostCategories",
+    getCostCategories(),
+    [] as Awaited<ReturnType<typeof getCostCategories>>,
+    4000,
+  );
+  const categoryOptions = categoryRows
+    .filter((c) => c.isActive)
+    .map((c) => ({
+      id: c.id,
+      code: c.categoryCode,
+      displayName: c.displayName,
+    }));
+  const projectOptions = projectList.map((p) => ({ id: p.id, name: p.name }));
 
   const projectId = sp.projectId ?? projectList[0]?.id;
   const selectedProject = projectList.find((p) => p.id === projectId);
@@ -95,6 +116,11 @@ export default async function BudgetPage({
           </p>
         </div>
         <div className="actions">
+          <AddBudgetLineButton
+            projects={projectOptions}
+            categories={categoryOptions}
+            defaultProjectId={projectId}
+          />
           <Link href="/development-os/finance" className="btn btn-secondary">
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             Finance

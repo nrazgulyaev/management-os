@@ -84,18 +84,39 @@ export default async function InvestorRequestDetailPage({
             <Field label="Status" value={req.status} />
             <Field
               label="Investor"
-              value={req.investorId.slice(0, 8)}
-              mono
+              value={req.investorLegalName ?? req.investorId.slice(0, 8)}
+              href={
+                req.investorCode
+                  ? `/development-os/investors/${req.investorCode}`
+                  : undefined
+              }
+              mono={!req.investorLegalName}
             />
             <Field
               label="Source project"
-              value={req.sourceProjectId?.slice(0, 8) ?? "—"}
-              mono
+              value={
+                req.sourceProjectName ??
+                (req.sourceProjectId ? req.sourceProjectId.slice(0, 8) : "—")
+              }
+              href={
+                req.sourceProjectSlug
+                  ? `/development-os/projects/${req.sourceProjectSlug}`
+                  : undefined
+              }
+              mono={!req.sourceProjectName && !!req.sourceProjectId}
             />
             <Field
               label="Target project"
-              value={req.targetProjectId?.slice(0, 8) ?? "—"}
-              mono
+              value={
+                req.targetProjectName ??
+                (req.targetProjectId ? req.targetProjectId.slice(0, 8) : "—")
+              }
+              href={
+                req.targetProjectSlug
+                  ? `/development-os/projects/${req.targetProjectSlug}`
+                  : undefined
+              }
+              mono={!req.targetProjectName && !!req.targetProjectId}
             />
             <Field
               label="Submitted"
@@ -178,18 +199,27 @@ function Field({
   label,
   value,
   mono,
+  href,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  href?: string;
 }) {
+  const valueCls = `mt-0.5 ${mono ? "font-mono text-xs break-all" : "text-sm"}`;
   return (
     <div>
       <div className="text-[11px] uppercase tracking-wide text-ink-tertiary">
         {label}
       </div>
-      <div className={`mt-0.5 ${mono ? "font-mono text-xs break-all" : "text-sm"}`}>
-        {value}
+      <div className={valueCls}>
+        {href ? (
+          <Link href={href} className="hover:underline">
+            {value}
+          </Link>
+        ) : (
+          value
+        )}
       </div>
     </div>
   );

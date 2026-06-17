@@ -5,15 +5,31 @@ import { Loader2, CheckCircle, XCircle, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { recordQaQcInspection } from "@/lib/development/server/qa-qc/qa-qc-actions";
 
+export interface QaQcStandardOption {
+  id: string;
+  label: string;
+}
+
 /**
  * Operator-side: record an inspection round. Result auto-transitions
  * the issue (passed → accepted, failed → rejected, partial_pass stays
  * for operator follow-up).
+ *
+ * The optional `standards` list powers a quality-standard picker — the
+ * acceptance-criteria template the inspection was checked against. The
+ * chosen id is persisted to `qa_qc_inspections.quality_standard_id`.
  */
-export function QaQcInspectionForm({ issueId }: { issueId: string }) {
+export function QaQcInspectionForm({
+  issueId,
+  standards = [],
+}: {
+  issueId: string;
+  standards?: QaQcStandardOption[];
+}) {
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<"passed" | "failed" | "partial_pass">("passed");
   const [notes, setNotes] = useState("");
+  const [standardId, setStandardId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -27,6 +43,7 @@ export function QaQcInspectionForm({ issueId }: { issueId: string }) {
           issueId,
           result,
           resultNotes: notes || null,
+          standardId: standardId || null,
         });
         setSuccess(
           `Inspection #${out.inspection.inspectionNumber} recorded. Status now '${out.newStatus}'.`,
@@ -81,6 +98,26 @@ export function QaQcInspectionForm({ issueId }: { issueId: string }) {
           ))}
         </div>
       </div>
+
+      {standards.length > 0 && (
+        <label className="block text-sm">
+          <span className="text-ink-secondary">
+            Quality standard checked (optional)
+          </span>
+          <select
+            value={standardId}
+            onChange={(e) => setStandardId(e.target.value)}
+            className="mt-1 block w-full rounded border border-line-soft p-2 text-sm"
+          >
+            <option value="">— none —</option>
+            {standards.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="block text-sm">
         <span className="text-ink-secondary">Notes (optional)</span>

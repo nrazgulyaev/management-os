@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
@@ -286,5 +287,138 @@ export async function issueCapitalCallAction(
     number: result.number,
     totalUsdMinor: totalCents.toString(),
     allocationCount: result.allocationCount,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// W1c — Record a wire receipt against one capital-call allocation.
+//
+// Sets received_usd / received_at / wire_ref on the allocation, then
+// recomputes the parent call's status (issued → partial → received) from
+// the aggregate of its allocations, all in one transaction. The allocation
+// is reached ONLY through its parent call, whose organization_id must match
+// the caller's org — so a foreign allocation id cannot be written.
+// ---------------------------------------------------------------------------
+
+const recordReceivedSchema = z.object({
+  allocationId: z.string().uuid(),
+  /** Amount received in USD MINOR units (cents). */
+  receivedUsdMinor: z.union([z.bigint(), z.string(), z.number()]),
+  /** ISO date (YYYY-MM-DD). */
+  receivedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  wireRef: z.string().min(1).max(120),
+});
+
+export type RecordCapitalReceivedInput = z.input<typeof recordReceivedSchema>;
+
+export interface RecordCapitalReceivedResult {
+  allocationId: string;
+  callId: string;
+  callStatus: "issued" | "partial" | "received";
+}
+
+export async function recordCapitalReceivedAction(
+  input: RecordCapitalReceivedInput,
+): Promise<RecordCapitalReceivedResult> {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = recordReceivedSchema.parse(input);
+  const db = requireDb();
+
+  const receivedCents = toCents(parsed.receivedUsdMinor);
+  if (receivedCents <= 0n) {
+    throw new Error("Received amount must be greater than zero.");
+  }
+  const receivedAt = new Date(parsed.receivedAt + "T12:00:00Z");
+  if (Number.isNaN(receivedAt.getTime())) {
+    throw new Error("Invalid received date.");
+  }
+
+  const result = await db.transaction(async (tx) => {
+    // Resolve the allocation's parent call AND org-gate it in one read.
+    const [row] = await tx
+      .select({
+        allocationId: capitalCallAllocations.id,
+        callId: capitalCalls.id,
+      })
+      .from(capitalCallAllocations)
+      .innerJoin(
+        capitalCalls,
+        eq(capitalCallAllocations.callId, capitalCalls.id),
+      )
+      .where(
+        and(
+          eq(capitalCallAllocations.id, parsed.allocationId),
+          eq(capitalCalls.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!row) {
+      throw new Error("Capital-call allocation not found.");
+    }
+
+    await tx
+      .update(capitalCallAllocations)
+      .set({
+        receivedUsd: centsToNumericString(receivedCents),
+        receivedAt,
+        wireRef: parsed.wireRef,
+      })
+      .where(eq(capitalCallAllocations.id, row.allocationId));
+
+    // Recompute the parent call status from its allocations.
+    const [agg] = await tx.execute(sql`
+      SELECT
+        count(*)::int AS total,
+        count(received_at)::int AS paid,
+        coalesce(sum(received_usd), 0)::numeric AS received_total,
+        coalesce(sum(allocated_usd), 0)::numeric AS allocated_total
+      FROM capital_call_allocations
+      WHERE call_id = ${row.callId}
+    `);
+    const a = (agg ?? {}) as Record<string, unknown>;
+    const total = Number(a.total ?? 0);
+    const paid = Number(a.paid ?? 0);
+    const receivedTotal = Number(a.received_total ?? 0);
+    const allocatedTotal = Number(a.allocated_total ?? 0);
+
+    const nextStatus: "issued" | "partial" | "received" =
+      paid >= total && total > 0 && receivedTotal + 0.005 >= allocatedTotal
+        ? "received"
+        : paid > 0
+          ? "partial"
+          : "issued";
+
+    await tx
+      .update(capitalCalls)
+      .set({ status: nextStatus, updatedAt: new Date() })
+      .where(eq(capitalCalls.id, row.callId));
+
+    return { callId: row.callId, callStatus: nextStatus };
+  });
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "capital_call.receipt",
+    entityType: "capital_call_allocation",
+    entityId: parsed.allocationId,
+    after: {
+      callId: result.callId,
+      organizationId,
+      receivedUsdMinor: receivedCents.toString(),
+      receivedAt: receivedAt.toISOString(),
+      wireRef: parsed.wireRef,
+      callStatus: result.callStatus,
+    },
+  });
+
+  revalidatePath(`/development-os/cfo/capital-calls/${result.callId}`);
+  revalidatePath("/development-os/cfo/capital-calls");
+  revalidatePath("/development-os/cfo");
+
+  return {
+    allocationId: parsed.allocationId,
+    callId: result.callId,
+    callStatus: result.callStatus,
   };
 }

@@ -8,6 +8,11 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { listAllProductivityLogs } from "@/lib/development/server/productivity/productivity-queries";
 import { aggregateProductivityByTrade } from "@/lib/development/server/productivity/productivity-helpers";
 import { safeQuery } from "@/lib/development/safe-query";
+import { eq } from "drizzle-orm";
+import { getDb } from "@/lib/db/client";
+import { projects } from "@/lib/db/schema/projects";
+import { requireOrgId } from "@/features/auth/require-org";
+import { ProductivityLogTable } from "./_log-table";
 
 /**
  * Dev OS /productivity — pixel redesign to cabinets/dev-p3/Dev Ops.html
@@ -27,6 +32,37 @@ export default async function ProductivityPage() {
     listAllProductivityLogs(500),
     [],
   );
+  // Project-name lookup for the raw log table (logs carry projectId only).
+  // TENANCY: scope the lookup to the caller's org.
+  const db = getDb();
+  const orgId = await requireOrgId();
+  const projectRows = db
+    ? await safeQuery(
+        "productivityProjects",
+        db
+          .select({ id: projects.id, name: projects.name })
+          .from(projects)
+          .where(eq(projects.organizationId, orgId)),
+        [],
+      )
+    : [];
+  const projectNameById = new Map(projectRows.map((p) => [p.id, p.name]));
+
+  const logRows = logs.map((l) => ({
+    id: l.id,
+    projectName: projectNameById.get(l.projectId) ?? "—",
+    logDate: l.logDate,
+    tradeCategory: l.tradeCategory ?? null,
+    activityDescription: l.activityDescription ?? null,
+    plannedHours: l.plannedHours != null ? String(l.plannedHours) : null,
+    actualHours: String(l.actualHours),
+    quantityCompleted:
+      l.quantityCompleted != null ? String(l.quantityCompleted) : null,
+    unitOfMeasure: l.unitOfMeasure ?? null,
+    productivityRate:
+      l.productivityRate != null ? String(l.productivityRate) : null,
+  }));
+
   const aggregated = aggregateProductivityByTrade(
     logs
       .filter((l) => l.tradeCategory)
@@ -133,6 +169,18 @@ export default async function ProductivityPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="card card-pad mt-5">
+        <div className="flex items-center gap-2.5 mb-3.5">
+          <h3 className="font-display text-[19px] font-medium leading-none tracking-[-0.02em] text-ink m-0">
+            Log entries
+          </h3>
+          <span className="ml-auto font-mono text-[10.5px] tracking-[0.04em] text-ink-tertiary uppercase">
+            {logRows.length} row{logRows.length === 1 ? "" : "s"}
+          </span>
+        </div>
+        <ProductivityLogTable rows={logRows} />
       </div>
     </>
   );

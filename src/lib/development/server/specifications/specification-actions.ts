@@ -79,6 +79,72 @@ export async function createSpecification(
   return row;
 }
 
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  specName: z.string().min(1).optional(),
+  description: z.string().min(1).optional(),
+  brand: z.string().nullable().optional(),
+  modelNumber: z.string().nullable().optional(),
+  colorCode: z.string().nullable().optional(),
+  dimensions: z.string().nullable().optional(),
+  finishType: z.string().nullable().optional(),
+  applicableStandards: z.array(z.string()).optional(),
+  toleranceSpecifications: z.string().nullable().optional(),
+  preferredVendorId: z.string().uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+/**
+ * Edits the rich specification fields the thin create form omits
+ * (dimensions, finish type, applicable standards, tolerances, preferred
+ * vendor, notes — plus name/description/brand). Org-scoped + permission
+ * gated; only the supplied keys are written so partial edits don't wipe
+ * untouched columns.
+ */
+export async function updateSpecification(
+  input: z.input<typeof updateSchema>,
+) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = updateSchema.parse(input);
+  const db = requireDb();
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.specName !== undefined) updates.specName = parsed.specName;
+  if (parsed.description !== undefined) updates.description = parsed.description;
+  if (parsed.brand !== undefined) updates.brand = parsed.brand ?? null;
+  if (parsed.modelNumber !== undefined)
+    updates.modelNumber = parsed.modelNumber ?? null;
+  if (parsed.colorCode !== undefined)
+    updates.colorCode = parsed.colorCode ?? null;
+  if (parsed.dimensions !== undefined)
+    updates.dimensions = parsed.dimensions ?? null;
+  if (parsed.finishType !== undefined)
+    updates.finishType = parsed.finishType ?? null;
+  if (parsed.applicableStandards !== undefined)
+    updates.applicableStandards = parsed.applicableStandards;
+  if (parsed.toleranceSpecifications !== undefined)
+    updates.toleranceSpecifications = parsed.toleranceSpecifications ?? null;
+  if (parsed.preferredVendorId !== undefined)
+    updates.preferredVendorId = parsed.preferredVendorId ?? null;
+  if (parsed.notes !== undefined) updates.notes = parsed.notes ?? null;
+
+  const [row] = await db
+    .update(specifications)
+    .set(updates)
+    .where(
+      and(
+        eq(specifications.id, parsed.id),
+        eq(specifications.organizationId, organizationId),
+      ),
+    )
+    .returning();
+  if (!row) {
+    throw new Error("updateSpecification: spec not found in your organization");
+  }
+  return row;
+}
+
 const supersedeSchema = z.object({
   oldSpecificationId: z.string().uuid(),
   newSpecInput: createSchema,

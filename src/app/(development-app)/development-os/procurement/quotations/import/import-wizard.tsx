@@ -125,12 +125,17 @@ function applyMapping(
 export function QuotationImportWizard({
   prs,
   vendorNames,
+  defaultPrId,
 }: {
   prs: QuotationPrOption[];
   vendorNames: string[];
+  /** Pre-selected PR id (e.g. when arriving from a PR detail via ?pr=CODE). */
+  defaultPrId?: string | null;
 }) {
   const [tab, setTab] = React.useState<Tab>("paste");
-  const [prId, setPrId] = React.useState<string | null>(prs[0]?.id ?? null);
+  const [prId, setPrId] = React.useState<string | null>(
+    defaultPrId ?? prs[0]?.id ?? null,
+  );
   const [currency, setCurrency] = React.useState<string>("IDR");
 
   return (

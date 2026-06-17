@@ -35,7 +35,12 @@ export const dynamic = "force-dynamic";
 
 const PR_OPEN_STATUSES = ["approved", "quotations_in_progress"] as const;
 
-export default async function QuotationImportPage() {
+export default async function QuotationImportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ pr?: string }>;
+}) {
+  const { pr: prCodeParam } = await searchParams;
   const db = getDb();
   if (!db) {
     return (
@@ -96,6 +101,11 @@ export default async function QuotationImportPage() {
     status: p.status,
   }));
   const vendorNames = vendorList.map((v) => v.legalName);
+  // Resolve an optional ?pr=REQUEST_CODE deep-link into the matching PR id so
+  // the wizard arrives pre-targeted on the request the operator came from.
+  const defaultPrId = prCodeParam
+    ? (prOptions.find((p) => p.requestCode === prCodeParam)?.id ?? null)
+    : null;
 
   return (
     <DevelopmentShell>
@@ -146,6 +156,7 @@ export default async function QuotationImportPage() {
           <QuotationImportWizard
             prs={prOptions}
             vendorNames={vendorNames}
+            defaultPrId={defaultPrId}
           />
         )}
       </div>

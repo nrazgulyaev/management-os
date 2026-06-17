@@ -13,7 +13,12 @@ export async function listCompanyStructures(filters?: {
   activeOnly?: boolean;
 }) {
   const db = requireDb();
-  const conditions = [] as Array<ReturnType<typeof eq>>;
+  // TENANCY — always scope to the caller's org so the catalog cannot list
+  // another tenant's structures.
+  const organizationId = await requireOrgId();
+  const conditions = [
+    eq(projectCompanyStructures.organizationId, organizationId),
+  ] as Array<ReturnType<typeof eq>>;
   if (filters?.projectId) {
     conditions.push(eq(projectCompanyStructures.projectId, filters.projectId));
   }
@@ -23,7 +28,7 @@ export async function listCompanyStructures(filters?: {
   return db
     .select()
     .from(projectCompanyStructures)
-    .where(conditions.length === 0 ? undefined : and(...conditions))
+    .where(and(...conditions))
     .orderBy(desc(projectCompanyStructures.effectiveFrom));
 }
 

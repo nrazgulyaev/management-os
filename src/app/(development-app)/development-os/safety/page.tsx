@@ -165,7 +165,14 @@ export default async function SafetyPage() {
                 <tbody>
                   {list.map((i) => (
                     <tr key={i.id}>
-                      <td className="row-title mono text-xs">{i.incidentCode}</td>
+                      <td className="row-title mono text-xs">
+                        <Link
+                          href={`/development-os/safety/${i.id}`}
+                          className="hover:underline"
+                        >
+                          {i.incidentCode}
+                        </Link>
+                      </td>
                       <td className="text-xs">{i.incidentDate}</td>
                       <td>
                         <HandoffBadge tone={SEVERITY_BADGE_TONE[SAFETY_SEVERITY_TONE[i.severity]]}>

@@ -10,6 +10,7 @@ import {
   listUserRoles,
 } from "@/lib/development/server/roles/role-queries";
 import { getDefaultCabinetForRole } from "@/lib/development/server/roles/role-helpers";
+import { CabinetPreferencesForm } from "./_cabinet-preferences-form";
 
 export const metadata: Metadata = { title: "My cabinet settings" };
 export const dynamic = "force-dynamic";
@@ -84,30 +85,16 @@ export default async function MyCabinetSettingsPage() {
       </div>
 
       <div>
-        <div className="label mb-2.5">Default cabinet</div>
+        <div className="label mb-2.5">Cabinet preferences</div>
         <Card padding="default">
-          <p className="text-sm leading-relaxed">
-            Custom default:{" "}
-            <code>
-              {prefs?.defaultCabinetKey ?? "(none — using role default)"}
-            </code>
-          </p>
-          <p className="text-sm leading-relaxed mt-2">
-            Role default:{" "}
-            <code>{roleDefault ?? "/development-os/dashboard"}</code>
-          </p>
-          <p className="text-xs text-ink-3 mt-3 leading-relaxed">
-            Wire to <code>saveCabinetPreferences</code> to update via form.
-          </p>
-        </Card>
-      </div>
-
-      <div>
-        <div className="label mb-2.5">Widget preferences</div>
-        <Card padding="default">
-          <pre className="text-xs whitespace-pre-wrap font-mono bg-muted/30 p-3 rounded">
-            {JSON.stringify(prefs?.cabinetWidgetPreferences ?? {}, null, 2)}
-          </pre>
+          <CabinetPreferencesForm
+            initialDefaultCabinetKey={prefs?.defaultCabinetKey ?? null}
+            initialWidgetPreferences={
+              (prefs?.cabinetWidgetPreferences as Record<string, unknown> | null) ??
+              {}
+            }
+            roleDefaultLabel={roleDefault ?? "/development-os/dashboard"}
+          />
         </Card>
       </div>
     </DevelopmentShell>

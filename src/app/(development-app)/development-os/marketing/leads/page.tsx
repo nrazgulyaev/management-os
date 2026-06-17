@@ -1,10 +1,59 @@
 import Link from "next/link";
+import { and, eq } from "drizzle-orm";
 import { SectionHeading, Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { safeQuery } from "@/lib/development/safe-query";
 import { loadSourceAttribution } from "@/lib/development/server/marketing/marketing-summary-queries";
 import { loadLeadsForExport } from "@/lib/development/server/marketing/lead-export-queries";
+import { getDb } from "@/lib/db/client";
+import { projects } from "@/lib/db/schema/projects";
+import { leadSources } from "@/lib/db/schema/contacts";
+import { requireOrgId } from "@/features/auth/require-org";
 import { formatMoneyMinor } from "@/lib/money";
+import { NewLeadModal, type Option } from "./_new-lead-modal";
+
+/** Org-scoped option lists for the "+ Lead" capture modal. Mirrors the
+ *  sales `new` page loaders; fails soft to empty lists. */
+async function loadLeadFormOptions(): Promise<{
+  projects: Option[];
+  leadSources: Option[];
+}> {
+  const db = getDb();
+  if (!db) return { projects: [], leadSources: [] };
+  try {
+    const organizationId = await requireOrgId();
+    const [projectRows, sourceRows] = await Promise.all([
+      db
+        .select({ id: projects.id, name: projects.name })
+        .from(projects)
+        .where(eq(projects.organizationId, organizationId))
+        .orderBy(projects.name),
+      db
+        .select({
+          id: leadSources.id,
+          sourceCode: leadSources.sourceCode,
+          campaignName: leadSources.campaignName,
+        })
+        .from(leadSources)
+        .where(
+          and(
+            eq(leadSources.organizationId, organizationId),
+            eq(leadSources.isActive, true),
+          ),
+        )
+        .orderBy(leadSources.sourceCode),
+    ]);
+    return {
+      projects: projectRows,
+      leadSources: sourceRows.map((s) => ({
+        id: s.id,
+        name: s.campaignName ?? s.sourceCode,
+      })),
+    };
+  } catch {
+    return { projects: [], leadSources: [] };
+  }
+}
 
 /**
  * `/development-os/marketing/leads` — leads INDEX page. The directory
@@ -50,9 +99,10 @@ function formatDate(iso: string | null): string {
 }
 
 export default async function MarketingLeadsPage() {
-  const [sources, leads] = await Promise.all([
+  const [sources, leads, formOptions] = await Promise.all([
     safeQuery("leadSourceAttribution", loadSourceAttribution(), []),
     safeQuery("leadsIndex", loadLeadsForExport(200), []),
+    loadLeadFormOptions(),
   ]);
 
   const totalLeads = sources.reduce((acc, s) => acc + s.leads, 0);
@@ -72,13 +122,19 @@ export default async function MarketingLeadsPage() {
         }
         subtitle={`${totalLeads} attributed leads across ${sources.length} source(s) · ${totalReservations} reached reservation`}
         actions={
-          <Link
-            href="/development-os/marketing/leads/export"
-            prefetch={false}
-            className="btn btn-dark btn-sm"
-          >
-            Export leads ↓
-          </Link>
+          <div className="flex items-center gap-2">
+            <NewLeadModal
+              projects={formOptions.projects}
+              leadSources={formOptions.leadSources}
+            />
+            <Link
+              href="/development-os/marketing/leads/export"
+              prefetch={false}
+              className="btn btn-secondary btn-sm"
+            >
+              Export leads ↓
+            </Link>
+          </div>
         }
       />
 
@@ -204,7 +260,13 @@ export default async function MarketingLeadsPage() {
                       className="border-b border-line-soft last:border-b-0 hover:bg-cream-warm"
                     >
                       <td className="px-4 py-2.5 font-mono text-[11.5px] text-ink">
-                        {l.leadCode}
+                        <Link
+                          href={`/development-os/marketing/leads/${l.leadCode}`}
+                          prefetch={false}
+                          className="text-ink hover:underline"
+                        >
+                          {l.leadCode}
+                        </Link>
                         {l.campaignCode && (
                           <span className="block text-[9.5px] text-ink-tertiary">
                             {l.campaignCode}

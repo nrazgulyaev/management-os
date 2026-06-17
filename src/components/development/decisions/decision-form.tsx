@@ -4,7 +4,10 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createProjectDecision } from "@/lib/development/server/decisions/decision-actions";
+import {
+  createProjectDecision,
+  supersedeProjectDecision,
+} from "@/lib/development/server/decisions/decision-actions";
 
 const CATEGORIES = [
   "design",
@@ -19,9 +22,13 @@ const CATEGORIES = [
 export function DecisionForm({
   projectId,
   projectSlug,
+  supersedesId,
 }: {
   projectId: string;
   projectSlug: string;
+  /** When set, the logged decision SUPERSEDES this existing decision id —
+   *  the old one is marked superseded + linked atomically. */
+  supersedesId?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -42,7 +49,7 @@ export function DecisionForm({
     }
     startTransition(async () => {
       try {
-        const out = await createProjectDecision({
+        const newInput = {
           title,
           projectId,
           decisionText,
@@ -52,7 +59,15 @@ export function DecisionForm({
           tags: tags
             ? tags.split(",").map((t) => t.trim()).filter(Boolean)
             : undefined,
-        });
+        };
+        const out = supersedesId
+          ? (
+              await supersedeProjectDecision({
+                oldDecisionId: supersedesId,
+                newDecisionInput: newInput,
+              })
+            ).new
+          : await createProjectDecision(newInput);
         router.push(
           `/development-os/projects/${projectSlug}/decisions/${out.decisionCode}`,
         );

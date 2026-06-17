@@ -14,6 +14,8 @@ import {
   reviewCycleRecommendation,
   createPayrollPeriod,
   trackTeamCapacity,
+  generateCycleRecommendation,
+  buildCurrentCycleContext,
 } from "@/lib/development/server/project-cycle/cycle-actions";
 
 const PATH = "/development-os/project-cycle";
@@ -28,6 +30,30 @@ function majorToMinor(major: string): bigint {
     throw new Error("Amount must be a non-negative number.");
   }
   return BigInt(Math.round(n * 100));
+}
+
+/**
+ * Generate a fresh cycle recommendation on demand. Builds the
+ * ProjectCycleInput server-side from current org-scoped state
+ * (buildCurrentCycleContext) — the client never supplies the context, so no
+ * tampering. generateCycleRecommendation stamps the caller's org + writes the
+ * deterministic advisory as `unreviewed`.
+ */
+export async function generateCycleRecommendationAction(): Promise<
+  { ok: true; recommendationCode: string | null } | { ok: false; error: string }
+> {
+  try {
+    const context = await buildCurrentCycleContext();
+    const row = await generateCycleRecommendation({ context });
+    revalidatePath(PATH);
+    return { ok: true, recommendationCode: row?.recommendationCode ?? null };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof Error ? e.message : "Failed to generate recommendation.",
+    };
+  }
 }
 
 export async function reviewCycleRecommendationAction(input: {

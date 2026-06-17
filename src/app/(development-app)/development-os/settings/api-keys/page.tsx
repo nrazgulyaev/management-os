@@ -8,6 +8,7 @@ import { requireOrgId } from "@/features/auth/require-org";
 import { listApiKeysForOrg } from "@/lib/development/server/api/api-key-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { ApiKeyModalForm } from "@/components/development/platform/api-key-modal-form";
+import { ApiKeyRevokeButton } from "@/components/development/platform/api-key-row-actions";
 
 export const metadata: Metadata = { title: "API keys · Settings" };
 export const dynamic = "force-dynamic";
@@ -56,7 +57,7 @@ export default async function ApiKeysPage() {
             <Card padding="default">
               <EmptyState
                 title="No API keys yet"
-                description="Create one via the createApiKey server action (UI form coming next iteration)."
+                description="Use “Generate API key” above to mint your first key. The plaintext value is shown once at creation — the server stores only its SHA-256 hash."
               />
             </Card>
           ) : (
@@ -72,6 +73,7 @@ export default async function ApiKeysPage() {
                     <th scope="col" className="num">Rate / min</th>
                     <th scope="col">Last used</th>
                     <th scope="col">Status</th>
+                    <th scope="col" aria-label="Actions" />
                   </tr>
                 </thead>
                 <tbody>
@@ -96,6 +98,13 @@ export default async function ApiKeysPage() {
                         <HandoffBadge tone={k.isActive ? "ok" : "soft"}>
                           {k.isActive ? "active" : "revoked"}
                         </HandoffBadge>
+                      </td>
+                      <td className="text-right">
+                        {k.isActive ? (
+                          <ApiKeyRevokeButton keyId={k.id} />
+                        ) : (
+                          <span className="text-xs text-ink-3">—</span>
+                        )}
                       </td>
                     </tr>
                   ))}

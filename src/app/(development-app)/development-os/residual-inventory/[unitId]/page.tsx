@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getResidualUnit } from "@/lib/development/server/residual-inventory/residual-queries";
+import { getInvestors } from "@/lib/development/server/investors";
+import { ResidualUnitControls } from "./_residual-unit-controls";
 
 export const metadata: Metadata = {
   title: "Residual unit · Development OS",
@@ -42,6 +44,12 @@ export default async function ResidualUnitDetailPage({
   if (!data) notFound();
   const { unit, shares } = data;
 
+  const investors = await getInvestors();
+  const investorOptions = investors.map((i) => ({
+    id: i.id,
+    label: `${i.legalName} (${i.investorCode})`,
+  }));
+
   const sumPct = shares.reduce(
     (acc, s) => acc + Number(s.ownershipPercentage),
     0,
@@ -70,6 +78,11 @@ export default async function ResidualUnitDetailPage({
           )}
         </div>
         <div className="actions">
+          <ResidualUnitControls
+            residualUnitId={unit.id}
+            status={unit.status}
+            investors={investorOptions}
+          />
           <Link
             href="/development-os/residual-inventory"
             className="btn btn-secondary btn-sm"
@@ -129,7 +142,7 @@ export default async function ResidualUnitDetailPage({
         {shares.length === 0 ? (
           <EmptyState
             title="No ownership shares allocated yet"
-            description="Use allocateResidualOwnership server action with one of four settlement methods."
+            description="Use the Allocate ownership action above and pick one of four settlement methods."
           />
         ) : (
           <Card padding="none" overflowHidden>

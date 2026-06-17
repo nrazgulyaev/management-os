@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { GenerateRfqFromBoqButton } from "@/components/development/boq/generate-rfq-button";
 import { BoqStatusControls } from "./_status-controls";
+import { BoqLinesEditor, type EditorSection } from "./_lines-editor";
 import { getDb } from "@/lib/db/client";
 import {
   getBoqDocumentByCode,
@@ -29,10 +30,6 @@ const STATUS_TONE: Record<
   archived: undefined,
 };
 
-function fmtMajor(minor: number | bigint | null): string {
-  if (minor == null) return "—";
-  return Math.round(Number(minor) / 100).toLocaleString("en-US");
-}
 function fmtCompact(minor: number): string {
   const major = minor / 100;
   const abs = Math.abs(major);
@@ -94,6 +91,26 @@ export default async function BoqDetailPage({
   const hasActuals = actuals.size > 0;
   const varianceMinor = actualMinor - planMinor;
   const cur = document.currency;
+
+  // Shape sections + items for the inline-CRUD client island. Money stays in
+  // minor units across the wire; the editor converts for display/editing only.
+  const editorSections: EditorSection[] = sections.map((s) => ({
+    id: s.id,
+    sectionCode: s.sectionCode,
+    sectionName: s.sectionName,
+    subtotalMinor: s.subtotalMinor != null ? Number(s.subtotalMinor) : null,
+    items: (itemsBySection.get(s.id) ?? []).map((it) => ({
+      id: it.id,
+      sectionId: it.sectionId,
+      itemCode: it.itemCode,
+      description: it.description,
+      quantity: Number(it.quantity),
+      unitOfMeasure: it.unitOfMeasure,
+      unitRateMinor: Number(it.unitRateMinor),
+      totalMinor: it.totalMinor != null ? Number(it.totalMinor) : 0,
+      actualMinor: actuals.get(it.id)?.actualCostMinor ?? null,
+    })),
+  }));
 
   return (
     <DevelopmentShell>
@@ -173,100 +190,11 @@ export default async function BoqDetailPage({
         />
       </div>
 
-      {sections.length === 0 ? (
-        <EmptyState
-          title="No sections yet"
-          description="Use 'Import CSV' to bulk-load sections + items, or add them via the API."
-        />
-      ) : (
-        sections.map((s) => {
-          const sectionItems = itemsBySection.get(s.id) ?? [];
-          return (
-            <section key={s.id}>
-              <div className="boq-cat-head">
-                <span>
-                  <span className="mono text-ink-tertiary text-xs mr-2">
-                    {s.sectionCode}
-                  </span>
-                  {s.sectionName}
-                </span>
-                <span className="sum">
-                  {s.subtotalMinor != null
-                    ? `${fmtMajor(s.subtotalMinor)} ${cur}`
-                    : "—"}
-                </span>
-              </div>
-              {sectionItems.length === 0 ? (
-                <div className="card px-5 py-[18px]">
-                  <p className="text-xs text-ink-tertiary">
-                    No items in this section.
-                  </p>
-                </div>
-              ) : (
-                <div className="card overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="boq-est">
-                      <thead>
-                        <tr>
-                          <th>Code</th>
-                          <th>Description</th>
-                          <th>Unit</th>
-                          <th className="num">Qty</th>
-                          <th className="num">Rate</th>
-                          <th className="num">Amount</th>
-                          <th className="num">Actual</th>
-                          <th className="num">Var.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sectionItems.map((it) => {
-                          const amount =
-                            it.totalMinor != null ? Number(it.totalMinor) : 0;
-                          const act = actuals.get(it.id);
-                          const varMinor =
-                            act != null ? act.actualCostMinor - amount : null;
-                          const varClass =
-                            varMinor == null
-                              ? "flat"
-                              : varMinor > 0
-                                ? "pos"
-                                : varMinor < 0
-                                  ? "neg"
-                                  : "flat";
-                          return (
-                            <tr key={it.id}>
-                              <td className="code">{it.itemCode}</td>
-                              <td className="desc">{it.description}</td>
-                              <td className="unit">{it.unitOfMeasure}</td>
-                              <td className="num">
-                                {Number(it.quantity).toFixed(2)}
-                              </td>
-                              <td className="num">
-                                {(Number(it.unitRateMinor) / 100).toLocaleString(
-                                  "en-US",
-                                )}
-                              </td>
-                              <td className="num amount">{fmtMajor(amount)}</td>
-                              <td className="num">
-                                {act ? fmtMajor(act.actualCostMinor) : "—"}
-                              </td>
-                              <td className={`num boq-var ${varClass}`}>
-                                {varMinor == null
-                                  ? "—"
-                                  : `${varMinor > 0 ? "+" : ""}${fmtMajor(varMinor)}`}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
+      <BoqLinesEditor
+        boqDocumentId={document.id}
+        currency={cur}
+        sections={editorSections}
+      />
     </DevelopmentShell>
   );
 }

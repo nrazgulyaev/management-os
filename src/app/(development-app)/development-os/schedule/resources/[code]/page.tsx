@@ -9,6 +9,9 @@ import {
   getResourcePoolByCode,
   listResourceAssignmentsForResource,
 } from "@/lib/development/server/schedule/resource-pool-queries";
+import { listProjectTasks } from "@/lib/development/server/schedule/schedule-queries";
+import { safeQuery } from "@/lib/development/safe-query";
+import { ResourceControls } from "./_resource-controls";
 
 export const metadata: Metadata = { title: "Resource · Schedule" };
 export const dynamic = "force-dynamic";
@@ -24,6 +27,12 @@ export default async function ResourceDetailPage({
   const today = new Date();
   const horizon = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);
   const assignments = await listResourceAssignmentsForResource(r.id, today, horizon);
+  const taskRows = await safeQuery("listProjectTasks", listProjectTasks(), [], 4000);
+  const taskOptions = taskRows.map((t) => ({
+    id: t.id,
+    taskCode: t.taskCode ?? null,
+    name: t.name,
+  }));
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -39,7 +48,22 @@ export default async function ResourceDetailPage({
             {`${r.resourceType} · ${r.totalCapacityPerDay ?? "—"} ${r.capacityUnit} / day`}
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex flex-wrap items-center gap-2">
+          <ResourceControls
+            resource={{
+              id: r.id,
+              displayName: r.displayName,
+              resourceType: r.resourceType,
+              capacityUnit: r.capacityUnit,
+              totalCapacityPerDay:
+                r.totalCapacityPerDay != null
+                  ? String(r.totalCapacityPerDay)
+                  : null,
+              skills: r.skills ?? [],
+              notes: r.notes,
+            }}
+            tasks={taskOptions}
+          />
           <Link
             href="/development-os/schedule/resources"
             className="btn btn-secondary btn-sm"

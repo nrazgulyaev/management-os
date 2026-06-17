@@ -8,7 +8,11 @@
  */
 
 import { revalidatePath } from "next/cache";
-import { createRevenueStream } from "@/lib/development/server/revenue-streams/revenue-stream-actions";
+import {
+  createRevenueStream,
+  updateRevenueStream,
+  deleteRevenueStream,
+} from "@/lib/development/server/revenue-streams/revenue-stream-actions";
 
 type StreamType =
   | "hotel_room_revenue"
@@ -66,6 +70,64 @@ export async function createRevenueStreamAction(
     return {
       ok: false,
       error: e instanceof Error ? e.message : "Failed to log revenue stream.",
+    };
+  }
+}
+
+export interface UpdateRevenueStreamFormInput {
+  id: string;
+  streamType: StreamType;
+  periodStart: string;
+  periodEnd: string;
+  grossRevenueMajor: number;
+  directCostsMajor: number;
+  currency: string;
+  occupancyRate?: number | null;
+  averageDailyRateMajor?: number | null;
+  unitsSold?: number | null;
+  dataSource?: string | null;
+  notes?: string | null;
+}
+
+export async function updateRevenueStreamAction(
+  input: UpdateRevenueStreamFormInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await updateRevenueStream({
+      id: input.id,
+      streamType: input.streamType,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+      grossRevenueMinor: BigInt(Math.round((input.grossRevenueMajor || 0) * 100)),
+      directCostsMinor: BigInt(Math.round((input.directCostsMajor || 0) * 100)),
+      currency: input.currency || "IDR",
+      occupancyRate: input.occupancyRate ?? undefined,
+      averageDailyRateMinor: toMinor(input.averageDailyRateMajor) ?? null,
+      unitsSold: input.unitsSold ?? undefined,
+      dataSource: input.dataSource ?? undefined,
+      notes: input.notes ?? undefined,
+    });
+    revalidatePath("/development-os/revenue-streams");
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to update revenue stream.",
+    };
+  }
+}
+
+export async function deleteRevenueStreamAction(
+  id: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await deleteRevenueStream(id);
+    revalidatePath("/development-os/revenue-streams");
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : "Failed to delete revenue stream.",
     };
   }
 }

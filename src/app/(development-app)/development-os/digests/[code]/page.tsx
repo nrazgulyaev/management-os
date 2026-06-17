@@ -5,18 +5,15 @@ import { ArrowLeft } from "lucide-react";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDigestByCode } from "@/lib/development/server/executive-digest/digest-queries";
+import { getInvestors } from "@/lib/development/server/investors";
+import {
+  DigestActionBar,
+  DigestSectionEditor,
+  type DigestRecipientOption,
+} from "./_digest-controls";
 
 export const metadata: Metadata = { title: "Digest · Development OS" };
 export const dynamic = "force-dynamic";
-
-function Markdown({ src }: { src: string | null }) {
-  if (!src) return <p className="text-ink-tertiary text-sm">(empty)</p>;
-  return (
-    <pre className="text-sm whitespace-pre-wrap leading-relaxed font-sans">
-      {src}
-    </pre>
-  );
-}
 
 export default async function DigestDetailPage({
   params,
@@ -26,6 +23,16 @@ export default async function DigestDetailPage({
   const { code } = await params;
   const d = await getDigestByCode(code);
   if (!d) notFound();
+
+  // Editable while still a draft. Distribution recipients = the org's
+  // active investors (the audience for an executive digest).
+  const editable = d.status === "draft";
+  const investors = await getInvestors({ status: "active" }).catch(() => []);
+  const recipientOptions: DigestRecipientOption[] = investors.map((i) => ({
+    recipientType: "investor",
+    recipientId: i.id,
+    label: `${i.legalName} (${i.investorCode})`,
+  }));
 
   return (
     <DevelopmentShell>
@@ -63,51 +70,97 @@ export default async function DigestDetailPage({
       </div>
 
       <div>
+        <div className="label mb-2.5">Actions</div>
+        <Card padding="default">
+          <DigestActionBar
+            code={d.digestCode}
+            status={d.status}
+            recipientOptions={recipientOptions}
+          />
+        </Card>
+      </div>
+
+      <div>
         <div className="label mb-2.5">Executive summary</div>
         <Card padding="default">
-          <Markdown src={d.executiveSummary} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="executiveSummary"
+            initialContent={d.executiveSummary}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Cash position</div>
         <Card padding="default">
-          <Markdown src={d.cashPositionSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="cashPosition"
+            initialContent={d.cashPositionSection}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Project progress</div>
         <Card padding="default">
-          <Markdown src={d.projectProgressSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="projectProgress"
+            initialContent={d.projectProgressSection}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Sales</div>
         <Card padding="default">
-          <Markdown src={d.salesSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="sales"
+            initialContent={d.salesSection}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Investor</div>
         <Card padding="default">
-          <Markdown src={d.investorSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="investor"
+            initialContent={d.investorSection}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Operations</div>
         <Card padding="default">
-          <Markdown src={d.operationsSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="operations"
+            initialContent={d.operationsSection}
+            editable={editable}
+          />
         </Card>
       </div>
 
       <div>
         <div className="label mb-2.5">Risks</div>
         <Card padding="default">
-          <Markdown src={d.risksSection} />
+          <DigestSectionEditor
+            code={d.digestCode}
+            section="risks"
+            initialContent={d.risksSection}
+            editable={editable}
+          />
         </Card>
       </div>
 

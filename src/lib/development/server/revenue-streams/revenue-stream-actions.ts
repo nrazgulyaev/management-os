@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import { revenueStreams } from "@/lib/db/schema/revenue-streams";
@@ -89,4 +89,93 @@ export async function createRevenueStream(
     })
     .returning();
   return row;
+}
+
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  streamType: z.enum(STREAM_TYPES),
+  periodStart: z.string(),
+  periodEnd: z.string(),
+  grossRevenueMinor: z.bigint().nonnegative(),
+  directCostsMinor: z.bigint().nonnegative(),
+  occupancyRate: z.number().min(0).max(100).nullable().optional(),
+  averageDailyRateMinor: z.bigint().nullable().optional(),
+  unitsSold: z.number().int().nullable().optional(),
+  currency: z.string().min(1).max(8),
+  dataSource: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
+});
+
+/**
+ * Updates one revenue stream's editable fields. Org-scoped on both the load
+ * and the write so a cross-org id reads as "not found". `net_revenue_minor`
+ * is GENERATED STORED in the DB (= gross − direct costs) so recognition
+ * recomputes automatically once gross/cost change — never set it here.
+ */
+export async function updateRevenueStream(
+  input: z.input<typeof updateSchema>,
+) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = updateSchema.parse(input);
+  const db = requireDb();
+
+  // Scope the load by org so a foreign id cannot be edited.
+  const [existing] = await db
+    .select({ id: revenueStreams.id })
+    .from(revenueStreams)
+    .where(
+      and(
+        eq(revenueStreams.id, parsed.id),
+        eq(revenueStreams.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!existing) throw new Error("Revenue stream not found.");
+
+  const [row] = await db
+    .update(revenueStreams)
+    .set({
+      streamType: parsed.streamType,
+      periodStart: parsed.periodStart,
+      periodEnd: parsed.periodEnd,
+      grossRevenueMinor: parsed.grossRevenueMinor,
+      directCostsMinor: parsed.directCostsMinor,
+      occupancyRate:
+        parsed.occupancyRate != null ? String(parsed.occupancyRate) : null,
+      averageDailyRateMinor: parsed.averageDailyRateMinor ?? null,
+      unitsSold: parsed.unitsSold ?? null,
+      currency: parsed.currency,
+      dataSource: parsed.dataSource ?? null,
+      notes: parsed.notes ?? null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(revenueStreams.id, parsed.id),
+        eq(revenueStreams.organizationId, organizationId),
+      ),
+    )
+    .returning();
+  return row;
+}
+
+/** Deletes one revenue stream (org-scoped). Recognition recomputes on read. */
+export async function deleteRevenueStream(id: string) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsedId = z.string().uuid().parse(id);
+  const db = requireDb();
+
+  const result = await db
+    .delete(revenueStreams)
+    .where(
+      and(
+        eq(revenueStreams.id, parsedId),
+        eq(revenueStreams.organizationId, organizationId),
+      ),
+    )
+    .returning({ id: revenueStreams.id });
+  if (result.length === 0) throw new Error("Revenue stream not found.");
+  return { id: parsedId };
 }

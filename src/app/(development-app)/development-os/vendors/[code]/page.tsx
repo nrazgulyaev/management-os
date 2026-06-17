@@ -17,6 +17,8 @@ import {
   VENDOR_TYPE_LABEL,
   VENDOR_STATUS_LABEL,
 } from "@/lib/development/constants/vendor-constants";
+import { EngagementRowActions } from "@/components/development/vendors/engagement-row-actions";
+import { RecordPerformanceModal } from "@/components/development/vendors/record-performance-modal";
 
 export const metadata: Metadata = { title: "Vendor · Development OS" };
 export const dynamic = "force-dynamic";
@@ -76,6 +78,11 @@ export default async function VendorDetailPage({
           >
             + New engagement
           </Link>
+          <RecordPerformanceModal
+            vendorId={vendor.id}
+            currentOnTimeRate={vendor.onTimeDeliveryRate}
+            currentQualityRating={vendor.qualityRating}
+          />
           <Link
             href="/development-os/vendors"
             className="btn btn-secondary btn-sm"
@@ -203,6 +210,7 @@ export default async function VendorDetailPage({
                 <TH>Start</TH>
                 <TH>Expected end</TH>
                 <TH>Status</TH>
+                <TH className="text-right">Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -227,6 +235,12 @@ export default async function VendorDetailPage({
                     >
                       {ENGAGEMENT_STATUS_LABEL[e.status]}
                     </HandoffBadge>
+                  </TD>
+                  <TD className="text-right">
+                    <EngagementRowActions
+                      engagementId={e.id}
+                      status={e.status}
+                    />
                   </TD>
                 </TR>
               ))}

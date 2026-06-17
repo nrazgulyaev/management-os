@@ -1,16 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import { RfqStatusPill } from "@/components/procurement/rfq-status-pill";
+import { RfqStatusPill, type RfqStatus } from "@/components/procurement/rfq-status-pill";
+import { EmptyState } from "@/components/ui/empty-state";
 import { QuoteCompareClient } from "./_compare-client";
 import type { QuoteCompareColumn } from "@/components/procurement/quote-compare";
+import { getRfqCompareModel } from "@/lib/development/server/procurement/rfq-compare-queries";
 
 /**
- * Phase 2.2 dev-04 — RFQ quote comparison.
+ * RFQ quote comparison — real reads.
  *
- * 3-vendor side-by-side with the vendor-matcher recommendation
- * banner below. Mock data today; real reads land in 2.2 data.
+ * An "RFQ" is a `dev_os_purchase_requests` row; its quotes are
+ * `procurement_quotations`. The page fetches the org-scoped comparison
+ * model (notFound() on an unknown / foreign id) and lets the procurement
+ * manager award the recommended quote, which creates the PO + advances
+ * the request status.
  */
 
 export const dynamic = "force-dynamic";
@@ -24,54 +30,60 @@ export async function generateMetadata({
   return { title: `RFQ ${id} · Quote compare` };
 }
 
-export default async function RfqCompareePage({
+/** Map a purchase-request status to the 5-state RFQ pill. */
+function toRfqPillStatus(prStatus: string): RfqStatus {
+  switch (prStatus) {
+    case "draft":
+      return "draft";
+    case "submitted":
+    case "approved":
+      return "sent";
+    case "quotations_in_progress":
+      return "quoting";
+    case "quotation_selected":
+    case "po_created":
+      return "awarded";
+    default:
+      return "closed";
+  }
+}
+
+export default async function RfqComparePage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const model = await getRfqCompareModel(id);
+  if (!model) notFound();
 
-  const columns: QuoteCompareColumn[] = [
-    {
-      vendorId: "v-marble-co",
-      vendorName: "Marble Co.",
-      vendorScore: 88,
-      totalUsdMinor: 192_000_00,
-      leadTimeDays: 32,
-      warrantyMonths: 24,
-      lines: [
-        { code: "WP-04.18.a", description: "Karawang 60×60", total: 38_200 },
-        { code: "WP-04.18.b", description: "Hindari 60×60", total: 52_100 },
-        { code: "WP-04.19", description: "Adhesive grout", total: 12_400 },
-      ],
-      isWinner: true,
-      savingsLabel: "Saves $24k vs runner-up",
-    },
-    {
-      vendorId: "v-stone-island",
-      vendorName: "Stone Island",
-      vendorScore: 72,
-      totalUsdMinor: 216_000_00,
-      leadTimeDays: 28,
-      warrantyMonths: 12,
-      lines: [
-        { code: "WP-04.18.a", description: "Karawang 60×60", total: 42_800 },
-        { code: "WP-04.18.b", description: "Hindari 60×60", total: 58_900 },
-      ],
-    },
-    {
-      vendorId: "v-marbleworks",
-      vendorName: "Marbleworks Bali",
-      vendorScore: 60,
-      totalUsdMinor: 245_000_00,
-      leadTimeDays: 24,
-      warrantyMonths: 18,
-      lines: [
-        { code: "WP-04.18.a", description: "Karawang 60×60", total: 48_900 },
-        { code: "WP-04.18.b", description: "Hindari 60×60", total: 62_400 },
-      ],
-    },
-  ];
+  const alreadyAwarded =
+    model.status === "quotation_selected" ||
+    model.status === "po_created" ||
+    model.columns.some((c) => c.status === "selected");
+
+  const columns: QuoteCompareColumn[] = model.columns.map((c) => ({
+    vendorId: c.vendorId,
+    vendorName: c.vendorName,
+    vendorScore: c.vendorScore,
+    totalUsdMinor: c.totalMinor,
+    leadTimeDays: c.leadTimeDays,
+    warrantyMonths: c.warrantyMonths,
+    lines: c.lines,
+    isWinner: c.isWinner,
+    savingsLabel: c.savingsLabel,
+  }));
+
+  const recommendation = model.recommendation
+    ? {
+        winnerQuotationId: model.recommendation.winnerQuotationId,
+        winnerVendorId: model.recommendation.winnerVendorId,
+        winnerName: model.recommendation.winnerVendorName,
+        rationale: model.recommendation.rationale,
+        confidence: model.recommendation.confidence,
+        winnerTotalUsd: Number(model.recommendation.winnerTotalMinor) / 100,
+      }
+    : null;
 
   return (
     <DevelopmentShell>
@@ -82,16 +94,17 @@ export default async function RfqCompareePage({
             <Link href="/development-os/cabinets/procurement-manager">
               Procurement
             </Link>{" "}
-            / <span>RFQ {id}</span>
+            / <span>{model.requestCode}</span>
           </div>
-          <h1>RFQ {id}</h1>
+          <h1>{model.requestCode}</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-            Three quotes received. The vendor-matcher agent has analyzed price +
-            lead time + scorecard + project context — see recommendation below.
+            {model.materialName} · {model.columns.length} quote(s) received. The
+            vendor-matcher recommendation weighs price against the latest vendor
+            composite score — see below.
           </p>
         </div>
         <div className="actions">
-          <RfqStatusPill status="quoting" />
+          <RfqStatusPill status={toRfqPillStatus(model.status)} />
           <Link
             href="/development-os/cabinets/procurement-manager"
             className="btn btn-secondary btn-sm"
@@ -101,18 +114,20 @@ export default async function RfqCompareePage({
           </Link>
         </div>
       </div>
-      <QuoteCompareClient
-        rfqId={id}
-        columns={columns}
-        recommendation={{
-          winnerVendorId: "v-marble-co",
-          winnerName: "Marble Co.",
-          winnerTotalUsd: 192_000,
-          rationale:
-            "Lowest price + highest scorecard (88). Lead time 32d still inside the WP-04 buffer; warranty 24mo doubles the runner-up.",
-          confidence: 92,
-        }}
-      />
+
+      {model.columns.length === 0 ? (
+        <EmptyState
+          title="No quotations yet"
+          description="This request has no vendor quotes. Add quotations from the procurement workflow to compare them here."
+        />
+      ) : (
+        <QuoteCompareClient
+          rfqId={model.requestId}
+          alreadyAwarded={alreadyAwarded}
+          columns={columns}
+          recommendation={recommendation}
+        />
+      )}
     </DevelopmentShell>
   );
 }

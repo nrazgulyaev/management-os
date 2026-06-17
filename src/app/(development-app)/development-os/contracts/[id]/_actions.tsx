@@ -14,10 +14,13 @@ import { useRouter } from "next/navigation";
 import {
   signContract,
   cancelContractGroup,
+  completeContractGroup,
 } from "@/lib/development/server/contract-actions";
 import { issueInvoiceForMilestone } from "@/lib/development/server/invoice-actions";
 
 const btn = "btn btn-dark btn-sm disabled:opacity-50";
+const okBtn =
+  "btn btn-sm border border-ok/50 text-ok bg-ok/5 hover:bg-ok/10 disabled:opacity-50";
 const dangerBtn =
   "btn btn-sm border border-danger/40 text-danger hover:bg-danger/5 disabled:opacity-50";
 
@@ -132,6 +135,64 @@ export function CancelGroupButton({
         onClick={() => setOpen(false)}
       >
         Keep
+      </button>
+      {err && <span className="text-[10px] text-danger">{err}</span>}
+    </form>
+  );
+}
+
+/**
+ * Mark AJB / complete — records the notarial transfer (Akta Jual Beli) and
+ * completes the contract group, the point at which collected sale cash is
+ * recognised as revenue. The server action re-verifies the hard
+ * preconditions (all parts signed + all milestones paid); this control is
+ * only rendered when the page already knows they hold.
+ */
+export function CompleteGroupButton({
+  contractGroupId,
+}: {
+  contractGroupId: string;
+}) {
+  const { pending, err, run } = useRun();
+  const [open, setOpen] = React.useState(false);
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className={okBtn}
+        disabled={pending}
+        onClick={() => setOpen(true)}
+        title="Record the AJB (notarial transfer) and recognise revenue"
+      >
+        Mark AJB / complete
+      </button>
+    );
+  }
+  return (
+    <form
+      className="flex items-center gap-1.5"
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        fd.set("contractGroupId", contractGroupId);
+        run(completeContractGroup, fd, () => setOpen(false));
+      }}
+    >
+      <input
+        name="ajbReference"
+        placeholder="AJB / deed ref (optional)"
+        className="input text-xs w-48"
+      />
+      <button type="submit" className={okBtn} disabled={pending}>
+        {pending ? "…" : "Confirm AJB"}
+      </button>
+      <button
+        type="button"
+        className={btn}
+        disabled={pending}
+        onClick={() => setOpen(false)}
+      >
+        Cancel
       </button>
       {err && <span className="text-[10px] text-danger">{err}</span>}
     </form>

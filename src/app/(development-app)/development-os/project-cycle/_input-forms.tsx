@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import {
   createPayrollPeriodAction,
   trackTeamCapacityAction,
+  generateCycleRecommendationAction,
 } from "./_actions";
 
 type Project = { id: string; name: string };
@@ -36,8 +37,42 @@ const ROLE_TYPES = [
 export function ProjectCycleInputForms({ projects }: { projects: Project[] }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
+      <GenerateRecommendationButton />
       <NewPayrollPeriodButton projects={projects} />
       <RecordCapacityButton projects={projects} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Generate recommendation (on-demand) — SHALLOW fix. The recommendations
+// table was cron-only; this builds a ProjectCycleInput server-side from
+// current capacity/payroll/projects and persists a fresh advisory.
+// ---------------------------------------------------------------------------
+
+function GenerateRecommendationButton() {
+  const router = useRouter();
+  const [pending, start] = React.useTransition();
+  const [err, setErr] = React.useState<string | null>(null);
+
+  function generate() {
+    setErr(null);
+    start(async () => {
+      const r = await generateCycleRecommendationAction();
+      if (!r.ok) {
+        setErr(r.error ?? "Failed.");
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <Button type="button" onClick={generate} disabled={pending}>
+        {pending ? "Generating…" : "Generate recommendation"}
+      </Button>
+      {err && <span className="text-[11px] text-danger">{err}</span>}
     </div>
   );
 }

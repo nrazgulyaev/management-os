@@ -83,6 +83,29 @@ export async function getProjectTaskByCode(taskCode: string) {
   return row ?? null;
 }
 
+/**
+ * Resolve the owning project id + slug for a task, org-scoped. Used by the
+ * task detail page to load sibling tasks for the add-dependency picker.
+ */
+export async function getTaskProjectRef(
+  taskId: string,
+): Promise<{ projectId: string } | null> {
+  const db = requireDb();
+  const organizationId = await requireOrgId();
+  const [row] = await db
+    .select({ projectId: workPackages.projectId })
+    .from(projectTasks)
+    .innerJoin(workPackages, eq(workPackages.id, projectTasks.workPackageId))
+    .where(
+      and(
+        eq(projectTasks.id, taskId),
+        eq(projectTasks.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  return row ?? null;
+}
+
 export async function listTaskDependenciesForTasks(taskIds: string[]) {
   if (taskIds.length === 0) return [];
   const db = requireDb();

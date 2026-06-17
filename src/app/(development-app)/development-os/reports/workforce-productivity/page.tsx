@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/dashboard/primitives";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { renderProductivitySvg } from "@/lib/development/server/visual-reports/productivity-helpers";
+import { getWorkforceProductivityData } from "@/lib/development/server/visual-reports/report-data";
 
 export const metadata: Metadata = {
   title: "Workforce productivity · Development OS",
@@ -10,28 +12,9 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function WorkforceProductivityPage() {
-  const rows = [
-    {
-      monthLabel: "Jan",
-      utilized: { pm: 280, engineer: 420, qs: 180 },
-      totalCapacityHours: 1000,
-    },
-    {
-      monthLabel: "Feb",
-      utilized: { pm: 300, engineer: 460, qs: 200 },
-      totalCapacityHours: 1000,
-    },
-    {
-      monthLabel: "Mar",
-      utilized: { pm: 290, engineer: 440, qs: 195 },
-      totalCapacityHours: 1000,
-    },
-    {
-      monthLabel: "Apr",
-      utilized: { pm: 270, engineer: 420, qs: 170 },
-      totalCapacityHours: 1000,
-    },
-  ];
+  // Real monthly utilised man-hours per role from site_workforce_logs, with
+  // planned-headcount capacity from site_reports (idle = capacity − utilised).
+  const rows = await getWorkforceProductivityData();
   const svg = renderProductivitySvg(rows, { width: 800, height: 360 });
 
   return (
@@ -45,19 +28,27 @@ export default async function WorkforceProductivityPage() {
           </div>
           <h1>Workforce productivity</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-            Per-role utilisation each month, with idle (gray) on top.
+            Per-role utilised man-hours each month, with idle (gray) on top of
+            planned capacity.
           </p>
         </div>
       </div>
 
       <div>
         <div className="label mb-2.5">Chart</div>
-        <Card padding="default">
-          <div
-            className="overflow-x-auto"
-            dangerouslySetInnerHTML={{ __html: svg }}
+        {rows.length === 0 ? (
+          <EmptyState
+            title="No workforce logs yet"
+            description="Submit site reports with workforce logs to populate utilisation."
           />
-        </Card>
+        ) : (
+          <Card padding="default">
+            <div
+              className="overflow-x-auto"
+              dangerouslySetInnerHTML={{ __html: svg }}
+            />
+          </Card>
+        )}
       </div>
     </DevelopmentShell>
   );

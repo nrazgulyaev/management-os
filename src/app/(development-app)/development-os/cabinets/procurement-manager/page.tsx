@@ -17,6 +17,7 @@ import {
   loadProcurementAnalystBand,
   type ProcurementAnalystOutput,
 } from "./_procurement-analyst-band";
+import { listQuotationComparisons } from "@/lib/development/server/procurement/quotation-comparison-queries";
 
 /**
  * Sprint _handoff/ Task 7 → TASK-7-DATA-PART-1 — Procurement Manager.
@@ -128,12 +129,16 @@ function EmptyState({ title, hint, cta }: EmptyStateProps) {
 }
 
 export default async function ProcurementManagerPage() {
-  const [prs, pos, invoices, analystOutputs] = await Promise.all([
+  const [prs, pos, invoices, analystOutputs, rfqs] = await Promise.all([
     listOpenPurchaseRequests().catch(() => []),
     listPosInTransit().catch(() => []),
     listInvoicesAwaitingApproval().catch(() => []),
     loadProcurementAnalystBand().catch(() => [] as ProcurementAnalystOutput[]),
+    listQuotationComparisons().catch(() => []),
   ]);
+
+  // RFQs awaiting a decision = comparisons with quotes but no winner yet.
+  const openRfqs = rfqs.filter((r) => r.selectedCount === 0);
 
   // Computed KPIs — derive directly from the three reads.
   const pendingApprovalCount = prs.filter((r) =>
@@ -197,8 +202,13 @@ export default async function ProcurementManagerPage() {
         />
         <Kpi
           label="Active RFQs"
-          value="—"
-          sub="quotation flow coming soon"
+          value={openRfqs.length === 0 ? "—" : String(openRfqs.length)}
+          sub={
+            openRfqs.length === 0
+              ? "no quotes to compare"
+              : `${rfqs.length} with quotes`
+          }
+          tone={openRfqs.length > 0 ? "accent" : undefined}
         />
         <Kpi
           label="POs in transit"
@@ -289,6 +299,51 @@ export default async function ProcurementManagerPage() {
           </div>
         </div>
       </Card>
+
+      {openRfqs.length > 0 && (
+        <>
+          <h2 className="display text-[22px] mb-3.5 font-medium">
+            Quotes to compare
+          </h2>
+          <Card padding="none" overflowHidden className="mb-[18px]">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th>RFQ</th>
+                  <th>Material</th>
+                  <th className="num">Quotes</th>
+                  <th className="num">Lowest</th>
+                  <th>Required by</th>
+                  <th>Urgency</th>
+                </tr>
+              </thead>
+              <tbody>
+                {openRfqs.map((r) => (
+                  <tr key={r.requestId}>
+                    <td className="mono text-[11px]">
+                      <Link
+                        href={`/development-os/cabinets/procurement-manager/rfqs/${r.requestId}`}
+                        className="hover:underline"
+                      >
+                        {r.requestCode}
+                      </Link>
+                    </td>
+                    <td>{r.materialName}</td>
+                    <td className="num">{r.quotationCount}</td>
+                    <td className="num">
+                      {r.lowestTotalMinor
+                        ? fmtMinor(Number(r.lowestTotalMinor), r.currency)
+                        : "—"}
+                    </td>
+                    <td className="mono">{r.requiredByDate}</td>
+                    <td>{urgencyBadge(r.urgency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </>
+      )}
 
       <h2 className="display text-[22px] mb-3.5 font-medium">
         Open purchase requests

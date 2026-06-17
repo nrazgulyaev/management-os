@@ -7,6 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { contractMilestones } from "@/lib/db/schema/sales";
 import { DEVELOPMENT_APP_PATH } from "@/lib/development/constants";
 import { requireOrgId } from "@/features/auth/require-org";
+import { advanceGroupToInPayment } from "./contract-payment-state";
 
 const triggerSchema = z.object({ milestoneId: z.string().uuid() });
 
@@ -118,6 +119,11 @@ export async function recordMilestonePayment(
         eq(contractMilestones.organizationId, organizationId),
       ),
     );
+
+  // Cash is now flowing — move the group into the `in_payment` collection
+  // phase (no-op if already past fully_signed). This makes the AJB / complete
+  // control reachable once every milestone is settled.
+  await advanceGroupToInPayment(db, milestone.contractGroupId, organizationId);
 
   // Suppress unused-var warning for fxRate (kept for future ledger integration).
   void parsed.data.fxRateUsdToIdr;

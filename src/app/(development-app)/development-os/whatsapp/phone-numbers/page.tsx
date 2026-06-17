@@ -7,6 +7,8 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getWhatsappPhoneNumbers } from "@/lib/development/server/whatsapp-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { PhoneModalForm } from "./_phone-form";
+import { ResolveControl } from "./_resolve-control";
 
 export const metadata: Metadata = {
   title: "WhatsApp phones · Development OS",
@@ -61,6 +63,7 @@ export default async function WhatsappPhoneNumbersPage() {
           </p>
         </div>
         <div className="actions">
+          <PhoneModalForm />
           <Link
             href="/development-os/whatsapp"
             className="btn btn-secondary btn-sm"
@@ -77,6 +80,7 @@ export default async function WhatsappPhoneNumbersPage() {
           <EmptyState
             title="No phones registered"
             description="Phones land here automatically when inbound messages arrive, or you can register Arconique outbound numbers manually."
+            action={<PhoneModalForm />}
           />
         ) : (
           <Card padding="none" overflowHidden>
@@ -92,6 +96,7 @@ export default async function WhatsappPhoneNumbersPage() {
                   <th scope="col">Last message</th>
                   <th scope="col" className="num">In</th>
                   <th scope="col" className="num">Out</th>
+                  <th scope="col" className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -121,6 +126,30 @@ export default async function WhatsappPhoneNumbersPage() {
                     </td>
                     <td className="num">{p.totalMessagesReceived}</td>
                     <td className="num">{p.totalMessagesSent}</td>
+                    <td className="text-right">
+                      <div className="flex flex-col items-end gap-1.5">
+                        <PhoneModalForm
+                          mode="edit"
+                          initial={{
+                            id: p.id,
+                            phoneNumber: p.phoneNumber,
+                            displayName: p.displayName,
+                            numberType: p.numberType,
+                            provider: p.provider,
+                            twilioPhoneSid: p.twilioPhoneSid,
+                            notes: p.notes,
+                          }}
+                        />
+                        {(p.numberType === "unknown" ||
+                          p.numberType === "recipient") && (
+                          <ResolveControl
+                            phoneId={p.id}
+                            resolvedEntityType={p.resolvedEntityType}
+                            resolvedEntityId={p.resolvedEntityId}
+                          />
+                        )}
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

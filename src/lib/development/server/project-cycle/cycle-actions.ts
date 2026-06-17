@@ -10,6 +10,12 @@ import {
 } from "@/lib/db/schema/project-cycle";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
+import { getCompanyTotalUSDBalance } from "@/lib/development/server/bank-accounts";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
+import {
+  listPayrollPeriods,
+  listTeamCapacityTracking,
+} from "./cycle-queries";
 import {
   computeProjectCycleAdvisory,
   type ProjectCycleInput,
@@ -118,6 +124,95 @@ export async function trackTeamCapacity(
     })
     .returning();
   return row;
+}
+
+/**
+ * Build a ProjectCycleInput snapshot from the caller's *current* org-scoped
+ * DB state — the on-demand equivalent of the weekly cron's context builder,
+ * but tenancy-safe (every read here is org-scoped via requireOrgId). Mirrors
+ * runDevOsProjectCycleAdvisory's heuristics:
+ *   - cashOnHand    = sum of active company bank balances (USD minor)
+ *   - teamRoles     = latest capacity-tracking row per role
+ *   - monthlyPayroll = most-recent payroll period commitment
+ *   - activeProjects = planning / under_construction projects + handover dates
+ */
+export async function buildCurrentCycleContext(): Promise<ProjectCycleInput> {
+  await requireInternalUser();
+  await requireOrgId();
+
+  const now = new Date();
+  const oneYearFromNow = new Date(
+    now.getFullYear() + 1,
+    now.getMonth(),
+    now.getDate(),
+  );
+
+  const [cashMinor, projects, capacityRows, payrollRows] = await Promise.all([
+    getCompanyTotalUSDBalance(),
+    getDevelopmentProjects(),
+    listTeamCapacityTracking(),
+    listPayrollPeriods(),
+  ]);
+
+  const cashOnHand = Number(cashMinor);
+
+  // Pre-handover phases (the dev-OS analog of the cron's
+  // planning/under_construction/active project statuses).
+  const activeProjects = projects
+    .filter(
+      (p) =>
+        p.phase === "permitting" ||
+        p.phase === "under_construction" ||
+        p.phase === "managed",
+    )
+    .slice(0, 20)
+    .map((p) => ({
+      projectId: p.realProjectId,
+      progressPercentage: p.constructionProgressPct ?? 0,
+      expectedCompletionDate: p.expectedHandover
+        ? new Date(p.expectedHandover)
+        : oneYearFromNow,
+      monthlyBurnRate: 0,
+      monthlyTeamHours: 160, // placeholder — matches the cron heuristic
+    }));
+
+  // Latest capacity row per role (list is desc by tracking_period_start).
+  const latestByRole = new Map<
+    string,
+    { role: string; totalCapacity: number; utilizedCapacity: number }
+  >();
+  for (const c of capacityRows) {
+    if (latestByRole.has(c.roleType)) continue;
+    latestByRole.set(c.roleType, {
+      role: c.roleType,
+      totalCapacity: Number(c.totalCapacityHours),
+      utilizedCapacity: Number(c.utilizedHours),
+    });
+  }
+  const teamRoles = [...latestByRole.values()];
+
+  // Most-recent payroll period (list is asc by period_start → take last).
+  const latestPayroll = payrollRows[payrollRows.length - 1] ?? null;
+  const monthlyPayroll = latestPayroll
+    ? Number(latestPayroll.totalPayrollAmountMinor)
+    : 0;
+
+  return {
+    currentDate: now,
+    cashOnHand,
+    receivablesNext30Days: 0,
+    payablesNext30Days: 0,
+    monthlyPayrollCommitment: monthlyPayroll,
+    monthlyOtherFixedCosts: monthlyPayroll * 0.3, // matches cron heuristic
+    expectedInflowsByMonth: [],
+    activeProjects,
+    teamRoles,
+    unsoldUnits: projects.reduce(
+      (sum, p) => sum + Math.max(0, (p.units ?? 0) - (p.unitsSold ?? 0)),
+      0,
+    ),
+    cashFromExpectedSales: 0,
+  };
 }
 
 /**

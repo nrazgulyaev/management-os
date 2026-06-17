@@ -1,11 +1,37 @@
 import "server-only";
 
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
-import { villas } from "@/lib/db/schema/projects";
+import { projects, villas } from "@/lib/db/schema/projects";
 import { assetTypes } from "@/lib/db/schema/asset-types";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
+
+/**
+ * TENANCY — `villas` (the multi-asset table) has NO org column; it anchors
+ * org via villas.projectId → projects.organizationId. Resolve an asset's
+ * org-owning project, returning null when it isn't the caller's. Used by the
+ * mutate actions so a foreign asset id can't be edited/retyped under this org.
+ */
+async function assertAssetInOrg(
+  db: ReturnType<typeof requireDb>,
+  assetId: string,
+  organizationId: string,
+): Promise<void> {
+  const [row] = await db
+    .select({ id: villas.id })
+    .from(villas)
+    .innerJoin(projects, eq(projects.id, villas.projectId))
+    .where(
+      and(
+        eq(villas.id, assetId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!row) throw new Error(`asset ${assetId} not found`);
+}
 
 const VILLA_STATUSES = [
   "available",
@@ -40,13 +66,41 @@ const createAssetSchema = z.object({
  */
 export async function createAsset(input: z.input<typeof createAssetSchema>) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = createAssetSchema.parse(input);
   const db = requireDb();
 
+  // TENANCY — the target project must belong to the caller's org, otherwise a
+  // client-supplied projectId would let an asset be created under a foreign
+  // tenant's project (villas has no org column of its own).
+  const [project] = await db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(
+      and(
+        eq(projects.id, parsed.projectId),
+        eq(projects.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!project) {
+    throw new Error(`project ${parsed.projectId} not found`);
+  }
+
+  // Asset types are either org-owned or null-org shared catalogue rows; only
+  // resolve a type visible to this org so a foreign type id can't be attached.
   const [type] = await db
     .select()
     .from(assetTypes)
-    .where(eq(assetTypes.typeKey, parsed.assetTypeKey))
+    .where(
+      and(
+        eq(assetTypes.typeKey, parsed.assetTypeKey),
+        or(
+          eq(assetTypes.organizationId, organizationId),
+          isNull(assetTypes.organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!type) {
     throw new Error(`asset type '${parsed.assetTypeKey}' not in registry`);
@@ -81,8 +135,10 @@ export async function updateAssetAttributes(
   input: z.input<typeof updateAttributesSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = updateAttributesSchema.parse(input);
   const db = requireDb();
+  await assertAssetInOrg(db, parsed.assetId, organizationId);
   const [row] = await db
     .update(villas)
     .set({ assetAttributes: parsed.assetAttributes })
@@ -106,12 +162,22 @@ export async function changeAssetType(
   input: z.input<typeof changeTypeSchema>,
 ) {
   await requireInternalUser();
+  const organizationId = await requireOrgId();
   const parsed = changeTypeSchema.parse(input);
   const db = requireDb();
+  await assertAssetInOrg(db, parsed.assetId, organizationId);
   const [type] = await db
     .select()
     .from(assetTypes)
-    .where(eq(assetTypes.typeKey, parsed.newAssetTypeKey))
+    .where(
+      and(
+        eq(assetTypes.typeKey, parsed.newAssetTypeKey),
+        or(
+          eq(assetTypes.organizationId, organizationId),
+          isNull(assetTypes.organizationId),
+        ),
+      ),
+    )
     .limit(1);
   if (!type) {
     throw new Error(`asset type '${parsed.newAssetTypeKey}' not in registry`);

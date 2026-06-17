@@ -43,6 +43,8 @@ import { listProjectRfis } from "@/lib/development/server/rfis/rfi-queries";
 import { getVendorEngagements } from "@/lib/development/server/vendors";
 import { getMaterialPurchaseOrders } from "@/lib/development/server/materials";
 import { getSafetyIncidents } from "@/lib/development/server/safety";
+import { listProjectDocuments } from "@/lib/development/server/documents/project-documents-queries";
+import { ProjectDocumentsTab } from "./_documents-tab";
 import {
   REPORT_STATUS_LABEL,
   WEATHER_LABEL,
@@ -267,6 +269,16 @@ export default async function ProjectDetailPage({
         )
       : Promise.resolve([])),
   ] as const, 4);
+  const projectDocuments =
+    detail.source === "db"
+      ? await safeQuery(
+          "listProjectDocuments(project)",
+          listProjectDocuments(project.realProjectId),
+          [],
+          4000,
+        )
+      : [];
+
   const sourceOptions = allSourcesRaw.map((s) => ({
     id: s.id,
     code: s.sourceCode,
@@ -628,12 +640,20 @@ export default async function ProjectDetailPage({
     {
       value: "documents",
       label: "Documents",
-      content: (
-        <ComingInPlaceholder
-          stage="Soon"
-          summary="Drawings, permits, contracts indexed against this project. Reuses the existing `documents` table."
-        />
-      ),
+      badge: projectDocuments.length > 0 ? `${projectDocuments.length}` : undefined,
+      content:
+        detail.source !== "db" ? (
+          <ComingInPlaceholder
+            stage="Soon"
+            summary="Documents light up once the database is configured."
+          />
+        ) : (
+          <ProjectDocumentsTab
+            projectId={project.realProjectId}
+            slug={slug}
+            documents={projectDocuments}
+          />
+        ),
     },
     {
       value: "capital",

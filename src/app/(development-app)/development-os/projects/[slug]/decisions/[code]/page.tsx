@@ -7,6 +7,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getProjectDecisionByCode } from "@/lib/development/server/decisions/decision-queries";
+import { DecisionLifecycleControls } from "./_controls";
 
 export const metadata: Metadata = { title: "Decision · Development OS" };
 export const dynamic = "force-dynamic";
@@ -78,6 +79,19 @@ export default async function DecisionDetailPage({
           <p className="text-sm text-ink whitespace-pre-wrap leading-relaxed mt-3">
             {decision.decisionText}
           </p>
+        </Card>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Lifecycle</div>
+        <Card padding="default">
+          <DecisionLifecycleControls
+            decisionId={decision.id}
+            projectId={decision.projectId}
+            slug={slug}
+            code={decodeURIComponent(code)}
+            status={decision.status}
+          />
         </Card>
       </div>
 

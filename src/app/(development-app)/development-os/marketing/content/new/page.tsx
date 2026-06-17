@@ -3,11 +3,17 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
+import { CreateContentForm } from "./_create-content-form";
 
 export const metadata: Metadata = { title: "New content · Marketing" };
 export const dynamic = "force-dynamic";
 
-export default function NewContentPage() {
+export default async function NewContentPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ campaign?: string }>;
+}) {
+  const { campaign } = await searchParams;
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -33,12 +39,13 @@ export default function NewContentPage() {
       <div>
         <div className="label mb-2.5">Create content</div>
         <Card padding="default">
-          <p className="text-sm text-ink-secondary leading-relaxed">
+          <p className="text-sm text-ink-secondary leading-relaxed mb-4">
             New content pieces start in <code>draft</code>. Use the AI Marketing
             Assistant agent to generate captions and hashtags, then flow the
             piece through the pipeline:
             <code> draft → in_production → pending_review → approved → scheduled → published</code>.
           </p>
+          <CreateContentForm campaignCode={campaign} />
         </Card>
       </div>
     </DevelopmentShell>

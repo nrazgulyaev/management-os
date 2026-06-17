@@ -11,6 +11,7 @@ import {
   getInventoryItemBySku,
   listInventoryMovements,
 } from "@/lib/development/server/inventory/inventory-queries";
+import { InventoryItemControls } from "./_item-controls";
 
 export const metadata: Metadata = { title: "Item · Development OS" };
 export const dynamic = "force-dynamic";
@@ -80,6 +81,24 @@ export default async function InventoryItemDetailPage({
           )}
         </div>
         <div className="actions">
+          <InventoryItemControls
+            id={item.id}
+            sku={item.sku}
+            displayName={item.displayName}
+            description={item.description}
+            category={item.category}
+            unitOfMeasure={item.unitOfMeasure}
+            minimumStockLevel={
+              item.minimumStockLevel != null
+                ? String(item.minimumStockLevel)
+                : null
+            }
+            reorderPoint={
+              item.reorderPoint != null ? String(item.reorderPoint) : null
+            }
+            notes={item.notes}
+            isActive={item.isActive}
+          />
           <Link
             href="/development-os/inventory/items"
             className="btn btn-secondary btn-sm"

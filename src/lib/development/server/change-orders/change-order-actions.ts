@@ -158,10 +158,18 @@ export async function lookupChangeOrderApproval(input: {
   thresholds: ApprovalThresholdRow[];
 }) {
   const db = requireDb();
+  // HF-5: scope the read by organization_id so a cross-org change-order id
+  // cannot be probed for its approval requirement.
+  const organizationId = await requireOrgId();
   const [co] = await db
     .select()
     .from(changeOrders)
-    .where(eq(changeOrders.id, input.changeOrderId))
+    .where(
+      and(
+        eq(changeOrders.id, input.changeOrderId),
+        eq(changeOrders.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!co) throw new Error("change_order not found");
   // Use absolute cost impact for threshold lookup (downgrades still need approval).

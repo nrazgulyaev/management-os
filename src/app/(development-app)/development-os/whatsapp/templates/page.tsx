@@ -7,6 +7,10 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getWhatsappTemplates } from "@/lib/development/server/whatsapp-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { TemplateModalForm } from "./_template-form";
+import { TemplateStatusControl } from "./_status-control";
+
+type LangVersion = { body: string; header?: string };
 
 export const metadata: Metadata = {
   title: "WhatsApp templates · Development OS",
@@ -67,6 +71,7 @@ export default async function WhatsappTemplatesPage() {
           </p>
         </div>
         <div className="actions">
+          <TemplateModalForm />
           <Link
             href="/development-os/whatsapp"
             className="btn btn-secondary btn-sm"
@@ -83,6 +88,7 @@ export default async function WhatsappTemplatesPage() {
           <EmptyState
             title="No templates registered"
             description="Add your first WhatsApp template to enable outbound messaging."
+            action={<TemplateModalForm />}
           />
         ) : (
           <Card padding="none" overflowHidden>
@@ -95,13 +101,17 @@ export default async function WhatsappTemplatesPage() {
                   <th scope="col">Variables</th>
                   <th scope="col">Trigger event</th>
                   <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {templates.map((t) => {
-                  const langs = Object.keys(
-                    (t.languageVersions as Record<string, unknown>) ?? {},
-                  );
+                  const versions =
+                    (t.languageVersions as Record<
+                      string,
+                      LangVersion
+                    > | null) ?? {};
+                  const langs = Object.keys(versions);
                   return (
                     <tr key={t.id}>
                       <td className="mono text-xs">{t.templateKey}</td>
@@ -123,6 +133,35 @@ export default async function WhatsappTemplatesPage() {
                         <HandoffBadge tone={STATUS_TONE[t.approvalStatus] ?? "soft"}>
                           {t.approvalStatus}
                         </HandoffBadge>
+                        {t.approvalStatus === "rejected" &&
+                          t.rejectionReason && (
+                            <div className="text-[10px] text-danger mt-0.5 max-w-[160px]">
+                              {t.rejectionReason}
+                            </div>
+                          )}
+                      </td>
+                      <td className="text-right">
+                        <div className="flex flex-col items-end gap-1.5">
+                          <TemplateModalForm
+                            mode="edit"
+                            initial={{
+                              id: t.id,
+                              templateKey: t.templateKey,
+                              displayName: t.displayName,
+                              description: t.description,
+                              languageVersions: versions,
+                              expectedVariables: t.expectedVariables,
+                              notificationEventType: t.notificationEventType,
+                              twilioTemplateSid: t.twilioTemplateSid,
+                              metaTemplateId: t.metaTemplateId,
+                            }}
+                          />
+                          <TemplateStatusControl
+                            templateId={t.id}
+                            status={t.approvalStatus}
+                            twilioTemplateSid={t.twilioTemplateSid}
+                          />
+                        </div>
                       </td>
                     </tr>
                   );

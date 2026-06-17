@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Section } from "@/components/ui/section";
+import { AgentOutputReviewControls } from "@/components/development/agent-output-review-controls";
 
 const STATUS_TONE: Record<
   string,
@@ -104,6 +105,20 @@ export function AgentOutputDetail({
       {output.reviewerNotes && (
         <Section title="Reviewer notes">
           <p className="text-sm leading-relaxed">{output.reviewerNotes}</p>
+        </Section>
+      )}
+
+      {output.status === "awaiting_review" && (
+        <Section title="Review this output">
+          <AgentOutputReviewControls
+            outputCode={output.outputCode}
+            currentSummary={output.editedSummary ?? output.summary}
+            currentActions={
+              output.editedActions && output.editedActions.length > 0
+                ? output.editedActions
+                : output.recommendedActions
+            }
+          />
         </Section>
       )}
 
