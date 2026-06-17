@@ -121,7 +121,12 @@ export default async function ProjectsPage() {
         <div className="actions">
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost">
-              <Link href="/development-os/projects?export=csv">Export</Link>
+              <Link
+                href="/development-os/projects/export"
+                prefetch={false}
+              >
+                Export ↓
+              </Link>
             </Button>
             <Button asChild variant="secondary">
               <Link href="/development-os/investors">↗ Investor view</Link>

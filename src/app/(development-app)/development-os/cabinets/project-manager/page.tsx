@@ -1,3 +1,4 @@
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
@@ -86,6 +87,8 @@ export default async function ProjectManagerPage() {
     kanban.planned.length +
     kanban.ready_to_start.length +
     kanban.in_progress.length;
+  const tasksNext7Days = schedule.reduce((s, d) => s + d.tasks.length, 0);
+  const completedCount = kanban.completed.length;
 
   return (
     <>
@@ -103,22 +106,9 @@ export default async function ProjectManagerPage() {
         }
         subtitle="Your personal at-risk view, kanban-style WP board, integrated daily digest. For project shapes + milestones open the project detail from /development-os/projects."
         actions={
-          <>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              Weekly plan PDF ↓
-            </button>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
-            >
-              + Work package
-            </button>
-          </>
+          <Link href="/development-os/projects" className="btn btn-amber btn-sm">
+            + Work package
+          </Link>
         }
       />
 
@@ -133,15 +123,34 @@ export default async function ProjectManagerPage() {
           }
           tone={inProgressCount > 0 ? "accent" : undefined}
         />
-        <Kpi label="Schedule variance" value="—" sub="gantt rollup coming soon" />
+        <Kpi
+          label="Tasks · next 7 days"
+          value={tasksNext7Days === 0 ? "—" : String(tasksNext7Days)}
+          sub={tasksNext7Days === 0 ? "nothing scheduled" : "by planned_finish"}
+          tone={tasksNext7Days > 0 ? "accent" : undefined}
+        />
         <Kpi
           label="Overdue WPs"
           value={atRisk.length === 0 ? "0" : String(atRisk.length)}
           sub="vs planned_finish"
           tone={atRisk.length === 0 ? "success" : "accent"}
         />
-        <Kpi label="Decisions awaiting me" value="—" sub="decision inbox coming soon" />
-        <Kpi label="Crew on site · today" value="—" sub="site report feed coming soon" />
+        <Kpi
+          label="Queued · this week"
+          value={
+            kanban.ready_to_start.length === 0
+              ? "—"
+              : String(kanban.ready_to_start.length)
+          }
+          sub={kanban.ready_to_start.length === 0 ? "nothing queued" : "ready to start"}
+          tone={kanban.ready_to_start.length > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Done · recent"
+          value={completedCount === 0 ? "—" : String(completedCount)}
+          sub={completedCount === 0 ? "none completed yet" : "completed WPs"}
+          tone={completedCount > 0 ? "success" : undefined}
+        />
       </div>
 
       {/* Kanban — live work_packages grouped by status */}
@@ -175,34 +184,49 @@ export default async function ProjectManagerPage() {
                       Empty
                     </p>
                   ) : (
-                    items.slice(0, 6).map((c) => (
-                      <div
-                        key={c.id}
-                        className="px-3 py-2.5 bg-panel border border-line rounded-[10px] cursor-pointer"
-                      >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="mono text-[10px] text-ink-3">
-                            {c.packageCode}
-                          </span>
-                          {c.projectCode && (
-                            <span className="mono ml-auto text-[9px] text-ink-3">
-                              {c.projectCode}
+                    items.slice(0, 6).map((c) => {
+                      const cardInner = (
+                        <>
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="mono text-[10px] text-ink-3">
+                              {c.packageCode}
                             </span>
-                          )}
-                        </div>
-                        <div className="text-[13px]">{c.name}</div>
-                        <div className="mt-2 flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-amber text-carbon flex items-center justify-center text-[9px] font-semibold font-[var(--font-space),sans-serif]">
-                            {initialsOf(c.responsibleUserName)}
+                            {c.projectCode && (
+                              <span className="mono ml-auto text-[9px] text-ink-3">
+                                {c.projectCode}
+                              </span>
+                            )}
                           </div>
-                          {c.progressPercentage > 0 && (
-                            <span className="mono text-[9px] text-ink-3 ml-auto">
-                              {c.progressPercentage}%
-                            </span>
-                          )}
+                          <div className="text-[13px]">{c.name}</div>
+                          <div className="mt-2 flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-amber text-carbon flex items-center justify-center text-[9px] font-semibold font-[var(--font-space),sans-serif]">
+                              {initialsOf(c.responsibleUserName)}
+                            </div>
+                            {c.progressPercentage > 0 && (
+                              <span className="mono text-[9px] text-ink-3 ml-auto">
+                                {c.progressPercentage}%
+                              </span>
+                            )}
+                          </div>
+                        </>
+                      );
+                      return c.projectSlug ? (
+                        <Link
+                          key={c.id}
+                          href={`/development-os/projects/${c.projectSlug}/work-packages/${encodeURIComponent(c.packageCode)}`}
+                          className="block px-3 py-2.5 bg-panel border border-line rounded-[10px] hover:border-amber transition-colors"
+                        >
+                          {cardInner}
+                        </Link>
+                      ) : (
+                        <div
+                          key={c.id}
+                          className="px-3 py-2.5 bg-panel border border-line rounded-[10px]"
+                        >
+                          {cardInner}
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               );

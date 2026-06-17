@@ -14,6 +14,10 @@ import {
 import {
   INVESTOR_TYPE_LABEL,
   INVESTOR_STATUS_LABEL,
+  INVESTOR_STATUSES,
+  INVESTOR_TYPES,
+  type InvestorStatus,
+  type InvestorType,
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
 import {
@@ -58,7 +62,22 @@ function SectionRule({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default async function InvestorsPage() {
+export default async function InvestorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; type?: string }>;
+}) {
+  const sp = await searchParams;
+  const statusFilter = (INVESTOR_STATUSES as readonly string[]).includes(
+    sp.status ?? "",
+  )
+    ? (sp.status as InvestorStatus)
+    : undefined;
+  const typeFilter = (INVESTOR_TYPES as readonly string[]).includes(sp.type ?? "")
+    ? (sp.type as InvestorType)
+    : undefined;
+  const q = (sp.q ?? "").trim().toLowerCase();
+
   const db = getDb();
   const timings: SafeQueryTiming[] = [];
   const onTiming = (t: SafeQueryTiming) => timings.push(t);
@@ -68,7 +87,13 @@ export default async function InvestorsPage() {
 
   if (db) {
     [investors, metrics] = await Promise.all([
-      safeQuery("getInvestors", getInvestors(), [], 4000, onTiming),
+      safeQuery(
+        "getInvestors",
+        getInvestors({ status: statusFilter, type: typeFilter }),
+        [],
+        4000,
+        onTiming,
+      ),
       safeQuery(
         "getInvestorMetrics",
         getInvestorMetrics(),
@@ -78,6 +103,18 @@ export default async function InvestorsPage() {
       ),
     ]);
   }
+
+  // Free-text search across code, legal name, email — applied to the
+  // org-scoped result set (no SQL change to the shared query).
+  if (q) {
+    investors = investors.filter(
+      (i) =>
+        i.investorCode.toLowerCase().includes(q) ||
+        i.legalName.toLowerCase().includes(q) ||
+        (i.contactEmail ?? "").toLowerCase().includes(q),
+    );
+  }
+  const hasFilters = Boolean(q || statusFilter || typeFilter);
 
   logSafeQueryTimings("investors", timings);
   const degraded = timings.filter((t) => t.usedFallback).map((t) => t.label);
@@ -179,7 +216,66 @@ export default async function InvestorsPage() {
           <SectionRule>
             LP · positions (open an investor for the ledger)
           </SectionRule>
+
+          <form
+            method="GET"
+            action="/development-os/investors"
+            className="mb-3 flex flex-wrap items-center gap-2"
+          >
+            <input
+              type="search"
+              name="q"
+              defaultValue={sp.q ?? ""}
+              placeholder="Search code / name / email…"
+              aria-label="Search investors"
+              className="rounded-full border border-line bg-surface px-3.5 py-[6px] text-[12.5px] text-ink w-[220px] focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <select
+              name="status"
+              defaultValue={statusFilter ?? ""}
+              aria-label="Status"
+              className="rounded-full border border-line bg-surface px-3 py-[6px] text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            >
+              <option value="">All statuses</option>
+              {INVESTOR_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {INVESTOR_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+            <select
+              name="type"
+              defaultValue={typeFilter ?? ""}
+              aria-label="Type"
+              className="rounded-full border border-line bg-surface px-3 py-[6px] text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            >
+              <option value="">All types</option>
+              {INVESTOR_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {INVESTOR_TYPE_LABEL[t]}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-dark btn-sm">
+              Apply
+            </button>
+            {hasFilters && (
+              <Link
+                href="/development-os/investors"
+                className="btn btn-secondary btn-sm"
+              >
+                Clear
+              </Link>
+            )}
+          </form>
+
           {investors.length === 0 ? (
+            hasFilters ? (
+              <EmptyState
+                title="No investors match"
+                description="No investors match the current search or filters. Clear them to see the full list."
+              />
+            ) : (
             <EmptyState
               title="No investors yet"
               description="Add your first investor to start tracking commitments and distributions."
@@ -192,6 +288,7 @@ export default async function InvestorsPage() {
                 </span>
               }
             />
+            )
           ) : (
             <div className="card overflow-hidden">
               <div className="overflow-x-auto">

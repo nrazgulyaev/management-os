@@ -1,8 +1,7 @@
 /**
- * Sprint 4 — Transaction import wizard route.
+ * Transaction import wizard route.
  *
- * Three tabs (Paste · Upload · Live Sheets). Live Sheets is a 4.5
- * placeholder. All other plumbing is live.
+ * Two tabs (Paste · Upload CSV/XLSX) — both live.
  */
 
 import type { Metadata } from "next";
@@ -61,8 +60,8 @@ export default async function ImportPage() {
             </div>
             <h1>Import transactions</h1>
             <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-              Paste from a spreadsheet, upload a CSV/XLSX file, or — in Sprint 4.5 —
-              connect Google Sheets directly.
+              Paste rows from a spreadsheet, or upload a CSV/XLSX file. Headers
+              auto-map; save a column-mapping template to reuse next time.
             </p>
           </div>
           <div className="actions">

@@ -279,6 +279,7 @@ export interface WorkPackageRow {
   name: string;
   projectId: string;
   projectCode: string | null;
+  projectSlug: string | null;
   status: WpStatus;
   progressPercentage: number;
   responsibleUserName: string | null;
@@ -308,6 +309,7 @@ export async function listWorkPackagesByStatus(): Promise<
     name: string;
     project_id: string;
     project_code: string | null;
+    project_slug: string | null;
     status: string;
     progress_percentage: string;
     responsible_name: string | null;
@@ -321,6 +323,7 @@ export async function listWorkPackagesByStatus(): Promise<
            w.name                                        AS name,
            w.project_id::text                            AS project_id,
            p.project_code                                AS project_code,
+           p.slug                                        AS project_slug,
            w.status                                      AS status,
            w.progress_percentage::text                   AS progress_percentage,
            u.full_name                                   AS responsible_name,
@@ -350,6 +353,7 @@ export async function listWorkPackagesByStatus(): Promise<
     name: string;
     project_id: string;
     project_code: string | null;
+    project_slug: string | null;
     status: string;
     progress_percentage: string;
     responsible_name: string | null;
@@ -366,6 +370,7 @@ export async function listWorkPackagesByStatus(): Promise<
       name: r.name,
       projectId: r.project_id,
       projectCode: r.project_code,
+      projectSlug: r.project_slug,
       status,
       progressPercentage: Number(r.progress_percentage),
       responsibleUserName: r.responsible_name,

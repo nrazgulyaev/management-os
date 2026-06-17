@@ -9,6 +9,7 @@ import { villas as villasTable } from "@/lib/db/schema/projects";
 import {} from "drizzle-orm";
 import { listChannelReservations } from "@/lib/channel-manager/queries";
 import { CHANNEL_LABELS } from "@/components/development/channels/connect-channel-modal";
+import { CalendarBlockAddButton } from "@/components/availability/block-add-button";
 import type { ChannelName } from "@/lib/db/schema/channel-manager";
 
 export const metadata: Metadata = { title: "Cross-channel calendar · Channels" };
@@ -21,10 +22,10 @@ export const dynamic = "force-dynamic";
  * current month + next 2 months. Color-coded by channel; conflict_pending
  * rows are bold-bordered for the operator's attention.
  *
- * P1.G's manual block toolbar (owner stay, maintenance, off-season)
- * lands as a separate add-action. For now the calendar is read-only —
- * already useful for spotting overlaps before the conflict-detection
- * cron runs.
+ * Manual blocks (owner stay, maintenance, deep clean, OOO, internal hold)
+ * are written from the "Block dates" action, which mounts the shared,
+ * org-scoped <CalendarBlockAddButton> → createVillaCalendarBlockAction.
+ * Blocks also surface availability conflicts before the detection cron runs.
  */
 export default async function ChannelCalendarPage({
   searchParams,
@@ -99,6 +100,15 @@ export default async function ChannelCalendarPage({
           </p>
         </div>
         <div className="actions">
+          {villas.length > 0 && (
+            <CalendarBlockAddButton
+              label="Block dates"
+              villas={villas.map((v) => ({
+                id: v.id,
+                label: `${v.name ?? v.unitCode} (${v.unitCode})`,
+              }))}
+            />
+          )}
           <Link
             href="/development-os/channels"
             className="btn btn-secondary btn-sm"

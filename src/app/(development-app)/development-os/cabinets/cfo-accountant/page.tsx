@@ -88,7 +88,6 @@ export default async function CfoAccountantPage() {
 
   const pnlTotals = pnlTotalsLabel(pnl);
   const cashScale = cashBarScale(cashStrip);
-  const sharedColCount = pnl.length;
 
   return (
     <>
@@ -123,20 +122,18 @@ export default async function CfoAccountantPage() {
             >
               All transactions
             </Link>
-            <button
-              className="btn btn-dark btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            <Link
+              href="/development-os/finance/tax-reports"
+              className="btn btn-dark btn-sm"
             >
-              Tax pack PDF ↓
-            </button>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+              Tax pack ↓
+            </Link>
+            <Link
+              href="/development-os/finance/general-ledger"
+              className="btn btn-amber btn-sm"
             >
               + Journal entry
-            </button>
+            </Link>
           </>
         }
       />
@@ -336,10 +333,6 @@ export default async function CfoAccountantPage() {
               <tr>
                 <th>Cost category</th>
                 <th className="num">MTD spend</th>
-                <th>Allocation rule</th>
-                {pnl.map((p) => (
-                  <th key={p.projectId}>{p.projectCode}</th>
-                ))}
               </tr>
             </thead>
             <tbody>
@@ -347,22 +340,19 @@ export default async function CfoAccountantPage() {
                 <tr key={s.categoryId}>
                   <td>{s.displayName}</td>
                   <td className="num">{usdCompact(s.mtdMinor)}</td>
-                  <td className="mono text-[11px] text-ink-3">
-                    pending rule engine
-                  </td>
-                  {Array.from({ length: sharedColCount }).map((_, i) => (
-                    <td key={i} className="num text-ink-4">
-                      —
-                    </td>
-                  ))}
                 </tr>
               ))}
             </tbody>
           </table>
         )}
-        <p className="mono mt-3 text-[10px] text-ink-4 tracking-[0.08em]">
-          ALLOCATION RULES SHIP IN TASK-7-DATA-PART-2
-        </p>
+        {shared.length > 0 && (
+          <p className="mt-3 text-[12px] text-ink-3">
+            Company-overhead spend is tracked here but not yet split across
+            projects. Per-project allocation requires an allocation-rule engine
+            that hasn&apos;t been built — until then these costs stay at the
+            portfolio level.
+          </p>
+        )}
       </Card>
     </>
   );

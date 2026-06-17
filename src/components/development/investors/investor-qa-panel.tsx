@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Sparkles, Mail, Copy, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ export function InvestorQaPanel({
   investorReportingLanguage: string;
   drafts: DraftRow[];
 }) {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [question, setQuestion] = useState("");
   const [questionLang, setQuestionLang] = useState<string>("en");
@@ -116,6 +118,7 @@ export function InvestorQaPanel({
                   setError(out.errorMessage ?? "Generation failed");
                 } else {
                   setQuestion("");
+                  router.refresh();
                 }
               });
             }}
