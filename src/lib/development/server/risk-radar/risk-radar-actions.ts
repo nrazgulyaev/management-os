@@ -78,6 +78,38 @@ export async function acknowledgeAlert(args: {
   }
 }
 
+export async function setInvestigating(args: {
+  alertCode: string;
+  userId: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const code = codeSchema.parse(args.alertCode);
+  const db = getDb();
+  if (!db) return { ok: false, error: "DB not configured" };
+  const organizationId = await requireOrgId();
+  try {
+    // Investigating is a working state between acknowledge and resolve.
+    // We stamp acknowledgedBy/At if not already set so the alert carries
+    // an owner once someone starts working it.
+    await db
+      .update(riskRadarAlerts)
+      .set({
+        status: "investigating",
+        acknowledgedBy: args.userId,
+        acknowledgedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(riskRadarAlerts.alertCode, code),
+          eq(riskRadarAlerts.organizationId, organizationId),
+        ),
+      );
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown" };
+  }
+}
+
 export async function resolveAlert(args: {
   alertCode: string;
   userId: string;

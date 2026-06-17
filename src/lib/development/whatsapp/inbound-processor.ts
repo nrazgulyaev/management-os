@@ -65,8 +65,12 @@ export async function processInboundMessage(
     };
   }
 
-  // 2) Resolve sender.
-  const sender = await resolveSenderPhone(msg.fromPhone);
+  // 2) Resolve sender. Pass the receiving Arconique business number
+  // (msg.toPhone) so the sender's registry row is stamped with the
+  // tenant org — otherwise unknown numbers never render on the operator
+  // page (getWhatsappPhoneNumbers strict-filters organization_id) and
+  // can never be resolved manually.
+  const sender = await resolveSenderPhone(msg.fromPhone, msg.toPhone);
 
   // 3) Voice transcription.
   let transcript = msg.voiceTranscript;

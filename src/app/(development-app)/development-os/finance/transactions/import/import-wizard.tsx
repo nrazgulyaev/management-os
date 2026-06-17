@@ -1,24 +1,21 @@
 "use client";
 
 /**
- * Sprint 4 — Transaction import wizard (Tabs A + B; Tab C is a 4.5
- * placeholder).
+ * Transaction import wizard (Paste + Upload).
  *
  * Three-step flow: pick source → parse → review + commit.
  *
  *   Tab A — Paste from Sheets/Excel: TSV/CSV auto-detect.
  *   Tab B — Upload CSV/XLSX file: parsed via `xlsx` browser-side.
- *   Tab C — Google Sheets live: deferred placeholder for Sprint 4.5.
  *
  * Auto-mapping uses header heuristics (English + Russian, per the
- * operator's catalog language). Override-UI + template-save deferred
- * to Sprint 4.5 — Sprint 4 ships the parse-preview-commit path with
- * the migrations + schema in place so 4.5 is purely UI work.
+ * operator's catalog language), with a saved-template picker +
+ * editable column-mapping override on the preview panel.
  */
 
 import * as React from "react";
 import { useTransition } from "react";
-import { ArrowUpRight, Loader2, Upload, ClipboardPaste, Link2 } from "lucide-react";
+import { ArrowUpRight, Loader2, Upload, ClipboardPaste } from "lucide-react";
 import {
   applyMapping,
   autoMapHeaders,
@@ -46,7 +43,7 @@ export interface ImportBankAccountOption {
   currency: string;
 }
 
-type Tab = "paste" | "upload" | "sheets-live";
+type Tab = "paste" | "upload";
 
 export function ImportWizard({
   bankAccounts,
@@ -102,13 +99,6 @@ export function ImportWizard({
         >
           Upload CSV/XLSX
         </TabButton>
-        <TabButton
-          active={tab === "sheets-live"}
-          onClick={() => setTab("sheets-live")}
-          icon={<Link2 className="w-3.5 h-3.5" strokeWidth={1.75} />}
-        >
-          Google Sheets (live)
-        </TabButton>
       </nav>
 
       {tab === "paste" && (
@@ -117,7 +107,6 @@ export function ImportWizard({
       {tab === "upload" && (
         <UploadTab bankAccountId={bankAccountId} />
       )}
-      {tab === "sheets-live" && <SheetsLivePlaceholder />}
     </div>
   );
 }
@@ -242,32 +231,6 @@ function UploadTab({ bankAccountId }: { bankAccountId: string | null }) {
           sourceKind="xlsx"
         />
       )}
-    </section>
-  );
-}
-
-// ============================================================================
-// Tab C — Sprint 4.5 placeholder
-// ============================================================================
-
-function SheetsLivePlaceholder() {
-  return (
-    <section className="rounded-3xl border border-line-soft bg-gradient-gold-soft shadow-soft-card p-6 md:p-8 flex flex-col gap-3">
-      <h3 className="text-display text-[22px] md:text-[26px] leading-tight font-medium text-ink">
-        Live Google Sheets sync — Sprint 4.5
-      </h3>
-      <p className="text-sm text-ink-secondary leading-relaxed max-w-2xl">
-        Sprint 4 ships the migrations + schema + parser library for
-        live Sheets sync (see <code>drizzle/0097_import_templates.sql</code>
-        and <code>src/lib/google-workspace/sheets/</code>). The UI to
-        authorize a Google account, pick a spreadsheet, and one-shot
-        import live rows lands in Sprint 4.5.
-      </p>
-      <p className="text-sm text-ink-secondary leading-relaxed">
-        For now, use{" "}
-        <strong className="font-medium">Paste</strong> or{" "}
-        <strong className="font-medium">Upload CSV/XLSX</strong> above.
-      </p>
     </section>
   );
 }

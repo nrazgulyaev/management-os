@@ -177,6 +177,8 @@ export async function listDistributionForDrawing(drawingId: string) {
       distributedAt: drawingDistributionLog.distributedAt,
       distributionMethod: drawingDistributionLog.distributionMethod,
       acknowledgedAt: drawingDistributionLog.acknowledgedAt,
+      acknowledgedByName: drawingDistributionLog.acknowledgedByName,
+      acknowledgmentMethod: drawingDistributionLog.acknowledgmentMethod,
     })
     .from(drawingDistributionLog)
     .innerJoin(

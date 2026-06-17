@@ -8,6 +8,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getChannelReservationById } from "@/lib/channel-manager/queries";
 import { CHANNEL_LABELS } from "@/components/development/channels/connect-channel-modal";
+import { ConflictResolutionActions } from "@/components/development/channels/conflict-resolution-actions";
 import type { ChannelName } from "@/lib/db/schema/channel-manager";
 
 export const metadata: Metadata = { title: "Reservation · Channel inbox" };
@@ -75,14 +76,25 @@ export default async function ReservationDetailPage({
       </div>
 
       {r.conflictPending && (
-        <div className="rounded-md border border-warning/40 bg-warning-weak/30 p-3 text-xs text-warning flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 mt-0.5" />
-          <div>
-            <div className="font-medium">Conflict pending — operator action required</div>
-            <div className="mt-1">
-              This reservation overlaps an existing booking. Review and
-              resolve via the channel manager service in P1.G.
+        <div className="rounded-md border border-warning/40 bg-warning-weak/30 p-3 text-xs text-warning">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 mt-0.5" />
+            <div>
+              <div className="font-medium">
+                Conflict pending — operator action required
+              </div>
+              <div className="mt-1">
+                This reservation overlaps an existing booking. Confirm the new
+                reservation (cancels the existing booking) or reject it (leaves
+                the existing booking in place).
+              </div>
             </div>
+          </div>
+          <div className="mt-3">
+            <ConflictResolutionActions
+              channelReservationId={reservationId}
+              externalReservationId={r.externalReservationId}
+            />
           </div>
         </div>
       )}

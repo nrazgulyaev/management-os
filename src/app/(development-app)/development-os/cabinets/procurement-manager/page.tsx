@@ -178,18 +178,17 @@ export default async function ProcurementManagerPage() {
             >
               Purchase orders
             </Link>
-            <button
-              className="btn btn-amber btn-sm opacity-55 cursor-not-allowed"
-              disabled
-              title="Coming soon"
+            <Link
+              href="/development-os/procurement/purchase-requests/new"
+              className="btn btn-amber btn-sm"
             >
               + Purchase request
-            </button>
+            </Link>
           </>
         }
       />
 
-      <div className="grid grid-cols-5 gap-3 mb-[18px]">
+      <div className="grid grid-cols-4 gap-3 mb-[18px]">
         <Kpi
           label="Open PRs"
           value={prs.length === 0 ? "—" : String(prs.length)}
@@ -225,7 +224,6 @@ export default async function ProcurementManagerPage() {
           }
           tone={invoices.length > 0 ? "accent" : undefined}
         />
-        <Kpi label="Avg PR → PO" value="—" sub="cycle-time analytics coming soon" />
       </div>
 
       {/* AI band — live procurement_analyst agent_outputs (vendor reliability + lead-time). */}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, or, sql } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { appUsers } from "@/lib/db/schema/identity";
 import { investors } from "@/lib/db/schema/investor-capital";
@@ -27,6 +27,17 @@ import { normalisePhone } from "@/lib/whatsapp/providers";
  * active one. The resolver always logs/updates a row in
  * `whatsapp_phone_numbers` so dashboards can show "phone X belongs to
  * entity Y" without re-running the lookup.
+ *
+ * TENANCY: the registry row written for the SENDER must carry an
+ * `organization_id` — otherwise the operator page reader
+ * (`getWhatsappPhoneNumbers`) strict-filters org and the row never
+ * renders, so an "unknown" inbound number can never be resolved. The
+ * org is derived from the Arconique business number that RECEIVED the
+ * message (`receivingPhone` = inbound webhook's `toPhone`), which is an
+ * `arconique_inbound`/`arconique_outbound` row that already carries the
+ * tenant's org. Resolution stays resilient: a missing/unknown receiving
+ * number simply leaves org undefined (never throws), so ingestion never
+ * breaks.
  */
 
 export type ResolvedEntityType =
@@ -48,6 +59,14 @@ export interface PhoneResolution {
 
 export async function resolveSenderPhone(
   rawPhone: string,
+  /**
+   * The Arconique business number that RECEIVED the inbound message
+   * (the webhook's `toPhone`). Used only to derive the tenant org for
+   * the sender's registry row — so unknown numbers render on the
+   * operator page and can be resolved manually. Optional + best-effort:
+   * an unknown/missing receiving number leaves org undefined.
+   */
+  receivingPhone?: string | null,
 ): Promise<PhoneResolution> {
   const phone = normalisePhone(rawPhone);
   const db = getDb();
@@ -59,6 +78,10 @@ export async function resolveSenderPhone(
       phoneRegistryId: null,
     };
   }
+
+  // Derive the tenant org from the receiving business number so every
+  // registry write below is stamped (resilient — never throws).
+  const organizationId = await resolveOrgFromReceivingNumber(receivingPhone);
 
   // 1) Try app_users.
   const appUserMatch = await db
@@ -76,6 +99,7 @@ export async function resolveSenderPhone(
       entityType: "app_user",
       entityId: appUserMatch[0].id,
       displayName: appUserMatch[0].name,
+      organizationId,
     });
     return {
       phoneNumber: phone,
@@ -108,6 +132,7 @@ export async function resolveSenderPhone(
       entityType: "investor",
       entityId: investorMatch[0].id,
       displayName: investorMatch[0].name,
+      organizationId,
     });
     return {
       phoneNumber: phone,
@@ -134,6 +159,7 @@ export async function resolveSenderPhone(
       entityType: "vendor",
       entityId: vendorMatch[0].id,
       displayName: vendorMatch[0].name,
+      organizationId,
     });
     return {
       phoneNumber: phone,
@@ -169,6 +195,7 @@ export async function resolveSenderPhone(
       entityType: "contact",
       entityId: contactMatch[0].id,
       displayName: contactMatch[0].name,
+      organizationId,
     });
     return {
       phoneNumber: phone,
@@ -180,12 +207,14 @@ export async function resolveSenderPhone(
     };
   }
 
-  // 5) Unknown — log so an operator can resolve later.
+  // 5) Unknown — log so an operator can resolve later. Stamped with the
+  // receiving business number's org so it renders on the operator page.
   const reg = await ensurePhoneRegistry({
     phoneNumber: phone,
     entityType: null,
     entityId: null,
     displayName: null,
+    organizationId,
   });
   return {
     phoneNumber: phone,
@@ -200,6 +229,8 @@ interface RegistryUpsert {
   entityType: "app_user" | "investor" | "vendor" | "contact" | null;
   entityId: string | null;
   displayName: string | null;
+  /** Tenant org derived from the receiving business number (best-effort). */
+  organizationId?: string | null;
 }
 
 async function ensurePhoneRegistry(
@@ -212,6 +243,7 @@ async function ensurePhoneRegistry(
     phoneNumber: args.phoneNumber,
     displayName: args.displayName ?? undefined,
     numberType,
+    organizationId: args.organizationId ?? undefined,
     resolvedEntityType: args.entityType ?? undefined,
     resolvedEntityId: args.entityId ?? undefined,
     provider: "twilio",
@@ -227,6 +259,9 @@ async function ensurePhoneRegistry(
         resolvedEntityType: sql`COALESCE(EXCLUDED.resolved_entity_type, ${whatsappPhoneNumbers.resolvedEntityType})`,
         resolvedEntityId: sql`COALESCE(EXCLUDED.resolved_entity_id, ${whatsappPhoneNumbers.resolvedEntityId})`,
         displayName: sql`COALESCE(EXCLUDED.display_name, ${whatsappPhoneNumbers.displayName})`,
+        // Backfill org on rows that were inserted before the org was
+        // derivable — but never re-home a row that already has an org.
+        organizationId: sql`COALESCE(${whatsappPhoneNumbers.organizationId}, EXCLUDED.organization_id)`,
         numberType: sql`CASE
           WHEN ${whatsappPhoneNumbers.numberType} = 'unknown' AND EXCLUDED.number_type = 'recipient'
             THEN 'recipient'
@@ -237,4 +272,40 @@ async function ensurePhoneRegistry(
     })
     .returning({ id: whatsappPhoneNumbers.id });
   return inserted[0]?.id ?? null;
+}
+
+/**
+ * Best-effort: map the Arconique business number that received an
+ * inbound message to its tenant org. The receiving number is an
+ * `arconique_inbound`/`arconique_outbound` row already stamped with an
+ * org (see `createWhatsappPhoneNumber`). Returns undefined (never
+ * throws) when the number is missing/unknown so message ingestion is
+ * never blocked by an org lookup.
+ */
+async function resolveOrgFromReceivingNumber(
+  receivingPhone?: string | null,
+): Promise<string | undefined> {
+  if (!receivingPhone) return undefined;
+  const db = getDb();
+  if (!db) return undefined;
+  try {
+    const normalised = normalisePhone(receivingPhone);
+    const [row] = await db
+      .select({ organizationId: whatsappPhoneNumbers.organizationId })
+      .from(whatsappPhoneNumbers)
+      .where(
+        and(
+          eq(whatsappPhoneNumbers.phoneNumber, normalised),
+          inArray(whatsappPhoneNumbers.numberType, [
+            "arconique_inbound",
+            "arconique_outbound",
+          ]),
+        ),
+      )
+      .limit(1);
+    return row?.organizationId ?? undefined;
+  } catch {
+    // Resilience: an org lookup failure must never break ingestion.
+    return undefined;
+  }
 }

@@ -7,7 +7,9 @@ import { HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listLowStockItems } from "@/lib/development/server/inventory/inventory-queries";
+import { getWarehouseStockList } from "@/lib/development/server/warehouse/warehouse-inbound-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { StockCountPanel } from "@/components/development/warehouse/stock-count-panel";
 
 export const metadata: Metadata = { title: "Stocktake · Development OS" };
 export const dynamic = "force-dynamic";
@@ -26,7 +28,21 @@ export default async function StocktakePage() {
       </DevelopmentShell>
     );
   }
-  const lowStock = await safeQuery("listLowStockItems", listLowStockItems(), [], 4000);
+  const [lowStock, stock] = await Promise.all([
+    safeQuery("listLowStockItems", listLowStockItems(), [], 4000),
+    safeQuery(
+      "warehouseStockList",
+      getWarehouseStockList(),
+      {
+        rows: [],
+        totalSkuCount: 0,
+        lowStockCount: 0,
+        zeroStockCount: 0,
+        defaultLocation: null,
+      },
+      6000,
+    ),
+  ]);
 
   return (
     <DevelopmentShell>
@@ -56,6 +72,24 @@ export default async function StocktakePage() {
             Items
           </Link>
         </div>
+      </div>
+
+      <div>
+        <div className="label mb-2.5">Cycle count</div>
+        <p className="text-[13px] text-ink-3 mb-3 max-w-[680px]">
+          Physically count a SKU and submit the result. Each adjustment posts an
+          audited inventory movement and re-syncs on-hand against the system.
+        </p>
+        <StockCountPanel
+          items={stock.rows.map((r) => ({
+            itemId: r.itemId,
+            sku: r.sku,
+            displayName: r.displayName,
+            unitOfMeasure: r.unitOfMeasure,
+            onHand: r.onHand,
+          }))}
+          location={stock.defaultLocation}
+        />
       </div>
 
       {lowStock.length === 0 ? (

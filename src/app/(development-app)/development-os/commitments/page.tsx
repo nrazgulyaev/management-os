@@ -10,6 +10,8 @@ import { getCommitments, getInvestors } from "@/lib/development/server/investors
 import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import {
   COMMITMENT_STATUS_LABEL,
+  COMMITMENT_STATUSES,
+  type CommitmentStatus,
   formatCurrencyMinor,
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
@@ -26,14 +28,26 @@ function fmtAbbrevUsd(minor: bigint): string {
   return `$${Math.round(usd)}`;
 }
 
-export default async function CommitmentsPage() {
+export default async function CommitmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string }>;
+}) {
+  const sp = await searchParams;
+  const statusFilter = (COMMITMENT_STATUSES as readonly string[]).includes(
+    sp.status ?? "",
+  )
+    ? (sp.status as CommitmentStatus)
+    : undefined;
+  const q = (sp.q ?? "").trim().toLowerCase();
+
   const db = getDb();
 
-  const [commitments, investors, projects] = db
+  const [commitmentsAll, investors, projects] = db
     ? await Promise.all([
         safeQuery(
           "getCommitments",
-          getCommitments({}),
+          getCommitments({ status: statusFilter }),
           [] as Awaited<ReturnType<typeof getCommitments>>,
           4000,
         ),
@@ -51,6 +65,19 @@ export default async function CommitmentsPage() {
         ),
       ])
     : [[], [], []];
+
+  // Free-text search across commitment code, investor name, project — applied
+  // to the org-scoped result set (no SQL change to the shared query).
+  const commitments = q
+    ? commitmentsAll.filter(
+        (c) =>
+          c.commitmentCode.toLowerCase().includes(q) ||
+          (c.investorLegalName ?? "").toLowerCase().includes(q) ||
+          (c.investorCode ?? "").toLowerCase().includes(q) ||
+          (c.projectName ?? "").toLowerCase().includes(q),
+      )
+    : commitmentsAll;
+  const hasFilters = Boolean(q || statusFilter);
 
   // Selects for the create-commitment modal. Investors carry id/code/name;
   // projects are filtered to real DB rows (a mock id can't be committed
@@ -154,6 +181,45 @@ export default async function CommitmentsPage() {
             />
           </div>
 
+          <form
+            method="GET"
+            action="/development-os/commitments"
+            className="mt-5 flex flex-wrap items-center gap-2"
+          >
+            <input
+              type="search"
+              name="q"
+              defaultValue={sp.q ?? ""}
+              placeholder="Search code / investor / project…"
+              aria-label="Search commitments"
+              className="rounded-full border border-line bg-surface px-3.5 py-[6px] text-[12.5px] text-ink w-[240px] focus:outline-none focus:ring-2 focus:ring-accent/40"
+            />
+            <select
+              name="status"
+              defaultValue={statusFilter ?? ""}
+              aria-label="Status"
+              className="rounded-full border border-line bg-surface px-3 py-[6px] text-[12.5px] text-ink focus:outline-none focus:ring-2 focus:ring-accent/40"
+            >
+              <option value="">All statuses</option>
+              {COMMITMENT_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {COMMITMENT_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+            <button type="submit" className="btn btn-dark btn-sm">
+              Apply
+            </button>
+            {hasFilters && (
+              <Link
+                href="/development-os/commitments"
+                className="btn btn-secondary btn-sm"
+              >
+                Clear
+              </Link>
+            )}
+          </form>
+
           <section>
             <div className="flex items-baseline justify-between mb-3">
               <span className="label">Active + closed</span>
@@ -161,6 +227,12 @@ export default async function CommitmentsPage() {
             </div>
             <div className="card overflow-hidden">
               {commitments.length === 0 ? (
+                hasFilters ? (
+                  <EmptyState
+                    title="No commitments match"
+                    description="No commitments match the current search or status filter. Clear them to see the full list."
+                  />
+                ) : (
                 <EmptyState
                   title="No commitments yet"
                   description="Add your first investor commitment to start tracking capital calls and distributions."
@@ -171,6 +243,7 @@ export default async function CommitmentsPage() {
                     />
                   }
                 />
+                )
               ) : (
                 <div className="overflow-x-auto">
                   <table className="data">

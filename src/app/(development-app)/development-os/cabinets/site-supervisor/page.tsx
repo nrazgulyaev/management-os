@@ -108,8 +108,26 @@ export default async function SiteSupervisorPage() {
           sub={todaysPhotoCount === 0 ? "none captured yet" : "all geo-tagged"}
           tone={todaysPhotoCount > 0 ? "success" : undefined}
         />
-        <Kpi label="QA checks done" value="—" sub="QA inspections coming soon" />
-        <Kpi label="Safety incidents" value="—" sub="incident reporting coming soon" />
+        <Kpi
+          label="QA checks · recent"
+          value={inspections.length === 0 ? "—" : String(inspections.length)}
+          sub={
+            inspections.length === 0
+              ? "none logged yet"
+              : `${inspections.filter((q) => q.result === "passed").length} passed`
+          }
+          tone={inspections.length > 0 ? "accent" : undefined}
+        />
+        <Kpi
+          label="Safety incidents"
+          value={incidents.length === 0 ? "0" : String(incidents.length)}
+          sub={
+            incidents.length === 0
+              ? "none recorded"
+              : `${incidents.filter((s) => s.status !== "closed" && s.status !== "resolved").length} open`
+          }
+          tone={incidents.length === 0 ? "success" : "danger"}
+        />
       </div>
 
       {/* Daily report timeline — live site_reports */}

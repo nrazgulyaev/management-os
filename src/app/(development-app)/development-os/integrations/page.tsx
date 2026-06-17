@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, AlertTriangle } from "lucide-react";
+import { ArrowLeft, AlertTriangle, ArrowUpRight } from "lucide-react";
 import { sql } from "drizzle-orm";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
+import { Kpi, Card } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import {
@@ -175,32 +175,32 @@ export default async function IntegrationsHubPage() {
       </div>
 
       <div>
-        <div className="label mb-2.5">Roadmap</div>
+        <div className="label mb-2.5">Integration categories</div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          <PlaceholderCard
+          <CategoryCard
             title="Communications"
-            stage="Soon"
-            description="WhatsApp, Telegram, Instagram, Facebook Messenger, Email — unified inbox."
+            href="/development-os/whatsapp"
+            description="WhatsApp Business, message templates, and the per-org messaging runtime."
           />
-          <PlaceholderCard
+          <CategoryCard
             title="Banking + Payments"
-            stage="Soon"
-            description="Revolut, Wise, Stripe, Indonesian bank CSV imports + reconciliation."
+            href="/development-os/banking"
+            description="Bank connections, statement imports, and reconciliation."
           />
-          <PlaceholderCard
+          <CategoryCard
             title="Marketing + Analytics"
-            stage="Soon"
-            description="Meta Ads, Google Ads, GA4, attribution, transactional + campaign email."
+            href="/development-os/marketing"
+            description="Ad platforms, attribution, and campaign + transactional email."
           />
-          <PlaceholderCard
+          <CategoryCard
             title="Productivity"
-            stage="Soon"
-            description="Google Calendar, Gmail, Sheets, Drive — Workspace OAuth lands here."
+            href="/development-os/productivity"
+            description="Google Workspace: Calendar, Gmail, Sheets, and Drive."
           />
-          <PlaceholderCard
+          <CategoryCard
             title="AI Agents"
-            stage="Soon"
-            description="Extends the AI provider catalog: Gemini, vision, embeddings, per-agent routing."
+            href="/development-os/ai-agents"
+            description="Provider catalog, per-agent routing, and the automation fleet."
           />
         </div>
       </div>
@@ -208,24 +208,30 @@ export default async function IntegrationsHubPage() {
   );
 }
 
-function PlaceholderCard({
+function CategoryCard({
   title,
-  stage,
+  href,
   description,
 }: {
   title: string;
-  stage: string;
+  href: string;
   description: string;
 }) {
   return (
-    <div className="rounded-md border border-dashed border-line-soft p-3">
+    <Link
+      href={href}
+      className="group block rounded-md border border-line-soft p-3 transition-colors hover:border-line-strong hover:bg-muted"
+    >
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-ink">{title}</span>
-        <HandoffBadge tone="soft">{stage}</HandoffBadge>
+        <ArrowUpRight
+          className="w-4 h-4 text-ink-tertiary group-hover:text-accent"
+          strokeWidth={1.75}
+        />
       </div>
       <p className="text-[11px] text-ink-tertiary mt-1 leading-relaxed">
         {description}
       </p>
-    </div>
+    </Link>
   );
 }

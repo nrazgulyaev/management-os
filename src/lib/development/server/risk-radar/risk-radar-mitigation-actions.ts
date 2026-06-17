@@ -18,9 +18,9 @@ import { recordAuditEvent } from "@/features/audit/services";
  *  - saveMitigationPlan — persists a free-text plan onto the existing
  *    `risk_radar_alerts.notes` column (no migration). State write is
  *    audit-logged.
- *  - briefBoard — composes an executive brief about the risk and routes
- *    it (v1 = persist into the mitigation notes + audit event the
- *    orchestrator can fan out). No new table.
+ *  - briefBoard — records a board brief about the risk (persist into the
+ *    mitigation notes + audit event for the leadership paper trail). No
+ *    automatic digest fan-out yet; no new table.
  *  - lockPriceAdvanceOrder — records a "lock price / advance order"
  *    decision against the alert (audit-logged) so the procurement team
  *    has a paper trail until the real PO is raised via the RFQ flow.
@@ -108,10 +108,11 @@ const briefSchema = z.object({
 });
 
 /**
- * Compose + route a board brief about the risk. v1 keeps the composed
- * text on the alert (appended to notes under a "Board brief" heading)
- * and emits an audit event so downstream routing (digest / email) can
- * pick it up. No PSP, no money write.
+ * Record a board brief about the risk. The composed text is appended to
+ * the alert notes under a "Board brief" heading and an audit event is
+ * emitted for the leadership paper trail. There is no automatic fan-out
+ * to the executive digest yet (the UI copy reflects this), so the brief
+ * lives on the alert until a digest author cites it. No PSP, no money write.
  */
 export async function briefBoard(
   input: z.input<typeof briefSchema>,

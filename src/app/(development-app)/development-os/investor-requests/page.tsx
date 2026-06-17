@@ -22,7 +22,25 @@ const STATUS_TONE: Record<string, "info" | "ok" | "warn" | "danger" | "soft"> = 
   cancelled: "soft",
 };
 
-export default async function InvestorRequestsInboxPage() {
+const FILTERS: { v: string; label: string }[] = [
+  { v: "pending", label: "Pending" },
+  { v: "", label: "All" },
+  { v: "submitted", label: "Submitted" },
+  { v: "under_review", label: "Under review" },
+  { v: "approved", label: "Approved" },
+  { v: "executed", label: "Executed" },
+  { v: "rejected", label: "Rejected" },
+  { v: "cancelled", label: "Cancelled" },
+];
+
+export default async function InvestorRequestsInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const sp = await searchParams;
+  // Default the inbox to the actionable queue so the operator lands on work.
+  const active = sp.status ?? "pending";
   const db = getDb();
   if (!db) {
     return (
@@ -45,6 +63,12 @@ export default async function InvestorRequestsInboxPage() {
   const pending = rows.filter((r) =>
     ["submitted", "under_review"].includes(r.status),
   );
+  const visible =
+    active === "pending"
+      ? pending
+      : active === ""
+        ? rows
+        : rows.filter((r) => r.status === active);
 
   return (
     <DevelopmentShell>
@@ -74,7 +98,42 @@ export default async function InvestorRequestsInboxPage() {
         />
       ) : (
         <div>
-          <div className="label mb-2.5">Inbox</div>
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            {FILTERS.map((f) => {
+              const on = active === f.v;
+              const count =
+                f.v === "pending"
+                  ? pending.length
+                  : f.v === ""
+                    ? rows.length
+                    : rows.filter((r) => r.status === f.v).length;
+              return (
+                <Link
+                  key={f.v || "all"}
+                  href={`/development-os/investor-requests${f.v ? `?status=${f.v}` : "?status="}`}
+                  className={
+                    on
+                      ? "inline-flex items-center gap-1.5 rounded-full bg-amber border border-amber px-[13px] py-[7px] text-[12.5px] text-carbon"
+                      : "inline-flex items-center gap-1.5 rounded-full bg-bg-2 border border-line-2 px-[13px] py-[7px] text-[12.5px] text-ink-2 hover:border-line-3 transition-colors"
+                  }
+                >
+                  {f.label}
+                  <span className={on ? "text-carbon/70" : "text-ink-4"}>
+                    {count}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="label mb-2.5">
+            Inbox · {visible.length} shown
+          </div>
+          {visible.length === 0 ? (
+            <EmptyState
+              title="Nothing in this view"
+              description="No requests match this filter. Switch to “All” to see every request."
+            />
+          ) : (
           <table className="data">
             <thead>
               <tr>
@@ -87,7 +146,7 @@ export default async function InvestorRequestsInboxPage() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
+              {visible.map((r) => (
                 <tr key={r.id}>
                   <td className="mono text-xs">
                     <Link
@@ -128,6 +187,7 @@ export default async function InvestorRequestsInboxPage() {
               ))}
             </tbody>
           </table>
+          )}
         </div>
       )}
     </DevelopmentShell>

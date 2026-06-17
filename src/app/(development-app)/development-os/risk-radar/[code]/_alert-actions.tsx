@@ -7,7 +7,7 @@
  * This adds the design's mitigation context:
  *   - Issue RFQ to vendors  → deep-links the procurement PR-create flow
  *   - Lock price / advance order → records the decision (audit-logged)
- *   - Brief board → compose + route an executive brief (audit-logged)
+ *   - Brief board → append a board brief to the alert notes (audit-logged)
  *   - Mitigation-plan editor → persists onto the alert's notes column
  */
 
@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/modal";
 import {
   acknowledgeAlert,
+  setInvestigating,
   resolveAlert,
   markFalsePositive,
 } from "@/lib/development/server/risk-radar/risk-radar-actions";
@@ -134,6 +135,16 @@ export function AlertActions({
                 onClick={() => run(acknowledgeAlert({ alertCode, userId }))}
               >
                 Acknowledge
+              </button>
+            )}
+            {status !== "investigating" && (
+              <button
+                type="button"
+                className={btn}
+                disabled={pending}
+                onClick={() => run(setInvestigating({ alertCode, userId }))}
+              >
+                Investigating
               </button>
             )}
           </div>
@@ -286,7 +297,7 @@ function BriefBoardModal({
     <Modal open={open} onOpenChange={onOpenChange} size="md" dirty={brief.length > 0}>
       <ModalHeader
         title="Brief the board"
-        description="Compose a short brief about this risk. It is recorded against the alert and routed to the executive digest."
+        description="Compose a short brief about this risk. It is appended to the alert's mitigation notes and logged to the audit trail so leadership has a record."
         onClose={() => onOpenChange(false)}
       />
       <ModalBody>
@@ -314,7 +325,7 @@ function BriefBoardModal({
           disabled={pending || brief.trim().length < 3}
           onClick={() => onSubmit(brief)}
         >
-          {pending ? "Sending…" : "Compose & route"}
+          {pending ? "Recording…" : "Record brief"}
         </Button>
       </ModalFooter>
     </Modal>

@@ -13,6 +13,7 @@ import {
 } from "@/lib/development/server/drawings/drawing-queries";
 import { getVendors } from "@/lib/development/server/vendors";
 import { LogDistributionButton } from "./_log-distribution-button";
+import { AcknowledgeControl } from "./_acknowledge-control";
 
 export const metadata: Metadata = {
   title: "Drawing distribution · Development OS",
@@ -107,6 +108,7 @@ export default async function DrawingDistributionPage({
                 <TH>Distributed at</TH>
                 <TH>Method</TH>
                 <TH>Acknowledged</TH>
+                <TH className="text-right">Receipt</TH>
               </TR>
             </THead>
             <TBody>
@@ -124,12 +126,30 @@ export default async function DrawingDistributionPage({
                     <HandoffBadge tone="soft">{d.distributionMethod}</HandoffBadge>
                   </TD>
                   <TD className="text-xs">
-                    {d.acknowledgedAt
-                      ? new Date(d.acknowledgedAt)
+                    {d.acknowledgedAt ? (
+                      <span>
+                        {new Date(d.acknowledgedAt)
                           .toISOString()
                           .slice(0, 16)
-                          .replace("T", " ")
-                      : "—"}
+                          .replace("T", " ")}
+                        {d.acknowledgedByName ? (
+                          <span className="text-ink-3">
+                            {" "}
+                            · {d.acknowledgedByName}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </TD>
+                  <TD className="text-right">
+                    <AcknowledgeControl
+                      distributionId={d.id}
+                      acknowledgedAt={d.acknowledgedAt}
+                      acknowledgedByName={d.acknowledgedByName}
+                      acknowledgmentMethod={d.acknowledgmentMethod}
+                    />
                   </TD>
                 </TR>
               ))}

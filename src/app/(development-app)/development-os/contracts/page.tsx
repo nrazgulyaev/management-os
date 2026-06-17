@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, AlertTriangle } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { formatDate, formatUSD } from "@/lib/utils";
 import { getContractGroups } from "@/lib/development/server/contracts";
+import { safeQuery } from "@/lib/development/safe-query";
 import {
   CONTRACT_GROUP_STATUS_LABEL,
   GROUP_TYPE_LABEL,
 } from "@/lib/development/constants/contracts-constants";
-import type { ContractGroupStatus } from "@/lib/development/types/contracts";
+import type {
+  ContractGroupStatus,
+  ContractGroupListItem,
+} from "@/lib/development/types/contracts";
 
 export const metadata: Metadata = { title: "Contracts · Development OS" };
 export const dynamic = "force-dynamic";
@@ -41,8 +45,25 @@ function fmtAbbrevUsd(minor: bigint): string {
   return `$${Math.round(usd)}`;
 }
 
+// Sentinel fallback: distinct from a genuinely empty board so we can show
+// an honest "temporarily unavailable" warning rather than the normal
+// "no contract groups yet" empty state when the query times out / fails.
+const DEGRADED = Symbol("contracts-degraded");
+
 export default async function ContractsPage() {
-  const groups = await getContractGroups();
+  // STAB low-fix: getContractGroups() was awaited raw — a DB hang took the
+  // whole /development-os/contracts route down (curl times out at 30s,
+  // Playwright never reaches domcontentloaded). Mirror the reservations
+  // STAB-2 pattern: wrap in safeQuery with a 4000ms timeout so the page
+  // degrades to an empty board with a warning instead of blocking.
+  const groupsOrDegraded = await safeQuery<ContractGroupListItem[] | typeof DEGRADED>(
+    "getContractGroups",
+    getContractGroups(),
+    DEGRADED,
+    4000,
+  );
+  const degraded = groupsOrDegraded === DEGRADED;
+  const groups = degraded ? [] : groupsOrDegraded;
   const counts = {
     pending: groups.filter((g) => g.status === "pending_signature").length,
     inPayment: groups.filter((g) => g.status === "in_payment" || g.status === "fully_signed").length,
@@ -100,7 +121,21 @@ export default async function ContractsPage() {
         />
       </div>
 
-      {groups.length === 0 ? (
+      {degraded ? (
+        <div className="card flex items-start gap-3 p-4 text-[13px] text-ink-2">
+          <AlertTriangle
+            className="w-4 h-4 mt-0.5 shrink-0 text-warning"
+            strokeWidth={1.75}
+          />
+          <div>
+            <div className="row-title text-ink">Contracts temporarily unavailable</div>
+            <p className="mt-0.5">
+              The contract groups query is taking too long to respond. Refresh
+              in a moment — your data is safe.
+            </p>
+          </div>
+        </div>
+      ) : groups.length === 0 ? (
         <EmptyState
           icon={<FileText className="w-5 h-5" strokeWidth={1.75} />}
           title="No contract groups yet"
