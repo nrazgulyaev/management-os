@@ -83,7 +83,7 @@ export default async function OwnerDistributionsPage() {
                   </TD>
                   <TD className="text-right">
                     <Link
-                      href={`/api/finance/statements/${s.statementId}/pdf`}
+                      href={`/owner/statements/${s.statementId}/pdf`}
                       target="_blank"
                       className="text-xs text-ink-secondary hover:text-terra"
                     >
