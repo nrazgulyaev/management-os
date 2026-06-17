@@ -10,6 +10,7 @@ import {
   getCashStrip6Week,
   getActiveTaxTypes,
   getSharedCostsBreakdown,
+  getCapitalWaterfall,
 } from "@/lib/development/server/cabinets/cfo-cabinet-queries";
 import { WaterfallChart } from "@/components/cfo/waterfall-chart";
 
@@ -38,13 +39,36 @@ function fmtUsd(minor: number): string {
 }
 
 export default async function DevCfoPage() {
-  const [kpis, pnl, cash, taxTypes, sharedCosts] = await Promise.all([
+  const [kpis, pnl, cash, taxTypes, sharedCosts, waterfall] = await Promise.all([
     safeQuery("devCfoKpis", getCfoKpis(), null),
     safeQuery("devCfoPnl", getPnlByProject(), []),
     safeQuery("devCfoCash", getCashStrip6Week(), []),
     safeQuery("devCfoTax", getActiveTaxTypes(), []),
     safeQuery("devCfoShared", getSharedCostsBreakdown(), []),
+    safeQuery("devCfoWaterfall", getCapitalWaterfall(), {
+      commitmentsMinor: 0,
+      calledToDateMinor: 0,
+      landMinor: 0,
+      hardMinor: 0,
+      softMinor: 0,
+      financingMinor: 0,
+      salesMinor: 0,
+      reservedMinor: 0,
+      cashMinor: 0,
+    }),
   ]);
+
+  const waterfallRows = [
+    { label: "Commitments", usdMinor: waterfall.commitmentsMinor, tone: "accent" as const },
+    { label: "Called to date", usdMinor: waterfall.calledToDateMinor, tone: "accent" as const },
+    { label: "Land + acquisition", usdMinor: waterfall.landMinor, tone: "ink" as const },
+    { label: "Hard costs", usdMinor: waterfall.hardMinor, tone: "ink" as const },
+    { label: "Soft costs", usdMinor: waterfall.softMinor, tone: "ink" as const },
+    { label: "Financing", usdMinor: waterfall.financingMinor, tone: "ink" as const },
+    { label: "Sales + marketing", usdMinor: waterfall.salesMinor, tone: "ink" as const },
+    { label: "Reserved (uncalled)", usdMinor: waterfall.reservedMinor, tone: "dashed" as const },
+    { label: "Cash on hand", usdMinor: waterfall.cashMinor, tone: "ok" as const },
+  ];
 
   const pnlTotal = pnl.reduce(
     (a, r) => ({
@@ -127,9 +151,9 @@ export default async function DevCfoPage() {
       <Card padding="default" className="mb-[18px]">
         <div className="cfo-card-head">
           <h3 className="cfo-card-title">Capital waterfall · YTD</h3>
-          <span className="label">USD · illustrative</span>
+          <span className="label">USD · live</span>
           <span className="actions">
-            <Link href="/development-os/cfo/cashflow" className="btn btn-secondary btn-sm">
+            <Link href="/development-os/cashflow-forecast" className="btn btn-secondary btn-sm">
               Cashflow forecast →
             </Link>
             <Link href="/development-os/cfo/capital-calls" className="btn btn-secondary btn-sm">
@@ -140,19 +164,7 @@ export default async function DevCfoPage() {
             </Link>
           </span>
         </div>
-        <WaterfallChart
-          rows={[
-            { label: "Commitments", usdMinor: 12_400_000_00n, tone: "accent" },
-            { label: "Called to date", usdMinor: 8_200_000_00n, tone: "accent" },
-            { label: "Land + acquisition", usdMinor: 3_100_000_00n, tone: "ink" },
-            { label: "Hard costs", usdMinor: 3_400_000_00n, tone: "ink" },
-            { label: "Soft costs", usdMinor: 820_000_00n, tone: "ink" },
-            { label: "Financing", usdMinor: 150_000_00n, tone: "ink" },
-            { label: "Sales + marketing", usdMinor: 240_000_00n, tone: "ink" },
-            { label: "Reserved (contingency)", usdMinor: 280_000_00n, tone: "dashed" },
-            { label: "Cash on hand", usdMinor: 210_000_00n, tone: "ok" },
-          ]}
-        />
+        <WaterfallChart rows={waterfallRows} />
       </Card>
 
       <div className="cfo-grid">

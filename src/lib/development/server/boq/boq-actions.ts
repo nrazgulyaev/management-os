@@ -536,6 +536,128 @@ export async function deleteBoqLine(input: z.input<typeof deleteItemSchema>) {
   return { deletedId: item.id };
 }
 
+const editLineSchema = z.object({
+  boqItemId: z.string().uuid(),
+  itemCode: z.string().min(1),
+  description: z.string().min(1),
+  quantity: z.union([z.number(), z.string()]),
+  unitOfMeasure: z.string().min(1),
+  /** Unit rate in MAJOR units (e.g. 12.50); converted to minor here. */
+  unitRateMajor: z.union([z.number(), z.string()]),
+});
+
+/**
+ * QS-desk inline edit-line. Org-scoped: refuses to touch an item that
+ * does not belong to the caller's org. Updates the editable estimate
+ * fields (code / description / qty / unit / rate); `total_minor` is a
+ * GENERATED STORED column so it is never set here — the DB recomputes it
+ * from quantity * unit_rate_minor. After the update we recompute the
+ * parent section + document subtotals atomically and audit-log the change
+ * (before + after images for reversibility).
+ */
+export async function editBoqLine(input: z.input<typeof editLineSchema>) {
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = editLineSchema.parse(input);
+  const db = requireDb();
+
+  const [item] = await db
+    .select()
+    .from(boqItems)
+    .where(
+      and(
+        eq(boqItems.id, parsed.boqItemId),
+        eq(boqItems.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!item) throw new Error("boq_item_not_found");
+
+  const [section] = await db
+    .select({
+      docId: boqSections.boqDocumentId,
+    })
+    .from(boqSections)
+    .where(eq(boqSections.id, item.sectionId))
+    .limit(1);
+
+  // Resolve the document currency to pick the minor-unit multiplier.
+  let currency = item.rateCurrency;
+  if (section) {
+    const [doc] = await db
+      .select({ currency: boqDocuments.currency })
+      .from(boqDocuments)
+      .where(eq(boqDocuments.id, section.docId))
+      .limit(1);
+    if (doc) currency = doc.currency;
+  }
+
+  const qtyNumber = Number(parsed.quantity);
+  if (!Number.isFinite(qtyNumber) || qtyNumber <= 0) {
+    throw new Error("quantity must be > 0");
+  }
+  const rateMajor = Number(parsed.unitRateMajor);
+  if (!Number.isFinite(rateMajor) || rateMajor < 0) {
+    throw new Error("unit_rate must be >= 0");
+  }
+  // USDT uses 6dp minor units; everything else uses 2dp (cents).
+  const minorMultiplier = currency.toUpperCase() === "USDT" ? 1_000_000 : 100;
+  const unitRateMinor = BigInt(Math.round(rateMajor * minorMultiplier));
+
+  const [updated] = await db.transaction(async (tx) => {
+    const rows = await tx
+      .update(boqItems)
+      .set({
+        itemCode: parsed.itemCode.trim(),
+        description: parsed.description.trim(),
+        quantity: String(qtyNumber),
+        unitOfMeasure: parsed.unitOfMeasure.trim(),
+        unitRateMinor,
+        updatedAt: new Date(),
+      })
+      .where(
+        and(
+          eq(boqItems.id, parsed.boqItemId),
+          eq(boqItems.organizationId, organizationId),
+        ),
+      )
+      .returning();
+    if (section) {
+      await recomputeBoqTotalsTx(tx, section.docId, organizationId);
+    }
+    return rows;
+  });
+
+  await recordAuditEvent({
+    action: "boq_item.update",
+    entityType: "boq_item",
+    entityId: item.id,
+    actorUserId: ctx.appUser?.id ?? null,
+    before: {
+      itemCode: item.itemCode,
+      description: item.description,
+      quantity: item.quantity,
+      unitOfMeasure: item.unitOfMeasure,
+      unitRateMinor: item.unitRateMinor?.toString() ?? null,
+      totalMinor: item.totalMinor?.toString() ?? null,
+    },
+    after: {
+      itemCode: updated?.itemCode ?? null,
+      description: updated?.description ?? null,
+      quantity: updated?.quantity ?? null,
+      unitOfMeasure: updated?.unitOfMeasure ?? null,
+      unitRateMinor: updated?.unitRateMinor?.toString() ?? null,
+      totalMinor: updated?.totalMinor?.toString() ?? null,
+    },
+    metadata: {
+      sectionId: item.sectionId,
+      source: "boq_detail_inline_edit",
+    },
+  });
+
+  return updated ?? item;
+}
+
 const transitionSchema = z.object({
   boqDocumentId: z.string().uuid(),
   to: z.enum(STATUSES),

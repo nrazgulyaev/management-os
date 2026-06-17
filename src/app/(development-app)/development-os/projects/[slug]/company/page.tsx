@@ -10,6 +10,7 @@ import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { listCompanyStructures } from "@/lib/development/server/company-structure/company-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { NewStructure } from "./_new-structure";
 
 export const metadata: Metadata = { title: "Company structure · Development OS" };
 export const dynamic = "force-dynamic";
@@ -82,10 +83,14 @@ export default async function ProjectCompanyStructuresPage({
         </div>
       </div>
 
+      <div className="mt-[18px]">
+        <NewStructure projectId={project.realProjectId} slug={slug} />
+      </div>
+
       {structures.length === 0 ? (
         <EmptyState
           title="No company structure recorded"
-          description="Use createCompanyStructure to register the SPV / JV / partnership for this project."
+          description="Register the SPV / JV / partnership for this project with the New structure button above."
         />
       ) : (
         <div className="mt-[18px]">

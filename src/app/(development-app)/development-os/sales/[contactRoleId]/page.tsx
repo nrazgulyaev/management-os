@@ -24,6 +24,8 @@ import { listCrmActivities } from "@/features/crm-activity/services";
 import { LogActivityComposer } from "@/components/crm/log-activity-composer";
 import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { listDocuments } from "@/features/documents/services";
+import { LeadDocumentsTab } from "./_documents-tab";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Lead · Development OS" };
@@ -45,20 +47,33 @@ export default async function LeadDetailPage({
   const lead = await getLeadDetail(contactRoleId);
   if (!lead) notFound();
 
-  const [contact, interactions, pendingDrafts, salesSnapshot, crmContact, crmLead, ctx] =
-    await Promise.all([
-      getContactById(lead.contactId),
-      getContactInteractions(lead.contactId),
-      getPendingDraftsForContact(lead.contactId),
-      getLeadSalesSnapshot(lead.contactId),
-      // CRM ACTIVITY TIMELINE (#169) — unified feed for this relationship.
-      // Both the contact-level stream and this lead role's own stream
-      // (status changes are recorded against the role) are merged, newest
-      // first, into one timeline.
-      listCrmActivities("contact", lead.contactId).catch(() => []),
-      listCrmActivities("lead", lead.roleId).catch(() => []),
-      getCurrentUserContext(),
-    ]);
+  const [
+    contact,
+    interactions,
+    pendingDrafts,
+    salesSnapshot,
+    crmContact,
+    crmLead,
+    ctx,
+    leadDocuments,
+  ] = await Promise.all([
+    getContactById(lead.contactId),
+    getContactInteractions(lead.contactId),
+    getPendingDraftsForContact(lead.contactId),
+    getLeadSalesSnapshot(lead.contactId),
+    // CRM ACTIVITY TIMELINE (#169) — unified feed for this relationship.
+    // Both the contact-level stream and this lead role's own stream
+    // (status changes are recorded against the role) are merged, newest
+    // first, into one timeline.
+    listCrmActivities("contact", lead.contactId).catch(() => []),
+    listCrmActivities("lead", lead.roleId).catch(() => []),
+    getCurrentUserContext(),
+    // Documents tab — docs indexed against this lead's contact (durable key
+    // across the lead→buyer promotion). Org-scoped read; never throws the page.
+    listDocuments({ entityType: "contact", entityId: lead.contactId }).catch(
+      () => [],
+    ),
+  ]);
   const canManageCrm = ctx.mode === "demo" || ctx.isInternal;
 
   const crmActivity = [...crmContact, ...crmLead].sort((a, b) =>
@@ -200,10 +215,21 @@ export default async function LeadDetailPage({
     {
       value: "documents",
       label: "Documents",
+      badge: leadDocuments.length > 0 ? `${leadDocuments.length}` : undefined,
       content: (
-        <ComingInPlaceholder
-          stage="Soon"
-          summary="ID, KYC pack, signed reservation form, contract — indexed against this lead."
+        <LeadDocumentsTab
+          contactId={lead.contactId}
+          documents={leadDocuments.map((d) => ({
+            id: d.id,
+            title: d.title,
+            documentType: d.documentType,
+            fileName: d.fileName,
+            sizeBytes: d.sizeBytes,
+            visibility: d.visibility,
+            status: d.status,
+            createdAt: d.createdAt,
+            hasFile: d.hasFile,
+          }))}
         />
       ),
     },
@@ -272,15 +298,6 @@ function Stat({
       <span className="text-sm text-ink font-mono tabular-nums truncate">
         {value}
       </span>
-    </div>
-  );
-}
-
-function ComingInPlaceholder({ stage, summary }: { stage: string; summary: string }) {
-  return (
-    <div className="rounded-md border border-dashed border-line-soft bg-muted/30 px-6 py-10 flex flex-col items-center text-center gap-2">
-      <HandoffBadge tone="gold">Stage {stage}</HandoffBadge>
-      <p className="text-sm text-ink-secondary max-w-md leading-relaxed">{summary}</p>
     </div>
   );
 }

@@ -7,6 +7,10 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getChangeOrderByCode } from "@/lib/development/server/change-orders/change-order-queries";
+import { lookupChangeOrderApproval } from "@/lib/development/server/change-orders/change-order-actions";
+import { listApprovalThresholds } from "@/lib/development/server/procurement/procurement-actions";
+import { safeQuery } from "@/lib/development/safe-query";
+import { ChangeOrderControls } from "./_controls";
 
 export const metadata: Metadata = { title: "Change order · Development OS" };
 export const dynamic = "force-dynamic";
@@ -46,6 +50,27 @@ export default async function ChangeOrderDetailPage({
   const co = await getChangeOrderByCode(decodeURIComponent(code));
   if (!co) notFound();
 
+  // Required approval role — prefer the stored value, else derive it live from
+  // the configurable thresholds matrix via lookupChangeOrderApproval.
+  let requiredApprovalRole: string | null = co.requiredApprovalRole ?? null;
+  if (!requiredApprovalRole) {
+    const thresholds = await safeQuery(
+      "listApprovalThresholds",
+      listApprovalThresholds(),
+      [],
+      4000,
+    );
+    if (thresholds.length > 0) {
+      const lookup = await safeQuery(
+        "lookupChangeOrderApproval",
+        lookupChangeOrderApproval({ changeOrderId: co.id, thresholds }),
+        null,
+        4000,
+      );
+      requiredApprovalRole = lookup?.requiredRole ?? null;
+    }
+  }
+
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -78,14 +103,18 @@ export default async function ChangeOrderDetailPage({
       <div className="mt-[18px]">
         <div className="label mb-2.5">Status</div>
         <Card padding="default">
-          <HandoffBadge tone={STATUS_TONE[co.status] ?? "soft"}>
-            {co.status}
-          </HandoffBadge>
-          {co.requiredApprovalRole && (
-            <p className="text-xs text-ink-tertiary mt-2">
-              Required approval role: {co.requiredApprovalRole}
-            </p>
-          )}
+          <div className="mb-3">
+            <HandoffBadge tone={STATUS_TONE[co.status] ?? "soft"}>
+              {co.status}
+            </HandoffBadge>
+          </div>
+          <ChangeOrderControls
+            changeOrderId={co.id}
+            slug={slug}
+            code={decodeURIComponent(code)}
+            status={co.status}
+            requiredApprovalRole={requiredApprovalRole}
+          />
         </Card>
       </div>
 

@@ -6,6 +6,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { requireOrgId } from "@/features/auth/require-org";
 import { listExportRequestsForOrg } from "@/lib/development/server/data-export/data-export-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { RequestExportModalForm } from "@/components/development/platform/request-export-modal-form";
 
 export const metadata: Metadata = { title: "Data export · Settings" };
 export const dynamic = "force-dynamic";
@@ -40,6 +41,9 @@ export default async function DataExportPage() {
             days.
           </p>
         </div>
+        <div className="actions">
+          <RequestExportModalForm />
+        </div>
       </div>
 
       <div>
@@ -48,7 +52,7 @@ export default async function DataExportPage() {
           <Card padding="default">
             <EmptyState
               title="No export requests"
-              description="Use the requestDataExport server action to enqueue one."
+              description="Use “Request export” above to enqueue a snapshot. The background processor generates it and keeps the download available for 7 days."
             />
           </Card>
         ) : (

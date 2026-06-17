@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listOrganizations } from "@/lib/development/server/organizations/organization-queries";
 import { safeQuery } from "@/lib/development/safe-query";
+import { CreateOrganizationModalForm } from "@/components/development/platform/create-organization-modal-form";
 
 export const metadata: Metadata = { title: "Organizations · Platform" };
 export const dynamic = "force-dynamic";
@@ -29,6 +30,9 @@ export default async function OrganizationsPage() {
             Tenant registry for the Arconique platform. ARCONIQUE_DEFAULT is the
             bootstrap tenant — every existing record is currently scoped to it.
           </p>
+        </div>
+        <div className="actions">
+          <CreateOrganizationModalForm />
         </div>
       </div>
 

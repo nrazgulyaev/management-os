@@ -7,6 +7,8 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getQaQcIssueByCode } from "@/lib/development/server/qa-qc/qa-qc-queries";
+import { listQualityStandards } from "@/lib/development/server/quality-standards/quality-standard-queries";
+import { safeQuery } from "@/lib/development/safe-query";
 import { QaQcInspectionForm } from "@/components/development/qa-qc/qa-qc-inspection-form";
 
 export const metadata: Metadata = { title: "Inspect · Development OS" };
@@ -34,6 +36,17 @@ export default async function QaQcInspectPage({
   const data = await getQaQcIssueByCode(decodeURIComponent(code));
   if (!data) notFound();
   const { issue } = data;
+
+  const standards = await safeQuery(
+    "listQualityStandards",
+    listQualityStandards(),
+    [],
+    4000,
+  );
+  const standardOptions = standards.map((s) => ({
+    id: s.id,
+    label: `${s.standardCode} · ${s.title}`,
+  }));
 
   return (
     <DevelopmentShell>
@@ -72,7 +85,10 @@ export default async function QaQcInspectPage({
         <div>
           <div className="label mb-2.5">Form</div>
           <Card padding="default">
-            <QaQcInspectionForm issueId={issue.id} />
+            <QaQcInspectionForm
+              issueId={issue.id}
+              standards={standardOptions}
+            />
           </Card>
         </div>
       )}

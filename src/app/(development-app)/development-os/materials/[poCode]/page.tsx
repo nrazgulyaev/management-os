@@ -15,6 +15,7 @@ import {
   MATERIAL_QUALITY_LABEL,
 } from "@/lib/development/constants/material-constants";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
+import { CancelPoButton } from "@/components/development/operations/cancel-po-button";
 
 export const metadata: Metadata = { title: "PO · Development OS" };
 export const dynamic = "force-dynamic";
@@ -194,7 +195,14 @@ export default async function MaterialPoDetailPage({
                     <tbody>
                       {po.deliveries.map((d) => (
                         <tr key={d.id}>
-                          <td className="font-mono text-xs">{d.deliveryCode}</td>
+                          <td className="font-mono text-xs">
+                            <Link
+                              href={`/development-os/materials/deliveries/${encodeURIComponent(d.deliveryCode)}`}
+                              className="hover:underline"
+                            >
+                              {d.deliveryCode}
+                            </Link>
+                          </td>
                           <td className="text-xs">{d.deliveryDate}</td>
                           <td>
                             <HandoffBadge tone={QUALITY_TONE[d.qualityCheckStatus]}>
@@ -270,6 +278,10 @@ export default async function MaterialPoDetailPage({
               >
                 All deliveries
               </Link>
+              {po.status !== "fully_delivered" &&
+                po.status !== "cancelled" && (
+                  <CancelPoButton poId={po.id} />
+                )}
             </div>
           </div>
         </aside>

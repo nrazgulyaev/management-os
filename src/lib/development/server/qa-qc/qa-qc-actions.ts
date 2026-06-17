@@ -8,6 +8,7 @@ import {
   qaQcInspections,
   qaQcIssuePhotos,
 } from "@/lib/db/schema/qa-qc";
+import { qualityStandards } from "@/lib/db/schema/method-quality";
 import { requireInternalUser } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import {
@@ -153,6 +154,8 @@ const recordInspectionSchema = z.object({
   issueId: z.string().uuid(),
   result: z.enum(["passed", "failed", "partial_pass"]),
   resultNotes: z.string().nullable().optional(),
+  /** The acceptance-criteria template this inspection was checked against. */
+  standardId: z.string().uuid().nullable().optional(),
 });
 
 /**
@@ -189,6 +192,25 @@ export async function recordQaQcInspection(
       );
     }
 
+    // If a quality standard was selected, verify it belongs to this org
+    // before persisting the FK — a client could otherwise pin a foreign
+    // tenant's standard id onto the inspection.
+    if (parsed.standardId) {
+      const [std] = await tx
+        .select({ id: qualityStandards.id })
+        .from(qualityStandards)
+        .where(
+          and(
+            eq(qualityStandards.id, parsed.standardId),
+            eq(qualityStandards.organizationId, organizationId),
+          ),
+        )
+        .limit(1);
+      if (!std) {
+        throw new Error("quality standard not found in your organization");
+      }
+    }
+
     const [{ maxN }] = await tx
       .select({
         maxN: sql<string>`COALESCE(MAX(${qaQcInspections.inspectionNumber}), 0)::text`,
@@ -207,6 +229,7 @@ export async function recordQaQcInspection(
         inspectionDate: new Date().toISOString().slice(0, 10),
         result: parsed.result,
         resultNotes: parsed.resultNotes ?? null,
+        qualityStandardId: parsed.standardId ?? null,
       })
       .returning();
 

@@ -8,6 +8,11 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getCompanyStructure } from "@/lib/development/server/company-structure/company-queries";
+import {
+  ActivateStructure,
+  AddShareholder,
+  EditShareholderOwnership,
+} from "./_controls";
 
 export const metadata: Metadata = { title: "Company structure · Development OS" };
 export const dynamic = "force-dynamic";
@@ -103,7 +108,22 @@ export default async function CompanyStructureDetailPage({
       </div>
 
       <div className="mt-[18px]">
-        <div className="label mb-2.5">Ownership</div>
+        <div className="label mb-2.5">Lifecycle</div>
+        <Card padding="default">
+          <ActivateStructure
+            projectId={structure.projectId}
+            structureId={structure.id}
+            slug={slug}
+            isActive={structure.isActive}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-[18px]">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="label">Ownership</div>
+          <AddShareholder structureId={structure.id} slug={slug} />
+        </div>
         <Table>
           <THead>
             <TR>
@@ -112,6 +132,7 @@ export default async function CompanyStructureDetailPage({
               <TH>Ownership %</TH>
               <TH>Role</TH>
               <TH>Managing</TH>
+              <TH>Edit</TH>
             </TR>
           </THead>
           <TBody>
@@ -127,6 +148,16 @@ export default async function CompanyStructureDetailPage({
                   ) : (
                     "—"
                   )}
+                </TD>
+                <TD>
+                  <EditShareholderOwnership
+                    shareholderId={s.id}
+                    structureId={structure.id}
+                    slug={slug}
+                    currentPercentage={Number(s.ownershipPercentage)}
+                    currentRole={s.roleInCompany}
+                    currentManaging={s.isManagingParty}
+                  />
                 </TD>
               </TR>
             ))}

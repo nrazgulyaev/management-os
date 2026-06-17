@@ -15,6 +15,7 @@ import {
 } from "@/lib/development/server/land/land-actions";
 import { safeQuery } from "@/lib/development/safe-query";
 import { InstallmentPay } from "./_installment-pay";
+import { LandProfileForm } from "./_profile-form";
 
 export const metadata: Metadata = { title: "Land profile · Development OS" };
 export const dynamic = "force-dynamic";
@@ -110,12 +111,36 @@ export default async function LandProfilePage({
       </div>
 
       {!profile ? (
-        <EmptyState
-          title="No land profile yet"
-          description="Set up the land profile via the upsertLandProfile server action. Detail-edit form coming in a follow-on UI polish stage; the API surface is ready today."
-        />
+        <>
+          <EmptyState
+            title="No land profile yet"
+            description="Capture the acquisition mode, lease term, and site characteristics for this project."
+          />
+          <div className="mt-4">
+            <LandProfileForm
+              projectId={projectId}
+              initial={null}
+              startOpen
+            />
+          </div>
+        </>
       ) : (
         <>
+          <div className="flex justify-end">
+            <LandProfileForm
+              projectId={projectId}
+              initial={{
+                acquisitionMode: profile.acquisitionMode,
+                acquisitionDate: profile.acquisitionDate ?? null,
+                leaseStartDate: profile.leaseStartDate ?? null,
+                leaseExpiryDate: profile.leaseExpiryDate ?? null,
+                leaseTenureYears: profile.leaseTenureYears ?? null,
+                totalLandSizeSqm: profile.totalLandSizeSqm ?? null,
+                zoningClassification: profile.zoningClassification ?? null,
+                notes: profile.notes ?? null,
+              }}
+            />
+          </div>
           <div>
             <div className="label mb-2.5">Acquisition</div>
             <Card padding="default">

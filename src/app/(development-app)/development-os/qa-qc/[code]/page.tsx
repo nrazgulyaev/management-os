@@ -60,7 +60,7 @@ export default async function QaQcDetailPage({
   }
   const data = await getQaQcIssueByCode(decodeURIComponent(code));
   if (!data) notFound();
-  const { issue, photos, inspections } = data;
+  const { issue, photos, inspections, standardCodeById } = data;
 
   return (
     <DevelopmentShell>
@@ -177,6 +177,7 @@ export default async function QaQcDetailPage({
                 <TH>Date</TH>
                 <TH>Inspector</TH>
                 <TH>Result</TH>
+                <TH>Standard</TH>
                 <TH>Notes</TH>
               </TR>
             </THead>
@@ -192,6 +193,11 @@ export default async function QaQcDetailPage({
                     <HandoffBadge tone={RESULT_TONE[i.result] ?? "soft"}>
                       {i.result}
                     </HandoffBadge>
+                  </TD>
+                  <TD className="text-xs">
+                    {i.qualityStandardId
+                      ? (standardCodeById[i.qualityStandardId] ?? "—")
+                      : "—"}
                   </TD>
                   <TD className="text-xs">{i.resultNotes ?? "—"}</TD>
                 </TR>

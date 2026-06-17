@@ -272,26 +272,49 @@ export default async function BuyerDetailPage({
               </TR>
             </THead>
             <TBody>
-              {assignments.map((a) => (
-                <TR key={a.id}>
-                  <TD className="font-mono text-xs">{a.unitId.slice(0, 8)}</TD>
-                  <TD>
-                    <HandoffBadge tone={ASSIGN_TONE[a.status] ?? "soft"}>
-                      {a.status}
-                    </HandoffBadge>
-                  </TD>
-                  <TD className="font-mono text-xs">
-                    {a.reservationId?.slice(0, 8) ?? "—"}
-                  </TD>
-                  <TD className="font-mono text-xs">
-                    {a.contractId?.slice(0, 8) ?? "—"}
-                  </TD>
-                  <TD className="text-xs">{a.assignedAt}</TD>
-                  <TD className="text-xs">
-                    {a.isVisibleInPortal ? "yes" : "no"}
-                  </TD>
-                </TR>
-              ))}
+              {assignments.map((a) => {
+                const unitLabel = a.unitCode
+                  ? `${a.unitCode}${a.unitName ? ` · ${a.unitName}` : ""}`
+                  : a.unitId.slice(0, 8);
+                return (
+                  <TR key={a.id}>
+                    <TD>
+                      {a.contractGroupId ? (
+                        <Link
+                          href={`/development-os/contracts/${a.contractGroupId}`}
+                          className="text-ink font-medium hover:text-accent"
+                        >
+                          {unitLabel}
+                        </Link>
+                      ) : (
+                        <span className="text-ink font-medium">{unitLabel}</span>
+                      )}
+                    </TD>
+                    <TD>
+                      <HandoffBadge tone={ASSIGN_TONE[a.status] ?? "soft"}>
+                        {a.status}
+                      </HandoffBadge>
+                    </TD>
+                    <TD className="text-xs">{a.reservationRef ?? "—"}</TD>
+                    <TD className="text-xs">
+                      {a.contractGroupId ? (
+                        <Link
+                          href={`/development-os/contracts/${a.contractGroupId}`}
+                          className="text-accent hover:underline"
+                        >
+                          {a.contractRef ?? "View contract"}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
+                    </TD>
+                    <TD className="text-xs">{a.assignedAt}</TD>
+                    <TD className="text-xs">
+                      {a.isVisibleInPortal ? "yes" : "no"}
+                    </TD>
+                  </TR>
+                );
+              })}
             </TBody>
           </Table>
         )}

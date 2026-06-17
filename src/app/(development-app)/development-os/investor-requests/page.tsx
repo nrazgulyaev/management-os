@@ -98,8 +98,19 @@ export default async function InvestorRequestsInboxPage() {
                     </Link>
                   </td>
                   <td className="text-xs">{r.requestType}</td>
-                  <td className="mono text-xs">
-                    {r.investorId.slice(0, 8)}
+                  <td className="text-xs">
+                    {r.investorCode ? (
+                      <Link
+                        href={`/development-os/investors/${r.investorCode}`}
+                        className="hover:underline"
+                      >
+                        {r.investorLegalName ?? r.investorCode}
+                      </Link>
+                    ) : (
+                      <span className="mono text-ink-3">
+                        {r.investorId.slice(0, 8)}
+                      </span>
+                    )}
                   </td>
                   <td className="num">
                     ${(Number(r.requestedAmountMinor) / 100).toLocaleString()}{" "}

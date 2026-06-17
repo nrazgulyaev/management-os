@@ -8,6 +8,7 @@ import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getMethodStatementByCode } from "@/lib/development/server/method-statements/method-statement-queries";
 import { MethodStatementStatusActions } from "./_status-actions";
+import { MethodStatementEditForm } from "./_edit-form";
 
 export const metadata: Metadata = {
   title: "Method statement · Development OS",
@@ -70,6 +71,20 @@ export default async function MethodStatementDetailPage({
           )}
         </div>
         <div className="actions">
+          <MethodStatementEditForm
+            methodId={m.id}
+            defaults={{
+              title: m.title,
+              description: m.description,
+              requiredTools: m.requiredTools,
+              requiredMaterials: m.requiredMaterials,
+              requiredPpe: m.requiredPpe,
+              qualityCheckpoints: checkpoints,
+              safetyHazards: m.safetyHazards,
+              hazardMitigations: m.hazardMitigations,
+              notes: m.notes,
+            }}
+          />
           <Link
             href="/development-os/method-statements"
             className="btn btn-secondary btn-sm"

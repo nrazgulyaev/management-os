@@ -196,6 +196,32 @@ export async function searchContacts(query: string): Promise<Contact[]> {
 }
 
 /**
+ * Org-scoped contact list for picker dropdowns (e.g. the corporate-event
+ * "related contact" field — director loans / dividends are tied to a
+ * shareholder/director contact). Returns active (non-archived) contacts
+ * owned by the caller's org, newest first, capped at `limit`.
+ */
+export async function listOrgContacts(
+  limit = 200,
+): Promise<Array<{ id: string; fullName: string }>> {
+  const db = getDb();
+  if (!db) return [];
+  const organizationId = await requireOrgId();
+  const rows = await db
+    .select({ id: contacts.id, fullName: contacts.fullName })
+    .from(contacts)
+    .where(
+      and(
+        eq(contacts.isArchived, false),
+        eq(contacts.organizationId, organizationId),
+      ),
+    )
+    .orderBy(sql`${contacts.fullName} asc`)
+    .limit(limit);
+  return rows;
+}
+
+/**
  * Returns the active lead role for a given contact + project, if any.
  * Used by the new-lead drawer to detect an existing pipeline entry.
  */

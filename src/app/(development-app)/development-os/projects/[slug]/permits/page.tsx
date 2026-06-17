@@ -10,6 +10,7 @@ import { getDb } from "@/lib/db/client";
 import { getDevelopmentProjectBySlug } from "@/lib/development/server/projects";
 import { listPermitsByProject } from "@/lib/development/server/permits/permit-actions";
 import { safeQuery } from "@/lib/development/safe-query";
+import { NewPermit } from "./_new-permit";
 
 export const metadata: Metadata = { title: "Permits · Development OS" };
 export const dynamic = "force-dynamic";
@@ -83,10 +84,14 @@ export default async function ProjectPermitsPage({
         </div>
       </div>
 
+      <div className="mb-4">
+        <NewPermit projectId={project.realProjectId} slug={slug} />
+      </div>
+
       {permits.length === 0 ? (
         <EmptyState
           title="No permits yet"
-          description="Use the createPermit server action to add a permit. Detail/create form UI is a planned UI polish follow-on."
+          description="Add the first permit with the New permit button above — PBG, SLF, building license, and so on."
         />
       ) : (
         <div>

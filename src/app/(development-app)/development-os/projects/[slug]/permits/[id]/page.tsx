@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getPermit } from "@/lib/development/server/permits/permit-actions";
+import { PermitStatusControl, PermitAttachDocument } from "./_controls";
 
 export const metadata: Metadata = { title: "Permit · Development OS" };
 export const dynamic = "force-dynamic";
@@ -114,6 +115,17 @@ export default async function PermitDetailPage({
       </div>
 
       <div>
+        <div className="label mb-2.5">Transition status</div>
+        <Card padding="default">
+          <PermitStatusControl
+            permitId={p.id}
+            slug={slug}
+            currentStatus={p.status}
+          />
+        </Card>
+      </div>
+
+      <div>
         <div className="label mb-2.5">Lifecycle</div>
         <Card padding="default">
           <ol className="border-l-2 border-line-soft ml-2 space-y-2">
@@ -160,11 +172,11 @@ export default async function PermitDetailPage({
         <div className="label mb-2.5">Documents · {documents.length} attached</div>
         <Card padding="default">
           {documents.length === 0 ? (
-            <p className="text-sm text-ink-tertiary">
-              No documents attached. Use the attachPermitDocument server action.
+            <p className="text-sm text-ink-tertiary mb-3">
+              No documents attached yet.
             </p>
           ) : (
-            <ul className="text-xs space-y-1">
+            <ul className="text-xs space-y-1 mb-3">
               {documents.map((d) => (
                 <li key={d.id} className="font-mono">
                   {d.documentRole ?? "doc"} → {d.documentId}
@@ -172,6 +184,9 @@ export default async function PermitDetailPage({
               ))}
             </ul>
           )}
+          <div className="border-t border-line-soft pt-3">
+            <PermitAttachDocument permitId={p.id} slug={slug} />
+          </div>
         </Card>
       </div>
     </DevelopmentShell>

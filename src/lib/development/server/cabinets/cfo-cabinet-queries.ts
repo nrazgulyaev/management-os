@@ -548,6 +548,145 @@ export async function getSharedCostsBreakdown(): Promise<SharedCostRow[]> {
 }
 
 // =============================================================================
+// Capital waterfall aggregate — feeds the CFO console WaterfallChart.
+//
+// Replaces the illustrative literal with one org-scoped roll-up:
+//   - commitments    : active capital_commitments (USD minor)
+//   - calledToDate   : issued (non-cancelled) capital_calls total
+//   - land           : outflow on category_code prefixed LAND_
+//   - hard           : outflow on capex categories NOT prefixed LAND_
+//   - soft           : outflow on opex + cogs categories
+//   - financing      : outflow on corporate_event categories
+//   - sales          : outflow on the MARKETING category
+//   - reserved       : committed − called (capital staged but not yet called)
+//   - cash           : sum current_balance_usd_minor across active accounts
+//
+// All money is USD minor (cents). dev_transactions / capital_calls /
+// capital_commitments / dev_bank_accounts all carry organization_id;
+// dev_cost_categories is org-scoped via its own organization_id.
+// =============================================================================
+
+export interface CapitalWaterfall {
+  commitmentsMinor: number;
+  calledToDateMinor: number;
+  landMinor: number;
+  hardMinor: number;
+  softMinor: number;
+  financingMinor: number;
+  salesMinor: number;
+  reservedMinor: number;
+  cashMinor: number;
+}
+
+const EMPTY_WATERFALL: CapitalWaterfall = {
+  commitmentsMinor: 0,
+  calledToDateMinor: 0,
+  landMinor: 0,
+  hardMinor: 0,
+  softMinor: 0,
+  financingMinor: 0,
+  salesMinor: 0,
+  reservedMinor: 0,
+  cashMinor: 0,
+};
+
+export async function getCapitalWaterfall(): Promise<CapitalWaterfall> {
+  const db = getDb();
+  if (!db) return EMPTY_WATERFALL;
+  const orgId = await requireOrgId();
+
+  // capital_commitments.committed_amount_usd_minor is already USD minor.
+  const commitRow = await db.execute<{ committed: string }>(sql`
+    SELECT COALESCE(SUM(committed_amount_usd_minor), 0)::text AS committed
+      FROM capital_commitments
+     WHERE organization_id = ${orgId}
+       AND status IN ('active', 'fully_called')
+  `);
+  const commitmentsMinor = Number(
+    rowsOf<{ committed: string }>(commitRow)[0]?.committed ?? "0",
+  );
+
+  // capital_calls.total_usd is numeric(14,2) in MAJOR USD → ×100 to minor.
+  const calledRow = await db.execute<{ called: string }>(sql`
+    SELECT COALESCE(SUM(total_usd), 0)::text AS called
+      FROM capital_calls
+     WHERE organization_id = ${orgId}
+       AND status <> 'cancelled'
+  `);
+  const calledMajor = Number(
+    rowsOf<{ called: string }>(calledRow)[0]?.called ?? "0",
+  );
+  const calledToDateMinor = Math.round(calledMajor * 100);
+
+  // Outflows by category bucket (YTD), USD minor.
+  const outflowRow = await db.execute<{
+    land: string;
+    hard: string;
+    soft: string;
+    financing: string;
+    sales: string;
+  }>(sql`
+    SELECT
+      COALESCE(SUM(CASE WHEN cc.category_code LIKE 'LAND_%'
+                   THEN t.amount_usd_minor ELSE 0 END), 0)::text AS land,
+      COALESCE(SUM(CASE WHEN cc.category_type = 'capex'
+                        AND cc.category_code NOT LIKE 'LAND_%'
+                   THEN t.amount_usd_minor ELSE 0 END), 0)::text AS hard,
+      COALESCE(SUM(CASE WHEN cc.category_type IN ('opex','cogs')
+                   THEN t.amount_usd_minor ELSE 0 END), 0)::text AS soft,
+      COALESCE(SUM(CASE WHEN cc.category_type = 'corporate_event'
+                   THEN t.amount_usd_minor ELSE 0 END), 0)::text AS financing,
+      COALESCE(SUM(CASE WHEN cc.category_code = 'MARKETING'
+                   THEN t.amount_usd_minor ELSE 0 END), 0)::text AS sales
+      FROM dev_transactions t
+      JOIN dev_cost_categories cc ON cc.id = t.category_id
+     WHERE t.organization_id = ${orgId}
+       AND t.direction = 'outflow'
+       AND t.transaction_date >= date_trunc('year', CURRENT_DATE)
+  `);
+  const outflow = rowsOf<{
+    land: string;
+    hard: string;
+    soft: string;
+    financing: string;
+    sales: string;
+  }>(outflowRow)[0];
+  const landMinor = Number(outflow?.land ?? "0");
+  const hardMinor = Number(outflow?.hard ?? "0");
+  const softMinor = Number(outflow?.soft ?? "0");
+  const financingMinor = Number(outflow?.financing ?? "0");
+  // MARKETING is an opex category — subtract it back out of soft so it is
+  // not double-counted, then surface it as its own "sales + marketing" row.
+  const salesMinor = Number(outflow?.sales ?? "0");
+  const softNetMinor = Math.max(0, softMinor - salesMinor);
+
+  // Reserved = capital committed but not yet called (never negative).
+  const reservedMinor = Math.max(0, commitmentsMinor - calledToDateMinor);
+
+  const cashRow = await db.execute<{ cash: string }>(sql`
+    SELECT COALESCE(SUM(current_balance_usd_minor), 0)::text AS cash
+      FROM dev_bank_accounts
+     WHERE organization_id = ${orgId}
+       AND is_active = true
+  `);
+  const cashMinor = Number(
+    rowsOf<{ cash: string }>(cashRow)[0]?.cash ?? "0",
+  );
+
+  return {
+    commitmentsMinor,
+    calledToDateMinor,
+    landMinor,
+    hardMinor,
+    softMinor: softNetMinor,
+    financingMinor,
+    salesMinor,
+    reservedMinor,
+    cashMinor,
+  };
+}
+
+// =============================================================================
 // DAILY-DIGEST-SPRINT-1 P3 — date-scoped construction expenses for the Daily
 // Digest agent.
 // =============================================================================

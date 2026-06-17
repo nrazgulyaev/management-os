@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import {
   Kpi,
   SectionHeading,
@@ -206,7 +207,12 @@ export default async function ProjectCyclePage() {
                 {recs.map((r) => (
                   <tr key={r.id}>
                     <td className="font-mono text-[11px]">
-                      {r.recommendationCode}
+                      <Link
+                        href={`/development-os/project-cycle/${r.recommendationCode}`}
+                        className="text-accent hover:underline"
+                      >
+                        {r.recommendationCode}
+                      </Link>
                     </td>
                     <td className="text-[13px]">{r.recommendedAction}</td>
                     <td>

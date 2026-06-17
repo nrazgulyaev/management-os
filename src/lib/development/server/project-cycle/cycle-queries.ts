@@ -78,10 +78,18 @@ export async function listCycleRecommendations(filters?: {
 
 export async function getCycleRecommendationByCode(code: string) {
   const db = requireDb();
+  const orgId = await requireOrgId();
+  // TENANCY: scope by org so a recommendation code from another tenant
+  // returns null (→ detail page notFound()s) rather than leaking.
   const [row] = await db
     .select()
     .from(projectCycleRecommendations)
-    .where(eq(projectCycleRecommendations.recommendationCode, code))
+    .where(
+      and(
+        eq(projectCycleRecommendations.recommendationCode, code),
+        eq(projectCycleRecommendations.organizationId, orgId),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

@@ -13,6 +13,10 @@ import {
 import { listAssets } from "@/lib/development/server/assets/asset-queries";
 import { safeQuery } from "@/lib/development/safe-query";
 import { LogRevenueStreamForm } from "./_create-form";
+import {
+  RevenueStreamsTable,
+  type RevenueStreamRowDTO,
+} from "./_streams-table";
 
 export const metadata: Metadata = { title: "Revenue recognition · Development OS" };
 export const dynamic = "force-dynamic";
@@ -109,6 +113,43 @@ export default async function RevenueRecognitionPage() {
   }));
 
   const { totals, projects, nextUnlock } = view;
+
+  // Build label lookups so the raw streams table shows human refs (asset unit
+  // code + project name) rather than UUIDs. Money is bigint minor → major.
+  const assetLabelById = new Map(
+    assetRows.map((a) => [
+      a.id,
+      `${a.unitCode}${a.name ? ` · ${a.name}` : ""}`,
+    ]),
+  );
+  const projectNameById = new Map(projects.map((p) => [p.projectId, p.projectName]));
+  const minorToMajor = (v: bigint | null | undefined) =>
+    v == null ? 0 : Number(v) / 100;
+
+  const streamRows: RevenueStreamRowDTO[] = streams.map((s) => {
+    const net =
+      s.netRevenueMinor != null
+        ? s.netRevenueMinor
+        : s.grossRevenueMinor - s.directCostsMinor;
+    return {
+      id: s.id,
+      assetLabel: assetLabelById.get(s.assetId) ?? s.assetId.slice(0, 8),
+      projectName: projectNameById.get(s.projectId) ?? "—",
+      streamType: s.streamType,
+      periodStart: s.periodStart,
+      periodEnd: s.periodEnd,
+      grossRevenueMajor: minorToMajor(s.grossRevenueMinor),
+      directCostsMajor: minorToMajor(s.directCostsMinor),
+      netRevenueMajor: minorToMajor(net),
+      occupancyRate: s.occupancyRate != null ? Number(s.occupancyRate) : null,
+      averageDailyRateMajor:
+        s.averageDailyRateMinor != null ? minorToMajor(s.averageDailyRateMinor) : null,
+      unitsSold: s.unitsSold ?? null,
+      currency: s.currency,
+      dataSource: s.dataSource ?? null,
+      notes: s.notes ?? null,
+    };
+  });
   const salesTotal = totals.salesRecognisedUsdMinor + totals.salesDeferredUsdMinor;
   const salesRecPct = pct(totals.salesRecognisedUsdMinor, salesTotal);
   const streamTotal = totals.streamRecognisedMinor + totals.streamDeferredMinor;
@@ -271,6 +312,16 @@ export default async function RevenueRecognitionPage() {
             </table>
           </Card>
         )}
+      </div>
+
+      {/* Raw operating-stream log — every logged stream, editable + deletable. */}
+      <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="label">
+            Operating revenue streams · {streamRows.length}
+          </div>
+        </div>
+        <RevenueStreamsTable rows={streamRows} />
       </div>
 
       {/* Recognition-mix progress bars */}

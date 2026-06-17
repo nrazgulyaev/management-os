@@ -5,8 +5,17 @@ import { Kpi, HandoffBadge } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
-import { listAssets } from "@/lib/development/server/assets/asset-queries";
+import {
+  listAssets,
+  listAssetTypes,
+} from "@/lib/development/server/assets/asset-queries";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  NewAssetForm,
+  AssetRowActions,
+  AssetFilterBar,
+} from "./_asset-controls";
 
 export const metadata: Metadata = { title: "Assets · Development OS" };
 export const dynamic = "force-dynamic";
@@ -31,16 +40,34 @@ export default async function AssetsPage({
       </DevelopmentShell>
     );
   }
-  const assets = await safeQuery(
-    "listAssets",
-    listAssets({ category: params.category, typeKey: params.type }),
-    [],
-    4000,
-  );
+  const [assets, allAssets, assetTypes, projects] = await Promise.all([
+    safeQuery(
+      "listAssets",
+      listAssets({ category: params.category, typeKey: params.type }),
+      [],
+      4000,
+    ),
+    // Unfiltered list so the filter bar shows every category, not just the
+    // categories present in the current (already filtered) result set.
+    safeQuery("listAssetsAll", listAssets(), [], 4000),
+    safeQuery("listAssetTypes", listAssetTypes({ activeOnly: true }), [], 4000),
+    safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000),
+  ]);
 
   const categories = Array.from(new Set(assets.map((a) => a.assetCategory)));
+  const allCategories = Array.from(
+    new Set(allAssets.map((a) => a.assetCategory)),
+  ).sort();
   const typeCount = new Set(assets.map((a) => a.assetTypeDisplayName)).size;
   const statusCount = new Set(assets.map((a) => a.status)).size;
+
+  const projectOptions = projects
+    .filter((p) => p.source === "db")
+    .map((p) => ({ id: p.realProjectId, label: p.name }));
+  const assetTypeOptions = assetTypes.map((t) => ({
+    typeKey: t.typeKey,
+    label: t.displayName,
+  }));
 
   return (
     <DevelopmentShell>
@@ -59,6 +86,10 @@ export default async function AssetsPage({
           </div>
         </div>
         <div className="actions">
+          <NewAssetForm
+            projects={projectOptions}
+            assetTypes={assetTypeOptions}
+          />
           <Link
             href="/development-os/asset-types"
             className="btn btn-dark btn-sm"
@@ -94,11 +125,38 @@ export default async function AssetsPage({
         <Kpi label="Statuses" value={statusCount || "—"} sub="lifecycle states" />
       </div>
 
-      {assets.length === 0 ? (
-        <EmptyState
-          title="No assets match this filter"
-          description="Drop the filter or seed data via scripts/seed-dev-os.mjs."
+      {allCategories.length > 0 && (
+        <AssetFilterBar
+          categories={allCategories}
+          types={assetTypeOptions}
+          activeCategory={params.category}
+          activeType={params.type}
         />
+      )}
+
+      {assets.length === 0 ? (
+        params.category || params.type ? (
+          <EmptyState
+            title="No assets match this filter"
+            description="Try a different category or type."
+            action={
+              <Link href="/development-os/assets" className="btn btn-secondary btn-sm">
+                Clear filters
+              </Link>
+            }
+          />
+        ) : (
+          <EmptyState
+            title="No assets yet"
+            description="Add the first saleable, rentable, or revenue-generating unit."
+            action={
+              <NewAssetForm
+                projects={projectOptions}
+                assetTypes={assetTypeOptions}
+              />
+            }
+          />
+        )
       ) : (
         <section>
           <div className="flex items-baseline justify-between mb-3">
@@ -115,6 +173,7 @@ export default async function AssetsPage({
                     <th>Category</th>
                     <th>Status</th>
                     <th>Project</th>
+                    <th />
                   </tr>
                 </thead>
                 <tbody>
@@ -131,6 +190,17 @@ export default async function AssetsPage({
                       </td>
                       <td className="font-mono text-xs">
                         {a.projectId.slice(0, 8)}
+                      </td>
+                      <td className="text-right">
+                        <AssetRowActions
+                          assetId={a.id}
+                          unitCode={a.unitCode}
+                          currentTypeKey={a.assetTypeKey}
+                          attributes={
+                            (a.assetAttributes as Record<string, unknown>) ?? null
+                          }
+                          assetTypes={assetTypeOptions}
+                        />
                       </td>
                     </tr>
                   ))}

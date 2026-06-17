@@ -1,27 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Card } from "@/components/dashboard/primitives";
+import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
-import {
-  buildBurnPoints,
-  renderBurnChartSvg,
-} from "@/lib/development/server/visual-reports/burn-chart-helpers";
+import { renderBurnChartSvg } from "@/lib/development/server/visual-reports/burn-chart-helpers";
+import { getBudgetBurnData } from "@/lib/development/server/visual-reports/report-data";
 
 export const metadata: Metadata = { title: "Budget burn · Development OS" };
 export const dynamic = "force-dynamic";
 
 export default async function BudgetBurnPage() {
-  // Demo data — wires to per-project burn rollup once 5.E lands.
-  const points = buildBurnPoints([
-    { label: "Jan", committedDeltaMinor: 50_000_000_00, actualDeltaMinor: 32_000_000_00 },
-    { label: "Feb", committedDeltaMinor: 80_000_000_00, actualDeltaMinor: 70_000_000_00 },
-    { label: "Mar", committedDeltaMinor: 110_000_000_00, actualDeltaMinor: 95_000_000_00 },
-    { label: "Apr", committedDeltaMinor: 90_000_000_00, actualDeltaMinor: 85_000_000_00 },
-  ]);
+  // Real cumulative committed (commitments ledger) + actual outflow
+  // (transactions) by month, against the org's total project budget.
+  const { points, budgetMinor } = await getBudgetBurnData();
   const svg = renderBurnChartSvg(points, {
     width: 800,
     height: 360,
-    budgetMinor: 500_000_000_00,
+    budgetMinor,
   });
 
   return (
@@ -35,16 +30,23 @@ export default async function BudgetBurnPage() {
           </div>
           <h1>Budget burn</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-            Cumulative committed (orange) and actual (red) against the total budget
-            reference line.
+            Cumulative committed (orange) and actual (red) against the total
+            budget reference line, aggregated across all projects.
           </p>
         </div>
       </div>
       <div>
         <div className="label mb-2.5">Chart</div>
-        <Card padding="default" className="overflow-x-auto">
-          <div dangerouslySetInnerHTML={{ __html: svg }} />
-        </Card>
+        {points.length === 0 ? (
+          <EmptyState
+            title="No spend recorded yet"
+            description="Record commitments or actual transactions to populate the burn chart."
+          />
+        ) : (
+          <Card padding="default" className="overflow-x-auto">
+            <div dangerouslySetInnerHTML={{ __html: svg }} />
+          </Card>
+        )}
       </div>
     </DevelopmentShell>
   );

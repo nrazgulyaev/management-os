@@ -8,6 +8,7 @@ import {
   companyStructureShareholders,
 } from "@/lib/db/schema/company-structures";
 import { requireInternalUser } from "@/features/auth/permissions";
+import { requireOrgId } from "@/features/auth/require-org";
 
 const STRUCTURE_TYPES = [
   "arconique_owned",
@@ -67,6 +68,11 @@ export async function createCompanyStructure(
   input: z.input<typeof createStructureSchema>,
 ) {
   await requireInternalUser();
+  // TENANCY — the structure + shareholder tables carry a nullable org anchor
+  // that the read path (getCompanyStructure) filters on. Stamp org on insert
+  // so newly-created structures are visible to their own tenant and isolated
+  // from others.
+  const organizationId = await requireOrgId();
   const parsed = createStructureSchema.parse(input);
   const db = requireDb();
 
@@ -81,9 +87,28 @@ export async function createCompanyStructure(
   }
 
   return db.transaction(async (tx) => {
+    // A partial unique index allows only ONE active structure per project
+    // (project_company_structures_active_unique WHERE is_active). The first
+    // structure for a project becomes active; any subsequent one is created
+    // inactive and the operator promotes it via the "Make active" control
+    // (transitionToNewStructure). This avoids a unique-violation on insert.
+    const existingActive = await tx
+      .select({ id: projectCompanyStructures.id })
+      .from(projectCompanyStructures)
+      .where(
+        and(
+          eq(projectCompanyStructures.projectId, parsed.projectId),
+          eq(projectCompanyStructures.organizationId, organizationId),
+          eq(projectCompanyStructures.isActive, true),
+        ),
+      )
+      .limit(1);
+    const isFirstActive = existingActive.length === 0;
+
     const [structure] = await tx
       .insert(projectCompanyStructures)
       .values({
+        organizationId,
         projectId: parsed.projectId,
         structureLabel: parsed.structureLabel,
         structureType: parsed.structureType,
@@ -99,7 +124,7 @@ export async function createCompanyStructure(
         effectiveFrom:
           parsed.effectiveFrom ?? new Date().toISOString().slice(0, 10),
         notes: parsed.notes ?? null,
-        isActive: true,
+        isActive: isFirstActive,
       })
       .returning();
 
@@ -107,6 +132,7 @@ export async function createCompanyStructure(
       .insert(companyStructureShareholders)
       .values(
         parsed.shareholders.map((s) => ({
+          organizationId,
           structureId: structure.id,
           shareholderType: s.shareholderType,
           investorId: s.investorId ?? null,
@@ -122,6 +148,107 @@ export async function createCompanyStructure(
   });
 }
 
+const SHAREHOLDER_TYPE_ENUM = z.enum(SHAREHOLDER_TYPES);
+
+const addShareholderSchema = z.object({
+  structureId: z.string().uuid(),
+  shareholderType: SHAREHOLDER_TYPE_ENUM,
+  displayName: z.string().min(1),
+  ownershipPercentage: z.number().positive().max(100),
+  investorId: z.string().uuid().nullable().optional(),
+  roleInCompany: z.string().nullable().optional(),
+  isManagingParty: z.boolean().default(false),
+});
+
+/**
+ * Add a shareholder to an existing structure. The DB trigger re-checks the
+ * sum-to-100% at COMMIT, so this will abort if the new total ≠ 100%. Scoped
+ * to the caller's org via the parent structure.
+ */
+export async function addCompanyShareholder(
+  input: z.input<typeof addShareholderSchema>,
+) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = addShareholderSchema.parse(input);
+  const db = requireDb();
+
+  // Verify the structure belongs to the caller's org before inserting under it.
+  const [structure] = await db
+    .select({ id: projectCompanyStructures.id })
+    .from(projectCompanyStructures)
+    .where(
+      and(
+        eq(projectCompanyStructures.id, parsed.structureId),
+        eq(projectCompanyStructures.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!structure) throw new Error("structure not found");
+
+  const [row] = await db
+    .insert(companyStructureShareholders)
+    .values({
+      organizationId,
+      structureId: parsed.structureId,
+      shareholderType: parsed.shareholderType,
+      investorId: parsed.investorId ?? null,
+      displayName: parsed.displayName,
+      ownershipPercentage: String(parsed.ownershipPercentage),
+      roleInCompany: parsed.roleInCompany ?? null,
+      isManagingParty: parsed.isManagingParty,
+    })
+    .returning();
+  return row;
+}
+
+const updateShareholderSchema = z.object({
+  shareholderId: z.string().uuid(),
+  displayName: z.string().min(1).optional(),
+  ownershipPercentage: z.number().positive().max(100).optional(),
+  roleInCompany: z.string().nullable().optional(),
+  isManagingParty: z.boolean().optional(),
+});
+
+/**
+ * Edit an existing shareholder (display name / ownership % / role / managing
+ * flag), scoped to the caller's org. The sum-to-100% trigger re-validates at
+ * COMMIT.
+ */
+export async function updateCompanyShareholder(
+  input: z.input<typeof updateShareholderSchema>,
+) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = updateShareholderSchema.parse(input);
+  const db = requireDb();
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.displayName !== undefined) updates.displayName = parsed.displayName;
+  if (parsed.ownershipPercentage !== undefined) {
+    updates.ownershipPercentage = String(parsed.ownershipPercentage);
+  }
+  if (parsed.roleInCompany !== undefined) {
+    updates.roleInCompany = parsed.roleInCompany ?? null;
+  }
+  if (parsed.isManagingParty !== undefined) {
+    updates.isManagingParty = parsed.isManagingParty;
+  }
+
+  const [row] = await db
+    .update(companyStructureShareholders)
+    .set(updates)
+    .where(
+      and(
+        eq(companyStructureShareholders.id, parsed.shareholderId),
+        eq(companyStructureShareholders.organizationId, organizationId),
+      ),
+    )
+    .returning();
+  if (!row) throw new Error("shareholder not found");
+  return row;
+}
+
 /**
  * Replace the active structure with a new one (deactivate the old, mark
  * the new active, link both to the project). Atomic.
@@ -132,16 +259,34 @@ export async function transitionToNewStructure(input: {
   transitionDate?: string;
 }) {
   await requireInternalUser();
+  // TENANCY — scope the deactivate/activate to the caller's org so an operator
+  // cannot flip another tenant's active structure.
+  const organizationId = await requireOrgId();
   const db = requireDb();
   const date = input.transitionDate ?? new Date().toISOString().slice(0, 10);
 
   return db.transaction(async (tx) => {
+    // Confirm the target structure belongs to the caller's org + project.
+    const [target] = await tx
+      .select({ id: projectCompanyStructures.id })
+      .from(projectCompanyStructures)
+      .where(
+        and(
+          eq(projectCompanyStructures.id, input.newStructureId),
+          eq(projectCompanyStructures.projectId, input.projectId),
+          eq(projectCompanyStructures.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!target) throw new Error("structure not found");
+
     await tx
       .update(projectCompanyStructures)
       .set({ isActive: false, effectiveUntil: date })
       .where(
         and(
           eq(projectCompanyStructures.projectId, input.projectId),
+          eq(projectCompanyStructures.organizationId, organizationId),
           eq(projectCompanyStructures.isActive, true),
           ne(projectCompanyStructures.id, input.newStructureId),
         ),
@@ -149,7 +294,12 @@ export async function transitionToNewStructure(input: {
     const [activated] = await tx
       .update(projectCompanyStructures)
       .set({ isActive: true, effectiveFrom: date })
-      .where(eq(projectCompanyStructures.id, input.newStructureId))
+      .where(
+        and(
+          eq(projectCompanyStructures.id, input.newStructureId),
+          eq(projectCompanyStructures.organizationId, organizationId),
+        ),
+      )
       .returning();
     return activated;
   });

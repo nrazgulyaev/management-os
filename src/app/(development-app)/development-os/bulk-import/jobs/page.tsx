@@ -92,7 +92,14 @@ export default async function BulkImportJobsPage() {
             <TBody>
               {jobs.map((j) => (
                 <TR key={j.id}>
-                  <TD className="font-mono text-xs">{j.jobCode}</TD>
+                  <TD className="font-mono text-xs">
+                    <Link
+                      href={`/development-os/bulk-import/jobs/${j.id}`}
+                      className="hover:underline"
+                    >
+                      {j.jobCode}
+                    </Link>
+                  </TD>
                   <TD>{j.entityType.replace(/_/g, " ")}</TD>
                   <TD className="text-xs">{j.sourceType}</TD>
                   <TD className="text-xs text-ink-tertiary truncate max-w-[200px]">

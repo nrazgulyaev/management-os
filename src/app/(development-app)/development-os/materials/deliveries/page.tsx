@@ -77,7 +77,14 @@ export default async function MaterialDeliveriesPage() {
             <TBody>
               {list.map((d) => (
                 <TR key={d.id}>
-                  <TD className="font-mono text-xs">{d.deliveryCode}</TD>
+                  <TD className="font-mono text-xs">
+                    <Link
+                      href={`/development-os/materials/deliveries/${encodeURIComponent(d.deliveryCode)}`}
+                      className="hover:underline"
+                    >
+                      {d.deliveryCode}
+                    </Link>
+                  </TD>
                   <TD className="font-mono text-xs">
                     <Link
                       href={`/development-os/materials/${d.poCode}`}

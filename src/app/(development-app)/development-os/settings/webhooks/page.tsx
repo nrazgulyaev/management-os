@@ -8,6 +8,7 @@ import { listWebhookSubscriptions } from "@/lib/development/server/webhooks/webh
 import { safeQuery } from "@/lib/development/safe-query";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { WebhookModalForm } from "@/components/development/platform/webhook-modal-form";
+import { WebhookRowActions } from "./_row-actions";
 
 export const metadata: Metadata = { title: "Webhooks · Settings" };
 export const dynamic = "force-dynamic";
@@ -62,6 +63,7 @@ export default async function WebhooksPage() {
                   <th scope="col" className="num">Failures</th>
                   <th scope="col">Last success</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -86,6 +88,12 @@ export default async function WebhooksPage() {
                       <HandoffBadge tone={s.isActive ? "ok" : "soft"}>
                         {s.isActive ? "active" : "disabled"}
                       </HandoffBadge>
+                    </td>
+                    <td className="min-w-[260px]">
+                      <WebhookRowActions
+                        subscriptionId={s.id}
+                        isActive={s.isActive}
+                      />
                     </td>
                   </tr>
                 ))}

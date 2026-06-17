@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contactRoles } from "@/lib/db/schema/contacts";
 import { unitDevelopmentMeta } from "@/lib/db/schema/development";
@@ -576,5 +576,155 @@ export async function cancelContractGroup(
       ),
     );
   revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
+  return { ok: true };
+}
+
+const completeGroupSchema = z.object({
+  contractGroupId: z.string().uuid(),
+  /** Optional notarial / AJB reference recorded against the completion. */
+  ajbReference: z.string().max(200).optional(),
+});
+
+/**
+ * Records the AJB (Akta Jual Beli — the notarial deed transferring title)
+ * and COMPLETES the contract group, the point at which collected sale cash
+ * is finally RECOGNISED as revenue (revenue-recognition-queries.ts treats a
+ * group as recognised when `status='completed'` OR `completed_at` is set).
+ *
+ * Hard preconditions (this moves money recognition — be strict):
+ *   - group belongs to caller org and is `fully_signed` or `in_payment`;
+ *   - EVERY non-cancelled child contract is `signed`;
+ *   - EVERY collectible milestone (not waived/cancelled) is `paid`.
+ *
+ * On success: status → 'completed', completed_at = now, with an audit event.
+ */
+export async function completeContractGroup(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  const parsed = completeGroupSchema.safeParse({
+    contractGroupId: formData.get("contractGroupId"),
+    ajbReference: formData.get("ajbReference") ?? undefined,
+  });
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  // AUTH: internal-only revenue-recognition write (mirrors cancelContractGroup).
+  const ctx = await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+
+  const [group] = await db
+    .select({
+      id: contractGroups.id,
+      status: contractGroups.status,
+      completedAt: contractGroups.completedAt,
+    })
+    .from(contractGroups)
+    .where(
+      and(
+        eq(contractGroups.id, parsed.data.contractGroupId),
+        eq(contractGroups.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!group) return { ok: false, error: "Contract group not found." };
+  if (group.status === "completed" || group.completedAt) {
+    return { ok: false, error: "This contract is already completed." };
+  }
+  if (group.status === "cancelled") {
+    return { ok: false, error: "A cancelled contract cannot be completed." };
+  }
+  if (!["fully_signed", "in_payment"].includes(group.status)) {
+    return {
+      ok: false,
+      error: `Contract is '${group.status}' — all parts must be signed before AJB.`,
+    };
+  }
+
+  // GUARD: every non-cancelled child contract must be signed.
+  const childContracts = await db
+    .select({ id: contracts.id, status: contracts.status })
+    .from(contracts)
+    .where(eq(contracts.contractGroupId, group.id));
+  const collectibleContracts = childContracts.filter(
+    (c) => c.status !== "cancelled",
+  );
+  if (collectibleContracts.length === 0) {
+    return { ok: false, error: "No active contracts to complete." };
+  }
+  if (collectibleContracts.some((c) => c.status !== "signed")) {
+    return {
+      ok: false,
+      error: "Every contract part must be signed before AJB transfer.",
+    };
+  }
+
+  // GUARD: every collectible milestone (not waived/cancelled) must be paid.
+  const milestoneRows = await db
+    .select({
+      id: contractMilestones.id,
+      status: contractMilestones.status,
+    })
+    .from(contractMilestones)
+    .where(
+      and(
+        eq(contractMilestones.contractGroupId, group.id),
+        eq(contractMilestones.organizationId, organizationId),
+      ),
+    );
+  const collectibleMilestones = milestoneRows.filter(
+    (m) => m.status !== "waived" && m.status !== "cancelled",
+  );
+  if (collectibleMilestones.some((m) => m.status !== "paid")) {
+    return {
+      ok: false,
+      error:
+        "All payment milestones must be fully paid before recognising revenue at AJB.",
+    };
+  }
+
+  const now = new Date();
+  await db
+    .update(contractGroups)
+    .set({
+      status: "completed",
+      completedAt: now,
+      // Append the AJB / notarial reference to the group notes (no dedicated
+      // column exists) so it surfaces on the detail page; the audit event also
+      // records it.
+      ...(parsed.data.ajbReference
+        ? {
+            notes: sql`COALESCE(${contractGroups.notes} || E'\n', '') || ${`AJB transfer: ${parsed.data.ajbReference}`}`,
+          }
+        : {}),
+      updatedAt: now,
+    })
+    .where(
+      and(
+        eq(contractGroups.id, group.id),
+        eq(contractGroups.organizationId, organizationId),
+        // TOCTOU guard: only flip from a pre-transfer status.
+        inArray(contractGroups.status, ["fully_signed", "in_payment"]),
+      ),
+    );
+
+  await recordAuditEvent({
+    actorUserId: ctx.appUser?.id ?? null,
+    action: "contract.complete",
+    entityType: "contract_group",
+    entityId: group.id,
+    before: { status: group.status },
+    after: { status: "completed", completedAt: now.toISOString() },
+    metadata: {
+      organizationId,
+      ajbReference: parsed.data.ajbReference ?? null,
+      recognition: "ajb_transfer",
+    },
+  });
+
+  // Revenue is now recognised — refresh the recognition view + sales surfaces.
+  revalidatePath(`${DEVELOPMENT_APP_PATH}/contracts`);
+  revalidatePath(`${DEVELOPMENT_APP_PATH}/revenue-streams`);
+  revalidatePath(`${DEVELOPMENT_APP_PATH}/installments`);
+  revalidatePath(`${DEVELOPMENT_APP_PATH}/invoices`);
   return { ok: true };
 }

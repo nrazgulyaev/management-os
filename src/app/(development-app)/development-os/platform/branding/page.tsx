@@ -4,8 +4,12 @@ import { Card } from "@/components/dashboard/primitives";
 import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { listOrganizations } from "@/lib/development/server/organizations/organization-queries";
-import { renderBrandingCss } from "@/lib/development/server/organizations/branding-helpers";
+import {
+  renderBrandingCss,
+  type BrandingConfig,
+} from "@/lib/development/server/organizations/branding-helpers";
 import { safeQuery } from "@/lib/development/safe-query";
+import { BrandingForm } from "@/components/development/platform/branding-form";
 
 export const metadata: Metadata = { title: "Branding · Platform" };
 export const dynamic = "force-dynamic";
@@ -44,8 +48,7 @@ export default async function BrandingPage() {
         </div>
       ) : (
         orgs.map((o) => {
-          const cfg =
-            (o.brandingConfig as Record<string, unknown> | null) ?? {};
+          const cfg = (o.brandingConfig as BrandingConfig | null) ?? {};
           const css = renderBrandingCss(cfg);
           return (
             <div key={o.id}>
@@ -53,23 +56,22 @@ export default async function BrandingPage() {
                 {o.organizationCode} · {o.name}
               </div>
               <Card padding="default">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <h4 className="text-xs uppercase tracking-wide text-ink-tertiary mb-1">
-                      Branding config
-                    </h4>
-                    <pre className="text-xs bg-muted/40 rounded p-3 overflow-auto">
-                      {JSON.stringify(cfg, null, 2)}
-                    </pre>
-                  </div>
-                  <div>
-                    <h4 className="text-xs uppercase tracking-wide text-ink-tertiary mb-1">
-                      Generated CSS
-                    </h4>
-                    <pre className="text-xs bg-muted/40 rounded p-3 overflow-auto">
-                      {css || "/* no overrides */"}
-                    </pre>
-                  </div>
+                <BrandingForm
+                  organizationCode={o.organizationCode}
+                  initial={{
+                    primary_color: cfg.primary_color,
+                    secondary_color: cfg.secondary_color,
+                    logo_url: cfg.logo_url,
+                    favicon_url: cfg.favicon_url,
+                  }}
+                />
+                <div className="mt-4 pt-4 border-t border-line-soft">
+                  <h4 className="text-xs uppercase tracking-wide text-ink-tertiary mb-1">
+                    Generated CSS preview
+                  </h4>
+                  <pre className="text-xs bg-muted/40 rounded p-3 overflow-auto">
+                    {css || "/* no overrides */"}
+                  </pre>
                 </div>
               </Card>
             </div>

@@ -10,7 +10,14 @@ import { getDb } from "@/lib/db/client";
 import {
   getProjectTaskByCode,
   listTaskDependenciesForTasks,
+  listProjectTasks,
+  getTaskProjectRef,
 } from "@/lib/development/server/schedule/schedule-queries";
+import {
+  TaskStatusProgressControls,
+  TaskEditControls,
+  AddDependencyControl,
+} from "./_controls";
 
 export const metadata: Metadata = { title: "Task · Development OS" };
 export const dynamic = "force-dynamic";
@@ -39,6 +46,14 @@ export default async function TaskDetailPage({
   const deps = await listTaskDependenciesForTasks([task.id]);
   const predecessors = deps.filter((d) => d.successorId === task.id);
   const successors = deps.filter((d) => d.predecessorId === task.id);
+
+  // Sibling tasks for the add-dependency picker (same project, excluding self).
+  const ref = await getTaskProjectRef(task.id);
+  const siblingTasks = ref
+    ? (await listProjectTasks({ projectId: ref.projectId }))
+        .filter((t) => t.id !== task.id)
+        .map((t) => ({ id: t.id, taskCode: t.taskCode, name: t.name }))
+    : [];
 
   return (
     <DevelopmentShell>
@@ -83,6 +98,26 @@ export default async function TaskDetailPage({
       </div>
 
       <div>
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="label">Manage</div>
+          <TaskEditControls
+            taskId={task.id}
+            name={task.name}
+            plannedStart={task.plannedStart}
+            plannedFinish={task.plannedFinish}
+            notes={task.notes ?? null}
+          />
+        </div>
+        <Card padding="default">
+          <TaskStatusProgressControls
+            taskId={task.id}
+            status={task.status}
+            progressPercentage={Number(task.progressPercentage)}
+          />
+        </Card>
+      </div>
+
+      <div>
         <div className="label mb-2.5">Schedule</div>
         <Card padding="default">
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
@@ -114,6 +149,14 @@ export default async function TaskDetailPage({
       <div>
         <div className="label mb-2.5">Dependencies</div>
         <Card padding="default">
+          <div className="mb-3">
+            <AddDependencyControl
+              taskId={task.id}
+              slug={slug}
+              taskCode={task.taskCode}
+              candidates={siblingTasks}
+            />
+          </div>
           {predecessors.length + successors.length === 0 ? (
             <p className="text-sm text-ink-tertiary">
               No dependencies. This task starts and finishes independently.

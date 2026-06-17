@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, sql } from "drizzle-orm";
 import { requireDb } from "@/lib/db/client";
 import {
   qaQcCategories,
@@ -8,6 +8,7 @@ import {
   qaQcInspections,
   qaQcIssuePhotos,
 } from "@/lib/db/schema/qa-qc";
+import { qualityStandards } from "@/lib/db/schema/method-quality";
 import { requireOrgId } from "@/features/auth/require-org";
 
 export async function listQaQcCategories() {
@@ -97,7 +98,38 @@ export async function getQaQcIssueByCode(issueCode: string) {
       )
       .orderBy(qaQcInspections.inspectionNumber),
   ]);
-  return { issue, photos, inspections };
+
+  // Resolve the human-readable standard code for any inspection that
+  // pinned a quality standard, so the detail view can label it instead of
+  // showing a raw uuid. Org-scoped; only this tenant's standards are read.
+  const standardIds = Array.from(
+    new Set(
+      inspections
+        .map((i) => i.qualityStandardId)
+        .filter((v): v is string => !!v),
+    ),
+  );
+  const standardCodeById: Record<string, string> = {};
+  if (standardIds.length > 0) {
+    const stds = await db
+      .select({
+        id: qualityStandards.id,
+        standardCode: qualityStandards.standardCode,
+        title: qualityStandards.title,
+      })
+      .from(qualityStandards)
+      .where(
+        and(
+          inArray(qualityStandards.id, standardIds),
+          eq(qualityStandards.organizationId, organizationId),
+        ),
+      );
+    for (const s of stds) {
+      standardCodeById[s.id] = `${s.standardCode} · ${s.title}`;
+    }
+  }
+
+  return { issue, photos, inspections, standardCodeById };
 }
 
 /**

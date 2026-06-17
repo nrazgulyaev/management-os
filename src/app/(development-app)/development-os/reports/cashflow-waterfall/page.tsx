@@ -10,6 +10,7 @@ import {
   type WaterfallBar,
 } from "@/lib/development/server/visual-reports/cashflow-waterfall-helpers";
 import { sql } from "drizzle-orm";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata: Metadata = {
   title: "Cashflow waterfall · Development OS",
@@ -36,11 +37,13 @@ export default async function CashflowWaterfallPage() {
     );
   }
 
-  // Build bars from the latest active forecast.
+  // Build bars from the latest active forecast (org-scoped).
+  const organizationId = await requireOrgId();
   const row = await db.execute<{ projections: unknown }>(sql`
     SELECT monthly_projections AS projections
       FROM cashflow_forecasts
      WHERE status = 'active'
+       AND organization_id = ${organizationId}
      ORDER BY created_at DESC
      LIMIT 1
   `);

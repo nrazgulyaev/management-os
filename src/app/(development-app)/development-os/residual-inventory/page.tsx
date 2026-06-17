@@ -6,7 +6,10 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listResidualUnits } from "@/lib/development/server/residual-inventory/residual-queries";
+import { listAssets } from "@/lib/development/server/assets/asset-queries";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { safeQuery } from "@/lib/development/safe-query";
+import { MarkResidualForm } from "./_mark-residual-form";
 
 export const metadata: Metadata = { title: "Residual inventory · Development OS" };
 export const dynamic = "force-dynamic";
@@ -39,7 +42,19 @@ export default async function ResidualInventoryPage() {
       </DevelopmentShell>
     );
   }
-  const units = await safeQuery("listResidualUnits", listResidualUnits(), [], 4000);
+  const [units, projects, assets] = await Promise.all([
+    safeQuery("listResidualUnits", listResidualUnits(), [], 4000),
+    safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000),
+    safeQuery("listAssets", listAssets(), [], 4000),
+  ]);
+  const projectOptions = projects
+    .filter((p) => p.source === "db")
+    .map((p) => ({ id: p.realProjectId, label: p.name }));
+  const unitOptions = assets.map((a) => ({
+    id: a.id,
+    projectId: a.projectId,
+    label: a.name ? `${a.unitCode} · ${a.name}` : a.unitCode,
+  }));
 
   return (
     <DevelopmentShell>
@@ -57,6 +72,7 @@ export default async function ResidualInventoryPage() {
           </p>
         </div>
         <div className="actions">
+          <MarkResidualForm projects={projectOptions} units={unitOptions} />
           <Link href="/development-os" className="btn btn-secondary btn-sm">
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             Command center
@@ -67,7 +83,8 @@ export default async function ResidualInventoryPage() {
       {units.length === 0 ? (
         <EmptyState
           title="No residual units yet"
-          description="When a project completes without a full sellout, mark unsold villas as residual via the markUnitAsResidual server action."
+          description="When a project completes without a full sellout, mark unsold villas as residual."
+          action={<MarkResidualForm projects={projectOptions} units={unitOptions} />}
         />
       ) : (
         <div>

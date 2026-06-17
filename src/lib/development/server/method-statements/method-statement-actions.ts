@@ -108,6 +108,89 @@ export async function createMethodStatement(
   return row;
 }
 
+const updateSchema = z.object({
+  methodId: z.string().uuid(),
+  title: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  requiredTools: z.array(z.string()).optional(),
+  requiredMaterials: z.array(z.string()).optional(),
+  requiredPpe: z.array(z.string()).optional(),
+  qualityCheckpoints: z
+    .array(
+      z.object({
+        checkpoint: z.string().min(1),
+        tolerance: z.string().optional(),
+      }),
+    )
+    .optional(),
+  safetyHazards: z.array(z.string()).optional(),
+  hazardMitigations: z.array(z.string()).optional(),
+  notes: z.string().nullable().optional(),
+});
+
+/**
+ * Edits the operational detail of a method statement — required tools,
+ * materials, PPE, quality checkpoints, safety hazards + mitigations
+ * (plus title/description/notes) — that the thin create form omits.
+ * Org-scoped + permission-gated; only supplied keys are written so a
+ * partial edit doesn't wipe untouched columns. Terminal-state SOPs
+ * (superseded / archived) are frozen.
+ */
+export async function updateMethodStatement(
+  input: z.input<typeof updateSchema>,
+) {
+  await requireInternalUser();
+  const parsed = updateSchema.parse(input);
+  const db = requireDb();
+  const organizationId = await requireOrgId();
+
+  const [current] = await db
+    .select({ status: methodStatements.status })
+    .from(methodStatements)
+    .where(
+      and(
+        eq(methodStatements.id, parsed.methodId),
+        eq(methodStatements.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!current) throw new Error("method_statement not found");
+  if (current.status === "superseded" || current.status === "archived") {
+    throw new Error(
+      `cannot edit a '${current.status}' method statement — it is frozen`,
+    );
+  }
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  if (parsed.title !== undefined) updates.title = parsed.title;
+  if (parsed.description !== undefined)
+    updates.description = parsed.description ?? null;
+  if (parsed.requiredTools !== undefined)
+    updates.requiredTools = parsed.requiredTools;
+  if (parsed.requiredMaterials !== undefined)
+    updates.requiredMaterials = parsed.requiredMaterials;
+  if (parsed.requiredPpe !== undefined) updates.requiredPpe = parsed.requiredPpe;
+  if (parsed.qualityCheckpoints !== undefined)
+    updates.qualityCheckpoints = parsed.qualityCheckpoints;
+  if (parsed.safetyHazards !== undefined)
+    updates.safetyHazards = parsed.safetyHazards;
+  if (parsed.hazardMitigations !== undefined)
+    updates.hazardMitigations = parsed.hazardMitigations;
+  if (parsed.notes !== undefined) updates.notes = parsed.notes ?? null;
+
+  const [row] = await db
+    .update(methodStatements)
+    .set(updates)
+    .where(
+      and(
+        eq(methodStatements.id, parsed.methodId),
+        eq(methodStatements.organizationId, organizationId),
+      ),
+    )
+    .returning();
+  return row;
+}
+
 const transitionSchema = z.object({
   methodId: z.string().uuid(),
   to: z.enum(STATUSES),

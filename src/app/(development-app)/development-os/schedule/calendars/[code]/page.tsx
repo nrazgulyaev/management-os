@@ -9,6 +9,7 @@ import {
   getCalendarByCode,
   listHolidays,
 } from "@/lib/development/server/calendar/calendar-queries";
+import { CalendarControls } from "./_calendar-controls";
 
 export const metadata: Metadata = { title: "Calendar · Schedule" };
 export const dynamic = "force-dynamic";
@@ -37,7 +38,18 @@ export default async function CalendarDetailPage({
             {`Working days [${(cal.workingDaysOfWeek ?? []).join(",")}] · ${cal.workingHoursPerDay}h/day`}
           </p>
         </div>
-        <div className="actions">
+        <div className="actions flex flex-wrap items-center gap-2">
+          <CalendarControls
+            calendar={{
+              id: cal.id,
+              name: cal.name,
+              workingDaysOfWeek: cal.workingDaysOfWeek ?? [],
+              workingHoursPerDay: String(cal.workingHoursPerDay),
+              description: cal.description,
+              isDefault: cal.isDefault,
+              notes: cal.notes,
+            }}
+          />
           <Link
             href="/development-os/schedule/calendars"
             className="btn btn-secondary btn-sm"

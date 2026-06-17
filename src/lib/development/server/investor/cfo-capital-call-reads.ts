@@ -1,11 +1,12 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   capitalCallAllocations,
   capitalCalls,
 } from "@/lib/db/schema/capital-calls";
+import { investors } from "@/lib/db/schema/investor-capital";
 import { projects } from "@/lib/db/schema/projects";
 import { requireOrgId } from "@/features/auth/require-org";
 
@@ -128,4 +129,124 @@ export async function loadCfoCapitalCalls(): Promise<CfoCapitalCallRow[]> {
       issuedAt: c.issuedAt.toISOString().slice(0, 10),
     };
   });
+}
+
+// ---------------------------------------------------------------------------
+// Capital-call DETAIL reader — de-mocks /cfo/capital-calls/[id].
+// ---------------------------------------------------------------------------
+
+export interface CfoCapitalCallAllocation {
+  id: string;
+  investorId: string;
+  investorName: string;
+  expectedUsdMinor: number;
+  receivedUsdMinor: number;
+  /** ISO date (yyyy-mm-dd) the wire was received; null when unpaid. */
+  receivedAt: string | null;
+  wireRef: string | null;
+  settled: boolean;
+}
+
+export interface CfoCapitalCallDetail {
+  id: string;
+  ref: string;
+  projectLabel: string;
+  status: CfoCapitalCallStatus;
+  totalUsdMinor: number;
+  receivedUsdMinor: number;
+  issuedAt: string;
+  dueAt: string;
+  notes: string | null;
+  investorsPaid: number;
+  investorsTotal: number;
+  allocations: CfoCapitalCallAllocation[];
+}
+
+/**
+ * Single capital-call detail with its per-investor allocations.
+ * Org-scoped via the call's organization_id (the allocation FK is to
+ * investors, which carry no org column, so the org gate is the parent
+ * call). Returns null for a genuinely missing/org-foreign id so the page
+ * can `notFound()`.
+ */
+export async function loadCfoCapitalCallDetail(
+  id: string,
+): Promise<CfoCapitalCallDetail | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+
+  const [call] = await db
+    .select({
+      id: capitalCalls.id,
+      ref: capitalCalls.ref,
+      status: capitalCalls.status,
+      totalUsd: capitalCalls.totalUsd,
+      issuedAt: capitalCalls.issuedAt,
+      dueAt: capitalCalls.dueAt,
+      notes: capitalCalls.notes,
+      projectName: projects.name,
+    })
+    .from(capitalCalls)
+    .innerJoin(projects, eq(capitalCalls.projectId, projects.id))
+    .where(
+      and(
+        eq(capitalCalls.id, id),
+        eq(capitalCalls.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!call) return null;
+
+  const allocRows = await db
+    .select({
+      id: capitalCallAllocations.id,
+      investorId: capitalCallAllocations.investorId,
+      investorName: investors.legalName,
+      allocatedUsd: capitalCallAllocations.allocatedUsd,
+      receivedUsd: capitalCallAllocations.receivedUsd,
+      receivedAt: capitalCallAllocations.receivedAt,
+      wireRef: capitalCallAllocations.wireRef,
+    })
+    .from(capitalCallAllocations)
+    .innerJoin(investors, eq(capitalCallAllocations.investorId, investors.id))
+    .where(eq(capitalCallAllocations.callId, call.id))
+    .orderBy(asc(investors.legalName));
+
+  let receivedTotal = 0;
+  let paid = 0;
+  const allocations: CfoCapitalCallAllocation[] = allocRows.map((a) => {
+    const expected = usdStringToMinor(a.allocatedUsd);
+    const received = usdStringToMinor(a.receivedUsd ?? null);
+    receivedTotal += received;
+    const settled = a.receivedAt != null && received >= expected;
+    if (a.receivedAt != null) paid += 1;
+    return {
+      id: a.id,
+      investorId: a.investorId,
+      investorName: a.investorName,
+      expectedUsdMinor: expected,
+      receivedUsdMinor: received,
+      receivedAt: a.receivedAt
+        ? a.receivedAt.toISOString().slice(0, 10)
+        : null,
+      wireRef: a.wireRef,
+      settled,
+    };
+  });
+
+  return {
+    id: call.id,
+    ref: call.ref,
+    projectLabel: call.projectName,
+    status: toCardStatus(call.status),
+    totalUsdMinor: usdStringToMinor(call.totalUsd),
+    receivedUsdMinor: receivedTotal,
+    issuedAt: call.issuedAt.toISOString().slice(0, 10),
+    dueAt: call.dueAt.toISOString().slice(0, 10),
+    notes: call.notes,
+    investorsPaid: paid,
+    investorsTotal: allocations.length,
+    allocations,
+  };
 }

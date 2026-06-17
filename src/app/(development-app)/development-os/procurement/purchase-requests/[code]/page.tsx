@@ -12,7 +12,9 @@ import { DevOsPurchaseRequestActions } from "@/components/development/procuremen
 import { getDb } from "@/lib/db/client";
 import { devOsPurchaseRequests } from "@/lib/db/schema/procurement";
 import { getPurchaseRequest } from "@/lib/development/server/procurement/procurement-actions";
+import { getVendors } from "@/lib/development/server/vendors";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { AddQuotationModal } from "@/components/development/procurement/add-quotation-modal";
 
 export const metadata: Metadata = {
   title: "Purchase request · Development OS",
@@ -101,6 +103,19 @@ export default async function PurchaseRequestDetailPage({
   const data = await getPurchaseRequest(pr.id);
   if (!data) notFound();
   const { request, quotations } = data;
+  // Quotations can be collected while the PR is open (approved or in-progress).
+  // Terminal / committed states (po_created, rejected, cancelled) and the
+  // pre-approval states lock the surface.
+  const canAddQuotation = ["approved", "quotations_in_progress"].includes(
+    request.status,
+  );
+  const vendorOptions = canAddQuotation
+    ? (await getVendors()).map((v) => ({
+        id: v.id,
+        vendorCode: v.vendorCode,
+        legalName: v.legalName,
+      }))
+    : [];
   const ctx = await getCurrentUserContext();
   // Threshold-based check happens server-side; UI gates by role membership.
   const canApprove = ctx.roles.some((r) =>
@@ -234,10 +249,28 @@ export default async function PurchaseRequestDetailPage({
         <h2 className="text-display text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink mb-3">
           {quotations.length} quote{quotations.length === 1 ? "" : "s"}
         </h2>
+        {canAddQuotation && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            <AddQuotationModal
+              purchaseRequestId={request.id}
+              vendors={vendorOptions}
+            />
+            <Link
+              href={`/development-os/procurement/quotations/import?pr=${encodeURIComponent(request.requestCode)}`}
+              className="btn btn-secondary btn-sm"
+            >
+              Bulk import from spreadsheet
+            </Link>
+          </div>
+        )}
         {quotations.length === 0 ? (
           <EmptyState
             title="No quotations yet"
-            description="Once approved, procurement collects quotations from vendors. Use the addQuotation server action."
+            description={
+              canAddQuotation
+                ? "Collect vendor quotes with “Add quotation”, or bulk-import them from a spreadsheet."
+                : "Quotations are collected once the request is approved and opened for quoting."
+            }
           />
         ) : (
           <>

@@ -285,6 +285,83 @@ export async function getMaterialDelivery(
   return list.find((d) => d.id === id || d.deliveryCode === id) ?? null;
 }
 
+export interface MaterialDeliveryLineDetail {
+  id: string;
+  poLineId: string;
+  lineNumber: number;
+  materialName: string;
+  unitOfMeasure: string;
+  quantityReceived: string;
+  qualityCheckPassed: boolean;
+  rejectionReason: string | null;
+}
+
+export interface MaterialDeliveryDetail extends MaterialDeliveryListItem {
+  poId: string;
+  qualityNotes: string | null;
+  notes: string | null;
+  lines: MaterialDeliveryLineDetail[];
+}
+
+/**
+ * Delivery detail backed by `getMaterialDelivery` (which is org-scoped via
+ * `getMaterialDeliveries`). We resolve the header through the scoped helper
+ * first — so a foreign delivery id / code returns null — then load the
+ * delivery lines for the resolved (caller-owned) delivery id.
+ */
+export async function getMaterialDeliveryDetail(
+  idOrCode: string,
+): Promise<MaterialDeliveryDetail | null> {
+  const header = await getMaterialDelivery(idOrCode);
+  if (!header) return null;
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+
+  const lineRows = await db.execute(sql`
+    SELECT
+      dl.id, dl.po_line_id, dl.quantity_received,
+      dl.quality_check_passed, dl.rejection_reason,
+      pl.line_number, pl.material_name, pl.unit_of_measure
+    FROM material_delivery_lines dl
+    JOIN material_po_lines pl ON pl.id = dl.po_line_id
+    WHERE dl.delivery_id = ${header.id}
+      AND dl.organization_id = ${organizationId}
+    ORDER BY pl.line_number
+  `);
+
+  const [extra] = await db
+    .select({
+      qualityNotes: materialDeliveries.qualityNotes,
+      notes: materialDeliveries.notes,
+    })
+    .from(materialDeliveries)
+    .where(
+      and(
+        eq(materialDeliveries.id, header.id),
+        eq(materialDeliveries.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+
+  return {
+    ...header,
+    poId: header.poId,
+    qualityNotes: extra?.qualityNotes ?? null,
+    notes: extra?.notes ?? null,
+    lines: (lineRows as Record<string, unknown>[]).map((r) => ({
+      id: String(r.id),
+      poLineId: String(r.po_line_id),
+      lineNumber: toNum(r.line_number),
+      materialName: String(r.material_name),
+      unitOfMeasure: String(r.unit_of_measure),
+      quantityReceived: toStr(r.quantity_received),
+      qualityCheckPassed: Boolean(r.quality_check_passed),
+      rejectionReason: r.rejection_reason ? String(r.rejection_reason) : null,
+    })),
+  };
+}
+
 export interface MaterialUtilization {
   poId: string;
   totalLines: number;

@@ -6,6 +6,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { getLeadSourceByKey } from "@/lib/development/server/lead-sources/lead-source-queries";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata: Metadata = { title: "Lead source · Marketing" };
 export const dynamic = "force-dynamic";
@@ -21,8 +22,11 @@ export default async function LeadSourceDetailPage({
   const db = getDb();
   let leadCount = 0;
   if (db) {
+    const organizationId = await requireOrgId();
     const r = await db.execute<{ n: string }>(sql`
-      SELECT COUNT(*)::text AS n FROM leads WHERE lead_source_key = ${key}
+      SELECT COUNT(*)::text AS n FROM leads
+       WHERE lead_source_key = ${key}
+         AND organization_id = ${organizationId}
     `);
     leadCount = Number(rowsOf<{ n: string }>(r)[0]?.n ?? "0");
   }

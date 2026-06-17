@@ -90,6 +90,74 @@ export async function getSafetyIncident(
   return list.find((i) => i.id === idOrCode || i.incidentCode === idOrCode) ?? null;
 }
 
+export interface SafetyIncidentDetail extends SafetyIncidentListItem {
+  incidentTime: string | null;
+  relatedSiteReportId: string | null;
+  vendorEngagementId: string | null;
+  immediateActionsTaken: string | null;
+  authorityReportReference: string | null;
+  resolutionNotes: string | null;
+  photoDocumentIds: string[];
+  reportDocumentId: string | null;
+  projectName: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Full single-incident read for the detail route. Unlike
+ * {@link getSafetyIncident} (which reuses the trimmed list projection)
+ * this carries the long-form fields — immediate actions, authority
+ * report reference, resolution notes, and the photo/report document ids
+ * — that the list view drops. Org is anchored through the project; an
+ * incident whose project is in another org returns null so the page
+ * notFound()s.
+ */
+export async function getSafetyIncidentDetail(
+  idOrCode: string,
+): Promise<SafetyIncidentDetail | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+  const [row] = await db
+    .select({ incident: safetyIncidents, projectName: projects.name })
+    .from(safetyIncidents)
+    .innerJoin(projects, eq(projects.id, safetyIncidents.projectId))
+    .where(
+      and(
+        eq(projects.organizationId, organizationId),
+        sql`(${safetyIncidents.id}::text = ${idOrCode} OR ${safetyIncidents.incidentCode} = ${idOrCode})`,
+      ),
+    )
+    .limit(1);
+  if (!row) return null;
+  const i = row.incident;
+  return {
+    id: i.id,
+    incidentCode: i.incidentCode,
+    projectId: i.projectId,
+    projectName: row.projectName ?? null,
+    zoneId: i.zoneId ?? null,
+    incidentDate: String(i.incidentDate),
+    incidentTime: i.incidentTime ? String(i.incidentTime) : null,
+    relatedSiteReportId: i.relatedSiteReportId ?? null,
+    vendorEngagementId: i.vendorEngagementId ?? null,
+    severity: i.severity as SafetySeverity,
+    category: i.category as SafetyCategory,
+    affectedWorkersCount: i.affectedWorkersCount,
+    description: i.description,
+    immediateActionsTaken: i.immediateActionsTaken ?? null,
+    authorityReportReference: i.authorityReportReference ?? null,
+    resolutionNotes: i.resolutionNotes ?? null,
+    photoDocumentIds: i.photoDocumentIds ?? [],
+    reportDocumentId: i.reportDocumentId ?? null,
+    status: i.status as SafetyStatus,
+    reportedToAuthorities: i.reportedToAuthorities,
+    resolvedAt: i.resolvedAt ? new Date(i.resolvedAt).toISOString() : null,
+    createdAt: new Date(i.createdAt).toISOString(),
+    updatedAt: new Date(i.updatedAt).toISOString(),
+  };
+}
+
 export async function getOpenSafetyIncidents(): Promise<SafetyIncidentListItem[]> {
   return getSafetyIncidents({ status: "open" });
 }

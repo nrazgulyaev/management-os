@@ -6,7 +6,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { listInventoryLocations } from "@/lib/development/server/inventory/inventory-queries";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { safeQuery } from "@/lib/development/safe-query";
+import { NewLocationForm } from "./_new-location-form";
 
 export const metadata: Metadata = { title: "Inventory locations · Development OS" };
 export const dynamic = "force-dynamic";
@@ -26,12 +28,13 @@ export default async function InventoryLocationsPage() {
       </DevelopmentShell>
     );
   }
-  const locations = await safeQuery(
-    "listInventoryLocations",
-    listInventoryLocations(),
-    [],
-    4000,
-  );
+  const [locations, projects] = await Promise.all([
+    safeQuery("listInventoryLocations", listInventoryLocations(), [], 4000),
+    safeQuery("getDevelopmentProjects", getDevelopmentProjects(), [], 4000),
+  ]);
+  const projectOptions = projects
+    .filter((p) => p.source === "db")
+    .map((p) => ({ id: p.realProjectId, label: p.name }));
 
   const types = Array.from(new Set(locations.map((l) => l.locationType)));
   const warehouseCount = locations.filter((l) =>
@@ -58,6 +61,7 @@ export default async function InventoryLocationsPage() {
           </div>
         </div>
         <div className="actions">
+          <NewLocationForm projects={projectOptions} />
           <Link
             href="/development-os/inventory/items"
             className="btn btn-dark btn-sm"
@@ -92,7 +96,8 @@ export default async function InventoryLocationsPage() {
       {locations.length === 0 ? (
         <EmptyState
           title="No locations yet"
-          description="Use the createInventoryLocation server action to add the first."
+          description="Add a warehouse, site bin, or virtual bucket to start tracking stock."
+          action={<NewLocationForm projects={projectOptions} />}
         />
       ) : (
         <section>

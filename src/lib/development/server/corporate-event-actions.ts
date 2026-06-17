@@ -112,3 +112,80 @@ export async function recordCorporateEvent(
   if (!row) throw new Error("Insert returned no row");
   return { id: String(row.id), eventCode: String(row.eventCode) };
 }
+
+const updateSchema = z.object({
+  id: z.string().uuid(),
+  eventType: z.enum([
+    "director_loan_in",
+    "director_loan_repayment",
+    "shareholder_contribution",
+    "dividend_declared",
+    "dividend_paid",
+    "share_transfer",
+    "other",
+  ]),
+  relatedContactId: z.string().uuid().optional().nullable(),
+  amountCurrency: z.enum(SUPPORTED_CURRENCIES),
+  amountOriginalMinor: z.union([z.bigint(), z.string(), z.number()]),
+  fxRate: z.string().regex(/^\d+(\.\d+)?$/),
+  eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  description: z.string().min(1),
+  notes: z.string().optional().nullable(),
+});
+
+/**
+ * Update an existing corporate event. Org-scoped via the row's
+ * organization_id (added by migration 0072, raw because it is not yet on
+ * the Drizzle schema) — a foreign id matches no row and updates nothing.
+ * The event_code is immutable (it is the human reference); the editable
+ * fields are re-validated + the USD amount recomputed from currency/fx.
+ */
+export async function updateCorporateEvent(
+  input: z.input<typeof updateSchema>,
+): Promise<{ id: string }> {
+  const parsed = updateSchema.parse(input);
+  const db = requireDb();
+  const organizationId = await requireOrgId();
+  const amount = toBig(parsed.amountOriginalMinor);
+  if (amount <= 0n) throw new Error("amountOriginalMinor must be > 0");
+  const fx = Number(parsed.fxRate);
+  if (!(fx > 0)) throw new Error("fxRate must be > 0");
+  const usdAmount = computeUsdMinor(amount, parsed.amountCurrency, fx);
+
+  const updated = await db.execute(sql`
+    UPDATE dev_corporate_events
+       SET event_type = ${parsed.eventType},
+           related_contact_id = ${parsed.relatedContactId ?? null},
+           amount_usd_minor = ${usdAmount.toString()},
+           amount_currency = ${parsed.amountCurrency},
+           amount_original_minor = ${amount.toString()},
+           fx_rate = ${parsed.fxRate},
+           event_date = ${parsed.eventDate},
+           description = ${parsed.description},
+           notes = ${parsed.notes ?? null},
+           updated_at = now()
+     WHERE id = ${parsed.id}
+       AND organization_id = ${organizationId}
+    RETURNING id
+  `);
+  const row = (updated as Array<Record<string, unknown>>)[0];
+  if (!row) throw new Error("Corporate event not found");
+  return { id: String(row.id) };
+}
+
+/**
+ * Delete a corporate event. Org-scoped (a foreign id deletes nothing).
+ */
+export async function deleteCorporateEvent(id: string): Promise<void> {
+  const db = requireDb();
+  const organizationId = await requireOrgId();
+  const deleted = await db.execute(sql`
+    DELETE FROM dev_corporate_events
+     WHERE id = ${id}
+       AND organization_id = ${organizationId}
+    RETURNING id
+  `);
+  if ((deleted as Array<Record<string, unknown>>).length === 0) {
+    throw new Error("Corporate event not found");
+  }
+}

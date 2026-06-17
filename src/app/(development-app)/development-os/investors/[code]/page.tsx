@@ -8,8 +8,10 @@ import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getInvestor } from "@/lib/development/server/investors";
+import { getDevelopmentProjects } from "@/lib/development/server/projects";
 import { getInvestorDrafts } from "@/lib/development/server/investor-qa-actions";
 import { InvestorQaPanel } from "@/components/development/investors/investor-qa-panel";
+import { CommitmentModalForm } from "@/components/development/investors/commitment-modal-form";
 import {
   COMMITMENT_STATUS_LABEL,
   CURRENCY_LABEL,
@@ -61,6 +63,20 @@ export default async function InvestorDetailPage({
 
   // Stage 3.B — Investor Q&A drafts (HITL).
   const qaDrafts = await getInvestorDrafts(investor.id, 20).catch(() => []);
+
+  // Add-commitment modal: this investor is locked (single-element list), and
+  // real DB projects are offered (the action org-scopes the project check).
+  const projects = await getDevelopmentProjects().catch(() => []);
+  const investorOption = [
+    {
+      id: investor.id,
+      investorCode: investor.investorCode,
+      legalName: investor.legalName,
+    },
+  ];
+  const projectOptions = projects
+    .filter((p) => p.source === "db")
+    .map((p) => ({ id: p.realProjectId, name: p.name ?? p.slug }));
 
   return (
     <DevelopmentShell>
@@ -167,11 +183,23 @@ export default async function InvestorDetailPage({
       </div>
 
       <div>
-        <div className="label mb-2.5">Commitments</div>
+        <div className="flex items-baseline justify-between mb-2.5">
+          <div className="label">Commitments</div>
+          <CommitmentModalForm
+            investors={investorOption}
+            projects={projectOptions}
+          />
+        </div>
         {investor.commitments.length === 0 ? (
           <EmptyState
             title="No commitments yet"
-            description="Use the API or seed script to add commitments for this investor."
+            description="Open a capital commitment for this investor to start tracking capital calls, drawdowns, and distributions."
+            action={
+              <CommitmentModalForm
+                investors={investorOption}
+                projects={projectOptions}
+              />
+            }
           />
         ) : (
           <div className="card overflow-hidden">

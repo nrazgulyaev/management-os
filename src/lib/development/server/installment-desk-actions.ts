@@ -21,6 +21,7 @@ import {
   getInstallmentPlanDetail,
   type InstallmentPlanDetail,
 } from "@/lib/development/server/installments";
+import { advanceGroupToInPayment } from "@/lib/development/server/contract-payment-state";
 
 /**
  * Operator buyers + installments desk actions.
@@ -202,6 +203,11 @@ export async function markMilestonePaidByOperator(
         eq(contractMilestones.organizationId, organizationId),
       ),
     );
+
+  // Cash is flowing — move the group into the `in_payment` collection phase
+  // (no-op if already past fully_signed) so the AJB / complete control becomes
+  // reachable once every milestone is settled.
+  await advanceGroupToInPayment(db, milestone.contractGroupId, organizationId);
 
   // Generate a RECEIPT into the buyer's document vault once the milestone is
   // fully settled, via the SAME shared receipt-on-pay writer the buyer

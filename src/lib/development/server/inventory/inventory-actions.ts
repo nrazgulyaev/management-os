@@ -101,6 +101,70 @@ export async function createInventoryItem(
   return row;
 }
 
+const updateItemSchema = z.object({
+  id: z.string().uuid(),
+  displayName: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  category: z.string().min(1).optional(),
+  unitOfMeasure: z.string().min(1).optional(),
+  minimumStockLevel: z.number().nonnegative().nullable().optional(),
+  reorderPoint: z.number().nonnegative().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+/**
+ * Update editable fields on an inventory item. `sku` is intentionally
+ * NOT updatable — it's the stable lookup handle used in URLs and by
+ * movement/balance reads. Set `isActive: false` to deactivate a SKU
+ * (it then drops out of the default item list).
+ *
+ * Org-scoped: the WHERE clause pins organization_id so a foreign item id
+ * cannot be mutated under this tenant.
+ */
+export async function updateInventoryItem(
+  input: z.input<typeof updateItemSchema>,
+) {
+  await requireInternalUser();
+  const organizationId = await requireOrgId();
+  const parsed = updateItemSchema.parse(input);
+  const db = requireDb();
+
+  const updates: Record<string, unknown> = {};
+  if (parsed.displayName !== undefined) updates.displayName = parsed.displayName;
+  if (parsed.description !== undefined)
+    updates.description = parsed.description ?? null;
+  if (parsed.category !== undefined) updates.category = parsed.category;
+  if (parsed.unitOfMeasure !== undefined)
+    updates.unitOfMeasure = parsed.unitOfMeasure;
+  if (parsed.minimumStockLevel !== undefined)
+    updates.minimumStockLevel =
+      parsed.minimumStockLevel != null ? String(parsed.minimumStockLevel) : null;
+  if (parsed.reorderPoint !== undefined)
+    updates.reorderPoint =
+      parsed.reorderPoint != null ? String(parsed.reorderPoint) : null;
+  if (parsed.notes !== undefined) updates.notes = parsed.notes ?? null;
+  if (parsed.isActive !== undefined) updates.isActive = parsed.isActive;
+
+  if (Object.keys(updates).length === 0) return null;
+  updates.updatedAt = new Date();
+
+  const [row] = await db
+    .update(devOsInventoryItems)
+    .set(updates as never)
+    .where(
+      and(
+        eq(devOsInventoryItems.id, parsed.id),
+        eq(devOsInventoryItems.organizationId, organizationId),
+      ),
+    )
+    .returning();
+  if (!row) {
+    throw new Error(`inventory item ${parsed.id} not found`);
+  }
+  return row;
+}
+
 const recordMovementSchema = z.object({
   itemId: z.string().uuid(),
   movementType: z.enum(MOVEMENT_TYPES),

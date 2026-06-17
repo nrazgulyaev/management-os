@@ -10,8 +10,13 @@ import {
   getCorporateEvents,
   getCorporateEventsSummary,
 } from "@/lib/development/server/corporate-events";
+import { listOrgContacts } from "@/lib/development/server/contacts";
 import { formatUsdMinor } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import {
+  NewCorporateEventButton,
+  CorporateEventRowActions,
+} from "./_controls";
 
 export const metadata: Metadata = { title: "Corporate events · Development OS" };
 export const dynamic = "force-dynamic";
@@ -31,7 +36,7 @@ export default async function CorporateEventsPage() {
     );
   }
 
-  const [events, summary] = await Promise.all([
+  const [events, summary, contacts] = await Promise.all([
     safeQuery("getCorporateEvents", getCorporateEvents(), [], 4000),
     safeQuery(
       "getCorporateEventsSummary",
@@ -39,6 +44,7 @@ export default async function CorporateEventsPage() {
       { byType: {}, totalUsdMinor: "0" },
       4000,
     ),
+    safeQuery("listOrgContacts", listOrgContacts(), [], 4000),
   ]);
 
   return (
@@ -60,6 +66,7 @@ export default async function CorporateEventsPage() {
           </p>
         </div>
         <div className="actions">
+          <NewCorporateEventButton contacts={contacts} />
           <Link href="/development-os/finance" className="btn btn-secondary btn-sm">
             <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
             Finance
@@ -107,6 +114,7 @@ export default async function CorporateEventsPage() {
                 <TH>Date</TH>
                 <TH>Amount (USD)</TH>
                 <TH>Description</TH>
+                <TH>Actions</TH>
               </TR>
             </THead>
             <TBody>
@@ -119,6 +127,23 @@ export default async function CorporateEventsPage() {
                   <TD className="text-xs">{String(e.eventDate)}</TD>
                   <TDNum>{formatUsdMinor(BigInt(e.amountUsdMinor))}</TDNum>
                   <TD className="text-xs">{e.description}</TD>
+                  <TD>
+                    <CorporateEventRowActions
+                      contacts={contacts}
+                      event={{
+                        id: e.id,
+                        eventCode: e.eventCode,
+                        eventType: e.eventType,
+                        relatedContactId: e.relatedContactId ?? null,
+                        amountCurrency: e.amountCurrency,
+                        amountOriginalMinor: String(e.amountOriginalMinor),
+                        fxRate: String(e.fxRate),
+                        eventDate: String(e.eventDate),
+                        description: e.description,
+                        notes: e.notes ?? null,
+                      }}
+                    />
+                  </TD>
                 </TR>
               ))}
             </TBody>

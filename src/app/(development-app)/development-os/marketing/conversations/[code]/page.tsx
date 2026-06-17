@@ -5,6 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getThreadByCode } from "@/lib/development/server/conversation-review/conversation-queries";
+import { getCurrentAppUser } from "@/features/auth/current-user";
+import { ConsentControl } from "./_consent-control";
 
 export const metadata: Metadata = { title: "Conversation thread · Marketing" };
 export const dynamic = "force-dynamic";
@@ -15,7 +17,10 @@ export default async function ConversationDetailPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const thread = await getThreadByCode(code);
+  const [thread, me] = await Promise.all([
+    getThreadByCode(code),
+    getCurrentAppUser().catch(() => null),
+  ]);
   if (!thread) notFound();
   return (
     <DevelopmentShell>
@@ -67,18 +72,24 @@ export default async function ConversationDetailPage({
           </p>
         </Card>
       </div>
-      {!thread.consentToAnalyze && (
-        <div>
-          <div className="label mb-2.5">Privacy</div>
-          <Card padding="default">
+      <div className="mt-[18px]">
+        <div className="label mb-2.5">Privacy & AI</div>
+        <Card padding="default">
+          {me?.id ? (
+            <ConsentControl
+              threadCode={thread.threadCode}
+              userId={me.id}
+              consented={Boolean(thread.consentToAnalyze)}
+              aiStatus={thread.aiAnalysisStatus}
+            />
+          ) : (
             <p className="text-sm leading-relaxed text-ink-secondary">
-              AI analysis is gated on explicit operator-recorded consent. Use
-              the <code>recordConsent</code> server action before triggering
-              analysis.
+              Sign in as an internal user to record consent and trigger AI
+              analysis on this thread.
             </p>
-          </Card>
-        </div>
-      )}
+          )}
+        </Card>
+      </div>
     </DevelopmentShell>
   );
 }

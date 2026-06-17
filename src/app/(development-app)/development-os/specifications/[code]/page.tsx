@@ -7,7 +7,9 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { DevelopmentShell } from "@/components/development/development-shell";
 import { getDb } from "@/lib/db/client";
 import { getSpecificationByCode } from "@/lib/development/server/specifications/specification-queries";
+import { getVendors } from "@/lib/development/server/vendors";
 import { SpecificationLifecycleActions } from "./_spec-actions";
+import { SpecificationEditForm } from "./_spec-edit-form";
 
 export const metadata: Metadata = {
   title: "Specification · Development OS",
@@ -36,6 +38,12 @@ export default async function SpecificationDetailPage({
   const spec = await getSpecificationByCode(decodeURIComponent(code));
   if (!spec) notFound();
 
+  const vendors = await getVendors();
+  const vendorOptions = vendors.map((v) => ({
+    id: v.id,
+    label: `${v.vendorCode} · ${v.legalName}`,
+  }));
+
   return (
     <DevelopmentShell>
       <div className="page-header">
@@ -53,6 +61,23 @@ export default async function SpecificationDetailPage({
           )}
         </div>
         <div className="actions">
+          <SpecificationEditForm
+            specId={spec.id}
+            vendors={vendorOptions}
+            defaults={{
+              specName: spec.specName,
+              description: spec.description,
+              brand: spec.brand,
+              modelNumber: spec.modelNumber,
+              colorCode: spec.colorCode,
+              dimensions: spec.dimensions,
+              finishType: spec.finishType,
+              applicableStandards: spec.applicableStandards,
+              toleranceSpecifications: spec.toleranceSpecifications,
+              preferredVendorId: spec.preferredVendorId,
+              notes: spec.notes,
+            }}
+          />
           <Link
             href="/development-os/specifications"
             className="btn btn-secondary btn-sm"

@@ -14,6 +14,16 @@ import {
   formatUsdMinor,
 } from "@/lib/development/constants/investor-constants";
 import { safeQuery } from "@/lib/development/safe-query";
+import { BankAccountControls } from "./_account-controls";
+
+/** minor (string) → MAJOR-unit string for prefilling the controls. */
+function minorToMajorString(minor: string | null, currency: string): string {
+  if (minor === null) return "";
+  const divisor = currency === "USDT" ? 1_000_000 : 100;
+  const fraction =
+    currency === "USDT" || currency === "USD" || currency === "EUR" ? 2 : 0;
+  return (Number(minor) / divisor).toFixed(fraction);
+}
 
 export const metadata: Metadata = { title: "Bank account · Development OS" };
 export const dynamic = "force-dynamic";
@@ -74,6 +84,19 @@ export default async function BankAccountDetailPage({
           </p>
         </div>
         <div className="actions">
+          <BankAccountControls
+            id={account.id}
+            currency={account.currency}
+            thresholdMajor={minorToMajorString(
+              account.minimumBalanceThresholdMinor,
+              account.currency,
+            )}
+            balanceMajor={minorToMajorString(
+              account.currentBalanceMinor,
+              account.currency,
+            )}
+            lastFxRate={account.lastFxRate}
+          />
           <Link
             href="/development-os/finance/bank-accounts"
             className="btn btn-secondary"
@@ -124,9 +147,9 @@ export default async function BankAccountDetailPage({
             />
           </div>
           <div className="mt-3 text-xs text-ink-tertiary">
-            Inline edit + manual reconciliation actions are available via the{" "}
-            <code>updateBankAccountThreshold</code> and <code>recordBankBalance</code>{" "}
-            server actions; UI drawer for these is forthcoming in 2.4.
+            Use <strong>Edit threshold</strong> to set the minimum-balance alert
+            and <strong>Record balance</strong> to snapshot the current balance +
+            FX rate (the USD-equivalent column recomputes server-side).
           </div>
         </Card>
       </div>

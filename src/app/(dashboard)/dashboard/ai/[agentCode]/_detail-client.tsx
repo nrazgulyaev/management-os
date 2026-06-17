@@ -8,9 +8,9 @@
  * then this component takes over for inline test runs via
  * `useAgentStream`.
  *
- * Routed-to-human clicks open a Modal (PR 3 primitive) — the
- * actual route-to-inbox form lands in 2.2; the placeholder
- * surfaces the operator name and an "Acknowledge" CTA.
+ * Routed-to-human clicks open a Modal whose "Acknowledge & route"
+ * CTA calls routeAgentReplyToHuman — persisting the hand-off as an
+ * agent_outputs row (status="awaiting_review") in the review inbox.
  */
 
 import * as React from "react";
@@ -18,6 +18,7 @@ import { AgentTranscript, type AgentTranscriptMessage } from "@/components/ai-ag
 import { AgentComposer } from "@/components/ai-agents/agent-composer";
 import { useAgentStream } from "@/features/ai-agents/use-stream";
 import { Modal, ModalHeader, ModalBody, ModalFooter } from "@/components/ui/modal";
+import { routeAgentReplyToHuman } from "@/lib/development/server/ai-outputs/route-to-human-action";
 
 export interface AgentDetailClientProps {
   agentCode: string;
@@ -32,7 +33,44 @@ export function AgentDetailClient({
 }: AgentDetailClientProps) {
   const [messages, setMessages] = React.useState<AgentTranscriptMessage[]>(initialMessages);
   const [routedOperator, setRoutedOperator] = React.useState<string | null>(null);
+  const [handoffPending, startHandoff] = React.useTransition();
+  const [handoffError, setHandoffError] = React.useState<string | null>(null);
+  const [handoffDone, setHandoffDone] = React.useState(false);
   const stream = useAgentStream({ agentCode });
+
+  function openRoute(operator: string) {
+    setHandoffError(null);
+    setHandoffDone(false);
+    setRoutedOperator(operator);
+  }
+
+  function closeRoute() {
+    setRoutedOperator(null);
+    setHandoffError(null);
+    setHandoffDone(false);
+  }
+
+  function acknowledgeHandoff() {
+    if (!routedOperator) return;
+    setHandoffError(null);
+    // Most recent agent message becomes the hand-off context.
+    const lastAgent = [...messages]
+      .reverse()
+      .find((m) => m.actor === "agent");
+    startHandoff(async () => {
+      const r = await routeAgentReplyToHuman({
+        agentCode,
+        routedTo: routedOperator,
+        context:
+          typeof lastAgent?.body === "string" ? lastAgent.body : undefined,
+      });
+      if (!r.ok) {
+        setHandoffError(r.error ?? "Hand-off failed.");
+        return;
+      }
+      setHandoffDone(true);
+    });
+  }
 
   async function handleSubmit(prompt: string) {
     const now = new Date();
@@ -67,13 +105,13 @@ export function AgentDetailClient({
             ? { actorName: agentName, body: stream.latestDelta ?? "" }
             : undefined
         }
-        onRoutedToClick={setRoutedOperator}
+        onRoutedToClick={openRoute}
       />
       <AgentComposer onSubmit={handleSubmit} disabled={stream.streaming} />
 
       <Modal
         open={routedOperator !== null}
-        onOpenChange={(o) => !o && setRoutedOperator(null)}
+        onOpenChange={(o) => !o && closeRoute()}
         size="md"
       >
         <ModalHeader
@@ -85,31 +123,51 @@ export function AgentDetailClient({
           }
           glyphTone="warn"
           title={routedOperator ? `Route to ${routedOperator}` : "Route to human"}
-          description="Hand-off form lands in Phase 2.2 — this dialog confirms the wire-through from low-confidence agent replies."
-          onClose={() => setRoutedOperator(null)}
+          description="Queues the agent reply for a human to review in the AI inbox."
+          onClose={closeRoute}
         />
         <ModalBody>
-          <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)" }}>
-            The agent reply will be queued for{" "}
-            <b style={{ color: "var(--ink)" }}>{routedOperator}</b>. Until 2.2 wires
-            the inbox handoff, this confirm just dismisses the prompt.
-          </p>
+          {handoffDone ? (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)" }}>
+              Queued for{" "}
+              <b style={{ color: "var(--ink)" }}>{routedOperator}</b>. It now
+              appears in the AI agents inbox awaiting review.
+            </p>
+          ) : (
+            <p style={{ margin: 0, fontSize: 13, color: "var(--ink-3)" }}>
+              The latest agent reply will be queued for{" "}
+              <b style={{ color: "var(--ink)" }}>{routedOperator}</b> as a
+              hand-off in the review inbox.
+            </p>
+          )}
+          {handoffError && (
+            <p
+              role="alert"
+              style={{ margin: "8px 0 0", fontSize: 12, color: "var(--danger)" }}
+            >
+              {handoffError}
+            </p>
+          )}
         </ModalBody>
         <ModalFooter>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
-            onClick={() => setRoutedOperator(null)}
+            onClick={closeRoute}
+            disabled={handoffPending}
           >
-            Cancel
+            {handoffDone ? "Close" : "Cancel"}
           </button>
-          <button
-            type="button"
-            className="btn btn-primary btn-sm"
-            onClick={() => setRoutedOperator(null)}
-          >
-            Acknowledge
-          </button>
+          {!handoffDone && (
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              onClick={acknowledgeHandoff}
+              disabled={handoffPending}
+            >
+              {handoffPending ? "Routing…" : "Acknowledge & route"}
+            </button>
+          )}
         </ModalFooter>
       </Modal>
     </>
