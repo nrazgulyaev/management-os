@@ -22,6 +22,7 @@
     "db:migrate:staging": "node --env-file-if-exists=.env.staging.local --import tsx scripts/assert-staging-env.ts && node --env-file-if-exists=.env.staging.local --import tsx scripts/migrate.ts",
     "db:seed": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/seed.ts",
     "db:seed:dev-os": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local scripts/seed-dev-os.mjs",
+    "db:seed:conversations": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local scripts/seed-conversation-messages.mjs",
     "demo:rebuild": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/demo-rebuild.ts",
     "demo:validate": "node --env-file-if-exists=.env.production.local --env-file-if-exists=.env.local --import tsx scripts/validate-demo-data.ts",
     "check:env": "node --import tsx scripts/check-env.ts",

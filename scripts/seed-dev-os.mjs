@@ -5184,6 +5184,73 @@ async function main() {
   }
 }
 
-main()
+// ---------------------------------------------------------------------------
+// ORG-STAMP SHIM
+// This seed predates the tenancy org-NOT-NULL sweep, so most of its ~130
+// INSERTs omit organization_id and would fail the NOT NULL constraint (it used
+// to crash on `investors`). Rather than edit every insert, we temporarily
+// SET DEFAULT the demo org on every organization_id column for the duration of
+// the seed, then DROP DEFAULT — exactly the pattern migration 0072 uses. A
+// column DEFAULT only fills an OMITTED column, so the inserts that already
+// stamp org explicitly (land_profiles, project_permits, sales_conversation_*…)
+// keep their own value. Requires ALTER (the seed uses DIRECT_URL — the same
+// elevated role that runs migrations).
+// ---------------------------------------------------------------------------
+async function resolveDemoOrgId() {
+  const byProject = await sql`
+    SELECT organization_id FROM projects
+     WHERE slug IN ('eternal-villas','enso-villas','ahau-gardens')
+       AND organization_id IS NOT NULL
+     LIMIT 1
+  `;
+  if (byProject[0]?.organization_id) return byProject[0].organization_id;
+  const byCode = await sql`
+    SELECT id FROM organizations WHERE organization_code = 'ARCONIQUE_DEFAULT' LIMIT 1
+  `;
+  if (byCode[0]?.id) return byCode[0].id;
+  const any = await sql`SELECT id FROM organizations ORDER BY created_at LIMIT 1`;
+  return any[0]?.id ?? null;
+}
+
+async function listOrgColumns() {
+  return sql`
+    SELECT c.table_name AS table_name
+      FROM information_schema.columns c
+      JOIN information_schema.tables t
+        ON t.table_schema = c.table_schema AND t.table_name = c.table_name
+     WHERE c.table_schema = 'public'
+       AND c.column_name = 'organization_id'
+       AND t.table_type = 'BASE TABLE'
+  `;
+}
+
+async function withOrgDefaults(run) {
+  const orgId = await resolveDemoOrgId();
+  if (!orgId) {
+    console.error("No organization found to stamp demo rows. Run the base seed first.");
+    process.exit(1);
+  }
+  const tables = await listOrgColumns();
+  try {
+    for (const { table_name } of tables) {
+      await sql.unsafe(
+        `ALTER TABLE "${table_name}" ALTER COLUMN organization_id SET DEFAULT '${orgId}'::uuid`,
+      );
+    }
+    await run();
+  } finally {
+    for (const { table_name } of tables) {
+      try {
+        await sql.unsafe(
+          `ALTER TABLE "${table_name}" ALTER COLUMN organization_id DROP DEFAULT`,
+        );
+      } catch (e) {
+        console.warn(`⚠ could not drop org default on ${table_name}:`, e.message);
+      }
+    }
+  }
+}
+
+withOrgDefaults(main)
   .then(() => sql.end())
-  .catch(e => { console.error(e); sql.end(); process.exit(1); });
+  .catch((e) => { console.error(e); sql.end(); process.exit(1); });
