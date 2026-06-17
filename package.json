@@ -5,7 +5,7 @@
   "description": "Arconique Management OS — premium villa management, investor reporting, and operations platform.",
   "scripts": {
     "dev": "pkill -f next-server 2>/dev/null; pkill -f 'next dev' 2>/dev/null; sleep 1; next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS=--max-old-space-size=8192 next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
