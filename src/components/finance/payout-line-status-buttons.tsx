@@ -33,9 +33,11 @@ const NEXT_CLASS: Record<string, string> = {
 const TRANSITIONS: Record<string, string[]> = {
   pending: ["approved", "cancelled"],
   approved: ["paid", "failed", "cancelled"],
-  failed: ["approved", "cancelled"],
+  // "Reopen" → pending sends a failed/cancelled line back to the start of the
+  // approve→paid lifecycle.
+  failed: ["approved", "cancelled", "pending"],
   paid: [],
-  cancelled: [],
+  cancelled: ["pending"],
 };
 
 export function PayoutLineStatusButtons({

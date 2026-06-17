@@ -127,6 +127,15 @@ export interface IssueResult {
   recipientMasked?: string | null;
   channel?: VerificationChannel;
   devCodePreview?: string;
+  /**
+   * The freshly minted plaintext code, returned UNCONDITIONALLY to the
+   * server-side caller. Unlike `devCodePreview` (suppressed in prod), this
+   * exists so an *authorized, permission-gated* concierge flow can read the
+   * code aloud to a walk-in guest who has no email/phone. The caller is
+   * responsible for only surfacing it to an org-scoped operator — it is NEVER
+   * returned to an unauthenticated guest path.
+   */
+  issuedCode?: string;
   retryAfterMs?: number;
 }
 
@@ -252,6 +261,8 @@ export async function issueVerificationCode(
     recipientMasked,
     channel,
     devCodePreview,
+    // Always carried; only the authorized concierge action ever surfaces it.
+    issuedCode: code,
   };
 }
 

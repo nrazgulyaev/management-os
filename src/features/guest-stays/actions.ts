@@ -29,6 +29,7 @@ import {
 } from "./token";
 import { recordStayAccessEvent } from "./access-log";
 import { getStayByToken } from "./services";
+import { issueVerificationCode } from "./verification";
 import {
   createOrGetStubSmartLockCode,
   revokeStubSmartLockCode,
@@ -190,6 +191,94 @@ export async function revokeGuestStayTokenAction(
 
   revalidatePath("/dashboard/guest-stays/tokens");
   return { ok: true };
+}
+
+// -----------------------------------------------------------------------------
+// Concierge-issue verification code
+// -----------------------------------------------------------------------------
+
+/**
+ * Concierge-issue a verification code for a walk-in guest whose token has no
+ * email AND no phone (so the normal email/SMS delivery path is a dead end).
+ *
+ * An authorized, org-scoped operator generates a FRESH one-time code via the
+ * SAME mechanism the guest verify flow validates (issueVerificationCode →
+ * generateVerificationCode + hashVerificationCode(code, tokenPrefix), persisted
+ * as a `pending` guest_stay_token_verifications row with the standard 10-minute
+ * expiry). The plaintext code is returned ONCE to the operator to read to the
+ * guest in person; it is audited; it expires exactly like a normal code.
+ *
+ * SECURITY: permission-gated (guest_stay.token.manage) + org-scoped token load
+ * (a foreign token id reads as "not found"). The plaintext is surfaced ONLY
+ * here, to an authenticated operator — never on an unauthenticated guest path.
+ */
+export async function issueConciergeVerificationCodeAction(
+  _prev: (ActionResult & { code?: string; expiresInMinutes?: number }) | null,
+  formData: FormData,
+): Promise<ActionResult & { code?: string; expiresInMinutes?: number }> {
+  await requirePermission("guest_stay.token.manage");
+  const tokenId = String(formData.get("tokenId") ?? "");
+  if (!tokenId) return { ok: false, error: "Missing token id." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // Tenancy guard: only resolve the token inside the caller's org. A cross-org
+  // token id must be indistinguishable from a missing one.
+  const [token] = await db
+    .select()
+    .from(guestStayTokens)
+    .where(
+      and(
+        eq(guestStayTokens.id, tokenId),
+        eq(guestStayTokens.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!token) return { ok: false, error: "Token not found." };
+  if (token.status !== "active") {
+    return { ok: false, error: `Token is ${token.status}; cannot issue a code.` };
+  }
+
+  // Generate + persist via the SAME mechanism the guest verify flow checks.
+  // `channel: "manual"` records that this code was hand-delivered by a
+  // concierge rather than emailed/SMS'd.
+  const issued = await issueVerificationCode({
+    guestStayTokenId: token.id,
+    channel: "manual",
+  });
+  if (!issued.ok || !issued.issuedCode) {
+    if (issued.reason === "cooldown") {
+      const seconds = Math.ceil((issued.retryAfterMs ?? 60_000) / 1000);
+      return {
+        ok: false,
+        error: `A code was just issued — wait ${seconds}s before issuing another.`,
+      };
+    }
+    return { ok: false, error: "Could not issue a verification code." };
+  }
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "guest_stay.concierge_code_issued",
+    entityType: "guest_stay_token",
+    entityId: token.id,
+    // NEVER log the plaintext code — only that one was issued + by whom.
+    after: {
+      bookingId: token.bookingId,
+      tokenPrefix: token.tokenPrefix,
+      verificationId: issued.verificationId ?? null,
+      channel: "manual",
+    },
+  });
+
+  revalidatePath(`/dashboard/guest-stays/tokens/${token.id}`);
+  return {
+    ok: true,
+    code: issued.issuedCode,
+    expiresInMinutes: 10,
+  };
 }
 
 // -----------------------------------------------------------------------------

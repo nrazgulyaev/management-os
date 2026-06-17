@@ -123,12 +123,26 @@ export async function markStatementSent(
     return { ok: false, error: "Statement must be approved before sending" };
   }
 
-  // EMAIL-1 — fire the notification email best-effort. Failure does
-  // not block the state transition; the operator can resend later.
+  // EMAIL-1 (founder decision): the email MUST genuinely send before we
+  // advance the statement to `sent` and arm the owner lifecycle. A failed
+  // send (provider error / not configured / threw) leaves the statement in
+  // its current state so the operator can fix the email config and retry —
+  // we never tell the owner a statement was sent when the email never left.
   const { sendEmail, isEmailConfigured } = await import("@/features/email/email-service");
   const { statementReady } = await import("@/features/email/templates");
+
+  // A resend (statement already `sent`) only RE-fires the email; it does not
+  // re-arm the owner lifecycle (the owner may have already viewed/disputed).
+  // The first send→advance is the only path gated on success.
+  const firstSend = statement.sentAt == null;
+
   let emailReason: string | undefined;
-  if (isEmailConfigured() && sentToEmail && sentToEmail.includes("@")) {
+  let emailSent = false;
+  if (!isEmailConfigured()) {
+    emailReason = "no_api_key";
+  } else if (!sentToEmail || !sentToEmail.includes("@")) {
+    emailReason = "no_recipient_email";
+  } else {
     const monthLabel = statement.periodMonth
       ? new Date(statement.periodMonth + "T00:00:00Z").toLocaleString("en", {
           month: "long",
@@ -143,23 +157,53 @@ export async function markStatementSent(
       netToOwnerUsdMinor: statement.netToOwnerUsdMinor ?? 0n,
       portalUrl: "https://management.arconique.com/owner/statements",
     });
-    const result = await sendEmail({
-      to: sentToEmail,
-      subject: tpl.subject,
-      html: tpl.html,
-      text: tpl.text,
-    });
-    if (!result.ok) emailReason = result.reason;
-  } else if (!isEmailConfigured()) {
-    emailReason = "no_api_key";
+    try {
+      const result = await sendEmail({
+        to: sentToEmail,
+        subject: tpl.subject,
+        html: tpl.html,
+        text: tpl.text,
+      });
+      if (result.ok) {
+        emailSent = true;
+      } else {
+        emailReason = result.reason;
+      }
+    } catch (e) {
+      emailReason = e instanceof Error ? e.message : "send_threw";
+    }
   }
 
-  // First send arms the owner lifecycle (FC-OWNER-STATEMENTS §1, first row):
-  // the owner view unlocks at `pending` and the 14d auto-ack timer starts.
-  // A resend must NOT reset an owner who already viewed/acknowledged/disputed,
-  // so we only arm when `sentAt` was null.
+  // BLOCK: send failed → do NOT advance status, do NOT arm the lifecycle.
+  // Audit the failed attempt so the operator action is still traceable.
+  if (!emailSent) {
+    await recordAuditEvent({
+      actorUserId: user.id,
+      action: "statement.send_failed",
+      entityType: "owner_statement",
+      entityId: statementId,
+      before: { status: statement.status },
+      after: { status: statement.status, sentToEmail, firstSend, emailReason: emailReason ?? null },
+    });
+    const human =
+      emailReason === "no_api_key"
+        ? "no email provider is configured"
+        : emailReason === "no_recipient_email"
+          ? "no valid recipient email was provided"
+          : emailReason ?? "unknown error";
+    return {
+      ok: false,
+      error: `Email failed to send: ${human}. The statement was not marked sent — fix the email config and retry.`,
+      emailReason,
+    };
+  }
+
+  // Email genuinely sent. Advance to `sent`; the first send arms the owner
+  // lifecycle (FC-OWNER-STATEMENTS §1, first row): the owner view unlocks at
+  // `pending` and the 14d auto-ack timer starts. A resend must NOT reset an
+  // owner who already viewed/acknowledged/disputed, so we only arm when
+  // `sentAt` was null.
   const now = new Date();
-  const firstSend = statement.sentAt == null;
   await db
     .update(ownerStatements)
     .set({
