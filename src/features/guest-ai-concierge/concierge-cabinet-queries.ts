@@ -141,6 +141,7 @@ export interface ConciergeHandoffRow {
 export async function listConciergeHandoffsForCabinet(limit = 5): Promise<ConciergeHandoffRow[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db.execute<{
     id: string;
     session_id: string | null;
@@ -163,7 +164,8 @@ export async function listConciergeHandoffsForCabinet(limit = 5): Promise<Concie
       LEFT JOIN guest_ai_concierge_sessions s ON s.id = h.session_id
       LEFT JOIN bookings b ON b.id = s.booking_id
       LEFT JOIN villas v ON v.id = b.villa_id
-     WHERE h.status IN ('pending','open','assigned')
+     WHERE h.organization_id = ${organizationId}::uuid
+       AND h.status IN ('pending','open','assigned')
      ORDER BY h.created_at DESC
      LIMIT ${limit}
   `);

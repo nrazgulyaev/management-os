@@ -13,6 +13,15 @@ export interface BookingListRow {
   villaId: string;
   villaCode: string;
   guestName: string;
+  /** Raw FKs / editable fields — needed so the edit form can round-trip
+   *  without wiping channel/guest/source/notes/pax (DATA-LOSS fix). The list
+   *  view ignores these; the edit page consumes them as form defaults. */
+  channelId: string | null;
+  guestId: string | null;
+  sourceReference: string | null;
+  adults: number | null;
+  children: number | null;
+  notes: string | null;
   channelKey: string | null;
   channelName: string | null;
   status:
@@ -39,6 +48,8 @@ const fallback: WithSource<BookingListRow>[] = [
     source: "mock",
     id: "b1", bookingCode: "ARC-A-00241",
     villaId: "es-s5", villaCode: "ES-S5", guestName: "A. Martin",
+    channelId: null, guestId: null, sourceReference: null,
+    adults: null, children: null, notes: null,
     channelKey: "airbnb", channelName: "Airbnb", status: "confirmed",
     checkIn: "2026-04-26", checkOut: "2026-04-30", nights: 4,
     currency: "USD", grossAmount: 3280, cleaningFeeAmount: 180,
@@ -48,6 +59,8 @@ const fallback: WithSource<BookingListRow>[] = [
     source: "mock",
     id: "b2", bookingCode: "ARC-A-00239",
     villaId: "ev-07", villaCode: "EV-07", guestName: "H. Williams",
+    channelId: null, guestId: null, sourceReference: null,
+    adults: null, children: null, notes: null,
     channelKey: "booking", channelName: "Booking.com", status: "confirmed",
     checkIn: "2026-04-25", checkOut: "2026-04-30", nights: 5,
     currency: "USD", grossAmount: 3600, cleaningFeeAmount: 180,
@@ -57,6 +70,8 @@ const fallback: WithSource<BookingListRow>[] = [
     source: "mock",
     id: "b3", bookingCode: "ARC-A-00238",
     villaId: "es-s2", villaCode: "ES-S2", guestName: "Family Nielsen",
+    channelId: null, guestId: null, sourceReference: null,
+    adults: null, children: null, notes: null,
     channelKey: "direct", channelName: "Direct", status: "confirmed",
     checkIn: "2026-04-25", checkOut: "2026-05-01", nights: 6,
     currency: "USD", grossAmount: 3660, cleaningFeeAmount: 180,
@@ -66,6 +81,8 @@ const fallback: WithSource<BookingListRow>[] = [
     source: "mock",
     id: "b4", bookingCode: "ARC-A-00235",
     villaId: "ah-02", villaCode: "AH-02", guestName: "Mr. Tanaka",
+    channelId: null, guestId: null, sourceReference: null,
+    adults: null, children: null, notes: null,
     channelKey: "booking", channelName: "Booking.com", status: "checked_in",
     checkIn: "2026-04-22", checkOut: "2026-04-26", nights: 4,
     currency: "USD", grossAmount: 3040, cleaningFeeAmount: 180,
@@ -102,6 +119,12 @@ export async function listBookings(): Promise<WithSource<BookingListRow>[]> {
     villaId: r.b.villaId,
     villaCode: r.villaCode,
     guestName: r.guestName ?? "—",
+    channelId: r.b.channelId ?? null,
+    guestId: r.b.guestId ?? null,
+    sourceReference: r.b.sourceReference ?? null,
+    adults: r.b.adults ?? null,
+    children: r.b.children ?? null,
+    notes: r.b.notes ?? null,
     channelKey: r.channelKey ?? null,
     channelName: r.channelName ?? null,
     status: r.b.status as BookingListRow["status"],
@@ -145,6 +168,12 @@ export async function getBookingById(id: string): Promise<WithSource<BookingList
     villaId: r.b.villaId,
     villaCode: r.villaCode,
     guestName: r.guestName ?? "—",
+    channelId: r.b.channelId ?? null,
+    guestId: r.b.guestId ?? null,
+    sourceReference: r.b.sourceReference ?? null,
+    adults: r.b.adults ?? null,
+    children: r.b.children ?? null,
+    notes: r.b.notes ?? null,
     channelKey: r.channelKey ?? null,
     channelName: r.channelName ?? null,
     status: r.b.status as BookingListRow["status"],

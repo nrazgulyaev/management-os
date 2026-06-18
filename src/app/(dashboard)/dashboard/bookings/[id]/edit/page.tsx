@@ -49,19 +49,21 @@ export default async function EditBookingPage({
         defaults={{
           id: b.id,
           villaId: b.villaId,
-          channelId: null,
-          guestId: null,
+          channelId: b.channelId,
+          guestId: b.guestId,
           bookingCode: b.bookingCode,
-          sourceReference: null,
+          sourceReference: b.sourceReference,
           status: b.status,
           checkIn: b.checkIn,
           checkOut: b.checkOut,
+          adults: b.adults,
+          children: b.children,
           currency: b.currency,
           grossAmount: b.grossAmount,
           cleaningFeeAmount: b.cleaningFeeAmount,
           channelFeeAmount: b.channelFeeAmount,
           paymentFeeAmount: b.paymentFeeAmount,
-          notes: null,
+          notes: b.notes,
         }}
         cancelHref={`/dashboard/bookings/${b.id}`}
       />

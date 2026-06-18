@@ -240,10 +240,16 @@ export async function getVillaMaintenancePlanById(
 export async function listSuggestionsForPlan(planId: string) {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(maintenanceWindowSuggestions)
-    .where(eq(maintenanceWindowSuggestions.villaMaintenancePlanId, planId))
+    .where(
+      and(
+        eq(maintenanceWindowSuggestions.villaMaintenancePlanId, planId),
+        eq(maintenanceWindowSuggestions.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(maintenanceWindowSuggestions.score));
   return rows.map((r) => ({
     id: r.id,

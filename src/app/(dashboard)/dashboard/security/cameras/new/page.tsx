@@ -2,11 +2,15 @@ import Link from "next/link";
 import { listVillas } from "@/features/villas/services";
 import { listProjects } from "@/features/projects/services";
 import { CameraForm } from "@/components/security/camera-form";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "New camera" };
 export const dynamic = "force-dynamic";
 
 export default async function NewCameraPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const [villas, projects] = await Promise.all([listVillas(), listProjects()]);
   return (
     <>

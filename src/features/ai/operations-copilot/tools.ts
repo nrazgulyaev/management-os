@@ -86,7 +86,7 @@ export async function executeTool(
       case "listJobRuns": {
         const status = typeof input.status === "string" ? input.status : undefined;
         const limit = clampLimit(input.limit, 10);
-        const rows = await listJobRuns({ status, limit });
+        const rows = await listJobRuns({ status, limit, organizationId });
         return { ok: true, output: rows };
       }
       case "listCalendarFeeds": {

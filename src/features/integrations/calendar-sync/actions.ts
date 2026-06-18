@@ -318,7 +318,12 @@ export async function syncCalendarFeed(feedId: string): Promise<SyncFeedResult> 
   // Upsert each VEVENT.
   for (const ev of parsed.events) {
     seenUids.add(ev.uid);
-    const result = await upsertEventForFeed(feed.id, feed.villaId, ev);
+    const result = await upsertEventForFeed(
+      feed.id,
+      feed.villaId,
+      feed.organizationId,
+      ev,
+    );
     if (result === "inserted") inserted++;
     if (result === "updated") updated++;
     if (result === "conflict") conflicts++;
@@ -372,6 +377,7 @@ export async function syncCalendarFeed(feedId: string): Promise<SyncFeedResult> 
 async function upsertEventForFeed(
   feedId: string,
   villaId: string,
+  organizationId: string | null,
   ev: IcsRawEvent,
 ): Promise<"inserted" | "updated" | "conflict"> {
   const db = getDb();
@@ -405,7 +411,7 @@ async function upsertEventForFeed(
       })
       .where(eq(channelCalendarEvents.id, existing.id));
     if (datesChanged) {
-      await scoreConflict(existing.id, villaId, ev);
+      await scoreConflict(existing.id, villaId, organizationId, ev);
       return "conflict";
     }
     return "updated";
@@ -414,6 +420,7 @@ async function upsertEventForFeed(
   const [inserted] = await db
     .insert(channelCalendarEvents)
     .values({
+      organizationId,
       feedId,
       externalUid: ev.uid,
       externalSummary: ev.summary ?? null,
@@ -427,13 +434,14 @@ async function upsertEventForFeed(
     .returning({ id: channelCalendarEvents.id });
 
   // New event — score it for overlap with existing bookings.
-  const conflict = await scoreConflict(inserted.id, villaId, ev);
+  const conflict = await scoreConflict(inserted.id, villaId, organizationId, ev);
   return conflict ? "conflict" : "inserted";
 }
 
 async function scoreConflict(
   eventId: string,
   villaId: string,
+  organizationId: string | null,
   ev: IcsRawEvent,
 ): Promise<boolean> {
   const db = getDb();
@@ -469,6 +477,7 @@ async function scoreConflict(
     .limit(1);
   if (!existingConflict) {
     await db.insert(bookingConflicts).values({
+      organizationId,
       villaId,
       bookingId: overlap.id,
       calendarEventId: eventId,

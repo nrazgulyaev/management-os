@@ -3,11 +3,15 @@ import { Kpi } from "@/components/dashboard/primitives";
 import { listMfaFactorsForAdmin } from "@/features/security-baseline/mfa-services";
 import { summariseRecentLoginAttempts } from "@/features/security-baseline/login-throttle";
 import { safeCount, safeList } from "@/features/system/db-health";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Authentication security" };
 export const dynamic = "force-dynamic";
 
 export default async function AuthSecurityHubPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const summary = await safeCount("auth.summary", async () => {
     const s = await summariseRecentLoginAttempts();
     return s.failedLast24h + s.successfulLast24h;

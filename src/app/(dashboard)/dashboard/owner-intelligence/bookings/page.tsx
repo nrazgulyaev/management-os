@@ -11,6 +11,8 @@ import {
   RebuildBookingProjectionButton,
   RebuildDirectRequestProjectionButton,
 } from "@/components/owner-bookings/projection-buttons";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner booking projection" };
 export const dynamic = "force-dynamic";
@@ -33,6 +35,8 @@ const STATUS_TONES: Record<
 };
 
 export default async function AdminOwnerBookingProjectionPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const summaries = await listOwnerBookingSummariesForCurrentUser();
   const recent = summaries.slice(0, 200);
   return (

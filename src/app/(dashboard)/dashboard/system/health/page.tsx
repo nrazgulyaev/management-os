@@ -15,6 +15,8 @@ import {
   isNotificationsDryRun,
 } from "@/lib/env";
 import { env } from "@/lib/env";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "System health" };
 export const dynamic = "force-dynamic";
@@ -94,6 +96,11 @@ const TRACKED_TABLE_GROUPS: Array<{ group: string; tables: string[] }> = [
 const TRACKED_TABLES = TRACKED_TABLE_GROUPS.flatMap((g) => g.tables);
 
 export default async function SystemHealthPage() {
+  // Platform-ops gate (super_admin / director). The pg_stat_user_tables
+  // catalog stat below is cross-tenant by nature and cannot be org-filtered,
+  // so only platform operators may reach this page.
+  const { allowed } = await requireCabinetAccess("system");
+  if (!allowed) return <CabinetGate cabinet="System" />;
   const db = getDb();
   // 8.A.1 — single round-trip via pg_stat_user_tables. The previous
   // 39-way Promise.all of COUNT(*) saturated the postgres pool on

@@ -1298,6 +1298,11 @@ export const ROLE_CAPABILITIES: Record<string, RoleKey[]> = {
     "booking_manager",
   ],
   "system_health.manage": ["super_admin", "director"],
+  // System & platform cabinet (jobs, deployment, storage, health). Gated to
+  // platform operators only — these surfaces expose cross-tenant catalog
+  // stats (pg_stat_user_tables row counts, env readiness, cron config) that
+  // cannot be org-filtered, so only super_admin / director may reach them.
+  "system.read": ["super_admin", "director"],
 };
 
 export interface CurrentUserContext {

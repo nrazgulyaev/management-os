@@ -7,6 +7,8 @@ import {
   classifyOwnerCalendarEvent,
   publicCalendarStatusLabel,
 } from "@/features/owner-intelligence/calendar-pure";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner calendar (admin)" };
 export const dynamic = "force-dynamic";
@@ -25,6 +27,8 @@ const BUCKET_TONES: Record<
 };
 
 export default async function OwnerCalendarAdminPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const today = new Date();
   const fromIso = formatISODate(today);
   const toIso = formatISODate(

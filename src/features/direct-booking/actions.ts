@@ -143,8 +143,10 @@ export async function rejectDirectBookingRequestAction(
     decisionNote: parsed.data.decisionNote ?? null,
   }, await requireOrgId());
   if (!updated) return { ok: false, error: "Request not found." };
-  // Release the underlying hold + calendar block.
-  await updateHoldStatus(updated.holdId, "rejected");
+  // Release the underlying hold + calendar block. The request was org-verified
+  // by updateRequestStatus above, so its hold shares the same org — thread it
+  // through so the hold UPDATE is org-gated too.
+  await updateHoldStatus(updated.holdId, "rejected", undefined, updated.organizationId);
   await releaseInternalHoldBlockForDirectHold(updated.holdId);
   await appendRequestEvent({
     requestId: parsed.data.id,
@@ -203,7 +205,9 @@ export async function convertDirectBookingRequestToBookingAction(
       error: `Cannot convert from status ${request.status}.`,
     };
   }
-  const hold = await getHoldById(request.holdId);
+  // TENANCY: the request was already org-verified above; thread the org into
+  // the hold load too (defence-in-depth — the hold belongs to the same org).
+  const hold = await getHoldById(request.holdId, organizationId);
   if (!hold) return { ok: false, error: "Hold not found." };
   if (
     hold.status !== "active" &&
@@ -311,7 +315,7 @@ export async function convertDirectBookingRequestToBookingAction(
   });
   await updateHoldStatus(hold.id, "converted", {
     convertedBookingId: bookingRow.id,
-  });
+  }, organizationId);
 
   await appendRequestEvent({
     requestId: parsed.data.id,
@@ -412,7 +416,11 @@ export async function cancelDirectBookingHoldAction(
   const parsed = holdIdSchema.safeParse({ id: formData.get("id") });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const me = await getCurrentAppUser();
-  const hold = await getHoldById(parsed.data.id);
+  // TENANCY: resolve the caller's org and AND it into the hold load so a
+  // cross-org hold id → "Hold not found" (no cross-tenant write). The org
+  // is also threaded into updateHoldStatus so the WHERE is org-gated.
+  const organizationId = await requireOrgId();
+  const hold = await getHoldById(parsed.data.id, organizationId);
   if (!hold) return { ok: false, error: "Hold not found." };
   if (hold.status !== "active") {
     return { ok: false, error: `Hold is ${hold.status}.` };
@@ -425,7 +433,7 @@ export async function cancelDirectBookingHoldAction(
   ) {
     return { ok: false, error: "Hold has expired." };
   }
-  await updateHoldStatus(hold.id, "cancelled");
+  await updateHoldStatus(hold.id, "cancelled", undefined, organizationId);
   await releaseInternalHoldBlockForDirectHold(hold.id);
   await syncHoldStatusToCalendarBlock(hold.id);
   await recordAuditEvent({

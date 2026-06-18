@@ -600,15 +600,19 @@ export async function applyMovement(input: {
     })
     .returning({ id: inventoryMovements.id });
 
-  // Upsert stock levels for both legs (when applicable).
-  await upsertStockLevel(db, input.itemId, input.fromLocationId ?? null, delta.fromDelta);
-  await upsertStockLevel(db, input.itemId, input.toLocationId ?? null, delta.toDelta);
+  // Upsert stock levels for both legs (when applicable). Pass the verified
+  // organizationId so new stock_levels rows are stamped with the caller's org
+  // — an unstamped (NULL-org) row would be invisible to the org-scoped Stock
+  // list + item-detail readers (listStockLevels filters eq(org)).
+  await upsertStockLevel(db, organizationId, input.itemId, input.fromLocationId ?? null, delta.fromDelta);
+  await upsertStockLevel(db, organizationId, input.itemId, input.toLocationId ?? null, delta.toDelta);
 
   return { movementId: movement.id };
 }
 
 async function upsertStockLevel(
   db: NonNullable<ReturnType<typeof getDb>>,
+  organizationId: string,
   itemId: string,
   locationId: string | null,
   delta: number,
@@ -620,6 +624,7 @@ async function upsertStockLevel(
     .from(inventoryStockLevels)
     .where(
       and(
+        eq(inventoryStockLevels.organizationId, organizationId),
         eq(inventoryStockLevels.itemId, itemId),
         eq(inventoryStockLevels.locationId, locationId),
       ),
@@ -628,6 +633,7 @@ async function upsertStockLevel(
 
   if (!existing) {
     await db.insert(inventoryStockLevels).values({
+      organizationId,
       itemId,
       locationId,
       quantity: String(delta),

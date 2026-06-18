@@ -98,7 +98,9 @@ function fmtDuration(ms: number | null): string {
 export default async function PlatformSystemHealthPage() {
   const [snapshot, recentRuns, jobHealth, userCtx] = await Promise.all([
     getPlatformHealthSnapshot(),
-    listJobRuns({ limit: 15 }).catch(() => []),
+    // Super-admin cross-tenant view (gated by isSuperAdminContext in the
+    // parent layout): pass organizationId: null to stay platform-wide.
+    listJobRuns({ limit: 15, organizationId: null }).catch(() => []),
     getJobHealthPanel().catch(() => null),
     getCurrentUserContext().catch(() => null),
   ]);

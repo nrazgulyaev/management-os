@@ -9,11 +9,15 @@ import {
 } from "@/features/owner-bookings/revenue-pure";
 import { RebuildMonthlyButton } from "@/components/owner-bookings/projection-buttons";
 import { formatMoneyMinor } from "@/lib/money";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner revenue source mix" };
 export const dynamic = "force-dynamic";
 
 export default async function AdminOwnerRevenueMixPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   // Aggregate across every owner the admin has access to (which, for
   // internal users, means every active owner via RLS bypass).
   const villas = await listOwnerVillasForCurrentUser();

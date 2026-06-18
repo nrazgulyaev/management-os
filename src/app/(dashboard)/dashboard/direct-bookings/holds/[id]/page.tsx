@@ -4,6 +4,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getHoldById } from "@/features/direct-booking/services";
 import { adminHoldStatusLabel } from "@/features/direct-booking/hold-pure";
 import { CancelHoldButton } from "@/components/direct-booking/admin-buttons";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Hold detail" };
 export const dynamic = "force-dynamic";
@@ -25,7 +26,8 @@ export default async function HoldDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const hold = await getHoldById(id);
+  const organizationId = await requireOrgId();
+  const hold = await getHoldById(id, organizationId);
   if (!hold) notFound();
   const lab = adminHoldStatusLabel(
     hold.status as Parameters<typeof adminHoldStatusLabel>[0],
