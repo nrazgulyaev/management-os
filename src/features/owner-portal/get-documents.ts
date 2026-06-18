@@ -195,7 +195,7 @@ export async function getOwnerDocuments(ownerId: string): Promise<OwnerDocuments
     if (!group) continue;
     const fileUrl =
       r.storageBucket && r.storagePath
-        ? `/api/documents/${r.id}/download`
+        ? `/api/owner/documents/${r.id}/download`
         : undefined;
     group.documents.push({
       id: r.id,

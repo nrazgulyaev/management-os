@@ -147,7 +147,7 @@ export default async function PortalDocumentsPage() {
                         </div>
                       </div>
                       <a
-                        href={`/api/documents/${d.id}/download`}
+                        href={`/api/investor-portal/documents/${d.id}/download`}
                         className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-[8px] border border-line-strong bg-panel text-ink-2 transition-colors hover:border-amber hover:text-amber-deep"
                         aria-label={`Download ${d.title}`}
                       >

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
 import { ArrowLeft } from "lucide-react";
 import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
-import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
-import { buyerProgressReports } from "@/lib/db/schema/buyers";
+import { getBuyerProgressReport } from "@/lib/buyer-portal/reports";
 
 export const metadata: Metadata = {
   title: "Progress report · Buyer Portal",
@@ -21,17 +19,12 @@ export default async function BuyerReportDetailPage({
   const { id } = await params;
   const session = await getBuyerSession();
   if (!session) redirect("/buyer-portal/login");
-  const db = getDb();
-  if (!db) redirect("/buyer-portal/login");
   const buyer = session;
 
-  // RLS guards: buyer sees only published reports for their projects/units.
-  const [report] = await db
-    .select()
-    .from(buyerProgressReports)
-    .where(eq(buyerProgressReports.id, id))
-    .limit(1);
-  if (!report || report.status !== "published") notFound();
+  // No RLS — only return the report if it belongs to a project the buyer owns
+  // a unit in (and is published); guessed/foreign ids 404.
+  const report = await getBuyerProgressReport(buyer.buyerId, id);
+  if (!report) notFound();
 
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>

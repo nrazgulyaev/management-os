@@ -83,7 +83,7 @@ export default async function OwnerInboxPage({
         attachments: m.attachments.map((a) => ({
           documentId: a.documentId,
           name: a.name,
-          href: `/api/documents/${a.documentId}/download`,
+          href: `/api/owner/documents/${a.documentId}/download`,
         })),
       }))
     : [];

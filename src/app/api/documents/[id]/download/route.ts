@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentAppUser } from "@/features/auth/current-user";
+import { requireInternalUser } from "@/features/auth/permissions";
 import { getDocumentSignedUrl } from "@/features/storage/storage-service";
 
 /**
- * Documents-app v1 — canonical download endpoint.
+ * Documents-app v1 — canonical download endpoint (INTERNAL OPERATORS ONLY).
  *
  * GET /api/documents/[id]/download
  *   → 302 redirect to a short-lived Supabase Storage signed URL.
  *
- * Thin alias over the storage signed-url service so the documents app
- * has a stable, well-named download URL (the plan references
- * /api/documents/[id]/download). Auth: requires sign-in; visibility is
- * gated upstream by the page-level listing query.
+ * This endpoint is org-scoped (any active doc in the operator's org), which is
+ * correct for internal operators but would be an IDOR for external portal
+ * users, so it is gated to internal users. External portals have their own
+ * per-entity scoped routes: /api/owner/documents/[id]/download,
+ * /api/investor-portal/documents/[id]/download, /api/buyer-portal/documents/[id]/download.
  */
 
 export const dynamic = "force-dynamic";
@@ -21,6 +23,12 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  // Operators only — external portal users use their per-entity scoped routes.
+  try {
+    await requireInternalUser();
+  } catch {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
   const user = await getCurrentAppUser();
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });

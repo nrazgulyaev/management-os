@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { eq } from "drizzle-orm";
 import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
-import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
-import { buyerProgressReports } from "@/lib/db/schema/buyers";
+import { listBuyerProgressReports } from "@/lib/buyer-portal/reports";
 
 export const metadata: Metadata = { title: "Progress reports · Buyer Portal" };
 export const dynamic = "force-dynamic";
@@ -13,16 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function BuyerReportsPage() {
   const session = await getBuyerSession();
   if (!session) redirect("/buyer-portal/login");
-  const db = getDb();
-  if (!db) redirect("/buyer-portal/login");
   const buyer = session;
 
-  // RLS scopes the rows: buyer sees only published reports for their units
-  // (or project-level reports for projects where they own a unit).
-  const reports = await db
-    .select()
-    .from(buyerProgressReports)
-    .where(eq(buyerProgressReports.status, "published"));
+  // No RLS on the connection — scope explicitly to the buyer's own projects.
+  const reports = await listBuyerProgressReports(buyer.buyerId);
 
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>

@@ -6,7 +6,8 @@ import { BuyerShell } from "@/components/buyer-portal/buyer-shell";
 import { getDb } from "@/lib/db/client";
 import { getBuyerSession } from "@/lib/buyer-portal/session";
 import { eq } from "drizzle-orm";
-import { buyerUnitAssignments, buyerProgressReports } from "@/lib/db/schema/buyers";
+import { buyerUnitAssignments } from "@/lib/db/schema/buyers";
+import { listBuyerProgressReports } from "@/lib/buyer-portal/reports";
 
 export const metadata: Metadata = { title: "Dashboard · Buyer Portal" };
 export const dynamic = "force-dynamic";
@@ -23,19 +24,8 @@ export default async function BuyerDashboard() {
     .from(buyerUnitAssignments)
     .where(eq(buyerUnitAssignments.buyerId, buyer.buyerId));
 
-  const reports = await db
-    .select({
-      id: buyerProgressReports.id,
-      projectId: buyerProgressReports.projectId,
-      reportingPeriodEnd: buyerProgressReports.reportingPeriodEnd,
-      currentProgressPercentage:
-        buyerProgressReports.currentProgressPercentage,
-      nextMilestone: buyerProgressReports.nextMilestone,
-      publishedAt: buyerProgressReports.publishedAt,
-    })
-    .from(buyerProgressReports)
-    .where(eq(buyerProgressReports.status, "published"))
-    .limit(5);
+  // No RLS — scope reports to the buyer's own projects (newest 5).
+  const reports = await listBuyerProgressReports(buyer.buyerId, 5);
 
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
