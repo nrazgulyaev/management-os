@@ -74,6 +74,27 @@ export const getProductsEnabledForCurrentUser = cache(
 );
 
 /**
+ * Whether to show the Mgmt ↔ Dev product switcher in the shell topbar.
+ *
+ * The switcher only makes sense — and should only appear — when BOTH of the
+ * following hold:
+ *   1. the user's organization has BOTH products enabled (mgmt + dev), and
+ *   2. the user is the main administrator (super_admin).
+ *
+ * A single-product org (mgmt-only or dev-only) has nowhere to switch to, and a
+ * non-admin in a dual-product org shouldn't be hopping between platforms — so in
+ * every other case the switcher is hidden. Reuses the cache()'d context +
+ * products reads, so it adds no extra DB round-trip per request.
+ */
+export async function canUseAppSwitcher(): Promise<boolean> {
+  const ctx = await getCurrentUserContext();
+  if (!ctx.appUser || !ctx.isSuperAdmin) return false;
+  const productsEnabled = await getProductsEnabledForCurrentUser();
+  if (!productsEnabled) return false;
+  return productsEnabled.includes("mgmt") && productsEnabled.includes("dev");
+}
+
+/**
  * Layout-level enforcement. Call from Mgmt OS / Dev OS root layouts.
  * - Demo mode + super_admin / audit-bot: always allowed (no redirect).
  * - No signed-in user: pass through (the existing auth-guard surfaces

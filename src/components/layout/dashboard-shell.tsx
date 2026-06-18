@@ -3,6 +3,7 @@ import { DashboardSidebar } from "@/components/dashboard/sidebar";
 import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { canUseAppSwitcher } from "@/features/auth/products-access";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
 import { MobileTabbar } from "@/components/dashboard/mobile-tabbar";
@@ -51,6 +52,9 @@ export async function DashboardShell({
   const trial: Awaited<ReturnType<typeof getCurrentOrgTrial>> =
     trialRes.status === "fulfilled" ? trialRes.value : null;
 
+  // Only the main admin of a dual-product (mgmt + dev) org gets the switcher.
+  const canSwitch = await canUseAppSwitcher().catch(() => false);
+
   // Stage 10 — pull a display name + role for the topbar user chip.
   // Always safe; falls back to demo values when DB / auth isn't wired.
   let userName = "Operator";
@@ -80,7 +84,7 @@ export async function DashboardShell({
           userName={userName}
           userRole={userRole}
           userInitials={userInitials}
-          actions={<AppSwitcher />}
+          actions={canSwitch ? <AppSwitcher /> : undefined}
         />
         <main
           style={{

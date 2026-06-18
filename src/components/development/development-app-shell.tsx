@@ -4,6 +4,7 @@ import { DashboardTopbar } from "@/components/dashboard/topbar";
 import { OfflineIndicator } from "./pwa/offline-indicator";
 import { InstallPrompt } from "./pwa/install-prompt";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { canUseAppSwitcher } from "@/features/auth/products-access";
 import { countUnreadForCurrentUser } from "@/features/notifications/services";
 import { getCurrentOrgTrial } from "@/features/billing/trial-services";
 import { TrialBanner } from "@/components/billing/trial-banner";
@@ -65,6 +66,9 @@ export async function DevelopmentAppShell({
     unreadCount = 0;
   }
 
+  // Only the main admin of a dual-product (mgmt + dev) org gets the switcher.
+  const canSwitch = await canUseAppSwitcher().catch(() => false);
+
   return (
     <div
       data-product="development"
@@ -80,7 +84,7 @@ export async function DevelopmentAppShell({
           userRole={userRole}
           userInitials={userInitials}
           inboxHref="/development-os/agent-digests"
-          actions={<AppSwitcher />}
+          actions={canSwitch ? <AppSwitcher /> : undefined}
         />
         <div className="pt-2 px-7 flex justify-end">
           <OfflineIndicator />
