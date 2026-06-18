@@ -329,6 +329,75 @@ export async function getNavSeries(investorId: string): Promise<NavSeriesPoint[]
   });
 }
 
+export interface QuarterNarrativeNote {
+  projectName: string | null;
+  note: string;
+}
+
+export interface QuarterNarrative {
+  quarterEndDate: string;
+  notes: QuarterNarrativeNote[];
+}
+
+/**
+ * Operator-authored quarter narrative for the brief.
+ *
+ * Sources the real, per-quarter notes operators write on each project's
+ * NAV snapshot (`investor_nav_snapshots.snapshot_notes`) for the LATEST
+ * quarter the investor holds a snapshot in. Scoped to the investor's own
+ * active commitments — the brief never reads another investor's or
+ * another project's notes. Returns null when the latest quarter carries
+ * no operator notes (the caller then HIDES the narrative card rather
+ * than showing placeholder prose).
+ */
+export async function getInvestorQuarterNarrative(
+  investorId: string,
+): Promise<QuarterNarrative | null> {
+  const db = getDb();
+  if (!db) return null;
+  const rows = await db.execute<{
+    quarter_end: string;
+    project_name: string | null;
+    snapshot_notes: string | null;
+  }>(sql`
+    WITH my_projects AS (
+      SELECT DISTINCT project_id
+        FROM capital_commitments
+       WHERE investor_id = ${investorId}::uuid
+         AND status = 'active'
+         AND project_id IS NOT NULL
+    ),
+    latest AS (
+      SELECT MAX(ns.quarter_end_date) AS quarter_end
+        FROM investor_nav_snapshots ns
+        JOIN my_projects mp ON mp.project_id = ns.project_id
+    )
+    SELECT ns.quarter_end_date::text AS quarter_end,
+           p.name AS project_name,
+           ns.snapshot_notes AS snapshot_notes
+      FROM investor_nav_snapshots ns
+      JOIN my_projects mp ON mp.project_id = ns.project_id
+      JOIN latest l ON l.quarter_end = ns.quarter_end_date
+      LEFT JOIN projects p ON p.id = ns.project_id
+     WHERE ns.snapshot_notes IS NOT NULL
+       AND length(btrim(ns.snapshot_notes)) > 0
+     ORDER BY p.name ASC
+  `);
+  const all = rowsOf<{
+    quarter_end: string;
+    project_name: string | null;
+    snapshot_notes: string | null;
+  }>(rows);
+  if (all.length === 0) return null;
+  return {
+    quarterEndDate: all[0].quarter_end,
+    notes: all.map((r) => ({
+      projectName: r.project_name,
+      note: (r.snapshot_notes ?? "").trim(),
+    })),
+  };
+}
+
 export interface DistributionRecord {
   distributionId: string;
   projectName: string | null;

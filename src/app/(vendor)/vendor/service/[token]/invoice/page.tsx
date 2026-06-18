@@ -33,14 +33,14 @@ export default async function VendorInvoicePage({
             Submit invoice for {ctx.fulfilment.fulfilmentCode}
           </h1>
           <p className="text-sm text-ink-secondary">
-            Document upload arrives in a future update — for now, please enter
-            the amount + invoice number; we'll match the document on file.
+            Enter the amount and invoice number, and attach the invoice
+            document (PDF or image) if you have one. We'll match it to this
+            request automatically.
           </p>
         </header>
         <Section eyebrow="Invoice" title="Metadata">
           <VendorInvoiceForm
-            fulfilmentId={ctx.fulfilment.id}
-            vendorId={ctx.fulfilment.vendorId ?? ""}
+            token={token}
             currency={ctx.fulfilment.currency}
           />
         </Section>

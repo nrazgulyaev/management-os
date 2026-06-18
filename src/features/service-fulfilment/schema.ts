@@ -181,6 +181,22 @@ export const createVendorInvoiceSchema = z.object({
   notes: z.string().trim().max(2000).optional(),
 });
 
+/**
+ * Token-scoped invoice submission (vendor portal). The vendor has NO
+ * app-user session — scope (organizationId, vendorId, fulfilmentId,
+ * currency) is derived server-side from the token, NOT trusted from the
+ * client. So this schema only carries the token plus the fields the
+ * vendor actually types.
+ */
+export const createVendorInvoiceFromTokenSchema = z.object({
+  token: z.string().min(8).max(120),
+  invoiceNumber: z.string().trim().max(80).optional(),
+  amountMinor: z.coerce.number().int().min(0).max(1_000_000_000_000),
+  invoiceDate: z.string().regex(isoDateRegex).optional(),
+  dueDate: z.string().regex(isoDateRegex).optional(),
+  notes: z.string().trim().max(2000).optional(),
+});
+
 export const invoiceIdSchema = z.object({ id: z.string().uuid() });
 
 export const submitGuestServiceRatingSchema = z.object({

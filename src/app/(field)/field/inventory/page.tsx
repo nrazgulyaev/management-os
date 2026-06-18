@@ -20,8 +20,11 @@ export default async function FieldInventoryPage() {
         </p>
       ) : (
         <div className="flex flex-col gap-2">
+          {/* Non-navigable in the field PWA: item detail lives in the
+              desktop /dashboard and would bounce a worker out of the app.
+              Stock usage is logged from the task screen, not here. */}
           {items.map((i) => (
-            <ItemCard key={i.id} item={i} href={`/dashboard/inventory/items/${i.id}`} />
+            <ItemCard key={i.id} item={i} />
           ))}
         </div>
       )}

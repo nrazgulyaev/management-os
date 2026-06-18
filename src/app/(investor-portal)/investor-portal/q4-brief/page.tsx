@@ -5,6 +5,7 @@ import {
   getInvestorDashboard,
   getNavSeries,
   getInvestorDistributions,
+  getInvestorQuarterNarrative,
 } from "@/features/investor-portal/investor-portal-queries";
 
 export const metadata = { title: "Quarter brief" };
@@ -20,10 +21,11 @@ function fmtUsd(minor: bigint): string {
 export default async function QuarterBriefPage() {
   const ctx = await getCurrentInvestorContext();
   if (!ctx) redirect("/dashboard/investors");
-  const [kpis, nav, dists] = await Promise.all([
+  const [kpis, nav, dists, narrative] = await Promise.all([
     getInvestorDashboard(ctx.investorId).catch(() => null),
     getNavSeries(ctx.investorId).catch(() => []),
     getInvestorDistributions(ctx.investorId).catch(() => []),
+    getInvestorQuarterNarrative(ctx.investorId).catch(() => null),
   ]);
   const latestNav = nav[nav.length - 1];
   const prevNav = nav.length >= 2 ? nav[nav.length - 2] : null;
@@ -101,24 +103,29 @@ export default async function QuarterBriefPage() {
         )}
       </section>
 
-      <Card style={{ padding: 20 }}>
-        <div className="label">Narrative</div>
-        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}>
-          Quarter highlights
-        </h2>
-        <div className="text-sm text-ink-secondary leading-relaxed space-y-3">
-          <p>
-            This brief is a placeholder narrative. The full quarterly authoring
-            workflow — operator writes per-quarter highlights and publishes to
-            investors — is coming soon. For now, your portal computes headline
-            numbers directly from the capital ledger and NAV snapshots above.
-          </p>
-          <p>
-            Construction milestone narrative, AI-generated portfolio commentary, and
-            comparative benchmarks will be added in upcoming releases.
-          </p>
-        </div>
-      </Card>
+      {narrative && narrative.notes.length > 0 && (
+        <Card style={{ padding: 20 }}>
+          <div className="label">Narrative</div>
+          <h2
+            className="display"
+            style={{ fontSize: 22, marginTop: 6, marginBottom: 14, fontWeight: 500 }}
+          >
+            Quarter highlights
+          </h2>
+          <div className="text-sm text-ink-secondary leading-relaxed space-y-4">
+            {narrative.notes.map((n, i) => (
+              <div key={i}>
+                {n.projectName && (
+                  <div className="text-[11px] font-medium uppercase tracking-[0.08em] text-ink-tertiary mb-1">
+                    {n.projectName}
+                  </div>
+                )}
+                <p className="whitespace-pre-line">{n.note}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ import { ReinvestRequestForm } from "@/components/investor-portal/reinvest-reque
 import { getDb } from "@/lib/db/client";
 import {
   capitalCommitments,
+  investors,
   investorWallets,
 } from "@/lib/db/schema/investor-capital";
 import { projects } from "@/lib/db/schema/projects";
@@ -55,10 +56,19 @@ export default async function ReinvestPage() {
     0n,
   );
 
+  // Scope target projects to the authenticated investor's organization
+  // (resolved server-side from the session, never a client value). The
+  // org is derived by joining projects to the investor's own record, so
+  // the picker can never surface another tenant's project names.
   const allProjects = db
     ? await db
         .select({ id: projects.id, name: projects.name })
         .from(projects)
+        .innerJoin(
+          investors,
+          eq(investors.organizationId, projects.organizationId),
+        )
+        .where(eq(investors.id, session.investorId))
     : [];
 
   return (

@@ -6,8 +6,8 @@ import { usePathname } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
 import { fieldNav } from "@/config/navigation";
 import { cn } from "@/lib/utils";
-import { Bell } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { FieldProfileMenu } from "@/components/field/field-profile-menu";
 import { ServiceWorkerRegister } from "@/components/development/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/development/pwa/install-prompt";
 import { OfflineIndicator } from "@/components/development/pwa/offline-indicator";
@@ -23,7 +23,19 @@ import { OfflineIndicator } from "@/components/development/pwa/offline-indicator
  * Touch target sizes reach the 44px+ thumb-zone minimum (header
  * buttons + bottom-nav links) per Stage 10.D mobile-primitives spec.
  */
-export function FieldShell({ children }: { children: React.ReactNode }) {
+export interface FieldProfile {
+  initials: string;
+  name: string | null;
+  email: string | null;
+}
+
+export function FieldShell({
+  children,
+  profile,
+}: {
+  children: React.ReactNode;
+  profile: FieldProfile;
+}) {
   const pathname = usePathname();
   return (
     <div className="min-h-screen bg-canvas flex flex-col">
@@ -33,18 +45,11 @@ export function FieldShell({ children }: { children: React.ReactNode }) {
           <Logo variant="mark" />
           <div className="flex items-center gap-2">
             <OfflineIndicator />
-            <button
-              aria-label="Notifications"
-              className="h-11 w-11 rounded-full border border-line-soft bg-surface hover:bg-muted inline-flex items-center justify-center text-ink-secondary"
-            >
-              <Bell className="w-4 h-4" strokeWidth={1.75} />
-            </button>
-            <button
-              aria-label="Profile"
-              className="h-11 w-11 rounded-full bg-ink text-ink-inverse text-xs font-medium inline-flex items-center justify-center"
-            >
-              SW
-            </button>
+            <FieldProfileMenu
+              initials={profile.initials}
+              name={profile.name}
+              email={profile.email}
+            />
           </div>
         </div>
       </header>

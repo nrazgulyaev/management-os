@@ -9,13 +9,14 @@ export function ItemCard({
   href,
 }: {
   item: InventoryItemRow;
-  href: string;
+  /**
+   * Omit `href` to render a non-navigable card (e.g. the field PWA, where
+   * a worker should NOT be bounced out into the desktop /dashboard view).
+   */
+  href?: string;
 }) {
-  return (
-    <Link
-      href={href}
-      className="group rounded-lg border border-line-soft bg-surface p-4 flex items-start justify-between gap-3 hover:border-line-strong transition-colors"
-    >
+  const body = (
+    <>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="font-mono text-[11px] text-ink-tertiary">
@@ -38,8 +39,27 @@ export function ItemCard({
           reorderPoint={item.reorderPoint}
           unit={item.unit}
         />
-        <ArrowUpRight className="w-4 h-4 text-ink-tertiary group-hover:text-ink" strokeWidth={1.75} />
+        {href && (
+          <ArrowUpRight className="w-4 h-4 text-ink-tertiary group-hover:text-ink" strokeWidth={1.75} />
+        )}
       </div>
+    </>
+  );
+
+  if (!href) {
+    return (
+      <div className="rounded-lg border border-line-soft bg-surface p-4 flex items-start justify-between gap-3">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Link
+      href={href}
+      className="group rounded-lg border border-line-soft bg-surface p-4 flex items-start justify-between gap-3 hover:border-line-strong transition-colors"
+    >
+      {body}
     </Link>
   );
 }

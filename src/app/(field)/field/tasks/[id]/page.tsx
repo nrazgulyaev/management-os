@@ -22,6 +22,7 @@ import {
   listTaskMaterialUsage,
 } from "@/features/inventory/services";
 import { getCurrentUserContext, hasPermission } from "@/features/auth/permissions";
+import { getCurrentAppUser } from "@/features/auth/current-user";
 import { getDb } from "@/lib/db/client";
 import { mapPoolAll } from "@/lib/db/map-pool";
 import { villas } from "@/lib/db/schema/projects";
@@ -63,6 +64,20 @@ export default async function FieldTaskDetail({
   if (!task) notFound();
 
   const ctx = await getCurrentUserContext();
+
+  // ENTITY-SCOPE (field): getOperationTaskById scopes by org only, so any
+  // org member could otherwise open another worker's task (internalNotes,
+  // checklist, photos) by guessing the id. In the field path a worker may
+  // only read a task assigned to THEM; supervisors / managers with
+  // operations.assign may read any task to triage. Demo/no-DB mode (no
+  // app_user, no real ids) stays open so the walkthrough still renders.
+  if (ctx.mode !== "demo" && task.source === "db") {
+    const me = await getCurrentAppUser();
+    const isSupervisor = hasPermission(ctx, "operations.assign");
+    const isAssignee = !!me && task.assignedTo === me.id;
+    if (!isSupervisor && !isAssignee) notFound();
+  }
+
   const canApprove = hasPermission(ctx, "operations.approve");
   const canManage = hasPermission(ctx, "operations.write");
   const canUpload = hasPermission(ctx, "attachments.write");

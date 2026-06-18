@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Printer } from "lucide-react";
-import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
+import { ArrowLeft } from "lucide-react";
 import { MarkdownBlock } from "@/components/stay/markdown-block";
+import { PrintButton } from "@/components/stay/print-button";
+import { RateLimitedView } from "@/components/stay/rate-limited";
+import { resolveGatedStay } from "@/features/guest-stays/gated-resolver";
 
 export const metadata = { title: "Stay · Offline page" };
 export const dynamic = "force-dynamic";
@@ -13,9 +15,15 @@ export default async function OfflinePage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await getGuestStaySummaryByToken(token);
-  if (!result.ok) notFound();
-  const { summary } = result;
+  const gated = await resolveGatedStay(token, {
+    eventType: "guide_opened",
+    section: "offline",
+  });
+  if (gated.kind === "rate_limited") {
+    return <RateLimitedView blockedUntil={gated.blockedUntil} />;
+  }
+  if (gated.kind === "unavailable") notFound();
+  const { summary } = gated;
   const villaLabel = summary.base.villaName ?? summary.base.villaCode ?? "Your villa";
   const checkInSection = summary.sections.find((s) => s.sectionKey === "check_in");
   const houseRulesSection = summary.sections.find((s) => s.sectionKey === "house_rules");
@@ -34,12 +42,7 @@ export default async function OfflinePage({
           >
             <ArrowLeft className="w-3.5 h-3.5" /> Stay home
           </Link>
-          <a
-            href="javascript:window.print()"
-            className="inline-flex items-center gap-1.5 text-xs text-ink hover:underline underline-offset-4"
-          >
-            <Printer className="w-3.5 h-3.5" /> Print or save as PDF
-          </a>
+          <PrintButton />
         </div>
 
         <header>

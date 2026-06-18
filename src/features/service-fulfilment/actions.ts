@@ -18,6 +18,7 @@ import {
   guestServices,
 } from "@/lib/db/schema/guest-services";
 import { recordAuditEvent } from "@/features/audit/services";
+import { uploadDocument } from "@/features/storage/storage-service";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
@@ -31,6 +32,7 @@ import {
   createFulfilmentSchema,
   createServiceVendorSchema,
   createVendorInvoiceSchema,
+  createVendorInvoiceFromTokenSchema,
   failFulfilmentSchema,
   flagRatingSchema,
   guestConfirmFulfilmentSchema,
@@ -1111,6 +1113,51 @@ async function fulfilmentFromToken(
   return { fulfilmentId: token.fulfilmentId, vendorId: token.vendorId };
 }
 
+/**
+ * Token-scoped resolution for a vendor write that needs to STAMP a row with
+ * the verified organization (e.g. minting an invoice / payout obligation).
+ * `fulfilmentFromToken` proves the token is live and binds it to its own
+ * fulfilment + vendor; here we additionally resolve the durable NOT-NULL
+ * org anchor (fulfilment → order → guest_services.organization_id) and the
+ * fulfilment currency — never trusting client-supplied org/currency. Returns
+ * null when the token is dead OR the fulfilment can't be org-anchored.
+ */
+async function invoiceScopeFromToken(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  rawToken: string,
+): Promise<{
+  fulfilmentId: string;
+  vendorId: string;
+  organizationId: string;
+  currency: string;
+} | null> {
+  const ctx = await fulfilmentFromToken(rawToken);
+  if (!ctx) return null;
+  const [row] = await db
+    .select({
+      organizationId: guestServices.organizationId,
+      currency: guestServiceFulfilments.currency,
+    })
+    .from(guestServiceFulfilments)
+    .innerJoin(
+      guestServiceOrders,
+      eq(guestServiceOrders.id, guestServiceFulfilments.orderId),
+    )
+    .innerJoin(
+      guestServices,
+      eq(guestServices.id, guestServiceOrders.serviceId),
+    )
+    .where(eq(guestServiceFulfilments.id, ctx.fulfilmentId))
+    .limit(1);
+  if (!row || !row.organizationId) return null;
+  return {
+    fulfilmentId: ctx.fulfilmentId,
+    vendorId: ctx.vendorId,
+    organizationId: row.organizationId,
+    currency: row.currency,
+  };
+}
+
 export async function vendorAcceptFulfilmentAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -1342,6 +1389,125 @@ export async function createVendorInvoiceAction(
   });
   revalidatePath("/dashboard/service-fulfilment/invoices");
   return { ok: true, id: row.id };
+}
+
+/**
+ * Token-scoped invoice submission for the external vendor portal.
+ *
+ * The vendor authenticates ONLY by their fulfilment link token — there is no
+ * app-user session — so this MUST NOT call requirePermission/requireOrgId
+ * (those throw for a token-only vendor). Instead it mirrors the other
+ * vendorXxx handlers: it derives organizationId + vendorId + fulfilmentId +
+ * currency from the token via `invoiceScopeFromToken`, never trusting any
+ * client-supplied scope. The token already binds the vendor to its own
+ * fulfilment, so a vendor can only invoice the fulfilment they were sent.
+ *
+ * Returns the created invoice id + number so the portal can show a real
+ * confirmation receipt to the external party.
+ */
+export async function createVendorInvoiceFromTokenAction(
+  _prev: (ActionResult & { id?: string; invoiceNumber?: string | null }) | null,
+  formData: FormData,
+): Promise<ActionResult & { id?: string; invoiceNumber?: string | null }> {
+  const parsed = createVendorInvoiceFromTokenSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const v = parsed.data;
+  // Resolve scope from the TOKEN, not the client. This proves the token is
+  // live and binds org/vendor/fulfilment/currency to the link the vendor was
+  // actually sent.
+  const scope = await invoiceScopeFromToken(db, v.token);
+  if (!scope) return { ok: false, error: "Token expired or revoked." };
+
+  // Optional invoice document. The vendor uploads the actual PDF/image; we
+  // persist it via the token-derived org (uploadDocument takes an explicit
+  // org and uses the storage admin client — no app-user session needed) and
+  // link it on the invoice via `documentId`. We upload BEFORE inserting the
+  // invoice so a storage failure never leaves an orphan invoice claiming a
+  // document that isn't there.
+  const file = formData.get("document");
+  let documentId: string | null = null;
+  if (file instanceof File && file.size > 0) {
+    const MAX_INVOICE_DOC_BYTES = 25 * 1024 * 1024; // matches storage ceiling
+    if (file.size > MAX_INVOICE_DOC_BYTES) {
+      return { ok: false, error: "Document is larger than 25 MB." };
+    }
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    const uploaded = await uploadDocument({
+      organizationId: scope.organizationId,
+      entityType: "supplier",
+      entityId: scope.vendorId,
+      documentType: "invoice",
+      title: v.invoiceNumber
+        ? `Vendor invoice ${v.invoiceNumber}`
+        : "Vendor invoice",
+      fileName: file.name || "invoice",
+      mimeType: file.type || "application/octet-stream",
+      bytes,
+      visibility: "operator_only",
+    });
+    if (!uploaded.ok || !uploaded.documentId) {
+      return {
+        ok: false,
+        error:
+          uploaded.error ??
+          "Could not store the uploaded document — please try again.",
+      };
+    }
+    documentId = uploaded.documentId;
+  }
+
+  const [row] = await db
+    .insert(serviceVendorInvoices)
+    .values({
+      organizationId: scope.organizationId,
+      fulfilmentId: scope.fulfilmentId,
+      vendorId: scope.vendorId,
+      invoiceNumber: v.invoiceNumber ?? null,
+      invoiceStatus: "received",
+      amountMinor: BigInt(v.amountMinor),
+      currency: scope.currency,
+      invoiceDate: v.invoiceDate ?? null,
+      dueDate: v.dueDate ?? null,
+      documentId,
+      notes: v.notes ?? null,
+    })
+    .returning({
+      id: serviceVendorInvoices.id,
+      invoiceNumber: serviceVendorInvoices.invoiceNumber,
+    });
+  if (!row) return { ok: false, error: "Submission failed." };
+  await appendEvent(db, scope.fulfilmentId, {
+    eventType: "invoice_received",
+    actorType: "vendor",
+    vendorId: scope.vendorId,
+    title: `Invoice received${v.invoiceNumber ? ` · ${v.invoiceNumber}` : ""}`,
+    metadataJson: {
+      amountMinor: v.amountMinor,
+      currency: scope.currency,
+      hasDocument: documentId !== null,
+    },
+  });
+  const [vendor] = await db
+    .select({ name: serviceVendors.displayName })
+    .from(serviceVendors)
+    .where(eq(serviceVendors.id, scope.vendorId))
+    .limit(1);
+  await notifyVendorInvoiceReceived({
+    invoiceId: row.id,
+    fulfilmentCode: await fulfilmentCodeOf(db, scope.fulfilmentId),
+    vendorName: vendor?.name ?? "vendor",
+  });
+  revalidatePath("/dashboard/service-fulfilment/invoices");
+  return { ok: true, id: row.id, invoiceNumber: row.invoiceNumber };
 }
 
 async function setInvoiceStatus(

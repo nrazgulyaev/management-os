@@ -1,6 +1,5 @@
-import { headers } from "next/headers";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { StayShell } from "@/components/layout/stay-shell";
 import { GuestShell } from "@/components/layout/guest-shell";
 import {
@@ -22,11 +21,7 @@ import {
   Inbox,
   ChevronRight,
 } from "lucide-react";
-import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
-import { recordStayAccessEvent } from "@/features/guest-stays/access-log";
-import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
-import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
-import { hashStayToken } from "@/features/guest-stays/token";
+import { resolveGatedStay } from "@/features/guest-stays/gated-resolver";
 import { RateLimitedView } from "@/components/stay/rate-limited";
 import { listGuestVisibleSuggestionsForToken } from "@/features/guest-journey/services";
 import {
@@ -45,48 +40,19 @@ export default async function StayHome({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const hdrs = await headers();
-  const ua = hdrs.get("user-agent") ?? null;
-  const ip = hdrs.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
 
-  // Rate limit before doing any DB work for the resolver.
-  const tokenPrefix = token.slice(0, 8);
-  const rl = await rateLimitStayTokenAccess({ tokenPrefix, ip });
-  if (!rl.allowed) {
-    return <RateLimitedView blockedUntil={rl.blockedUntil.toISOString()} />;
+  // Shared 3-block gate (rate-limit → verification redirect → resolve +
+  // access-log). Factored into resolveGatedStay so every /stay/[token]
+  // content page applies the SAME protection without drift.
+  const gated = await resolveGatedStay(token, { eventType: "opened" });
+  if (gated.kind === "rate_limited") {
+    return <RateLimitedView blockedUntil={gated.blockedUntil} />;
+  }
+  if (gated.kind === "unavailable") {
+    return <StayUnavailable reason={gated.reason} />;
   }
 
-  // Verification gate (v9G). The resolver still runs first to flip
-  // status=expired etc; if access is fine, we redirect into /verify.
-  const tokenHash = hashStayToken(token);
-  const access = await canAccessStayWithoutVerification({ tokenHash });
-  if (!access.allowed) {
-    redirect(`/stay/${token}/verify`);
-  }
-
-  const result = await getGuestStaySummaryByToken(token);
-  if (!result.ok) {
-    await recordStayAccessEvent({
-      eventType:
-        result.reason === "expired"
-          ? "expired_token"
-          : result.reason === "revoked"
-            ? "revoked_token"
-            : "invalid_token",
-      ip,
-      userAgent: ua,
-    });
-    return <StayUnavailable reason={result.reason} />;
-  }
-
-  const { summary } = result;
-  await recordStayAccessEvent({
-    guestStayTokenId: summary.base.tokenId,
-    bookingId: summary.base.bookingId,
-    eventType: "opened",
-    ip,
-    userAgent: ua,
-  });
+  const { summary } = gated;
 
   const dateRange = `${summary.base.checkIn} → ${summary.base.checkOut} · ${summary.base.nights} nights`;
   const villaLabel = summary.base.villaName ?? summary.base.villaCode ?? "Your villa";
@@ -246,11 +212,6 @@ export default async function StayHome({
                 time={`${summary.base.checkIn} · 15:00`}
                 title="Check-in"
                 detail="The villa is ready by 14:00. Your manager meets you at the gate."
-              />
-              <TimelineItem
-                time="Morning"
-                title="Breakfast on the terrace"
-                detail="Included. The chef confirms the menu the evening before."
               />
               <TimelineItem
                 time={`${summary.base.checkOut} · 11:00`}
