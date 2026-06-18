@@ -6,6 +6,7 @@ import {
   CreditCard,
   Folder,
   FileSignature,
+  ShieldCheck,
 } from "lucide-react";
 import { SignOutButton } from "@/components/auth/sign-out-button";
 
@@ -30,6 +31,7 @@ export function BuyerShell({
     { href: "/buyer-portal/payments", label: "Payments", Icon: CreditCard },
     { href: "/buyer-portal/contract", label: "Contract", Icon: FileSignature },
     { href: "/buyer-portal/documents", label: "Documents", Icon: Folder },
+    { href: "/buyer-portal/kyc", label: "Verification", Icon: ShieldCheck },
   ];
   return (
     <div className="min-h-screen flex flex-col">

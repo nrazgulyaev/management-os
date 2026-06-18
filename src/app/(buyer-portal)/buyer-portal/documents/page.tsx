@@ -61,10 +61,10 @@ export default async function BuyerDocumentsPage() {
   return (
     <BuyerShell buyerName={buyer.displayName} buyerCode={buyer.buyerCode}>
       <section>
-        <h2 className="font-display text-2xl tracking-wide text-stone-900 mb-1">
+        <h2 className="font-display text-2xl tracking-wide text-ink mb-1">
           Documents
         </h2>
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-secondary">
           {totalCount === 0
             ? "Documents shared with you appear here — your contract, plans and renders, permits, and payment receipts."
             : `${totalCount} document${totalCount === 1 ? "" : "s"} on file across your villa${
@@ -74,7 +74,7 @@ export default async function BuyerDocumentsPage() {
       </section>
 
       {groups.length === 0 ? (
-        <div className="rounded-lg border border-stone-300 bg-white p-6 text-sm text-stone-600">
+        <div className="rounded-lg border border-line-soft bg-surface p-6 text-sm text-ink-secondary">
           Nothing shared yet. Your contract, architectural plans, building
           permits, and payment receipts appear here as soon as our team uploads
           them.
@@ -86,21 +86,21 @@ export default async function BuyerDocumentsPage() {
             return (
               <section
                 key={group.key}
-                className="rounded-lg border border-stone-300 bg-white"
+                className="rounded-lg border border-line-soft bg-surface"
               >
-                <header className="flex items-center gap-3 border-b border-stone-200 px-5 py-4">
+                <header className="flex items-center gap-3 border-b border-line-soft px-5 py-4">
                   <GroupIcon
-                    className="w-5 h-5 text-stone-700"
+                    className="w-5 h-5 text-ink-secondary"
                     strokeWidth={1.5}
                   />
                   <div>
-                    <h3 className="font-display text-lg tracking-wide text-stone-900">
+                    <h3 className="font-display text-lg tracking-wide text-ink">
                       {group.title}
                     </h3>
-                    <p className="text-xs text-stone-500">{group.helper}</p>
+                    <p className="text-xs text-ink-tertiary">{group.helper}</p>
                   </div>
                 </header>
-                <ul className="divide-y divide-stone-200">
+                <ul className="divide-y divide-line-soft">
                   {group.documents.map((doc) => {
                     const Icon = fileIconFor(doc.documentType, doc.mimeType);
                     return (
@@ -109,17 +109,17 @@ export default async function BuyerDocumentsPage() {
                         className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-stone-100">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-muted">
                             <Icon
-                              className="h-4 w-4 text-stone-600"
+                              className="h-4 w-4 text-ink-secondary"
                               strokeWidth={1.75}
                             />
                           </span>
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-medium text-stone-900">
+                            <div className="truncate text-sm font-medium text-ink">
                               {doc.title}
                             </div>
-                            <div className="mt-0.5 text-xs text-stone-500">
+                            <div className="mt-0.5 text-xs text-ink-tertiary">
                               {formatFileSize(doc.sizeBytes)}
                               {" · "}
                               {doc.createdAt.toISOString().slice(0, 10)}
@@ -130,14 +130,14 @@ export default async function BuyerDocumentsPage() {
                         {doc.downloadUrl ? (
                           <a
                             href={doc.downloadUrl}
-                            className="inline-flex items-center gap-1.5 rounded border border-stone-300 px-3 py-1.5 text-sm text-stone-700 transition hover:bg-stone-100"
+                            className="inline-flex items-center gap-1.5 rounded border border-line-soft px-3 py-1.5 text-sm text-ink-secondary transition hover:bg-muted"
                             rel="noopener noreferrer"
                           >
                             <Download className="h-4 w-4" strokeWidth={1.75} />
                             Download
                           </a>
                         ) : (
-                          <span className="text-xs italic text-stone-400">
+                          <span className="text-xs italic text-ink-tertiary">
                             No file attached
                           </span>
                         )}
@@ -151,7 +151,7 @@ export default async function BuyerDocumentsPage() {
         </div>
       )}
 
-      <p className="text-xs text-stone-400">
+      <p className="text-xs text-ink-tertiary">
         Looking for your payment schedule? Open the Payments page. Download links
         are private to your account and expire after one hour.
       </p>

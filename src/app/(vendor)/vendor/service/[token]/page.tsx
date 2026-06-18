@@ -170,17 +170,17 @@ export default async function VendorPortalPage({
           {view.guest.note && (
             <p className="text-sm text-ink-secondary">{view.guest.note}</p>
           )}
-          {view.guest.phone && (
-            <p className="mt-2 text-xs text-ink-tertiary">
-              Guest phone: {view.guest.phone}
-            </p>
-          )}
-          {!view.guest.phone && (
-            <p className="mt-2 text-xs text-ink-tertiary">
-              Guest contact is not shared by default — message the concierge if
-              you need it.
-            </p>
-          )}
+          {/*
+            Guest contact is deliberately withheld from the vendor portal:
+            the vendor-safe projection drops the phone unless an operator
+            explicitly opts a fulfilment in, and no such opt-in is exposed
+            here. So we always render the honest "ask the concierge" state
+            rather than a block that can never fire.
+          */}
+          <p className="mt-2 text-xs text-ink-tertiary">
+            Guest contact is not shared by default — message the concierge if
+            you need it.
+          </p>
         </Section>
 
         {showActions && (

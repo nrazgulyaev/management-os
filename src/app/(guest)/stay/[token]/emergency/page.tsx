@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { StayShell } from "@/components/layout/stay-shell";
 import { StayHeader } from "@/components/stay/stay-ui";
 import { Phone, Mail, ShieldAlert } from "lucide-react";
-import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
+import { RateLimitedView } from "@/components/stay/rate-limited";
+import { resolveGatedStay } from "@/features/guest-stays/gated-resolver";
 
 export const metadata = { title: "Emergency contacts" };
 export const dynamic = "force-dynamic";
@@ -13,9 +14,15 @@ export default async function EmergencyPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const result = await getGuestStaySummaryByToken(token);
-  if (!result.ok) notFound();
-  const { summary } = result;
+  const gated = await resolveGatedStay(token, {
+    eventType: "guide_opened",
+    section: "emergency",
+  });
+  if (gated.kind === "rate_limited") {
+    return <RateLimitedView blockedUntil={gated.blockedUntil} />;
+  }
+  if (gated.kind === "unavailable") notFound();
+  const { summary } = gated;
   const villaLabel = summary.base.villaName ?? summary.base.villaCode ?? "Your villa";
   // Lead contact (the villa manager) headlines the emergency banner; the
   // rest list below it.

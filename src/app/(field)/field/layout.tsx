@@ -28,11 +28,24 @@ import { ServiceTemporarilyUnavailable } from "@/components/system/service-tempo
 
 export const dynamic = "force-dynamic";
 
+function initialsFrom(name: string | null, email: string | null): string {
+  const source = (name ?? "").trim();
+  if (source) {
+    const parts = source.split(/\s+/).filter(Boolean);
+    const letters = parts.slice(0, 2).map((p) => p[0]!.toUpperCase());
+    if (letters.length > 0) return letters.join("");
+  }
+  const e = (email ?? "").trim();
+  return e ? e[0]!.toUpperCase() : "?";
+}
+
 export default async function FieldLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  let name: string | null = null;
+  let email: string | null = null;
   try {
     const ctx = await getCurrentUserContext();
     // Demo / unconfigured-DB mode stays open so the platform is browsable.
@@ -42,10 +55,15 @@ export default async function FieldLayout({
       }
       await enforceProductAccess("mgmt");
     }
+    if (ctx.appUser) {
+      name = ctx.appUser.fullName ?? null;
+      email = ctx.appUser.email ?? null;
+    }
   } catch (err) {
     if (isRedirectError(err)) throw err; // intentional redirect — preserve
     console.error("[layout/field] auth gate threw:", err);
     return <ServiceTemporarilyUnavailable area="mgmt" />;
   }
-  return <FieldShell>{children}</FieldShell>;
+  const profile = { initials: initialsFrom(name, email), name, email };
+  return <FieldShell profile={profile}>{children}</FieldShell>;
 }

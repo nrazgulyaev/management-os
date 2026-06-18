@@ -71,10 +71,12 @@ export default async function OwnerVillaDetailPage({
         location={villa.location}
         feat={
           villa.bedrooms > 0
-            ? `A ${villa.bedrooms}-bedroom retreat with ${villa.amenities
-                .slice(0, 3)
-                .join(", ")
-                .toLowerCase()}.`
+            ? villa.amenities.length > 0
+              ? `A ${villa.bedrooms}-bedroom retreat with ${villa.amenities
+                  .slice(0, 3)
+                  .join(", ")
+                  .toLowerCase()}.`
+              : `A ${villa.bedrooms}-bedroom retreat.`
             : undefined
         }
         amenities={villa.amenities}
@@ -96,15 +98,17 @@ export default async function OwnerVillaDetailPage({
       )}
 
       <div className="villa-perf-row">
-        <section className="villa-panel">
-          <div className="villa-panel-head">
-            <h2 className="vp-title">Occupancy · last 6 months</h2>
-            {ytdStats.occupancyPct > 0 && (
-              <span className="vp-meta">{ytdStats.occupancyPct}% AVG</span>
-            )}
-          </div>
-          <OccupancyBars bars={monthlyStats.map((m) => ({ label: m.monthLabel, pct: m.occupancyPct }))} />
-        </section>
+        {monthlyStats.length > 0 && (
+          <section className="villa-panel">
+            <div className="villa-panel-head">
+              <h2 className="vp-title">Occupancy · last 6 months</h2>
+              {ytdStats.occupancyPct > 0 && (
+                <span className="vp-meta">{ytdStats.occupancyPct}% AVG</span>
+              )}
+            </div>
+            <OccupancyBars bars={monthlyStats.map((m) => ({ label: m.monthLabel, pct: m.occupancyPct }))} />
+          </section>
+        )}
 
         <section className="villa-panel">
           <div className="villa-panel-head">

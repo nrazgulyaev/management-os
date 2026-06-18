@@ -54,71 +54,85 @@ export default async function PortalForecastsPage() {
   const analytics = fund?.analytics ?? null;
   const hasAnalytics = !!analytics && !analytics.isEmpty;
 
-  // --- XIRR curve series -----------------------------------------------
-  // Realised: the LP's current Net IRR (from the canonical XIRR engine)
-  // anchors the last actual point; we ramp earlier quarters toward it so
-  // the curve reads as a realised path (presentational ramp only — the
-  // terminal value is the real computed Net IRR). Projection: the base /
-  // exit-scenario IRRs the assumptions imply.
-  const netIrrPct =
-    hasAnalytics && analytics!.netIrr !== null
-      ? analytics!.netIrr * 100
-      : null;
-  const baseExitIrr = netIrrPct !== null ? Math.max(netIrrPct + 1.2, netIrrPct) : 19.6;
+  // --- Realised figures (canonical XIRR engine) ------------------------
+  // Net IRR / MOIC are the LP's REAL computed figures. No fabricated
+  // fallbacks: when the LP has no contribution history yet, these are
+  // null/0 and the surface renders an honest empty-state instead of
+  // inventing return numbers.
+  const netIrr = hasAnalytics ? analytics!.netIrr : null;
+  const netIrrPct = netIrr !== null ? netIrr * 100 : null;
   const moicNow = hasAnalytics ? analytics!.moic : 0;
-  const projMoic = moicNow > 0 ? Math.max(moicNow * 1.15, moicNow) : 1.68;
+  const dpiNow = hasAnalytics ? analytics!.dpi : 0;
+  const targetIrr = analytics?.targetIrr ?? 0.08;
 
+  // --- XIRR curve ------------------------------------------------------
+  // We plot ONLY real points. The analytics engine computes a single
+  // point-in-time Net IRR (not a quarterly history), so the realised
+  // series is that one anchor point. No invented ramp, no fabricated
+  // exit-IRR projection — when there is no IRR yet the chart shows its
+  // built-in "not enough history" empty state.
   const actualCurve: XirrCurvePoint[] =
     netIrrPct !== null
-      ? [0.25, 0.5, 0.72, 0.88, 1].map((f, i) => ({
-          label: ["", "", "", "", "Now"][i] || "·",
-          valuePct: Number((netIrrPct * f).toFixed(1)),
-        }))
+      ? [{ label: "Net IRR now", valuePct: Number(netIrrPct.toFixed(1)) }]
       : [];
 
-  const projectedCurve: XirrCurvePoint[] = result.forecast.quarters.map(
-    (q, i) => ({
-      label: `Q${q.quarter} ${String(q.year).slice(2)}`,
-      valuePct: Number(
-        (
-          (netIrrPct ?? 18.4) +
-          ((baseExitIrr - (netIrrPct ?? 18.4)) * (i + 1)) /
-            Math.max(1, result.forecast.quarters.length)
-        ).toFixed(1),
-      ),
-    }),
-  );
+  // --- Illustrative sensitivity bands ----------------------------------
+  // There is no operator-authored exit-scenario engine for the LP yet.
+  // Rather than present invented IRR/MOIC as fund scenarios, we derive a
+  // clearly-labelled ±illustrative sensitivity around the LP's REAL
+  // current Net IRR / MOIC. Bar widths are proportional to each band's
+  // IRR relative to the upside (not arbitrary). Shown only when real
+  // analytics exist.
+  const SENSITIVITY = 0.25; // ±25% illustrative band around realised IRR
+  const scenarios =
+    hasAnalytics && netIrrPct !== null
+      ? (() => {
+          const up = netIrrPct * (1 + SENSITIVITY);
+          const base = netIrrPct;
+          const down = Math.max(netIrrPct * (1 - SENSITIVITY), 0);
+          const maxIrr = Math.max(up, 1);
+          return [
+            {
+              name: "Upside",
+              irr: pct(up / 100),
+              moic: multiple(moicNow * (1 + SENSITIVITY)),
+              barClass: "bg-ok",
+              width: Math.round((up / maxIrr) * 100),
+            },
+            {
+              name: "Base (realised)",
+              irr: pct(base / 100),
+              moic: multiple(moicNow),
+              barClass: "bg-amber",
+              width: Math.round((base / maxIrr) * 100),
+            },
+            {
+              name: "Downside",
+              irr: pct(down / 100),
+              moic: multiple(Math.max(moicNow * (1 - SENSITIVITY), 1)),
+              barClass: "bg-warning",
+              width: Math.round((down / maxIrr) * 100),
+            },
+          ];
+        })()
+      : [];
 
-  const scenarios = [
-    {
-      name: "Upside",
-      irr: pct(netIrrPct !== null ? (netIrrPct + 5.2) / 100 : 0.248),
-      moic: multiple(projMoic * 1.14),
-      barClass: "bg-ok",
-      width: 92,
-    },
-    {
-      name: "Base",
-      irr: pct(baseExitIrr / 100),
-      moic: multiple(projMoic),
-      barClass: "bg-amber",
-      width: 72,
-    },
-    {
-      name: "Downside",
-      irr: pct(netIrrPct !== null ? Math.max(netIrrPct - 8, 0) / 100 : 0.112),
-      moic: multiple(Math.max(projMoic * 0.8, 1.1)),
-      barClass: "bg-warning",
-      width: 46,
-    },
-  ];
-
-  const assumptions: Array<[string, string]> = [
-    ["Sales pace", "Base case · 4 villas / quarter"],
-    ["Average price", "$520K per villa"],
-    ["Cost of goods", "Within BOQ +6% reserve"],
-    ["Exit", "Portfolio sale 2027–28"],
-  ];
+  // --- Forecast basis ---------------------------------------------------
+  // Real, LP-specific inputs the forecast actually rests on — replaces
+  // the previously hardcoded sales-pace / price / cost assumptions that
+  // were never sourced from this LP's data.
+  const basis: Array<[string, string]> = hasAnalytics
+    ? [
+        ["Contributed", formatUsdMinor(analytics!.contributedMinor)],
+        ["Distributed", formatUsdMinor(analytics!.distributedMinor)],
+        ["Residual NAV", formatUsdMinor(analytics!.residualNavMinor)],
+        ["Target hurdle", pct(targetIrr)],
+        [
+          "Completed distributions",
+          String(result.completedCount),
+        ],
+      ]
+    : [];
 
   return (
     <PortalShell
@@ -136,7 +150,7 @@ export default async function PortalForecastsPage() {
           Back
         </Link>
 
-        {/* Page header — eyebrow + display title + scenario toggle */}
+        {/* Page header — eyebrow + display title */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <div className="label">Forecasts</div>
@@ -144,111 +158,125 @@ export default async function PortalForecastsPage() {
               Return forecast
             </h1>
             <p className="mt-1 text-[13.5px] text-ink-tertiary">
-              XIRR by scenario over the next{" "}
-              {result.forecast.quarters.length} quarters · exit horizon
-              2027–2028
+              Your realised Net IRR / MOIC and a rolling-average
+              distribution forecast over the next{" "}
+              {result.forecast.quarters.length} quarters
             </p>
           </div>
-          <div className="inline-flex gap-0.5 rounded-[8px] border border-line-strong bg-canvas p-[3px]">
-            <span className="rounded-[6px] bg-surface px-3.5 py-[7px] text-[12.5px] font-semibold text-ink shadow-soft-card">
-              Base
-            </span>
-            <span className="rounded-[6px] px-3.5 py-[7px] text-[12.5px] font-semibold text-ink-tertiary">
-              Upside
-            </span>
-            <span className="rounded-[6px] px-3.5 py-[7px] text-[12.5px] font-semibold text-ink-tertiary">
-              Downside
-            </span>
-          </div>
         </div>
 
-        {/* KPI row — base Net IRR · amber MOIC · horizon (mock kpi/kpiAmber/kpi) */}
+        {/* KPI row — realised Net IRR · MOIC · DPI (all from the canonical
+            XIRR engine; honest "—" when there is no contribution history). */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <PortalKpi
-            label="Base Net IRR"
-            value={pct(baseExitIrr / 100)}
-            hint="at exit"
+            label="Net IRR"
+            value={netIrrPct !== null ? pct(netIrr) : "—"}
+            hint="realised, to date"
           />
           <PortalKpi
-            label="Forecast MOIC"
-            value={multiple(projMoic)}
-            hint="base scenario"
+            label="MOIC"
+            value={hasAnalytics ? multiple(moicNow) : "—"}
+            hint="total value ÷ paid-in"
             tone="amber"
           />
-          <PortalKpi label="Horizon" value="~22 mo" hint="median exit" />
+          <PortalKpi
+            label="DPI"
+            value={hasAnalytics ? multiple(dpiNow) : "—"}
+            hint="distributed ÷ paid-in"
+          />
         </div>
 
-        {/* XIRR curve card */}
+        {/* XIRR curve card — plots the LP's REAL current Net IRR. No
+            fabricated ramp or projection line. */}
         <section className="rounded-[18px] border border-line bg-panel p-[22px] shadow-soft-card">
           <div className="mb-3.5 flex items-baseline justify-between">
             <h3 className="font-display text-[17px] font-medium tracking-[-0.01em] text-ink">
-              XIRR curve · by quarter
+              Realised Net IRR
             </h3>
-            <div className="flex items-center gap-4 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-tertiary">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-[3px] w-4 rounded-full bg-amber" />
-                Realised
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-[3px] w-4 rounded-full border-t-2 border-dashed border-amber-deep" />
-                Projection
-              </span>
-            </div>
+            <span className="flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.1em] text-ink-tertiary">
+              <span className="inline-block h-[3px] w-4 rounded-full bg-amber" />
+              Realised
+            </span>
           </div>
-          <XirrCurveChart
-            actual={actualCurve}
-            projected={projectedCurve}
-            tall
-          />
+          <XirrCurveChart actual={actualCurve} tall />
         </section>
 
-        {/* Exit scenarios + assumptions */}
+        {/* Illustrative sensitivity + real forecast basis */}
         <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
           <section className="rounded-[18px] border border-line bg-panel p-[22px] shadow-soft-card">
-            <h3 className="mb-3.5 font-display text-[17px] font-medium tracking-[-0.01em] text-ink">
-              Exit scenarios
-            </h3>
-            {scenarios.map((s) => (
-              <div
-                key={s.name}
-                className="border-b border-line-soft py-3 last:border-b-0"
-              >
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="text-sm font-semibold text-ink">
-                    {s.name}
-                  </span>
-                  <span className="font-mono text-[13px] tabular-nums text-ink-secondary">
-                    IRR {s.irr} · {s.moic}
-                  </span>
-                </div>
-                <div className="h-[7px] overflow-hidden rounded-[4px] bg-line-soft">
+            <div className="mb-3.5 flex items-baseline justify-between gap-3">
+              <h3 className="font-display text-[17px] font-medium tracking-[-0.01em] text-ink">
+                Illustrative sensitivity
+              </h3>
+              <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 font-mono text-[9.5px] uppercase tracking-[0.08em] text-ink-tertiary">
+                Illustrative
+              </span>
+            </div>
+            {scenarios.length === 0 ? (
+              <p className="py-2 text-[13px] text-ink-tertiary">
+                A sensitivity band appears once you have realised return
+                figures — typically after your first completed
+                distribution.
+              </p>
+            ) : (
+              <>
+                {scenarios.map((s) => (
                   <div
-                    className={`h-full rounded-[4px] ${s.barClass}`}
-                    style={{ width: `${s.width}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+                    key={s.name}
+                    className="border-b border-line-soft py-3 last:border-b-0"
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-3">
+                      <span className="text-sm font-semibold text-ink">
+                        {s.name}
+                      </span>
+                      <span className="font-mono text-[13px] tabular-nums text-ink-secondary">
+                        IRR {s.irr} · {s.moic}
+                      </span>
+                    </div>
+                    <div className="h-[7px] overflow-hidden rounded-[4px] bg-line-soft">
+                      <div
+                        className={`h-full rounded-[4px] ${s.barClass}`}
+                        style={{ width: `${s.width}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+                <p className="mt-3 text-[11.5px] leading-relaxed text-ink-tertiary">
+                  Upside / downside are a ±25% illustrative band around
+                  your realised Net IRR / MOIC — not an operator forecast
+                  or a guarantee.
+                </p>
+              </>
+            )}
           </section>
 
           <section className="rounded-[18px] border border-line bg-panel p-[22px] shadow-soft-card">
             <h3 className="mb-3.5 font-display text-[17px] font-medium tracking-[-0.01em] text-ink">
-              Assumptions
+              Forecast basis
             </h3>
-            {assumptions.map(([label, value]) => (
-              <div
-                key={label}
-                className="flex items-center justify-between gap-3 border-b border-line-soft py-[9px]"
-              >
-                <span className="text-[13px] text-ink-tertiary">{label}</span>
-                <span className="text-[13px] font-semibold text-ink-secondary">
-                  {value}
-                </span>
-              </div>
-            ))}
+            {basis.length === 0 ? (
+              <p className="py-2 text-[13px] text-ink-tertiary">
+                Your forecast basis appears once your first capital call is
+                received.
+              </p>
+            ) : (
+              basis.map(([label, value]) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between gap-3 border-b border-line-soft py-[9px] last:border-b-0"
+                >
+                  <span className="text-[13px] text-ink-tertiary">
+                    {label}
+                  </span>
+                  <span className="font-mono text-[13px] tabular-nums font-semibold text-ink-secondary">
+                    {value}
+                  </span>
+                </div>
+              ))
+            )}
             <div className="mt-3.5 flex items-center justify-between gap-3">
               <span className="text-[12px] text-ink-tertiary">
-                Model updated
+                As of
               </span>
               <span className="font-mono text-[12px] tabular-nums text-ink-secondary">
                 {new Date(result.asOf).toISOString().slice(0, 10)}
@@ -312,12 +340,15 @@ export default async function PortalForecastsPage() {
         </section>
 
         <p className="text-[12px] leading-relaxed text-ink-tertiary">
-          As of {new Date(result.asOf).toISOString().slice(0, 10)}. The forecast
-          uses a rolling average over your completed distributions; with ≥4
-          completed distributions, the highest and lowest are dropped before
-          averaging to reduce surprise. Exit-scenario IRR / MOIC are indicative
-          and depend on project performance, capital-return priority and
-          Director discretion. This is not a guarantee.
+          As of {new Date(result.asOf).toISOString().slice(0, 10)}. Net IRR,
+          MOIC and DPI are computed from your actual dated cashflows. The
+          distribution forecast uses a rolling average over your completed
+          distributions; with ≥4 completed distributions, the highest and
+          lowest are dropped before averaging to reduce surprise. The
+          illustrative sensitivity band is a ±25% range around your realised
+          figures, not an operator projection — it depends on project
+          performance, capital-return priority and Director discretion, and is
+          not a guarantee.
         </p>
       </div>
     </PortalShell>
