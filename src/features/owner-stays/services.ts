@@ -67,20 +67,14 @@ export async function listOwnerStayPolicies(opts?: {
 }): Promise<OwnerStayPolicyRow[]> {
   const db = getDb();
   if (!db) return [];
-  // TENANCY — policies have no org column. Scope through their parents: a policy
-  // resolves to an org via its project (project_id) OR via its villa's project
-  // (villa_id -> villas.project_id). policyProjectId/villaId are both nullable
-  // (global policies), so also allow rows that reference neither. The villa's
-  // project is reached via an aliased join (villas has no org column).
+  // TENANCY (migration 0185) — policies now carry organization_id (backfilled
+  // from villa→project / project, default-org for global rows), so filter on it
+  // directly. This closes the prior cross-tenant leak where global (null-FK)
+  // policies were returned to every org. The villa-project join is kept only for
+  // the villaCode/projectName select columns.
   const organizationId = await requireOrgId();
   const villaProj = alias(projectsTable, "villa_proj");
-  const filters = [
-    or(
-      eq(projectsTable.organizationId, organizationId),
-      eq(villaProj.organizationId, organizationId),
-      and(isNull(ownerStayPolicies.projectId), isNull(ownerStayPolicies.villaId)),
-    ),
-  ];
+  const filters = [eq(ownerStayPolicies.organizationId, organizationId)];
   if (opts?.projectId)
     filters.push(eq(ownerStayPolicies.projectId, opts.projectId));
   if (opts?.villaId)
@@ -155,14 +149,9 @@ export async function getApplicableOwnerStayPolicy(
       .where(
         and(
           eq(ownerStayPolicies.status, "active"),
-          or(
-            eq(projectsTable.organizationId, villaOrgId),
-            eq(villaProj.organizationId, villaOrgId),
-            and(
-              isNull(ownerStayPolicies.projectId),
-              isNull(ownerStayPolicies.villaId),
-            ),
-          ),
+          // 0185: policies carry org now — scope to the villa's org (covers
+          // project-/villa-anchored AND global rows, all org-stamped).
+          eq(ownerStayPolicies.organizationId, villaOrgId),
         ),
       );
     return pickApplicablePolicy(
@@ -195,10 +184,12 @@ export async function getApplicableOwnerStayPolicy(
       projectId,
     );
   }
-  const rows = await db
-    .select()
-    .from(ownerStayPolicies)
-    .where(and(...filters));
+  // villaOrgId could not be resolved (villa missing / no org) — there is no org
+  // to scope to, so no policy applies. Returning null here closes the prior
+  // leak where this branch scanned EVERY org's active policies. (filters is
+  // status-only and intentionally unused now.)
+  void filters;
+  const rows: (typeof ownerStayPolicies.$inferSelect)[] = [];
   return pickApplicablePolicy(
     rows.map((r) => ({
       id: r.id,
@@ -779,12 +770,9 @@ export async function listEquivalenceGroups() {
     })
     .from(villaEquivalenceGroups)
     .leftJoin(projectsTable, eq(projectsTable.id, villaEquivalenceGroups.projectId))
-    .where(
-      or(
-        eq(projectsTable.organizationId, organizationId),
-        isNull(villaEquivalenceGroups.projectId),
-      ),
-    )
+    // 0185: groups carry org now — scope on it directly (covers project-anchored
+    // AND global rows). Closes the prior leak where null-project groups were global.
+    .where(eq(villaEquivalenceGroups.organizationId, organizationId))
     .orderBy(asc(villaEquivalenceGroups.name));
   return groups.map((g) => ({
     id: g.g.id,
@@ -820,10 +808,8 @@ export async function listEquivalenceMembers(groupId: string) {
     .where(
       and(
         eq(villaEquivalenceGroupMembers.groupId, groupId),
-        or(
-          eq(projectsTable.organizationId, organizationId),
-          isNull(villaEquivalenceGroups.projectId),
-        ),
+        // 0185: scope the parent group by its own org column.
+        eq(villaEquivalenceGroups.organizationId, organizationId),
       ),
     )
     .orderBy(asc(villaEquivalenceGroupMembers.qualityRank));

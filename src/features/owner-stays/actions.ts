@@ -123,6 +123,7 @@ export async function createOwnerStayPolicyAction(
   const [row] = await db
     .insert(ownerStayPolicies)
     .values({
+      organizationId, // 0185 — stamp org so global (null-FK) policies are tenant-scoped
       policyName: parsed.data.policyName,
       projectId: parsed.data.projectId ?? null,
       villaId: parsed.data.villaId ?? null,
@@ -183,10 +184,8 @@ export async function archiveOwnerStayPolicyAction(
     .where(
       and(
         eq(ownerStayPolicies.id, parsed.data.id),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(ownerStayPolicies.projectId),
-        ),
+        // 0185: scope by the policy's own org column (covers global rows too).
+        eq(ownerStayPolicies.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -244,10 +243,8 @@ export async function updateOwnerStayPolicyAction(
     .where(
       and(
         eq(ownerStayPolicies.id, id),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(ownerStayPolicies.projectId),
-        ),
+        // 0185: scope by the policy's own org column (covers global rows too).
+        eq(ownerStayPolicies.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -771,6 +768,7 @@ export async function createEquivalenceGroupAction(
   const [row] = await db
     .insert(villaEquivalenceGroups)
     .values({
+      organizationId, // 0185 — stamp org so global (null-project) groups are tenant-scoped
       name: parsed.data.name,
       projectId: parsed.data.projectId ?? null,
       description: parsed.data.description ?? null,
@@ -818,10 +816,8 @@ export async function addEquivalenceMemberAction(
     .where(
       and(
         eq(villaEquivalenceGroups.id, parsed.data.groupId),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(villaEquivalenceGroups.projectId),
-        ),
+        // 0185: scope by the group's own org column (covers global rows too).
+        eq(villaEquivalenceGroups.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -907,10 +903,8 @@ export async function removeEquivalenceMemberAction(
     .where(
       and(
         eq(villaEquivalenceGroupMembers.id, id),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(villaEquivalenceGroups.projectId),
-        ),
+        // 0185: scope by the group's own org column (covers global rows too).
+        eq(villaEquivalenceGroups.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -971,10 +965,8 @@ export async function updateEquivalenceGroupAction(
     .where(
       and(
         eq(villaEquivalenceGroups.id, id),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(villaEquivalenceGroups.projectId),
-        ),
+        // 0185: scope by the group's own org column (covers global rows too).
+        eq(villaEquivalenceGroups.organizationId, organizationId),
       ),
     )
     .limit(1);
@@ -1040,10 +1032,8 @@ export async function archiveEquivalenceGroupAction(
     .where(
       and(
         eq(villaEquivalenceGroups.id, id),
-        or(
-          eq(projects.organizationId, organizationId),
-          isNull(villaEquivalenceGroups.projectId),
-        ),
+        // 0185: scope by the group's own org column (covers global rows too).
+        eq(villaEquivalenceGroups.organizationId, organizationId),
       ),
     )
     .limit(1);
