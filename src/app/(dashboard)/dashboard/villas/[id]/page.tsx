@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
 import { ArchiveButton } from "@/components/admin/archive-button";
-import { Pencil } from "lucide-react";
+import { Pencil, CalendarDays } from "lucide-react";
 import { getVillaById } from "@/features/villas/services";
 import { archiveVillaAction, unarchiveVillaAction } from "@/features/villas/actions";
 
@@ -50,6 +50,12 @@ export default async function VillaDetailPage({
                 archived={villa.status === "archived"}
               />
             )}
+            <Button asChild variant="secondary">
+              <Link href={`/dashboard/villas/${villa.id}/availability`}>
+                <CalendarDays className="w-4 h-4" strokeWidth={1.75} />
+                Availability
+              </Link>
+            </Button>
             <Button asChild variant="secondary">
               <Link href={`/dashboard/villas/${villa.id}/edit`}>
                 <Pencil className="w-4 h-4" strokeWidth={1.75} />
@@ -118,6 +124,12 @@ export default async function VillaDetailPage({
             href={`/dashboard/bookings?villa=${villa.id}`}
           >
             View bookings →
+          </Link>
+          <Link
+            className="text-xs underline text-ink hover:text-accent"
+            href={`/dashboard/villas/${villa.id}/availability`}
+          >
+            View availability →
           </Link>
           <Link
             className="text-xs underline text-ink hover:text-accent"

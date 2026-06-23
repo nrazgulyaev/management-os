@@ -7,6 +7,7 @@ import {
   PauseRuleButton,
   ResumeRuleButton,
 } from "@/components/guest-journey/journey-buttons";
+import { EditGuestJourneyRuleForm } from "@/components/guest-journey/edit-rule-form";
 
 export const metadata = { title: "Journey rule" };
 export const dynamic = "force-dynamic";
@@ -44,6 +45,26 @@ export default async function JourneyRuleDetail({
           {rule.status !== "archived" && <ArchiveRuleButton id={rule.id} />}
         </div>
       </div>
+
+      {rule.status !== "archived" && (
+        <div className="mb-6">
+          <EditGuestJourneyRuleForm
+            rule={{
+              id: rule.id,
+              name: rule.name,
+              description: rule.description ?? null,
+              journeyStage: rule.journeyStage,
+              triggerAnchor: rule.triggerAnchor,
+              offsetMinutes: rule.offsetMinutes,
+              channel: rule.channel,
+              suggestionType: rule.suggestionType ?? null,
+              priority: rule.priority,
+              templateKey: rule.templateKey ?? null,
+              appliesToChannel: rule.appliesToChannel ?? null,
+            }}
+          />
+        </div>
+      )}
 
       <h2 className="display text-[22px] font-normal mb-3.5">
         Trigger + dispatch

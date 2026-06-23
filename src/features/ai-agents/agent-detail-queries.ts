@@ -117,7 +117,9 @@ export interface AgentDetailRun {
   model: string | null;
   totalTokens: number | null;
   latencyMs: number | null;
+  inputSummary: string | null;
   outputSummary: string | null;
+  totalCostUsd: string | null;
   createdAt: string;
 }
 
@@ -162,7 +164,9 @@ export async function listRunsForAgent(
       model: r.model,
       totalTokens: r.totalTokens,
       latencyMs: r.latencyMs,
+      inputSummary: r.inputSummary,
       outputSummary: r.outputSummary,
+      totalCostUsd: r.totalCostUsd,
       createdAt: r.createdAt.toISOString(),
     })),
   };

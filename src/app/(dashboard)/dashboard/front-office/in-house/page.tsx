@@ -11,7 +11,13 @@ export default async function InHousePage() {
   // KPI roll-ups — derived from the rows already fetched above.
   const villasOccupied = new Set(rows.map((r) => r.villaId)).size;
   const openSr = rows.reduce((n, r) => n + r.openServiceRequests, 0);
-  const openMt = rows.reduce((n, r) => n + r.openMaintenanceTickets, 0);
+  // Maintenance is per-villa (fanned out to each booking in the villa), so sum
+  // it once per distinct villa to avoid double-counting villas with >1 stay.
+  const mtByVilla = new Map<string, number>();
+  for (const r of rows) {
+    if (!mtByVilla.has(r.villaId)) mtByVilla.set(r.villaId, r.openMaintenanceTickets);
+  }
+  const openMt = Array.from(mtByVilla.values()).reduce((n, v) => n + v, 0);
 
   return (
     <>
@@ -86,8 +92,14 @@ export default async function InHousePage() {
                       <span className="text-ink-3">0</span>
                     )}
                   </td>
-                  <td className="num text-ink-3">
-                    {r.openMaintenanceTickets}
+                  <td className="num">
+                    {r.openMaintenanceTickets > 0 ? (
+                      <HandoffBadge tone="danger">
+                        {r.openMaintenanceTickets}
+                      </HandoffBadge>
+                    ) : (
+                      <span className="text-ink-3">0</span>
+                    )}
                   </td>
                 </tr>
               ))}

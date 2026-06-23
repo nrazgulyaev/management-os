@@ -6,6 +6,9 @@ import { SourceBadge } from "@/components/ui/source-badge";
 import { Button } from "@/components/ui/button";
 import { ArrowUpRight, KeyRound } from "lucide-react";
 import { getOwnerById, listOwnershipShares } from "@/features/owners/services";
+import { listOwnerStatements } from "@/features/finance/services";
+import { formatMoneyMinor } from "@/lib/money";
+import { ownerStateMgmtLabel } from "@/features/owner-statements/state-machine";
 import { listAccessGrantsForOwner } from "@/features/access-grants/services";
 import { getOwnerRetentionRisk } from "@/features/owners/retention-risk-service";
 import { listVillas } from "@/features/villas/services";
@@ -34,9 +37,9 @@ import { CrmAnnotationsPanel } from "@/components/crm/crm-annotations-panel";
 
 /**
  * Phase 2.1 PR 2 — Owner detail uses bricks B1 + B2 + B3 + B5 + B6.
- * Activity timeline is the main tab (per template 05 assembly C);
- * Overview / Villas / Statements / Contacts tabs are placeholder
- * shells until 2.2 wires real data sources.
+ * Activity timeline is the main tab (per template 05 assembly C).
+ * Overview / Shares / Churn / Tasks / Activity / Statements / Contacts tabs
+ * are all wired to real org-scoped data sources.
  */
 
 export const metadata = { title: "Owner" };
@@ -116,6 +119,12 @@ export default async function OwnerDetailPage({
   // Owner-CHURN drill-in — score breakdown, signals timeline, save-plan,
   // intervention feed (all on top of the same retention engine).
   const churn = await getOwnerChurnView(id, villaIds).catch(() => null);
+
+  // STATEMENTS tab — the real per-owner statement ledger. listOwnerStatements
+  // is org-scoped internally (requireOrgId() + eq(ownerStatements.organizationId));
+  // passing { ownerId: id } narrows to this owner. A foreign id simply returns
+  // no rows (the inner-join owner filter + org filter cannot cross tenants).
+  const statements = await listOwnerStatements({ ownerId: id }).catch(() => []);
 
   // CRM ACTIVITY TIMELINE (#169) — the real unified feed. Reads the
   // org-scoped `crm_activities` stream (notes, status changes, calls,
@@ -437,9 +446,143 @@ export default async function OwnerDetailPage({
     />
   );
 
-  const placeholderPanel = (label: string) => (
-    <div className="flex flex-col gap-3 px-7 py-12 text-sm text-ink-tertiary">
-      <p>{label} lands in Phase 2.2.</p>
+  const STATEMENT_STATUS_TONE: Record<
+    string,
+    { tone: "success" | "neutral" | "outline"; label: string }
+  > = {
+    draft: { tone: "neutral", label: "Draft" },
+    issued: { tone: "outline", label: "Issued" },
+    approved: { tone: "outline", label: "Approved" },
+    paid: { tone: "success", label: "Settled" },
+    voided: { tone: "neutral", label: "Voided" },
+  };
+
+  const statementsPanel = (
+    <div className="flex flex-col gap-3 px-7 py-6">
+      <div className="label">Owner statements</div>
+      <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+        Statements
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+        Generated from the ledger for this owner. Click a statement code to open
+        the full breakdown.
+      </p>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Statement</TH>
+            <TH>Villa</TH>
+            <TH>Period</TH>
+            <TH>Status</TH>
+            <TH>Owner state</TH>
+            <TH className="text-right">Net payout</TH>
+          </TR>
+        </THead>
+        <TBody>
+          {statements.length === 0 ? (
+            <TR>
+              <TD colSpan={6} className="text-ink-tertiary text-center py-8">
+                No statements yet for this owner. Generate from the ledger on the{" "}
+                <Link href="/dashboard/finance/statements" className="underline">
+                  Statements
+                </Link>{" "}
+                page.
+              </TD>
+            </TR>
+          ) : (
+            statements.map((s) => {
+              const status =
+                STATEMENT_STATUS_TONE[s.status] ?? { tone: "neutral" as const, label: s.status };
+              return (
+                <TR key={s.id}>
+                  <TD className="text-ink">
+                    <Link
+                      href={`/dashboard/finance/statements/${s.id}`}
+                      className="font-mono text-[12px] hover:underline"
+                    >
+                      {s.statementCode}
+                    </Link>
+                  </TD>
+                  <TD className="text-ink-secondary text-sm">
+                    {s.villaCode ?? s.projectName ?? "—"}
+                  </TD>
+                  <TD className="text-ink-secondary text-sm">{s.periodLabel}</TD>
+                  <TD>
+                    <Badge tone={status.tone}>{status.label}</Badge>
+                  </TD>
+                  <TD className="text-ink-tertiary text-[12px]">
+                    {ownerStateMgmtLabel(s.ownerState)}
+                  </TD>
+                  <TDNum className="text-ink">
+                    {formatMoneyMinor(s.netPayoutMinor, s.currency)}
+                  </TDNum>
+                </TR>
+              );
+            })
+          )}
+        </TBody>
+      </Table>
+    </div>
+  );
+
+  // CONTACTS tab — the real people attached to this owner: the primary
+  // contact on the owner record + every active portal grant (the app users
+  // who can read this owner's data). Both are already org-scoped fetches above
+  // (getOwnerById + listAccessGrantsForOwner), so nothing leaks across tenants.
+  const contactsPanel = (
+    <div className="flex flex-col gap-3 px-7 py-6">
+      <div className="label">People</div>
+      <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+        Contacts
+      </h2>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+        Primary contact on the owner record and everyone with active portal
+        access.
+      </p>
+      <Card padding="default">
+        <div className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium mb-3">
+          Primary contact
+        </div>
+        <dl className="grid grid-cols-1 sm:grid-cols-[160px_1fr] gap-x-3 gap-y-[10px] text-[13.5px]">
+          <ProfileRow label="Name" value={owner.legalName ?? owner.displayName} />
+          <ProfileRow label="Email" value={owner.email ?? "—"} />
+          <ProfileRow label="Phone" value={owner.phone ?? "—"} />
+        </dl>
+      </Card>
+      <Card padding="default">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="text-[11px] uppercase tracking-[0.16em] text-ink-tertiary font-medium">
+            Portal access ({activeGrants.length})
+          </div>
+          <Button asChild variant="secondary" size="sm">
+            <Link href={`/dashboard/owners/${owner.id}/access`}>
+              <KeyRound className="w-3.5 h-3.5" strokeWidth={1.75} />
+              Manage access
+            </Link>
+          </Button>
+        </div>
+        {activeGrants.length === 0 ? (
+          <p className="text-sm text-ink-tertiary m-0">
+            No active grants. No one can read this owner&apos;s data through the
+            portal yet.
+          </p>
+        ) : (
+          <ul className="flex flex-col gap-2">
+            {activeGrants.map((g) => (
+              <li
+                key={g.id}
+                className="flex items-center justify-between text-sm"
+              >
+                <span className="text-ink">
+                  {g.appUserName}{" "}
+                  <span className="text-ink-tertiary">· {g.appUserEmail}</span>
+                </span>
+                <Badge tone="outline">{g.grantType}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 
@@ -496,7 +639,7 @@ export default async function OwnerDetailPage({
           { id: "churn", label: "Churn", count: churn?.breakdown.contributions.length },
           { id: "tasks", label: "Tasks", count: crmTasks.filter((t) => t.status === "open").length || undefined },
           { id: "activity", label: "Activity", count: crmActivity.length || activity.length },
-          { id: "statements", label: "Statements" },
+          { id: "statements", label: "Statements", count: statements.length || undefined },
           { id: "contacts", label: "Contacts" },
         ]}
         panels={{
@@ -505,8 +648,8 @@ export default async function OwnerDetailPage({
           churn: churnPanel,
           tasks: tasksPanel,
           activity: activityPanel,
-          statements: placeholderPanel("Statements list"),
-          contacts: placeholderPanel("Contacts"),
+          statements: statementsPanel,
+          contacts: contactsPanel,
         }}
       />
 

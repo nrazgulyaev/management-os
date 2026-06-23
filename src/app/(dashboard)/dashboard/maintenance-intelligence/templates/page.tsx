@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
 import { TemplateAddButton } from "@/components/maintenance-intelligence/template-add-button";
+import { TemplateRowActions } from "@/components/maintenance-intelligence/template-row-actions";
 
 export const metadata = { title: "Maintenance templates" };
 export const dynamic = "force-dynamic";
@@ -43,11 +44,12 @@ export default async function TemplatesPage() {
                   <th scope="col" className="num">Duration</th>
                   <th scope="col">Disruption</th>
                   <th scope="col">Status</th>
+                  <th scope="col" className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {templates.map((t) => (
-                  <tr key={t.id}>
+                  <tr key={t.id} className={t.status === "archived" ? "opacity-60" : undefined}>
                     <td className="mono text-[12px] text-ink-3">{t.key}</td>
                     <td className="row-title">{t.name}</td>
                     <td>{t.category.replace(/_/g, " ")}</td>
@@ -68,6 +70,9 @@ export default async function TemplatesPage() {
                       <HandoffBadge tone={t.status === "active" ? "ok" : "soft"}>
                         {t.status}
                       </HandoffBadge>
+                    </td>
+                    <td className="text-right">
+                      <TemplateRowActions id={t.id} status={t.status} />
                     </td>
                   </tr>
                 ))}

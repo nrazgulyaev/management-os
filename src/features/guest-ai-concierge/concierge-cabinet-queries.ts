@@ -244,14 +244,8 @@ export async function listSafetyEventsForCabinet(limit = 5): Promise<SafetyEvent
   }));
 }
 
-export interface ConciergeMemoryRow {
-  id: string;
-  fact: string;
-  category: string;
-  observedAt: string;
-}
-
-/** `project_ai_memory` rows — empty in DEMO-2. */
-export async function listConciergeMemoryNotes(): Promise<ConciergeMemoryRow[]> {
-  return [];
-}
+// NOTE: listConciergeMemoryNotes was removed. It always returned [] and the
+// table it claimed to read (project_ai_memory) is the dev-OS construction
+// agents' project knowledge, not per-guest concierge facts. No guest-memory
+// model exists yet — re-introduce a real reader (+ table + writer) before
+// surfacing a "recalled per-guest facts" panel again.

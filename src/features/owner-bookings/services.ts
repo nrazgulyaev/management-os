@@ -11,6 +11,8 @@ import {
 import { ownerStatements } from "@/lib/db/schema/finance";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { listOwnerIdsForCurrentUser } from "@/features/notifications/services";
+import { listOwners } from "@/features/owners/services";
+import { demoOwnerIdFallback } from "@/features/demo-data/owner-fallback";
 import {
   isDemoOwnerFallbackActive,
   listDemoOwnerBookings,
@@ -122,6 +124,59 @@ export async function listOwnerBookingSummariesForOwner(
   filter?: OwnerBookingFilter,
 ): Promise<OwnerBookingSummaryRow[]> {
   return readSummaries([ownerId], filter ?? {});
+}
+
+/**
+ * Org-scoped owner-id enumeration for the admin (owner-intelligence) pages.
+ * Unlike `listOwnerIdsForCurrentUser` (a grant pivot off appUsersOwners that
+ * only resolves for owner-portal users), this enumerates every owner the
+ * operator's org owns via the org-scoped `listOwners()` reader, so the admin
+ * surfaces aren't dead-ends. Owner ids are already bounded to the caller's org
+ * because `listOwners()` filters on owners.organizationId via requireOrgId().
+ */
+async function orgOwnerIds(): Promise<string[]> {
+  const owners = await listOwners();
+  return owners.map((o) => o.id);
+}
+
+/**
+ * Admin projection: every booking summary for the operator's org. Resolves
+ * org owners (org-scoped) and feeds them into the same reader the owner
+ * portal uses, so the rows are identical in shape but org-bounded.
+ */
+export async function listOwnerBookingSummariesForOrg(
+  filter?: OwnerBookingFilter,
+): Promise<OwnerBookingSummaryRow[]> {
+  const db = getDb();
+  // Demo mode (no DB): the seeded demo bookings are keyed to the demo owner
+  // ids, not the mock owner slugs that `listOwners()` returns, so use the
+  // canonical demo owner ids to keep the admin affordance honest.
+  if (!db) {
+    return demoOwnerBookingFallback(demoOwnerIdFallback(), filter);
+  }
+  const ownerIds = filter?.ownerId ? [filter.ownerId] : await orgOwnerIds();
+  if (ownerIds.length === 0) return [];
+  const rows = await readSummaries(ownerIds, filter ?? {});
+  if (rows.length === 0) return demoOwnerBookingFallback(ownerIds, filter);
+  return rows;
+}
+
+/**
+ * Admin revenue-source mix across every owner in the operator's org. Resolves
+ * org owners (org-scoped) and aggregates the per-owner monthly rows.
+ */
+export async function listOwnerRevenueSourceMonthlyForOrg(): Promise<
+  RevenueSourceMonthlyRow[]
+> {
+  const db = getDb();
+  // Demo mode (no DB): the seeded demo revenue is keyed to the demo owner ids,
+  // not the mock owner slugs, so iterate the canonical demo owner ids.
+  const ownerIds = db ? await orgOwnerIds() : demoOwnerIdFallback();
+  let monthly: RevenueSourceMonthlyRow[] = [];
+  for (const ownerId of ownerIds) {
+    monthly = monthly.concat(await listOwnerRevenueSourceMonthly(ownerId));
+  }
+  return monthly;
 }
 
 export async function getOwnerBookingSummaryById(

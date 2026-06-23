@@ -368,6 +368,27 @@ export async function createChecklistFromTemplateAction(
     Object.fromEntries(formData.entries()),
   );
   if (!parsed.success) return { ok: false, error: "Missing taskId or templateId." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+
+  // TENANCY: task_checklists has no organization_id; its only org anchor is
+  // taskId -> operation_tasks.organizationId. The supplied taskId is
+  // client-controlled, so verify it resolves to the caller's org BEFORE
+  // instantiating a checklist against it — otherwise org A could attach a
+  // checklist run onto org B's operation_task.
+  const [task] = await db
+    .select({ id: operationTasks.id })
+    .from(operationTasks)
+    .where(
+      and(
+        eq(operationTasks.id, parsed.data.taskId),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!task) return { ok: false, error: "Task not found." };
+
   const id = await instantiateChecklistFromTemplate(parsed.data.taskId, parsed.data.templateId);
   if (!id) return { ok: false, error: "Template not found or DB unavailable." };
 
@@ -395,11 +416,30 @@ export async function updateChecklistItemAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // TENANCY: task_checklist_items / task_checklists have no organization_id;
+  // their only org anchor is checklist.taskId -> operation_tasks.organizationId.
+  // Resolve item -> checklist -> task and require the task belong to the
+  // caller's org, otherwise org A could flip org B's checklist items.
   const [item] = await db
-    .select()
+    .select({
+      id: taskChecklistItems.id,
+      checklistId: taskChecklistItems.checklistId,
+      status: taskChecklistItems.status,
+      notes: taskChecklistItems.notes,
+      valueText: taskChecklistItems.valueText,
+      valueNumber: taskChecklistItems.valueNumber,
+    })
     .from(taskChecklistItems)
-    .where(eq(taskChecklistItems.id, parsed.data.itemId))
+    .innerJoin(taskChecklists, eq(taskChecklists.id, taskChecklistItems.checklistId))
+    .innerJoin(operationTasks, eq(operationTasks.id, taskChecklists.taskId))
+    .where(
+      and(
+        eq(taskChecklistItems.id, parsed.data.itemId),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!item) return { ok: false, error: "Checklist item not found." };
 
@@ -458,11 +498,26 @@ export async function completeChecklistAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // TENANCY: task_checklists has no organization_id; its only org anchor is
+  // taskId -> operation_tasks.organizationId. Resolve checklist -> task and
+  // require the task belong to the caller's org so org A can't complete org
+  // B's checklist (which flips org B's operation_task to needs_review).
   const [checklist] = await db
-    .select()
+    .select({
+      id: taskChecklists.id,
+      taskId: taskChecklists.taskId,
+      status: taskChecklists.status,
+    })
     .from(taskChecklists)
-    .where(eq(taskChecklists.id, parsed.data.checklistId))
+    .innerJoin(operationTasks, eq(operationTasks.id, taskChecklists.taskId))
+    .where(
+      and(
+        eq(taskChecklists.id, parsed.data.checklistId),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!checklist) return { ok: false, error: "Checklist not found." };
 
@@ -507,6 +562,7 @@ export async function completeChecklistAction(
     .where(
       and(
         eq(operationTasks.id, checklist.taskId),
+        eq(operationTasks.organizationId, organizationId),
         eq(operationTasks.status, "in_progress"),
       ),
     );
@@ -534,11 +590,26 @@ export async function approveChecklistAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
 
+  // TENANCY: task_checklists has no organization_id; its only org anchor is
+  // taskId -> operation_tasks.organizationId. Resolve checklist -> task and
+  // require the task belong to the caller's org so org A can't approve org
+  // B's checklist (which flips org B's operation_task to approved).
   const [checklist] = await db
-    .select()
+    .select({
+      id: taskChecklists.id,
+      taskId: taskChecklists.taskId,
+      status: taskChecklists.status,
+    })
     .from(taskChecklists)
-    .where(eq(taskChecklists.id, parsed.data.checklistId))
+    .innerJoin(operationTasks, eq(operationTasks.id, taskChecklists.taskId))
+    .where(
+      and(
+        eq(taskChecklists.id, parsed.data.checklistId),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!checklist) return { ok: false, error: "Checklist not found." };
   if (checklist.status !== "completed") {
@@ -554,7 +625,12 @@ export async function approveChecklistAction(
   await db
     .update(operationTasks)
     .set({ status: "approved", approvedAt: now, approvedBy: me?.id ?? null })
-    .where(eq(operationTasks.id, checklist.taskId));
+    .where(
+      and(
+        eq(operationTasks.id, checklist.taskId),
+        eq(operationTasks.organizationId, organizationId),
+      ),
+    );
 
   await recordAuditEvent({
     actorUserId: me?.id ?? null,

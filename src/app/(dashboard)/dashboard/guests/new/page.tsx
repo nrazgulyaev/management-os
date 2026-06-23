@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DbStatusNotice } from "@/components/admin/db-status";
-import { GuestForm } from "./form";
+import { GuestForm } from "@/features/guests/form";
 
 export const metadata = { title: "New guest" };
 

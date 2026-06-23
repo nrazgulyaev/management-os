@@ -25,6 +25,7 @@ import {
   ownerCalendarPreferencesUpdateSchema,
   rebuildOwnerEventsSchema,
   runJourneyRuleSchema,
+  updateGuestJourneyRuleSchema,
   updateRuleStatusSchema,
 } from "./schema";
 import {
@@ -93,6 +94,103 @@ export async function createGuestJourneyRuleAction(
   });
   revalidatePath("/dashboard/guest-journey/rules");
   return { ok: true, id: row.id };
+}
+
+/**
+ * Edit an existing guest-journey rule. Mirrors the ownership guard in
+ * `setRuleStatus`: guest_journey_rules.organization_id is NOT NULL (0152/0158),
+ * so we confirm the client-supplied rule id belongs to the caller's org BEFORE
+ * the UPDATE — a cross-org id reads as not-found. The UPDATE is PARTIAL: only
+ * the columns the form actually submitted are written, so omitted keys keep
+ * their stored value (no column-wipe). Nullable text columns submitted blank
+ * are explicitly cleared to NULL.
+ */
+export async function updateGuestJourneyRuleAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("guest_journey.write");
+  // Drop empty strings so blank optional inputs don't fail the schema and so
+  // the partial set below never includes a key the user didn't touch — except
+  // for nullable text columns, which we treat blank-as-clear further down.
+  const raw = Object.fromEntries(formData.entries()) as Record<string, string>;
+  const cleaned: Record<string, string> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof v === "string" && v.trim() === "") continue;
+    cleaned[k] = v;
+  }
+  const parsed = updateGuestJourneyRuleSchema.safeParse(cleaned);
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input.",
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  const me = await getCurrentAppUser();
+  const { id, ...fields } = parsed.data;
+
+  // Tenancy guard: confirm the rule belongs to the caller's org before editing.
+  const [owned] = await db
+    .select({ id: guestJourneyRules.id })
+    .from(guestJourneyRules)
+    .where(
+      and(
+        eq(guestJourneyRules.id, id),
+        eq(guestJourneyRules.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Rule not found." };
+
+  // Build a PARTIAL set: only keys the user submitted. For nullable text
+  // columns, a submitted-then-blanked value (which `cleaned` drops above) means
+  // "clear" — but since blanks are dropped, an unset key simply keeps its value.
+  // Explicit clearing is handled by reading the raw FormData for those columns.
+  const set: Record<string, unknown> = { updatedAt: new Date() };
+  if (fields.name !== undefined) set.name = fields.name;
+  if (fields.journeyStage !== undefined) set.journeyStage = fields.journeyStage;
+  if (fields.triggerAnchor !== undefined)
+    set.triggerAnchor = fields.triggerAnchor;
+  if (fields.offsetMinutes !== undefined)
+    set.offsetMinutes = fields.offsetMinutes;
+  if (fields.channel !== undefined) set.channel = fields.channel;
+  if (fields.priority !== undefined) set.priority = fields.priority;
+  // Nullable text columns: the form always submits these inputs, so read the
+  // raw value and write null when blank (explicit clear) or the trimmed value.
+  for (const col of [
+    "description",
+    "templateKey",
+    "suggestionType",
+    "appliesToChannel",
+  ] as const) {
+    if (col in raw) {
+      const v = (raw[col] ?? "").trim();
+      set[col] = v === "" ? null : v;
+    }
+  }
+
+  await db
+    .update(guestJourneyRules)
+    .set(set)
+    .where(
+      and(
+        eq(guestJourneyRules.id, id),
+        eq(guestJourneyRules.organizationId, organizationId),
+      ),
+    );
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "guest_journey.rule.update",
+    entityType: "guest_journey_rule",
+    entityId: id,
+    after: set as Record<string, unknown>,
+  });
+  revalidatePath("/dashboard/guest-journey/rules");
+  revalidatePath(`/dashboard/guest-journey/rules/${id}`);
+  return { ok: true };
 }
 
 async function setRuleStatus(

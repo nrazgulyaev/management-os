@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, desc, eq, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import {
@@ -225,10 +225,23 @@ export async function getReviewById(
 ): Promise<GuestReview | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY (AUTHZ_SCOPE): guest_reviews.organizationId is a nullable backfill
+  // column (migration 0154). AND a legacy-safe org predicate so a cross-org
+  // review id reads as not-found instead of leaking the raw record; NULL
+  // (pre-threading) rows stay visible, matching this domain's action writes.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(guestReviews)
-    .where(eq(guestReviews.id, id))
+    .where(
+      and(
+        eq(guestReviews.id, id),
+        or(
+          isNull(guestReviews.organizationId),
+          eq(guestReviews.organizationId, organizationId),
+        ),
+      ),
+    )
     .limit(1);
   return row ?? null;
 }

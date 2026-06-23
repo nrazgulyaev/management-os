@@ -62,6 +62,11 @@ export const createVillaMaintenancePlanSchema = z.object({
 
 export const planIdSchema = z.object({ id: z.string().uuid() });
 
+export const templateStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(["active", "archived"]),
+});
+
 export const suggestWindowsSchema = z.object({
   planId: z.string().uuid(),
   horizonDays: z.number().int().min(1).max(60).default(14),

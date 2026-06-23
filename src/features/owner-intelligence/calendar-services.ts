@@ -13,6 +13,7 @@ import {
   type OwnerCalendarPreference,
 } from "@/lib/db/schema/owner-intelligence";
 import { listOwnerIdsForCurrentUser } from "@/features/notifications/services";
+import { listOwners } from "@/features/owners/services";
 import {
   mergeCalendarSources,
   ownerSafeBookingProjection,
@@ -55,11 +56,29 @@ export interface OwnerVillaSummary {
 export async function listOwnerVillasForCurrentUser(opts?: {
   ownerId?: string;
 }): Promise<OwnerVillaSummary[]> {
-  const db = getDb();
-  if (!db) return [];
   const ownerIds = opts?.ownerId
     ? [opts.ownerId]
     : await listOwnerIdsForCurrentUser();
+  return villasForOwnerIds(ownerIds);
+}
+
+/**
+ * Admin (owner-intelligence) variant: list every villa the operator's org
+ * owns. Resolves owner ids via the org-scoped `listOwners()` reader instead of
+ * the `appUsersOwners` grant pivot (which is empty for operators), so the admin
+ * calendar isn't a dead-end. Owner ids are already org-bounded, so the share
+ * query below stays org-scoped.
+ */
+export async function listOwnerVillasForOrg(): Promise<OwnerVillaSummary[]> {
+  const owners = await listOwners();
+  return villasForOwnerIds(owners.map((o) => o.id));
+}
+
+async function villasForOwnerIds(
+  ownerIds: ReadonlyArray<string>,
+): Promise<OwnerVillaSummary[]> {
+  const db = getDb();
+  if (!db) return [];
   if (ownerIds.length === 0) return [];
   const rows = await db
     .select({
@@ -75,7 +94,7 @@ export async function listOwnerVillasForCurrentUser(opts?: {
     .leftJoin(projects, eq(projects.id, ownershipShares.projectId))
     .where(
       and(
-        inArray(ownershipShares.ownerId, ownerIds),
+        inArray(ownershipShares.ownerId, ownerIds as string[]),
         eq(ownershipShares.status, "active"),
       ),
     );
@@ -356,6 +375,27 @@ export async function listOwnerCalendarRows(args: {
   const villas = await listOwnerVillasForCurrentUser({
     ownerId: args.ownerId,
   });
+  return buildCalendarRows(villas, args.from, args.to);
+}
+
+/**
+ * Admin (owner-intelligence) calendar projection across every villa the
+ * operator's org owns. Resolves villas via the org-scoped `listOwnerVillasForOrg`
+ * instead of the grant pivot, so the admin calendar isn't a dead-end.
+ */
+export async function listOwnerCalendarRowsForOrg(args: {
+  from: string;
+  to: string;
+}): Promise<OwnerCalendarRow[]> {
+  const villas = await listOwnerVillasForOrg();
+  return buildCalendarRows(villas, args.from, args.to);
+}
+
+async function buildCalendarRows(
+  villas: ReadonlyArray<OwnerVillaSummary>,
+  from: string,
+  to: string,
+): Promise<OwnerCalendarRow[]> {
   if (villas.length === 0) return [];
   const villaIds = villas.map((v) => v.villaId);
   const ownerIds = Array.from(new Set(villas.map((v) => v.ownerId)));
@@ -370,10 +410,10 @@ export async function listOwnerCalendarRows(args: {
     }
   }
   const [bookingsRows, blocks, ownerStays, tasks] = await Promise.all([
-    readBookings(villaIds, args.from, args.to),
-    readBlocks(villaIds, args.from, args.to),
-    readOwnerStays(villaIds, args.from, args.to),
-    readOpsTasks(villaIds, args.from, args.to),
+    readBookings(villaIds, from, to),
+    readBlocks(villaIds, from, to),
+    readOwnerStays(villaIds, from, to),
+    readOpsTasks(villaIds, from, to),
   ]);
   const merged = mergeCalendarSources({
     bookings: bookingsRows,

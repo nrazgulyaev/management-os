@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Kpi, Card } from "@/components/dashboard/primitives";
-import { listOwnerRevenueSourceMonthly } from "@/features/owner-bookings/services";
-import { listOwnerVillasForCurrentUser } from "@/features/owner-intelligence/calendar-services";
+import { listOwnerRevenueSourceMonthlyForOrg } from "@/features/owner-bookings/services";
+import { listOwners } from "@/features/owners/services";
 import {
   summarizeOwnerRevenueSourceMix,
   totalNetOwnerEffectMinor,
@@ -18,16 +18,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminOwnerRevenueMixPage() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
-  // Aggregate across every owner the admin has access to (which, for
-  // internal users, means every active owner via RLS bypass).
-  const villas = await listOwnerVillasForCurrentUser();
-  const ownerIds = Array.from(new Set(villas.map((v) => v.ownerId)));
-  let monthly: RevenueSourceMonthlyRow[] = [];
-  for (const ownerId of ownerIds) {
-    monthly = monthly.concat(
-      await listOwnerRevenueSourceMonthly(ownerId),
-    );
-  }
+  // Aggregate across every owner in the operator's org. `listOwners()` is
+  // org-scoped (owners.organization_id via requireOrgId), so the monthly
+  // rows below stay org-bounded.
+  const owners = await listOwners();
+  const monthly: RevenueSourceMonthlyRow[] =
+    await listOwnerRevenueSourceMonthlyForOrg();
+  const ownerIds = owners.map((o) => o.id);
   const currency = monthly[0]?.currency ?? "USD";
   const sourceMix = summarizeOwnerRevenueSourceMix(monthly, currency);
   const totalNet = totalNetOwnerEffectMinor(monthly, currency);

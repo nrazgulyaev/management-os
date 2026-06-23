@@ -343,11 +343,15 @@ export async function getStockForItemAtLocation(
 ): Promise<number> {
   const db = getDb();
   if (!db) return 0;
+  // TENANCY: scope to the caller's org so a cross-org item/location id reads as 0
+  // stock rather than leaking another tenant's quantity. Mirrors listStockLevels.
+  const organizationId = await requireOrgId();
   const [row] = await db
     .select()
     .from(inventoryStockLevels)
     .where(
       and(
+        eq(inventoryStockLevels.organizationId, organizationId),
         eq(inventoryStockLevels.itemId, itemId),
         eq(inventoryStockLevels.locationId, locationId),
       ),
@@ -420,6 +424,10 @@ export async function listTaskMaterialUsage(
 ): Promise<WithSource<TaskMaterialUsageRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: scope to the caller's org so a cross-org taskId can't leak another
+  // tenant's material usage (item names, costs, currency, notes, who recorded it).
+  // taskMaterialUsage carries organizationId (stamped on insert by the writer).
+  const organizationId = await requireOrgId();
   const rows = await db
     .select({
       u: taskMaterialUsage,
@@ -432,7 +440,12 @@ export async function listTaskMaterialUsage(
     .innerJoin(inventoryItems, eq(inventoryItems.id, taskMaterialUsage.itemId))
     .leftJoin(inventoryLocations, eq(inventoryLocations.id, taskMaterialUsage.locationId))
     .leftJoin(appUsers, eq(appUsers.id, taskMaterialUsage.createdBy))
-    .where(eq(taskMaterialUsage.taskId, taskId))
+    .where(
+      and(
+        eq(taskMaterialUsage.organizationId, organizationId),
+        eq(taskMaterialUsage.taskId, taskId),
+      ),
+    )
     .orderBy(desc(taskMaterialUsage.createdAt));
 
   return rows.map((r) => ({

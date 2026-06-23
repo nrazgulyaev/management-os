@@ -7,7 +7,7 @@ import {
 } from "@/features/bookings/bookings-cabinet-queries";
 import { BookingsListClient, type BookingRowVM } from "./_list-client";
 import { BookingAddButton } from "@/components/bookings/booking-add-button";
-import { listVillas } from "@/features/villas/services";
+import { listVillas, getVillaById } from "@/features/villas/services";
 import { listBookingChannels } from "@/features/channels/services";
 import { listGuests } from "@/features/guests/services";
 import { parseFilters } from "@/lib/url-state";
@@ -73,8 +73,18 @@ export default async function BookingsPage({
   // helper; today the filters are display-only.
   const initialActive = parseFilters(params, ["status", "channel", "date"]);
 
+  // Villa drill-down — /dashboard/villas/[id] links here with ?villa=<id>.
+  // getVillaById is org-scoped, so a forged/cross-org id resolves to null
+  // (no banner). The filter is also applied server-side in the org-scoped
+  // listBookingsForCabinet query, so even an un-resolved id never widens
+  // beyond the caller's org.
+  const villaParam = typeof params.villa === "string" ? params.villa : undefined;
+  const villaFilter = villaParam
+    ? await getVillaById(villaParam).catch(() => null)
+    : null;
+
   const [list, kpis, timeline] = await Promise.all([
-    listBookingsForCabinet(25).catch(() => []),
+    listBookingsForCabinet(25, villaParam).catch(() => []),
     getBookingsKpis().catch(() => null),
     getNext14NightsTimeline().catch(() => []),
   ]);
@@ -139,6 +149,25 @@ export default async function BookingsPage({
           />
         </div>
       </div>
+
+      {villaFilter && (
+        <div className="mt-[18px] flex items-center gap-2 text-[13px]">
+          <span className="text-ink-3">Filtered to villa</span>
+          <Link
+            href={`/dashboard/villas/${villaFilter.id}`}
+            className="font-medium text-ink hover:text-accent underline"
+          >
+            {villaFilter.unitCode}
+            {villaFilter.name ? ` · ${villaFilter.name}` : ""}
+          </Link>
+          <Link
+            href="/dashboard/bookings"
+            className="text-ink-3 hover:text-accent underline"
+          >
+            Clear filter ✕
+          </Link>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-[18px] mb-[18px]">
         <Kpi
