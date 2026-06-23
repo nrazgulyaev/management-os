@@ -43,6 +43,7 @@ export default async function ExpensesPage() {
         flushBody={false}
       >
       <FinanceTable
+        voidKind="expense"
         rows={rows.map((r) => ({
           id: r.id,
           date: r.expenseDate,

@@ -36,6 +36,7 @@ export default async function RevenuePage() {
       </div>
       <DbStatusNotice />
       <FinanceTable
+        voidKind="revenue"
         rows={rows.map((r) => ({
           id: r.id,
           date: r.serviceDate,

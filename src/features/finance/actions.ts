@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
+import { villas, projects } from "@/lib/db/schema/projects";
 import {
   expenseLines,
   feeLines,
@@ -268,6 +270,84 @@ export async function createTaxLineAction(
   revalidatePath("/dashboard/finance");
   revalidatePath("/dashboard/finance/taxes");
   redirect("/dashboard/finance/taxes");
+}
+
+// -----------------------------------------------------------------------------
+// Void a posted ledger line (revenue / fee / expense / tax).
+//
+// A posted money line flows into owner statements at period close, so a wrong
+// amount / villa / date posting must be reversible. The schema status enum
+// already has 'voided'; this is the only transition we expose (posted → voided,
+// terminal). The four line tables have NO organization_id — they org-scope via
+// villa → project OR their own project_id (identical COALESCE pattern in the
+// read services), so we re-prove the line belongs to the caller's org before
+// touching it (no cross-tenant void IDOR).
+// -----------------------------------------------------------------------------
+const VOID_TABLES = {
+  revenue: { table: revenueLines, path: "revenue" },
+  fee: { table: feeLines, path: "fees" },
+  expense: { table: expenseLines, path: "expenses" },
+  tax: { table: taxLines, path: "taxes" },
+} as const;
+
+type LedgerKind = keyof typeof VOID_TABLES;
+
+export async function voidLedgerLineAction(input: {
+  kind: LedgerKind;
+  id: string;
+}): Promise<ActionResult> {
+  await ensureFinanceWrite();
+  const entry = VOID_TABLES[input.kind];
+  if (!entry) return { ok: false, error: "Unknown ledger kind." };
+  const idParse = idSchema.safeParse(input.id);
+  if (!idParse.success) return { ok: false, error: "Invalid line id." };
+  const id = idParse.data;
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  const table = entry.table;
+  const villaProject = alias(projects, "vp_void");
+
+  // Org-scoped existence check: the line resolves to this org via villa→project
+  // OR its own project_id, mirroring the read services' COALESCE scoping.
+  const [found] = await db
+    .select({ id: table.id, status: table.status })
+    .from(table)
+    .leftJoin(villas, eq(villas.id, table.villaId))
+    .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
+    .leftJoin(projects, eq(projects.id, table.projectId))
+    .where(
+      and(
+        eq(table.id, id),
+        sql`COALESCE(${villaProject.organizationId}, ${projects.organizationId}) = ${organizationId}`,
+      ),
+    )
+    .limit(1);
+  if (!found) return { ok: false, error: "Ledger line not found." };
+  if (found.status !== "posted") {
+    return {
+      ok: false,
+      error: `Only posted lines can be voided (this one is '${found.status}').`,
+    };
+  }
+
+  await db
+    .update(table)
+    .set({ status: "voided", updatedAt: new Date() })
+    .where(eq(table.id, id));
+
+  const me = await getCurrentAppUser();
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: `finance.${input.kind}.void`,
+    entityType: `${input.kind}_line`,
+    entityId: id,
+    before: { status: "posted" },
+    after: { status: "voided" },
+  });
+  revalidatePath("/dashboard/finance");
+  revalidatePath(`/dashboard/finance/${entry.path}`);
+  return { ok: true };
 }
 
 // -----------------------------------------------------------------------------
