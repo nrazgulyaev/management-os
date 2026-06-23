@@ -31,6 +31,10 @@ export const ownerStayPolicies = pgTable(
   "owner_stay_policies",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (migration 0185): org anchor — backfilled from villa→project→org
+    // then project→org, default-org for genuinely-global rows. Stamped on insert
+    // + filtered on read so "global" (null-FK) policies no longer leak across tenants.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
@@ -183,6 +187,10 @@ export const villaEquivalenceGroups = pgTable(
   "villa_equivalence_groups",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // TENANCY (migration 0185): org anchor — backfilled from project→org,
+    // default-org for null-project ("global") rows. Stamped on insert + filtered
+    // on read so global groups no longer leak across tenants.
+    organizationId: uuid("organization_id").references(() => organizations.id),
     projectId: uuid("project_id").references(() => projects.id, {
       onDelete: "cascade",
     }),
