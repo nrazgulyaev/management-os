@@ -10,11 +10,15 @@ import {
   type SecurityEventType,
 } from "@/features/security-baseline/security-events-pure";
 import { safeList } from "@/features/system/db-health";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Security events" };
 export const dynamic = "force-dynamic";
 
 export default async function SecurityEventsPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const events = await safeList("security.events", () =>
     listSecurityEventsForAdmin(200),
   );

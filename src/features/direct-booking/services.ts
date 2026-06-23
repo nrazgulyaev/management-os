@@ -42,13 +42,29 @@ export async function getHoldByTokenHash(
 
 export async function getHoldById(
   id: string,
+  // TENANCY: admin/request-path callers pass the verified caller org so a
+  // cross-org id resolves to no row (returns null). The org column is a
+  // nullable legacy anchor (migration 0153) — a NULL pre-backfill row is still
+  // readable (mirrors getDirectBookingDetailByHoldId); only a set-but-mismatched
+  // org is rejected. Internal/system callers may pass nothing and stay
+  // org-agnostic.
+  organizationId: string | null = null,
 ): Promise<DirectBookingHold | null> {
   const db = getDb();
   if (!db) return null;
+  const where = organizationId
+    ? and(
+        eq(directBookingHolds.id, id),
+        or(
+          isNull(directBookingHolds.organizationId),
+          eq(directBookingHolds.organizationId, organizationId),
+        ),
+      )
+    : eq(directBookingHolds.id, id);
   const [row] = await db
     .select()
     .from(directBookingHolds)
-    .where(eq(directBookingHolds.id, id))
+    .where(where)
     .limit(1);
   return row ?? null;
 }
@@ -59,14 +75,22 @@ export interface HoldWithVilla {
   villaCode: string | null;
 }
 
-export async function listDirectBookingHolds(opts?: {
-  status?: DirectBookingHold["status"];
-  villaId?: string;
-  limit?: number;
-}): Promise<HoldWithVilla[]> {
+export async function listDirectBookingHolds(
+  // TENANCY: required caller org — the admin holds list is scoped to the
+  // caller's tenant. Mirrors getDirectBookingMetrics (strict eq on org) so the
+  // hub KPI tiles and this list agree on what the operator owns.
+  organizationId: string,
+  opts?: {
+    status?: DirectBookingHold["status"];
+    villaId?: string;
+    limit?: number;
+  },
+): Promise<HoldWithVilla[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const filters: ReturnType<typeof eq>[] = [
+    eq(directBookingHolds.organizationId, organizationId),
+  ];
   if (opts?.status) filters.push(eq(directBookingHolds.status, opts.status));
   if (opts?.villaId) filters.push(eq(directBookingHolds.villaId, opts.villaId));
   const rows = await db
@@ -115,13 +139,21 @@ export interface RequestRow {
   villaCode: string | null;
 }
 
-export async function listDirectBookingRequests(opts?: {
-  status?: DirectBookingRequest["status"];
-  limit?: number;
-}): Promise<RequestRow[]> {
+export async function listDirectBookingRequests(
+  // TENANCY: required caller org — the admin requests inbox is scoped to the
+  // caller's tenant (strict eq, matching getDirectBookingMetrics). The
+  // org+status+created index backs this list.
+  organizationId: string,
+  opts?: {
+    status?: DirectBookingRequest["status"];
+    limit?: number;
+  },
+): Promise<RequestRow[]> {
   const db = getDb();
   if (!db) return [];
-  const filters: ReturnType<typeof eq>[] = [];
+  const filters: ReturnType<typeof eq>[] = [
+    eq(directBookingRequests.organizationId, organizationId),
+  ];
   if (opts?.status)
     filters.push(eq(directBookingRequests.status, opts.status));
   const rows = await db
@@ -155,6 +187,11 @@ export interface RequestDetail extends RequestRow {
 
 export async function getRequestDetailById(
   id: string,
+  // TENANCY: required caller org — AND'd into the request load so a cross-org
+  // id resolves to no row (→ null → notFound()). Mirrors the convert action's
+  // strict-eq request load. The events + booking sub-queries below key off the
+  // now-org-verified request id, so those FK lookups are safe.
+  organizationId: string,
 ): Promise<RequestDetail | null> {
   const db = getDb();
   if (!db) return null;
@@ -171,7 +208,12 @@ export async function getRequestDetailById(
       eq(directBookingHolds.id, directBookingRequests.holdId),
     )
     .leftJoin(villas, eq(villas.id, directBookingRequests.villaId))
-    .where(eq(directBookingRequests.id, id))
+    .where(
+      and(
+        eq(directBookingRequests.id, id),
+        eq(directBookingRequests.organizationId, organizationId),
+      ),
+    )
     .limit(1);
   if (!row) return null;
   const [events, booking] = await Promise.all([
@@ -309,13 +351,29 @@ export async function updateHoldStatus(
   id: string,
   status: DirectBookingHold["status"],
   patch?: Partial<DirectBookingHold>,
+  // TENANCY: admin-path callers (e.g. cancel) pass the verified caller org so a
+  // cross-org hold id resolves to no row (returns null). Cron/system + public
+  // token-authenticated callers (expiry.ts, public-api.ts) pass nothing and
+  // stay org-agnostic. The org column is a nullable legacy anchor (migration
+  // 0153) — a NULL pre-backfill row is still writable; only a set-but-mismatched
+  // org is rejected. Mirrors updateRequestStatus.
+  organizationId: string | null = null,
 ): Promise<DirectBookingHold | null> {
   const db = getDb();
   if (!db) return null;
+  const where = organizationId
+    ? and(
+        eq(directBookingHolds.id, id),
+        or(
+          isNull(directBookingHolds.organizationId),
+          eq(directBookingHolds.organizationId, organizationId),
+        ),
+      )
+    : eq(directBookingHolds.id, id);
   const [row] = await db
     .update(directBookingHolds)
     .set({ status, updatedAt: new Date(), ...(patch ?? {}) })
-    .where(eq(directBookingHolds.id, id))
+    .where(where)
     .returning();
   return row ?? null;
 }

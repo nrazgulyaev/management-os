@@ -8,6 +8,8 @@ import { listJobRuns } from "@/features/jobs/services";
 import { getProductionGateReport } from "@/lib/deployment/production-gates";
 import { getEnvReadinessReport } from "@/lib/env/validation";
 import { listBuckets } from "@/features/system/storage-overview";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "System" };
 export const dynamic = "force-dynamic";
@@ -28,6 +30,8 @@ function fmtDuration(ms: number | null): string {
 }
 
 export default async function SystemCabinetPage() {
+  const { allowed } = await requireCabinetAccess("system");
+  if (!allowed) return <CabinetGate cabinet="System" />;
   const runs = await listJobRuns({ limit: 100 }).catch(() => []);
   const gates = getProductionGateReport();
   const envReport = getEnvReadinessReport();

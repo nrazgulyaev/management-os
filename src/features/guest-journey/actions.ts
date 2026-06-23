@@ -20,11 +20,11 @@ import { requireOrgId } from "@/features/auth/require-org";
 import {
   createGuestJourneyRuleSchema,
   generateSuggestionsSchema,
+  guestSuggestionActionSchema,
   journeyRuleIdSchema,
   ownerCalendarPreferencesUpdateSchema,
   rebuildOwnerEventsSchema,
   runJourneyRuleSchema,
-  suggestionIdSchema,
   updateRuleStatusSchema,
 } from "./schema";
 import {
@@ -39,6 +39,7 @@ import {
   rebuildOwnerVisibleEventsForOwner,
   rebuildOwnerVisibleEventsForVilla,
 } from "./owner-events-rebuild";
+import { getStayByToken } from "@/features/guest-stays/services";
 import type { ActionResult } from "@/features/projects/actions";
 
 export async function createGuestJourneyRuleAction(
@@ -192,6 +193,53 @@ async function bookingBelongsToCurrentOrg(
   return Boolean(row);
 }
 
+/**
+ * TENANCY (guest-side IDOR): the dismiss/click actions run with NO operator
+ * session — the only thing a guest possesses is the raw stay token in their
+ * URL. So we MUST verify the suggestion they reference actually belongs to
+ * THEIR stay before mutating it. Without this, any caller could submit an
+ * arbitrary suggestion id and dismiss/click another tenant's suggestion
+ * (cross-tenant write + a forged journey event on a foreign booking).
+ *
+ * Resolution mirrors the page gate: `getStayByToken` resolves the raw token
+ * to its (tokenId, bookingId) and only succeeds for an active, non-expired,
+ * non-revoked token. We then load the suggestion and confirm the stay token
+ * OWNS it — preferring the strict `stay_token_id` match, and falling back to
+ * the booking match when the suggestion was generated without a token id.
+ * Returns the owned suggestion row (carrying the verified bookingId /
+ * stayTokenId used to stamp the journey event) or null to reject.
+ */
+async function resolveOwnedSuggestion(
+  suggestionId: string,
+  token: string,
+): Promise<{ id: string; bookingId: string | null; stayTokenId: string | null; title: string } | null> {
+  const db = getDb();
+  if (!db) return null;
+  const stay = await getStayByToken(token);
+  if (!stay.ok) return null;
+  const [s] = await db
+    .select({
+      id: guestJourneySuggestions.id,
+      bookingId: guestJourneySuggestions.bookingId,
+      stayTokenId: guestJourneySuggestions.stayTokenId,
+      title: guestJourneySuggestions.title,
+    })
+    .from(guestJourneySuggestions)
+    .where(eq(guestJourneySuggestions.id, suggestionId))
+    .limit(1);
+  if (!s) return null;
+  // Strict ownership: the suggestion's stay token must be the resolved token,
+  // or (when the suggestion carries no token id) its booking must be the
+  // resolved booking. Any mismatch is a foreign id → reject.
+  const ownedByToken = s.stayTokenId != null && s.stayTokenId === stay.stay.tokenId;
+  const ownedByBooking =
+    s.stayTokenId == null &&
+    s.bookingId != null &&
+    s.bookingId === stay.stay.bookingId;
+  if (!ownedByToken && !ownedByBooking) return null;
+  return s;
+}
+
 export async function runJourneyRuleNowAction(
   _prev: ActionResult | null,
   formData: FormData,
@@ -255,13 +303,19 @@ export async function dismissGuestJourneySuggestionAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  // Guest-action — no permission check; the stay-token gate happens
-  // on the page that calls this. The dedupe key in the suggestion id
-  // makes this safe for repeated dismiss clicks.
-  const parsed = suggestionIdSchema.safeParse({ id: formData.get("id") });
+  // Guest-action — no operator permission check; the stay token submitted
+  // with the form IS the auth. The dedupe key in the suggestion id makes
+  // this safe for repeated dismiss clicks.
+  const parsed = guestSuggestionActionSchema.safeParse({
+    id: formData.get("id"),
+    token: formData.get("token"),
+  });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY: confirm THIS stay token owns the suggestion before mutating.
+  const s = await resolveOwnedSuggestion(parsed.data.id, parsed.data.token);
+  if (!s) return { ok: false, error: "Suggestion not found." };
   await db
     .update(guestJourneySuggestions)
     .set({
@@ -269,14 +323,18 @@ export async function dismissGuestJourneySuggestionAction(
       dismissedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(guestJourneySuggestions.id, parsed.data.id));
+    // Re-assert the verified ownership in the WHERE so a foreign id can
+    // never be reached even if the lookup above changed underneath us.
+    .where(
+      and(
+        eq(guestJourneySuggestions.id, s.id),
+        s.stayTokenId != null
+          ? eq(guestJourneySuggestions.stayTokenId, s.stayTokenId)
+          : eq(guestJourneySuggestions.bookingId, s.bookingId!),
+      ),
+    );
   // Append a journey event so the timeline reflects the click.
-  const [s] = await db
-    .select()
-    .from(guestJourneySuggestions)
-    .where(eq(guestJourneySuggestions.id, parsed.data.id))
-    .limit(1);
-  if (s?.bookingId) {
+  if (s.bookingId) {
     await db.insert(guestJourneyEvents).values({
       bookingId: s.bookingId,
       stayTokenId: s.stayTokenId ?? null,
@@ -296,10 +354,17 @@ export async function clickGuestJourneySuggestionAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  const parsed = suggestionIdSchema.safeParse({ id: formData.get("id") });
+  // Guest-action — the stay token submitted with the form IS the auth.
+  const parsed = guestSuggestionActionSchema.safeParse({
+    id: formData.get("id"),
+    token: formData.get("token"),
+  });
   if (!parsed.success) return { ok: false, error: "Invalid input." };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
+  // TENANCY: confirm THIS stay token owns the suggestion before mutating.
+  const s = await resolveOwnedSuggestion(parsed.data.id, parsed.data.token);
+  if (!s) return { ok: false, error: "Suggestion not found." };
   await db
     .update(guestJourneySuggestions)
     .set({
@@ -307,13 +372,17 @@ export async function clickGuestJourneySuggestionAction(
       clickedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(guestJourneySuggestions.id, parsed.data.id));
-  const [s] = await db
-    .select()
-    .from(guestJourneySuggestions)
-    .where(eq(guestJourneySuggestions.id, parsed.data.id))
-    .limit(1);
-  if (s?.bookingId) {
+    // Re-assert the verified ownership in the WHERE so a foreign id can
+    // never be reached.
+    .where(
+      and(
+        eq(guestJourneySuggestions.id, s.id),
+        s.stayTokenId != null
+          ? eq(guestJourneySuggestions.stayTokenId, s.stayTokenId)
+          : eq(guestJourneySuggestions.bookingId, s.bookingId!),
+      ),
+    );
+  if (s.bookingId) {
     await db.insert(guestJourneyEvents).values({
       bookingId: s.bookingId,
       stayTokenId: s.stayTokenId ?? null,

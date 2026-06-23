@@ -20,6 +20,7 @@ import {
   levelToSeverity,
 } from "@/features/utilities/risk-pure";
 import { queueNotification } from "@/features/notifications/services";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * V9D — risk scanner. Walks a small set of read-only signals and opens
@@ -147,6 +148,7 @@ export interface ScanOutcome {
 }
 
 export async function scanMaintenanceRisks(
+  organizationId: string,
   now: Date = new Date(),
 ): Promise<ScanOutcome> {
   const db = getDb();
@@ -186,6 +188,7 @@ export async function scanMaintenanceRisks(
     .from(villaMaintenancePlans)
     .where(
       and(
+        eq(villaMaintenancePlans.organizationId, organizationId),
         eq(villaMaintenancePlans.status, "active"),
         lt(villaMaintenancePlans.nextDueAt, now),
       ),
@@ -216,7 +219,12 @@ export async function scanMaintenanceRisks(
   const accounts = await db
     .select()
     .from(utilityAccounts)
-    .where(eq(utilityAccounts.status, "active"));
+    .where(
+      and(
+        eq(utilityAccounts.organizationId, organizationId),
+        eq(utilityAccounts.status, "active"),
+      ),
+    );
   for (const a of accounts) {
     const [latest] = await db
       .select({
@@ -224,7 +232,12 @@ export async function scanMaintenanceRisks(
         readingAt: utilityReadings.readingAt,
       })
       .from(utilityReadings)
-      .where(eq(utilityReadings.utilityAccountId, a.id))
+      .where(
+        and(
+          eq(utilityReadings.organizationId, organizationId),
+          eq(utilityReadings.utilityAccountId, a.id),
+        ),
+      )
       .orderBy(desc(utilityReadings.readingAt))
       .limit(1);
 
@@ -278,28 +291,32 @@ export async function scanMaintenanceRisks(
   }
 
   // 4) Repeated tickets — same villa with ≥ threshold open tickets.
+  // No org on maintenance_tickets — scope the aggregation to villas whose
+  // project belongs to this org, mirroring the per-villa resolution below.
   const repeats = await db
     .select({
       villaId: maintenanceTickets.villaId,
       c: sql<number>`count(*)`,
     })
     .from(maintenanceTickets)
+    .innerJoin(villas, eq(villas.id, maintenanceTickets.villaId))
+    .innerJoin(projects, eq(projects.id, villas.projectId))
     .where(
-      inArray(maintenanceTickets.status, ["open", "in_progress", "needs_review"]),
+      and(
+        eq(projects.organizationId, organizationId),
+        inArray(maintenanceTickets.status, [
+          "open",
+          "in_progress",
+          "needs_review",
+        ]),
+      ),
     )
     .groupBy(maintenanceTickets.villaId);
   for (const r of repeats) {
     if (Number(r.c) < REPEATED_TICKET_THRESHOLD) continue;
     if (!r.villaId) continue;
-    // No org on maintenance_tickets — resolve via the villa's project.
-    const [vp] = await db
-      .select({ organizationId: projects.organizationId })
-      .from(villas)
-      .leftJoin(projects, eq(projects.id, villas.projectId))
-      .where(eq(villas.id, r.villaId))
-      .limit(1);
     const event: UpsertRiskInput = {
-      organizationId: vp?.organizationId ?? null,
+      organizationId,
       villaId: r.villaId,
       projectId: null,
       riskType: "repeated_ticket",
@@ -329,6 +346,7 @@ export async function scanMaintenanceRisks(
     .from(villaCalendarBlocks)
     .where(
       and(
+        eq(villaCalendarBlocks.organizationId, organizationId),
         eq(villaCalendarBlocks.status, "active"),
         eq(villaCalendarBlocks.blockType, "maintenance_block"),
         lt(villaCalendarBlocks.startsAt, horizon),
@@ -344,6 +362,7 @@ export async function scanMaintenanceRisks(
       .from(bookings)
       .where(
         and(
+          eq(bookings.organizationId, organizationId),
           eq(bookings.villaId, b.villaId),
           inArray(bookings.status, ["confirmed", "checked_in"]),
           lte(bookings.checkIn, endDate),
@@ -380,6 +399,7 @@ export async function scanMaintenanceRisks(
     .from(bookings)
     .where(
       and(
+        eq(bookings.organizationId, organizationId),
         eq(bookings.checkIn, today),
         inArray(bookings.status, ["confirmed", "checked_in"]),
       ),
@@ -390,6 +410,7 @@ export async function scanMaintenanceRisks(
       .from(villaReadinessStates)
       .where(
         and(
+          eq(villaReadinessStates.organizationId, organizationId),
           eq(villaReadinessStates.villaId, a.villaId),
           isNull(villaReadinessStates.effectiveTo),
         ),
@@ -427,6 +448,7 @@ export async function scanMaintenanceRisksAction(): Promise<{
   ok: boolean;
   outcome: ScanOutcome;
 }> {
-  const out = await scanMaintenanceRisks();
+  const organizationId = await requireOrgId();
+  const out = await scanMaintenanceRisks(organizationId);
   return { ok: true, outcome: out };
 }

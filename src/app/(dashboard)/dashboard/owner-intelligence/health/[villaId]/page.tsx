@@ -7,6 +7,8 @@ import {
 } from "@/features/owner-intelligence/health-services";
 import { requireOrgId } from "@/features/auth/require-org";
 import { GenerateVillaSnapshotForm } from "@/components/owner-intelligence/snapshot-buttons";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Villa health detail" };
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ export default async function HealthDetailPage({
 }: {
   params: Promise<{ villaId: string }>;
 }) {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const { villaId } = await params;
   const snapshots = await listOwnerVillaHealthSnapshots({
     villaId,

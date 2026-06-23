@@ -4,11 +4,17 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getDb } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { ownerCalendarPreferences } from "@/lib/db/schema/owner-intelligence";
+import { requireOrgId } from "@/features/auth/require-org";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner calendar preferences" };
 export const dynamic = "force-dynamic";
 
 export default async function OwnerPreferencesAdminPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
+  const organizationId = await requireOrgId();
   const db = getDb();
   const ownersAndPrefs = db
     ? await db
@@ -21,6 +27,7 @@ export default async function OwnerPreferencesAdminPage() {
           ownerCalendarPreferences,
           eq(ownerCalendarPreferences.ownerId, owners.id),
         )
+        .where(eq(owners.organizationId, organizationId))
         .limit(200)
     : [];
   return (

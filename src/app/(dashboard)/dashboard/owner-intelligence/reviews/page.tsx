@@ -7,6 +7,8 @@ import {
   PublishReviewButton,
 } from "@/components/owner-intelligence/snapshot-buttons";
 import { ManualReviewAddButton } from "@/components/owner-intelligence/manual-review-add-button";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Guest reviews" };
 export const dynamic = "force-dynamic";
@@ -36,6 +38,8 @@ export default async function ReviewsAdminPage({
 }: {
   searchParams: Promise<{ status?: string; source?: string }>;
 }) {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const sp = await searchParams;
   const status =
     sp.status === "draft" ||

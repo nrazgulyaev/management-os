@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { Card } from "@/components/dashboard/primitives";
 import { RebuildOwnerEventsForm } from "@/components/guest-journey/journey-buttons";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Rebuild owner-visible events" };
 export const dynamic = "force-dynamic";
 
-export default function OwnerEventsRebuildPage() {
+export default async function OwnerEventsRebuildPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const today = new Date();
   const fromDate = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
   const toDate = new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000);

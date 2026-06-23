@@ -140,6 +140,16 @@ export function BookingForm({
           </Field>
         </div>
 
+        <Field label="Source reference" error={errs.sourceReference?.[0]}>
+          <input
+            name="sourceReference"
+            defaultValue={v.sourceReference ?? ""}
+            maxLength={160}
+            className={inputCls}
+            placeholder="Channel confirmation / OTA reservation no."
+          />
+        </Field>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           <Field label="Check-in" required error={errs.checkIn?.[0]}>
             <input

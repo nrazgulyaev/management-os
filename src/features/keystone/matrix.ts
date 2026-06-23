@@ -49,6 +49,8 @@ export const MATRIX_CABINETS: MatrixCabinet[] = [
   { key: "notifications", label: "Notifications" },
   { key: "audit", label: "Audit log" },
   { key: "users", label: "Users & roles" },
+  { key: "security", label: "Security" },
+  { key: "system", label: "System & platform" },
 ];
 
 /**
@@ -105,6 +107,8 @@ const NAV_HREF_CABINET: { prefix: string; cabinet: string }[] = [
   { prefix: "/dashboard/documents", cabinet: "documents" },
   { prefix: "/dashboard/integrations", cabinet: "integrations" },
   { prefix: "/dashboard/audit", cabinet: "audit" },
+  { prefix: "/dashboard/security", cabinet: "security" },
+  { prefix: "/dashboard/system", cabinet: "system" },
   { prefix: "/dashboard/settings", cabinet: "users" },
 ];
 

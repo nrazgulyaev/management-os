@@ -6,11 +6,15 @@ import {
   listRecentLoginAttempts,
 } from "@/features/security-baseline/login-throttle";
 import { safeList } from "@/features/system/db-health";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Login attempts" };
 export const dynamic = "force-dynamic";
 
 export default async function LoginAttemptsPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const attempts = await safeList("login.attempts", () =>
     listRecentLoginAttempts(200),
   );

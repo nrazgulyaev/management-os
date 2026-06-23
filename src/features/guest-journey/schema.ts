@@ -71,6 +71,17 @@ export const generateSuggestionsSchema = z.object({
 
 export const suggestionIdSchema = z.object({ id: z.string().uuid() });
 
+/**
+ * Guest-side dismiss/click of a journey suggestion. The raw stay token
+ * is the ONLY auth a guest holds (these actions run with no operator
+ * session / no requireOrgId), so it MUST be submitted alongside the
+ * suggestion id and verified server-side to own that suggestion.
+ */
+export const guestSuggestionActionSchema = z.object({
+  id: z.string().uuid(),
+  token: z.string().min(16),
+});
+
 export const updateRuleStatusSchema = z.object({
   id: z.string().uuid(),
   status: statusEnum,

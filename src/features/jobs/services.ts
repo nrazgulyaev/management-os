@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   jobDefinitions,
@@ -8,6 +8,7 @@ import {
   jobRuns,
 } from "@/lib/db/schema/jobs";
 import { appUsers } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 import { DEFAULT_JOB_DEFINITIONS } from "./definitions";
 
@@ -51,9 +52,16 @@ export interface JobRunDetail extends JobRunRow {
   }[];
 }
 
-export async function listJobDefinitions(): Promise<WithSource<JobDefinitionRow>[]> {
+export async function listJobDefinitions(opts?: {
+  organizationId?: string | null;
+}): Promise<WithSource<JobDefinitionRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY — default (undefined) scopes to the caller's tenant via
+  // requireOrgId; an explicit `null` (super-admin / cron) stays
+  // platform-wide. Mirrors listMaintenanceTickets/listServiceRequests.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const rows = await db
     .select({
       d: jobDefinitions,
@@ -74,6 +82,11 @@ export async function listJobDefinitions(): Promise<WithSource<JobDefinitionRow>
       )`,
     })
     .from(jobDefinitions)
+    .where(
+      organizationId
+        ? eq(jobDefinitions.organizationId, organizationId)
+        : undefined,
+    )
     .orderBy(asc(jobDefinitions.name));
 
   return rows.map((r) => {
@@ -101,10 +114,17 @@ export async function listJobRuns(opts?: {
   jobKey?: string;
   status?: string;
   limit?: number;
+  organizationId?: string | null;
 }): Promise<WithSource<JobRunRow>[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY — default (undefined) scopes to the caller's tenant via
+  // requireOrgId; an explicit `null` (super-admin / cron) stays
+  // platform-wide. Mirrors listMaintenanceTickets/listServiceRequests.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const filters = [];
+  if (organizationId) filters.push(eq(jobRuns.organizationId, organizationId));
   if (opts?.jobKey) filters.push(eq(jobRuns.jobKey, opts.jobKey));
   if (opts?.status) filters.push(eq(jobRuns.status, opts.status));
 
@@ -115,7 +135,7 @@ export async function listJobRuns(opts?: {
     })
     .from(jobRuns)
     .leftJoin(appUsers, eq(appUsers.id, jobRuns.createdBy))
-    .where(filters.length ? filters.reduce((a, b) => a && b) : undefined)
+    .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(jobRuns.startedAt))
     .limit(opts?.limit ?? 100);
 
@@ -135,9 +155,18 @@ export async function listJobRuns(opts?: {
   }));
 }
 
-export async function getJobRunById(id: string): Promise<JobRunDetail | null> {
+export async function getJobRunById(
+  id: string,
+  opts?: { organizationId?: string | null },
+): Promise<JobRunDetail | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY — default (undefined) scopes to the caller's tenant via
+  // requireOrgId so a run owned by another org resolves to null →
+  // notFound(). An explicit `null` (super-admin / cron) stays
+  // platform-wide. Mirrors listMaintenanceTickets/listServiceRequests.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const [r] = await db
     .select({
       r: jobRuns,
@@ -145,7 +174,11 @@ export async function getJobRunById(id: string): Promise<JobRunDetail | null> {
     })
     .from(jobRuns)
     .leftJoin(appUsers, eq(appUsers.id, jobRuns.createdBy))
-    .where(eq(jobRuns.id, id))
+    .where(
+      organizationId
+        ? and(eq(jobRuns.id, id), eq(jobRuns.organizationId, organizationId))
+        : eq(jobRuns.id, id),
+    )
     .limit(1);
   if (!r) return null;
   const events = await db
@@ -180,9 +213,17 @@ export async function getJobRunById(id: string): Promise<JobRunDetail | null> {
  * Get the most-recent run for one job. Cheap helper so existing dashboards
  * can show "last calendar sync · 2h ago" without joining their own queries.
  */
-export async function getLastRunByJobKey(jobKey: string): Promise<JobRunRow | null> {
+export async function getLastRunByJobKey(
+  jobKey: string,
+  opts?: { organizationId?: string | null },
+): Promise<JobRunRow | null> {
   const db = getDb();
   if (!db) return null;
+  // TENANCY — default (undefined) scopes to the caller's tenant via
+  // requireOrgId; an explicit `null` (super-admin / cron) stays
+  // platform-wide. Mirrors listMaintenanceTickets/listServiceRequests.
+  const organizationId =
+    opts?.organizationId === undefined ? await requireOrgId() : opts.organizationId;
   const [row] = await db
     .select({
       r: jobRuns,
@@ -190,7 +231,14 @@ export async function getLastRunByJobKey(jobKey: string): Promise<JobRunRow | nu
     })
     .from(jobRuns)
     .leftJoin(appUsers, eq(appUsers.id, jobRuns.createdBy))
-    .where(eq(jobRuns.jobKey, jobKey))
+    .where(
+      organizationId
+        ? and(
+            eq(jobRuns.jobKey, jobKey),
+            eq(jobRuns.organizationId, organizationId),
+          )
+        : eq(jobRuns.jobKey, jobKey),
+    )
     .orderBy(desc(jobRuns.startedAt))
     .limit(1);
   if (!row) return null;

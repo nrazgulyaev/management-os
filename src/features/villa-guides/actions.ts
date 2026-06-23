@@ -133,6 +133,20 @@ export async function upsertGuideSectionAction(
       sectionId = updated.id;
     } else {
       const organizationId = await requireOrgId();
+      // TENANCY: when a villa/project FK is supplied, verify it belongs to the
+      // caller's org so a section cannot be anchored to another tenant's villa
+      // or project. A both-null anchor is a legitimate org-global section
+      // (villa_guide_sections has its own NOT NULL organization_id, stamped
+      // below, and listSectionsAdmin scopes strictly by it).
+      if (
+        (parsed.data.villaId || parsed.data.projectId) &&
+        !(await anchorBelongsToOrg(db, organizationId, {
+          villaId: parsed.data.villaId ?? null,
+          projectId: parsed.data.projectId ?? null,
+        }))
+      ) {
+        return { ok: false, error: "Villa or project not found." };
+      }
       const [row] = await db
         .insert(villaGuideSections)
         .values({
@@ -290,6 +304,18 @@ export async function upsertWifiAction(
       .where(eq(villaWifiCredentials.id, parsed.data.id));
     wifiId = parsed.data.id;
   } else {
+    // TENANCY: villa_wifi_credentials has NO organization_id — verify the
+    // villa/project FK belongs to the caller's org before inserting so a
+    // credential cannot be anchored to another tenant's villa or project.
+    const organizationId = await requireOrgId();
+    if (
+      !(await anchorBelongsToOrg(db, organizationId, {
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+      }))
+    ) {
+      return { ok: false, error: "Villa or project not found." };
+    }
     const [row] = await db
       .insert(villaWifiCredentials)
       .values({
@@ -391,6 +417,18 @@ export async function upsertEmergencyContactAction(
       .where(eq(villaEmergencyContacts.id, parsed.data.id));
     contactId = parsed.data.id;
   } else {
+    // TENANCY: villa_emergency_contacts has NO organization_id — verify the
+    // villa/project FK belongs to the caller's org before inserting so a
+    // contact cannot be anchored to another tenant's villa or project.
+    const organizationId = await requireOrgId();
+    if (
+      !(await anchorBelongsToOrg(db, organizationId, {
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+      }))
+    ) {
+      return { ok: false, error: "Villa or project not found." };
+    }
     const [row] = await db
       .insert(villaEmergencyContacts)
       .values({
@@ -497,6 +535,18 @@ export async function upsertNeighborhoodPlaceAction(
       .where(eq(villaNeighborhoodPlaces.id, parsed.data.id));
     placeId = parsed.data.id;
   } else {
+    // TENANCY: villa_neighborhood_places has NO organization_id — verify the
+    // villa/project FK belongs to the caller's org before inserting so a
+    // place cannot be anchored to another tenant's villa or project.
+    const organizationId = await requireOrgId();
+    if (
+      !(await anchorBelongsToOrg(db, organizationId, {
+        villaId: parsed.data.villaId ?? null,
+        projectId: parsed.data.projectId ?? null,
+      }))
+    ) {
+      return { ok: false, error: "Villa or project not found." };
+    }
     const [row] = await db
       .insert(villaNeighborhoodPlaces)
       .values({

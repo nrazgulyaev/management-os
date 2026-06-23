@@ -4,6 +4,8 @@ import { TableEmpty } from "@/components/ui/table-empty";
 import { listMfaFactorsForAdmin } from "@/features/security-baseline/mfa-services";
 import { safeList } from "@/features/system/db-health";
 import { RevokeMfaFactorButton } from "@/components/security/mfa-buttons";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "MFA factors" };
 export const dynamic = "force-dynamic";
@@ -14,6 +16,8 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default async function MfaFactorsAdminPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const factors = await safeList("mfa.factors", () => listMfaFactorsForAdmin());
   const verifiedCount = factors.value.filter(
     (f) => f.status === "verified",

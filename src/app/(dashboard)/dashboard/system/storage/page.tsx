@@ -2,11 +2,15 @@ import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { listBuckets } from "@/features/system/storage-overview";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Storage health overview" };
 export const dynamic = "force-dynamic";
 
 export default async function StorageOverviewPage() {
+  const { allowed } = await requireCabinetAccess("system");
+  if (!allowed) return <CabinetGate cabinet="System" />;
   const buckets = listBuckets();
 
   return (

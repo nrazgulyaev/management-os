@@ -5,11 +5,15 @@ import { Kpi, Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { getEnvReadinessReport } from "@/lib/env/validation";
 import { getProductionGateReport } from "@/lib/deployment/production-gates";
 import { backupRunbookUrl } from "@/lib/env";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Deployment readiness" };
 export const dynamic = "force-dynamic";
 
 export default async function DeploymentReadinessPage() {
+  const { allowed } = await requireCabinetAccess("system");
+  if (!allowed) return <CabinetGate cabinet="System" />;
   const env = getEnvReadinessReport();
   const gates = getProductionGateReport();
 

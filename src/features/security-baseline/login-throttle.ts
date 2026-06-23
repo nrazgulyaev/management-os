@@ -3,6 +3,8 @@ import "server-only";
 import { and, desc, eq, gte, isNotNull } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { authLoginAttempts } from "@/lib/db/schema/security";
+import { appUsers } from "@/lib/db/schema/identity";
+import { requireOrgId } from "@/features/auth/require-org";
 import {
   decideLoginThrottle,
   newLockUntilForAttempt,
@@ -134,9 +136,26 @@ export async function recordLoginAttempt(
     if (lock) lockedUntil = lock.lockedUntil;
   }
 
+  // TENANCY: stamp the org when the attempt is attributable to a known
+  // app_user (succeeded sign-ins + failures where the email resolved to a
+  // user). Unknown-email pre-auth attempts legitimately stay NULL — there
+  // is no org to attribute them to. recordLoginAttempt runs on the
+  // pre-session sign-in path, so we derive the org from the known
+  // appUserId rather than requireOrgId() (no session exists yet).
+  let organizationId: string | null = null;
+  if (input.appUserId) {
+    const [owner] = await db
+      .select({ organizationId: appUsers.organizationId })
+      .from(appUsers)
+      .where(eq(appUsers.id, input.appUserId))
+      .limit(1);
+    organizationId = owner?.organizationId ?? null;
+  }
+
   await db.insert(authLoginAttempts).values({
     emailNormalized,
     appUserId: input.appUserId ?? null,
+    organizationId,
     ipHash,
     userAgentHash,
     succeeded: input.succeeded,
@@ -191,6 +210,7 @@ export async function summariseRecentLoginAttempts(): Promise<LoginAttemptSummar
   if (!db) {
     return { failedLast24h: 0, successfulLast24h: 0, activeLocks: 0 };
   }
+  const organizationId = await requireOrgId();
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
   const rows = await db
     .select({
@@ -198,7 +218,12 @@ export async function summariseRecentLoginAttempts(): Promise<LoginAttemptSummar
       lockedUntil: authLoginAttempts.lockedUntil,
     })
     .from(authLoginAttempts)
-    .where(gte(authLoginAttempts.createdAt, since));
+    .where(
+      and(
+        eq(authLoginAttempts.organizationId, organizationId),
+        gte(authLoginAttempts.createdAt, since),
+      ),
+    );
   const now = new Date();
   let failed = 0;
   let succeeded = 0;
@@ -230,9 +255,11 @@ export async function listRecentLoginAttempts(
 }[]> {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const rows = await db
     .select()
     .from(authLoginAttempts)
+    .where(eq(authLoginAttempts.organizationId, organizationId))
     .orderBy(desc(authLoginAttempts.createdAt))
     .limit(limit);
   return rows.map((r) => ({
@@ -253,6 +280,7 @@ export async function listActiveLoginLocks(): Promise<
 > {
   const db = getDb();
   if (!db) return [];
+  const organizationId = await requireOrgId();
   const now = new Date();
   const rows = await db
     .select({
@@ -263,6 +291,7 @@ export async function listActiveLoginLocks(): Promise<
     .from(authLoginAttempts)
     .where(
       and(
+        eq(authLoginAttempts.organizationId, organizationId),
         isNotNull(authLoginAttempts.lockedUntil),
         gte(authLoginAttempts.lockedUntil, now),
       ),

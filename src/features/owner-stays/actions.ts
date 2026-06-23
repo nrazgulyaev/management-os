@@ -85,6 +85,40 @@ export async function createOwnerStayPolicyAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: owner_stay_policies has no org column — it anchors org via its
+  // project_id / villa_id. A "use server" RPC must NOT trust the client-supplied
+  // FK: verify each supplied projectId/villaId belongs to this org (via the
+  // villa's project) BEFORE inserting, else a cross-org id would create a policy
+  // pointing at another tenant's project/villa. Mirrors updateOwnerStayPolicyAction.
+  if (parsed.data.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, parsed.data.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!proj) return { ok: false, error: "Project not found." };
+  }
+  if (parsed.data.villaId) {
+    const [villa] = await db
+      .select({ id: villas.id })
+      .from(villas)
+      .innerJoin(projects, eq(projects.id, villas.projectId))
+      .where(
+        and(
+          eq(villas.id, parsed.data.villaId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!villa) return { ok: false, error: "Villa not found." };
+  }
 
   const [row] = await db
     .insert(ownerStayPolicies)
@@ -713,6 +747,26 @@ export async function createEquivalenceGroupAction(
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();
+  const organizationId = await requireOrgId();
+
+  // TENANCY: villa_equivalence_groups has no org column — it anchors org via its
+  // project_id (nullable = global). A "use server" RPC must NOT trust the
+  // client-supplied projectId: verify it belongs to this org BEFORE inserting,
+  // else a cross-org id would create a group anchored to another tenant's
+  // project. Mirrors updateEquivalenceGroupAction's project guard.
+  if (parsed.data.projectId) {
+    const [proj] = await db
+      .select({ id: projects.id })
+      .from(projects)
+      .where(
+        and(
+          eq(projects.id, parsed.data.projectId),
+          eq(projects.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (!proj) return { ok: false, error: "Project not found." };
+  }
 
   const [row] = await db
     .insert(villaEquivalenceGroups)

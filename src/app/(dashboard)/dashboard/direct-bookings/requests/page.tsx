@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingRequests } from "@/features/direct-booking/services";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Direct booking requests" };
 export const dynamic = "force-dynamic";
@@ -33,7 +34,8 @@ export default async function DirectBookingRequestsPage({
     | "cancelled"
     | "converted";
   const status = (sp.status as ReqStatus | undefined) || undefined;
-  const rows = await listDirectBookingRequests({ status, limit: 200 });
+  const organizationId = await requireOrgId();
+  const rows = await listDirectBookingRequests(organizationId, { status, limit: 200 });
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">

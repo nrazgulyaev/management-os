@@ -1,8 +1,9 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { agentOutputs } from "@/lib/db/schema/ai-agents";
+import { requireOrgId } from "@/features/auth/require-org";
 
 /**
  * Sprint MD-5 Phase 4 — Front Office Co-pilot output loader.
@@ -31,6 +32,9 @@ export async function loadFrontOfficeCopilotOutputs(
   const db = getDb();
   if (!db) return [];
   const limit = options.limit ?? 3;
+  // TENANT: agent_outputs is BYPASSRLS-shared; scope to the caller's org.
+  // Strict eq(org) mirrors the canonical sibling output-review-actions.ts.
+  const organizationId = await requireOrgId();
 
   const rows = await db
     .select({
@@ -43,7 +47,12 @@ export async function loadFrontOfficeCopilotOutputs(
       createdAt: agentOutputs.createdAt,
     })
     .from(agentOutputs)
-    .where(eq(agentOutputs.agentKey, AGENT_KEY))
+    .where(
+      and(
+        eq(agentOutputs.agentKey, AGENT_KEY),
+        eq(agentOutputs.organizationId, organizationId),
+      ),
+    )
     .orderBy(desc(agentOutputs.createdAt))
     .limit(limit);
 

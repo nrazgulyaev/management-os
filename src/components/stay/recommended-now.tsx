@@ -76,6 +76,9 @@ function RecommendedRow({
         {href && (
           <form action={clickDispatch} className="inline-flex">
             <input type="hidden" name="id" value={s.id} />
+            {/* Stay token IS the guest's auth for the dismiss/click
+                actions — server-side it must own this suggestion. */}
+            <input type="hidden" name="token" value={token} />
             <button
               type="submit"
               formAction={clickDispatch}
@@ -90,6 +93,7 @@ function RecommendedRow({
         )}
         <form action={dismissDispatch} className="inline-flex">
           <input type="hidden" name="id" value={s.id} />
+          <input type="hidden" name="token" value={token} />
           <button
             type="submit"
             className="text-[11px] text-ink-tertiary hover:text-ink"

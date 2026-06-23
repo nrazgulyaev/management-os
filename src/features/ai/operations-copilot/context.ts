@@ -107,7 +107,7 @@ export async function buildOperationsSnapshot(
       listOperationTasks({ status: "open", limit: MAX_LIST }),
       listBookingConflicts(),
       listLowStockItems(),
-      listJobRuns({ limit: MAX_LIST }),
+      listJobRuns({ limit: MAX_LIST, organizationId }),
       listServiceRequests({ limit: MAX_LIST, organizationId }),
       listMaintenanceTickets({ limit: MAX_LIST, organizationId }),
       listCalendarFeeds(),

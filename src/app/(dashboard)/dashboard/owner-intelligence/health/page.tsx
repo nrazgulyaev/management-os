@@ -4,6 +4,8 @@ import { NoItemsYet } from "@/components/ui/primitives";
 import { requireOrgId } from "@/features/auth/require-org";
 import { listOwnerVillaHealthSnapshots } from "@/features/owner-intelligence/health-services";
 import { GenerateAllSnapshotsButton } from "@/components/owner-intelligence/snapshot-buttons";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Villa health snapshots" };
 export const dynamic = "force-dynamic";
@@ -20,6 +22,8 @@ const STATUS_TONES: Record<
 };
 
 export default async function HealthListPage() {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const snapshots = await listOwnerVillaHealthSnapshots({
     organizationId: await requireOrgId(),
   });

@@ -35,7 +35,7 @@ export default async function DirectBookingsHub() {
       getReconciliationMetrics(organizationId),
     ),
     trace(PAGE, "listDirectBookingHolds", () =>
-      listDirectBookingHolds({ status: "active", limit: 12 }),
+      listDirectBookingHolds(organizationId, { status: "active", limit: 12 }),
     ),
   ]);
 

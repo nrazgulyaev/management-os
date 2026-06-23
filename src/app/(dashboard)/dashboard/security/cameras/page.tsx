@@ -6,6 +6,8 @@ import { listProjects } from "@/features/projects/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
 import { CameraAddButton } from "@/components/security/camera-add-button";
 import { NoItemsYet } from "@/components/ui/primitives";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Cameras" };
 export const dynamic = "force-dynamic";
@@ -18,6 +20,8 @@ const STATUS_BADGES: Record<string, string> = {
 };
 
 export default async function CamerasPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const [cameras, villas, projects] = await Promise.all([
     listSecurityCameraDevices(),
     listVillas(),

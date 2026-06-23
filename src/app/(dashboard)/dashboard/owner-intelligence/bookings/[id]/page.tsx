@@ -17,6 +17,8 @@ import {
 } from "@/components/owner-bookings/projection-buttons";
 import { formatMoneyMinor } from "@/lib/money";
 import { requireOrgId } from "@/features/auth/require-org";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 export const metadata = { title: "Owner booking projection — detail" };
 export const dynamic = "force-dynamic";
@@ -43,6 +45,8 @@ export default async function AdminOwnerBookingDetail({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const { allowed } = await requireCabinetAccess("owners");
+  if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const { id } = await params;
   const s = await getOwnerBookingSummaryById(id, {
     organizationId: await requireOrgId(),

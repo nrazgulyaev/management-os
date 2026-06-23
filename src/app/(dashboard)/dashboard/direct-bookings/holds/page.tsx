@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingHolds } from "@/features/direct-booking/services";
 import { adminHoldStatusLabel } from "@/features/direct-booking/hold-pure";
+import { requireOrgId } from "@/features/auth/require-org";
 
 export const metadata = { title: "Direct booking holds" };
 export const dynamic = "force-dynamic";
@@ -30,7 +31,8 @@ export default async function DirectBookingHoldsPage({
     | "cancelled"
     | "rejected"
     | undefined) || undefined;
-  const rows = await listDirectBookingHolds({ status, limit: 200 });
+  const organizationId = await requireOrgId();
+  const rows = await listDirectBookingHolds(organizationId, { status, limit: 200 });
   return (
     <>
       <div className="page-header">

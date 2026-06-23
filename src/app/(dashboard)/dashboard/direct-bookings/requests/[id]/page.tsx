@@ -27,7 +27,7 @@ import {
   calculateBalanceDue,
   directBookingFinanceStatusLabel,
 } from "@/features/direct-booking/finance-pure";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import {
   directBookingGuestStatusSnapshots,
@@ -69,17 +69,17 @@ export default async function DirectBookingRequestDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const detail = await getRequestDetailById(id);
+  // TENANCY: resolve the caller's org up front and AND it into the request load
+  // so a cross-org request id → notFound(). Reused below to scope the deposit
+  // read and the inline guest-status selects.
+  const organizationId = await requireOrgId();
+  const detail = await getRequestDetailById(id, organizationId);
   if (!detail) notFound();
   // Director / super_admin / booking_manager (holders of `direct_booking.manage`)
   // may convert without a paid deposit. Same flag the action re-checks.
   const ctx = await getCurrentUserContext();
   const canOverrideConvert = hasPermission(ctx, "direct_booking.manage");
   const { request: r, hold, villaCode, events, booking } = detail;
-  // TENANCY: defence-in-depth — scope the deposit read to the caller's org so a
-  // cross-org request id (parent loader is not org-gated) cannot surface a
-  // foreign deposit's amount/status.
-  const organizationId = await requireOrgId();
   const deposit = await getDepositForRequest(r.id, organizationId);
   const db = getDb();
   let guestSnapshot: typeof directBookingGuestStatusSnapshots.$inferSelect | null =
@@ -91,23 +91,53 @@ export default async function DirectBookingRequestDetailPage({
     | typeof directBookingGuestMessageThreads.$inferSelect
     | null = null;
   if (db) {
+    // TENANCY: these three selects key off the now-org-verified request
+    // (r.id / r.holdId came from getRequestDetailById, which is org-gated).
+    // AND the caller's org into each as defence-in-depth. The org column is a
+    // nullable legacy anchor (migration 0153) — a pre-backfill NULL row tied to
+    // the verified request is still surfaced; only a set-but-mismatched org is
+    // excluded.
     const [snap] = await db
       .select()
       .from(directBookingGuestStatusSnapshots)
-      .where(eq(directBookingGuestStatusSnapshots.holdId, r.holdId))
+      .where(
+        and(
+          eq(directBookingGuestStatusSnapshots.holdId, r.holdId),
+          or(
+            isNull(directBookingGuestStatusSnapshots.organizationId),
+            eq(directBookingGuestStatusSnapshots.organizationId, organizationId),
+          ),
+        ),
+      )
       .limit(1);
     guestSnapshot = snap ?? null;
     const [latest] = await db
       .select()
       .from(directBookingGuestNotifications)
-      .where(eq(directBookingGuestNotifications.requestId, r.id))
+      .where(
+        and(
+          eq(directBookingGuestNotifications.requestId, r.id),
+          or(
+            isNull(directBookingGuestNotifications.organizationId),
+            eq(directBookingGuestNotifications.organizationId, organizationId),
+          ),
+        ),
+      )
       .orderBy(directBookingGuestNotifications.createdAt)
       .limit(1);
     lastGuestNotification = latest ?? null;
     const [thread] = await db
       .select()
       .from(directBookingGuestMessageThreads)
-      .where(eq(directBookingGuestMessageThreads.requestId, r.id))
+      .where(
+        and(
+          eq(directBookingGuestMessageThreads.requestId, r.id),
+          or(
+            isNull(directBookingGuestMessageThreads.organizationId),
+            eq(directBookingGuestMessageThreads.organizationId, organizationId),
+          ),
+        ),
+      )
       .limit(1);
     guestThread = thread ?? null;
   }

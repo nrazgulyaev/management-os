@@ -9,6 +9,8 @@ import { listOperationTasks } from "@/features/operations/services";
 import { loadSecurityCopilotOutputs } from "@/lib/development/server/ai/security-copilot-queries";
 import { mapPoolAll } from "@/lib/db/map-pool";
 import { isAgentEnabledForCurrentOrg } from "@/features/ai-agents/is-agent-enabled-for-org";
+import { requireCabinetAccess } from "@/features/keystone/access";
+import { CabinetGate } from "@/components/keystone/cabinet-gate";
 
 /**
  * Mgmt-P3 · Security cabinet — pixel pass to `cabinets/mgmt-p3/Security
@@ -71,6 +73,8 @@ function bucketLast7Days(
 }
 
 export default async function SecurityCabinetPage() {
+  const { allowed } = await requireCabinetAccess("security");
+  if (!allowed) return <CabinetGate cabinet="Security" />;
   const now = new Date();
   const me = await getCurrentAppUser();
   const firstName = me?.fullName?.trim().split(/\s+/)[0] ?? null;
