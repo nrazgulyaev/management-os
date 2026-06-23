@@ -183,7 +183,9 @@ export async function POST(
   const baseUrl =
     env.server.APP_BASE_URL?.replace(/\/$/, "") ??
     new URL(request.url).origin;
-  const successUrl = `${baseUrl}/dashboard/billing?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
+  // Land on the real /dashboard/billing/upgrade page (there is no bare
+  // /dashboard/billing route) so post-checkout doesn't 404.
+  const successUrl = `${baseUrl}/dashboard/billing/upgrade?checkout=success&session_id={CHECKOUT_SESSION_ID}`;
   const cancelUrl = `${baseUrl}/dashboard/billing/upgrade?checkout=cancelled`;
 
   const client = new StripeClient({

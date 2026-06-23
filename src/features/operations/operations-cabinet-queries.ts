@@ -4,6 +4,8 @@ import { unstable_cache } from "next/cache";
 import { sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
+import { listOperationTasks, listServiceRequests } from "./services";
+import { todayYmd } from "./scheduling";
 // SHAPE-FIX-1 / DAILY-DIGEST P0 — rowsOf handles postgres-js Array shape.
 // TODO(DB-SHAPE-CODEMOD-1): adjacent files in this module still pending full sweep.
 
@@ -291,10 +293,29 @@ export interface HousekeepingRow {
   priority: string;
 }
 
-/** No housekeeping tasks seeded — `operation_tasks` schema exists but
- *  DEMO-2 didn't populate it. Cabinet shows an empty-state row. */
+/** Today-or-overdue housekeeping tasks for the operations cabinet. Thin adapter
+ *  over the org-scoped listOperationTasks (was a `return []` stub). */
 export async function getHousekeepingProgress(): Promise<HousekeepingRow[]> {
-  return [];
+  const tasks = await listOperationTasks({
+    category: "housekeeping",
+    scheduledOnOrBefore: todayYmd(),
+    limit: 50,
+  });
+  return tasks.map((t) => ({
+    taskId: t.id,
+    villaCode: t.villaCode ?? "—",
+    taskCode: t.taskCode,
+    scheduledAt: t.scheduledFor ?? "",
+    assigneeName: t.assignedToName,
+    progressPct:
+      t.status === "completed" || t.status === "approved"
+        ? 100
+        : t.status === "in_progress"
+          ? 50
+          : 0,
+    status: t.status,
+    priority: t.priority,
+  }));
 }
 
 export interface ServiceRequestRow {
@@ -307,9 +328,20 @@ export interface ServiceRequestRow {
   vendorName: string | null;
 }
 
-/** No `service_requests` rows seeded. */
+/** Recent service requests for the operations cabinet. Thin adapter over the
+ *  org-scoped listServiceRequests (was a `return []` stub). guestName/vendorName
+ *  aren't resolved by that reader, so they render blank rather than fabricated. */
 export async function getServiceRequestsForCabinet(): Promise<ServiceRequestRow[]> {
-  return [];
+  const reqs = await listServiceRequests({ limit: 50 });
+  return reqs.map((r) => ({
+    id: r.id,
+    code: r.requestCode,
+    villaCode: r.villaCode ?? null,
+    guestName: null,
+    requestType: r.requestType,
+    status: r.status,
+    vendorName: null,
+  }));
 }
 
 // =============================================================================

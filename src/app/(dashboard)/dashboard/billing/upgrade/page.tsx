@@ -202,6 +202,13 @@ export default async function UpgradePage({
           included in your current plan. Pick a higher tier below.
         </div>
       )}
+      {sp.checkout === "success" && (
+        <div className="rounded border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+          Payment received — thank you! Your subscription is being activated;
+          the new plan and limits apply within a few moments (the Stripe webhook
+          finalises it). Refresh if you don&apos;t see the change yet.
+        </div>
+      )}
       {sp.checkout === "cancelled" && (
         <div className="rounded border border-line-soft bg-muted/30 px-4 py-3 text-sm text-ink-secondary">
           You cancelled the Stripe Checkout flow — your workspace is
