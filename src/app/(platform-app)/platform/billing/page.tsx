@@ -17,12 +17,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
-  DashboardKpi,
   FilterPills,
-  ListTableCard,
   type FilterPillItem,
 } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -196,43 +194,41 @@ export default async function PlatformBillingPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Billing" },
-        ]}
-        eyebrow="Platform · billing"
-        title="Billing console"
-        description="Subscription billing per org — plan, derived billing state and MRR from the plan catalog. No payment provider is connected yet, so there are no invoices or payments here; see the band below for what unlocks at launch."
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> / <span>Billing</span>
+        </div>
+        <SectionHeading
+          eyebrow="Platform · billing"
+          title="Billing console"
+          subtitle="Subscription billing per org — plan, derived billing state and MRR from the plan catalog. No payment provider is connected yet, so there are no invoices or payments here; see the band below for what unlocks at launch."
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <DashboardKpi
-          variant="hero"
-          tone="emerald-soft"
-          label="MRR"
-          value={fmtMoney(snap.mrrMinor, snap.currency)}
-          status="neutral"
-          hint="Active subscriptions × plan price — same read as Revenue (includes comped)"
-          className="sm:col-span-2 lg:col-span-2"
-        />
-        <DashboardKpi
+        <div className="sm:col-span-2 lg:col-span-2">
+          <Kpi
+            tone="gold"
+            label="MRR"
+            value={fmtMoney(snap.mrrMinor, snap.currency)}
+            sub="Active subscriptions × plan price — same read as Revenue (includes comped)"
+          />
+        </div>
+        <Kpi
+          tone={payingRows.length > 0 ? "success" : undefined}
           label="Paying orgs"
           value={String(payingRows.length)}
-          status={payingRows.length > 0 ? "good" : "neutral"}
-          hint="Active subscription, not comped"
+          sub="Active subscription, not comped"
         />
-        <DashboardKpi
+        <Kpi
           label="Comped orgs"
           value={String(compedRows.length)}
-          status="neutral"
-          hint="Internal complimentary plans"
+          sub="Internal complimentary plans"
         />
-        <DashboardKpi
+        <Kpi
           label="ARPU"
           value={arpu}
-          status="neutral"
-          hint="Paying MRR ÷ paying orgs (comps excluded)"
+          sub="Paying MRR ÷ paying orgs (comps excluded)"
         />
       </div>
 
@@ -241,15 +237,15 @@ export default async function PlatformBillingPage({
         <FilterPills items={planPills} current={planFilter} label="Plan" />
       </div>
 
-      <ListTableCard
-        eyebrow="Per-org billing"
-        title={
-          stateFilter
-            ? `${STATE_LABEL[stateFilter]} organizations`
-            : "All organizations"
-        }
-        count={rows.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>
+            {stateFilter
+              ? `${STATE_LABEL[stateFilter]} organizations`
+              : "All organizations"}{" "}
+            · {rows.length}
+          </h3>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -332,7 +328,7 @@ export default async function PlatformBillingPage({
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
 
       <PaymentsNotConnectedBand />
     </div>

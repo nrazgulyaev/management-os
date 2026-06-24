@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { GuestShell } from "@/components/layout/guest-shell";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
@@ -71,7 +70,15 @@ export default async function GuestServiceOrdersPage({
             for status, ETA, or to leave a rating once it's complete.
           </p>
         </header>
-        <Section eyebrow="History" title={`${rows.length} requests`}>
+        <section className="flex flex-col gap-3">
+          <header className="flex flex-col gap-1.5">
+            <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+              History
+            </span>
+            <h2 className="text-display text-[22px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">
+              {rows.length} requests
+            </h2>
+          </header>
           {rows.length === 0 ? (
             <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
               No service requests yet.
@@ -105,7 +112,7 @@ export default async function GuestServiceOrdersPage({
               })}
             </ul>
           )}
-        </Section>
+        </section>
       </div>
     </GuestShell>
   );

@@ -16,10 +16,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, CreditCard, ScrollText } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import {
   getPlatformConsoleSummary,
@@ -113,10 +112,10 @@ export default async function PlatformConsolePage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
+      <SectionHeading
         eyebrow="Platform Admin OS"
         title="Platform Console"
-        description="Run the business of the platform — customer-status summary, every customer org, and per-tier MRR. Read-only snapshot from org_subscriptions + subscription_plans."
+        subtitle="Run the business of the platform — customer-status summary, every customer org, and per-tier MRR. Read-only snapshot from org_subscriptions + subscription_plans."
         actions={
           <>
             <Button asChild variant="secondary">
@@ -139,13 +138,11 @@ export default async function PlatformConsolePage() {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {statusPills.map((p, i) => (
           <Link key={p.label} href={p.href} className="block">
-            <DashboardKpi
-              variant={i === 0 ? "hero" : "default"}
-              tone={i === 0 ? "emerald-soft" : "surface"}
+            <Kpi
+              tone={i === 0 ? "gold" : undefined}
               label={p.label}
               value={String(p.count)}
-              status="neutral"
-              hint={i === 0 ? "Total customer orgs" : "View filtered list"}
+              sub={i === 0 ? "Total customer orgs" : "View filtered list"}
             />
           </Link>
         ))}
@@ -153,45 +150,41 @@ export default async function PlatformConsolePage() {
 
       {/* ── MRR / ARR ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKpi
-          variant="hero"
-          tone="emerald-soft"
-          label="MRR"
-          value={fmtMoney(revenue.mrrMinor, revenue.currency)}
-          status="neutral"
-          hint="Sum of monthly price across active subs"
-          className="sm:col-span-2 lg:col-span-2"
-        />
-        <DashboardKpi
+        <div className="sm:col-span-2 lg:col-span-2">
+          <Kpi
+            tone="gold"
+            label="MRR"
+            value={fmtMoney(revenue.mrrMinor, revenue.currency)}
+            sub="Sum of monthly price across active subs"
+          />
+        </div>
+        <Kpi
           label="ARR"
           value={fmtMoney(revenue.arrMinor, revenue.currency)}
-          status="neutral"
-          hint="MRR × 12"
+          sub="MRR × 12"
         />
-        <DashboardKpi
-          label="Trial → paid (30d)"
-          value={String(revenue.trialToPaidLast30dCount)}
-          status={revenue.trialToPaidLast30dCount > 0 ? "good" : "neutral"}
-          hint={`${revenue.cancelledLast30dCount} cancelled (30d)`}
-          drillHref="/platform/revenue"
-        />
+        <Link href="/platform/revenue" className="block">
+          <Kpi
+            tone={revenue.trialToPaidLast30dCount > 0 ? "success" : undefined}
+            label="Trial → paid (30d)"
+            value={String(revenue.trialToPaidLast30dCount)}
+            sub={`${revenue.cancelledLast30dCount} cancelled (30d)`}
+          />
+        </Link>
       </div>
 
       {/* ── All-orgs table ──────────────────────────────────────────── */}
-      <ListTableCard
-        eyebrow="Customers"
-        title="All organizations"
-        count={orgs.length}
-        actions={
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>All organizations · {orgs.length}</h3>
           <Link
             href="/platform/organizations"
-            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors ml-auto"
           >
             Full list + filters
             <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
           </Link>
-        }
-      >
+        </div>
         <Table>
           <THead>
             <TR>
@@ -266,23 +259,20 @@ export default async function PlatformConsolePage() {
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
 
       {/* ── Per-tier MRR rollup (reuses revenue snapshot) ───────────── */}
-      <ListTableCard
-        eyebrow="Per-tier breakdown"
-        title="Customers + MRR by plan"
-        count={revenue.perTier.length}
-        actions={
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Customers + MRR by plan · {revenue.perTier.length}</h3>
           <Link
             href="/platform/plans"
-            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors"
+            className="inline-flex items-center gap-1 text-sm font-medium text-ink-secondary hover:text-accent transition-colors ml-auto"
           >
             Edit plans
             <ArrowUpRight className="w-4 h-4" strokeWidth={1.75} />
           </Link>
-        }
-      >
+        </div>
         <Table>
           <THead>
             <TR>
@@ -319,7 +309,7 @@ export default async function PlatformConsolePage() {
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

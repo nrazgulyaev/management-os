@@ -9,12 +9,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
-  DashboardKpi,
   FilterPills,
-  ListTableCard,
   type FilterPillItem,
 } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -120,61 +118,60 @@ export default async function OrganizationsListPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Organizations" },
-        ]}
-        eyebrow="Platform · all tenants"
-        title="Customer organizations"
-        description="Every customer org with its current subscription state. Filter by status or search by name / code, then drill into the per-org console."
-        actions={<NewOrganizationButton plans={assignablePlans} />}
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> / <span>Organizations</span>
+        </div>
+        <SectionHeading
+          eyebrow="Platform · all tenants"
+          title="Customer organizations"
+          subtitle="Every customer org with its current subscription state. Filter by status or search by name / code, then drill into the per-org console."
+          actions={<NewOrganizationButton plans={assignablePlans} />}
+        />
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <DashboardKpi
+        <Kpi
           label="Total orgs"
           value={String(counts.all)}
-          status="neutral"
-          hint="All customers"
+          sub="All customers"
         />
-        <DashboardKpi
+        <Kpi
+          tone="success"
           label="Active · paid"
           value={String(counts.active)}
-          status="good"
-          hint="Recurring MRR"
+          sub="Recurring MRR"
         />
-        <DashboardKpi
+        <Kpi
           label="Trial"
           value={String(counts.trial)}
-          status="neutral"
-          hint="Evaluating"
+          sub="Evaluating"
         />
-        <DashboardKpi
+        <Kpi
+          tone={counts.grace > 0 ? "warn" : undefined}
           label="Grace"
           value={String(counts.grace)}
-          status={counts.grace > 0 ? "warn" : "neutral"}
-          hint="Payment retry"
+          sub="Payment retry"
         />
-        <DashboardKpi
+        <Kpi
+          tone={counts.cancelled > 0 ? "danger" : undefined}
           label="Cancelled"
           value={String(counts.cancelled)}
-          status={counts.cancelled > 0 ? "bad" : "neutral"}
-          hint="Churned"
+          sub="Churned"
         />
       </div>
 
       <FilterPills items={pills} current={status} label="Status" />
 
-      <ListTableCard
-        eyebrow="Customers"
-        title={
-          status
-            ? `${status[0].toUpperCase()}${status.slice(1)} organizations`
-            : "All organizations"
-        }
-        count={orgs.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>
+            {status
+              ? `${status[0].toUpperCase()}${status.slice(1)} organizations`
+              : "All organizations"}{" "}
+            · {orgs.length}
+          </h3>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -270,7 +267,7 @@ export default async function OrganizationsListPage({
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { StayShell } from "@/components/layout/stay-shell";
 import { StayHeader, Eyebrow } from "@/components/stay/stay-ui";
-import { Section } from "@/components/ui/section";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
 import { canAccessStayWithoutVerification } from "@/features/guest-stays/verification";
@@ -82,28 +81,38 @@ export default async function ServicesPage({
         </header>
 
         {focusedService && (
-          <Section
-            eyebrow="Recommended"
-            title={focusedService.name}
-            description="From your stay timeline."
-          >
+          <section className="flex flex-col gap-3">
+            <header className="flex flex-col gap-1.5">
+              <Eyebrow>Recommended</Eyebrow>
+              <h2 className="text-display text-[22px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">
+                {focusedService.name}
+              </h2>
+              <p className="text-ink-secondary text-sm leading-relaxed">
+                From your stay timeline.
+              </p>
+            </header>
             <p className="text-sm text-ink-secondary">
               {focusedService.shortDescription ??
                 focusedService.descriptionMd ??
                 "Open the service below to send a request."}
             </p>
-          </Section>
+          </section>
         )}
 
         <ServicesCatalog token={token} services={catalog} />
 
-        <Section
-          eyebrow="Custom"
-          title="Need something we don't list?"
-          description="Send a free-text request and the concierge will get back to you."
-        >
+        <section className="flex flex-col gap-3">
+          <header className="flex flex-col gap-1.5">
+            <Eyebrow>Custom</Eyebrow>
+            <h2 className="text-display text-[22px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">
+              Need something we don&apos;t list?
+            </h2>
+            <p className="text-ink-secondary text-sm leading-relaxed">
+              Send a free-text request and the concierge will get back to you.
+            </p>
+          </header>
           <GuestServiceRequestForm token={token} />
-        </Section>
+        </section>
       </div>
     </StayShell>
   );

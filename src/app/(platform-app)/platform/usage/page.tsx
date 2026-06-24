@@ -10,8 +10,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { listSubscriptionOsOrgs } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -43,37 +42,35 @@ export default async function UsageDashboardPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Usage" },
-        ]}
-        eyebrow="Platform · metrics"
-        title="Aggregate usage"
-        description="Per-org product mix and adoption. AI cost / token rollups live in the Dev OS AI-usage page; per-org storage + active-user metrics ship in a follow-up."
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> / <span>Usage</span>
+        </div>
+        <SectionHeading
+          eyebrow="Platform · metrics"
+          title="Aggregate usage"
+          subtitle="Per-org product mix and adoption. AI cost / token rollups live in the Dev OS AI-usage page; per-org storage + active-user metrics ship in a follow-up."
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKpi
-          variant="hero"
-          tone="emerald-soft"
-          label="Total orgs"
-          value={String(orgs.length)}
-          status="neutral"
-          hint="Across both products"
-          className="sm:col-span-2 lg:col-span-2"
-        />
-        <DashboardKpi
+        <div className="sm:col-span-2 lg:col-span-2">
+          <Kpi
+            tone="gold"
+            label="Total orgs"
+            value={String(orgs.length)}
+            sub="Across both products"
+          />
+        </div>
+        <Kpi
           label="Mgmt OS only"
           value={String(mgmtOnlyCount)}
-          status="neutral"
-          hint="Villa ops"
+          sub="Villa ops"
         />
-        <DashboardKpi
+        <Kpi
           label="Dev OS only"
           value={String(devOnlyCount)}
-          status="neutral"
-          hint="Construction"
+          sub="Construction"
         />
       </div>
 
@@ -97,11 +94,10 @@ export default async function UsageDashboardPage() {
         </Link>
       </div>
 
-      <ListTableCard
-        eyebrow="Per-org"
-        title="Customer products + plan"
-        count={orgs.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Customer products + plan · {orgs.length}</h3>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -146,7 +142,7 @@ export default async function UsageDashboardPage() {
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

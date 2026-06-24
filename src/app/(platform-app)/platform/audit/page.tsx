@@ -8,8 +8,7 @@
  */
 
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { listPlatformAuditEntries } from "@/lib/subscription-os/queries";
@@ -39,48 +38,32 @@ export default async function PlatformAuditPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Audit" },
-        ]}
-        eyebrow="Platform · append-only"
-        title="Every operator action"
-        description="Who, when, what, before/after — for every platform-admin action, including read-only impersonation. Searchable and exportable. Reads audit_events with action prefix 'platform.*'."
-      />
-
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKpi
-          label="Events · 30d"
-          value={String(last30d.length)}
-          status="neutral"
-          hint="All operators"
-        />
-        <DashboardKpi
-          label="Impersonations"
-          value={String(impersonations)}
-          status="neutral"
-          hint="Read-only · 30d"
-        />
-        <DashboardKpi
-          label="Plan changes"
-          value={String(planChanges)}
-          status={planChanges > 0 ? "warn" : "neutral"}
-          hint="Comp / upgrade · 30d"
-        />
-        <DashboardKpi
-          label="Operators"
-          value={String(operators)}
-          status="neutral"
-          hint="super_admin"
+      <div className="flex flex-col gap-[22px]">
+        <div className="crumb">Platform Admin OS · Audit</div>
+        <SectionHeading
+          eyebrow="Platform · append-only"
+          title="Every operator action"
+          subtitle="Who, when, what, before/after — for every platform-admin action, including read-only impersonation. Searchable and exportable. Reads audit_events with action prefix 'platform.*'."
         />
       </div>
 
-      <ListTableCard
-        eyebrow="Append-only"
-        title="Recent admin actions"
-        count={entries.length}
-      >
+      <div className="pf-kpis">
+        <Kpi label="Events · 30d" value={String(last30d.length)} sub="All operators" />
+        <Kpi label="Impersonations" value={String(impersonations)} sub="Read-only · 30d" />
+        <Kpi
+          label="Plan changes"
+          value={String(planChanges)}
+          sub="Comp / upgrade · 30d"
+          tone={planChanges > 0 ? "warn" : undefined}
+        />
+        <Kpi label="Operators" value={String(operators)} sub="super_admin" />
+      </div>
+
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Recent admin actions</h3>
+          <span className="meta">APPEND-ONLY · {entries.length}</span>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -130,7 +113,7 @@ export default async function PlatformAuditPage() {
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

@@ -11,11 +11,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight, ShieldAlert, ShieldCheck } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   FilterPills,
-  ListTableCard,
   type FilterPillItem,
 } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -163,15 +162,14 @@ export default async function PlatformUsersPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Users" },
-        ]}
-        eyebrow={`${users.length} user${users.length === 1 ? "" : "s"}`}
-        title="Cross-org user directory"
-        description="Every user across every customer org. Filter by security posture or admin role, search by name / email / org, sort by last sign-in, then drill into a user for auth state and admin actions."
-      />
+      <div className="flex flex-col gap-[22px]">
+        <div className="crumb">Platform Admin OS · Users</div>
+        <SectionHeading
+          eyebrow={`${users.length} user${users.length === 1 ? "" : "s"}`}
+          title="Cross-org user directory"
+          subtitle="Every user across every customer org. Filter by security posture or admin role, search by name / email / org, sort by last sign-in, then drill into a user for auth state and admin actions."
+        />
+      </div>
 
       <form method="get" className="flex flex-wrap items-end gap-3">
         {/* Preserve the active filter / sort across a search submit. */}
@@ -195,7 +193,11 @@ export default async function PlatformUsersPage({
 
       <FilterPills items={pills} current={filter} label="Filter" />
 
-      <ListTableCard eyebrow="Directory" title="Users" count={users.length}>
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Users</h3>
+          <span className="meta">DIRECTORY · {users.length}</span>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -301,7 +303,7 @@ export default async function PlatformUsersPage({
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

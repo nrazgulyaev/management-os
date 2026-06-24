@@ -14,13 +14,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { count, desc, eq, inArray } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
-  DashboardKpi,
   FilterPills,
-  ListTableCard,
   type FilterPillItem,
 } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -71,14 +69,15 @@ export default async function PlatformSupportPage({
   if (!db) {
     return (
       <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-        <PageHeader
-          breadcrumbs={[
-            { label: "Platform Admin OS", href: "/platform" },
-            { label: "Support" },
-          ]}
-          eyebrow="Platform · all tenants"
-          title="Support inbox"
-        />
+        <div>
+          <div className="crumb">
+            <Link href="/platform">Platform Admin OS</Link> / <span>Support</span>
+          </div>
+          <SectionHeading
+            eyebrow="Platform · all tenants"
+            title="Support inbox"
+          />
+        </div>
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the support inbox."
@@ -175,40 +174,39 @@ export default async function PlatformSupportPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Support" },
-        ]}
-        eyebrow="Platform · all tenants"
-        title="Support inbox"
-        description="Every customer org's support threads. Reply as the platform team, mark pending while waiting on the customer, close when resolved."
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> / <span>Support</span>
+        </div>
+        <SectionHeading
+          eyebrow="Platform · all tenants"
+          title="Support inbox"
+          subtitle="Every customer org's support threads. Reply as the platform team, mark pending while waiting on the customer, close when resolved."
+        />
+      </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <DashboardKpi
+        <Kpi
+          tone={kpis.open > 0 ? "warn" : "success"}
           label="Open"
           value={String(kpis.open)}
-          status={kpis.open > 0 ? "warn" : "good"}
-          hint="Waiting on us"
+          sub="Waiting on us"
         />
-        <DashboardKpi
+        <Kpi
           label="Pending"
           value={String(kpis.pending)}
-          status="neutral"
-          hint="Waiting on customer"
+          sub="Waiting on customer"
         />
-        <DashboardKpi
+        <Kpi
+          tone={kpis.urgent > 0 ? "danger" : "success"}
           label="Urgent unresolved"
           value={String(kpis.urgent)}
-          status={kpis.urgent > 0 ? "bad" : "good"}
-          hint="Priority = urgent"
+          sub="Priority = urgent"
         />
-        <DashboardKpi
+        <Kpi
           label="Median open age"
           value={kpis.medianAge}
-          status="neutral"
-          hint="Across open threads"
+          sub="Across open threads"
         />
       </div>
 
@@ -217,15 +215,13 @@ export default async function PlatformSupportPage({
         <FilterPills items={priorityPills} current={priority} label="Priority" />
       </div>
 
-      <ListTableCard
-        eyebrow="Queue"
-        title={
-          status || priority
-            ? `Filtered threads`
-            : "All threads"
-        }
-        count={threads.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>
+            {status || priority ? "Filtered threads" : "All threads"} ·{" "}
+            {threads.length}
+          </h3>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -299,7 +295,7 @@ export default async function PlatformSupportPage({
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { Section } from "@/components/ui/section";
 import { getFulfilmentByVendorToken } from "@/features/service-fulfilment/services";
 import { VendorInvoiceForm } from "@/components/vendor/invoice-form";
 
@@ -38,12 +37,20 @@ export default async function VendorInvoicePage({
             request automatically.
           </p>
         </header>
-        <Section eyebrow="Invoice" title="Metadata">
+        <section className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+              Invoice
+            </span>
+            <h2 className="text-display text-[20px] md:text-2xl font-medium text-ink">
+              Metadata
+            </h2>
+          </div>
           <VendorInvoiceForm
             token={token}
             currency={ctx.fulfilment.currency}
           />
-        </Section>
+        </section>
       </div>
     </div>
   );

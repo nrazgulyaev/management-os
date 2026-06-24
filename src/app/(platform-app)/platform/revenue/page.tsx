@@ -7,9 +7,8 @@
  */
 
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
-import { DashboardKpi } from "@/components/ui/primitives";
-import { ListTableCard } from "@/components/ui/primitives";
+import Link from "next/link";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { getRevenueSnapshot } from "@/lib/subscription-os/queries";
 import { safeQuery } from "@/lib/development/safe-query";
@@ -58,72 +57,68 @@ export default async function RevenueDashboardPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Revenue" },
-        ]}
-        eyebrow="Platform · metrics"
-        title="The business of the platform"
-        description="MRR, ARR, customers by tier, trial → paid conversion and churn — a read-only snapshot from subscriptions + lifecycle events."
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> / <span>Revenue</span>
+        </div>
+        <SectionHeading
+          eyebrow="Platform · metrics"
+          title="The business of the platform"
+          subtitle="MRR, ARR, customers by tier, trial → paid conversion and churn — a read-only snapshot from subscriptions + lifecycle events."
+        />
+      </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKpi
-          variant="hero"
-          tone="emerald-soft"
-          label="MRR"
-          value={fmtMoney(snap.mrrMinor, snap.currency)}
-          status="neutral"
-          hint="Sum of active monthly price"
-          className="sm:col-span-2 lg:col-span-2"
-        />
-        <DashboardKpi
+        <div className="sm:col-span-2 lg:col-span-2">
+          <Kpi
+            tone="gold"
+            label="MRR"
+            value={fmtMoney(snap.mrrMinor, snap.currency)}
+            sub="Sum of active monthly price"
+          />
+        </div>
+        <Kpi
           label="ARR"
           value={fmtMoney(snap.arrMinor, snap.currency)}
-          status="neutral"
-          hint="MRR × 12"
+          sub="MRR × 12"
         />
-        <DashboardKpi
+        <Kpi
           label="Active customers"
           value={String(snap.activeCount)}
-          status="neutral"
-          hint={`${snap.trialCount} trial · ${snap.customerCount} total`}
+          sub={`${snap.trialCount} trial · ${snap.customerCount} total`}
         />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <DashboardKpi
+        <Kpi
+          tone={snap.trialToPaidLast30dCount > 0 ? "success" : undefined}
           label="Trial → paid (30d)"
           value={String(snap.trialToPaidLast30dCount)}
-          status={snap.trialToPaidLast30dCount > 0 ? "good" : "neutral"}
-          hint={`~${conversionPct.toFixed(1)}% conversion`}
+          sub={`~${conversionPct.toFixed(1)}% conversion`}
         />
-        <DashboardKpi
-          label="Cancellations (30d)"
-          value={String(snap.cancelledLast30dCount)}
-          status={
+        <Kpi
+          tone={
             snap.cancelledLast30dCount === 0
-              ? "good"
+              ? "success"
               : snap.cancelledLast30dCount > 5
-                ? "bad"
+                ? "danger"
                 : "warn"
           }
-          hint={`~${churnPct.toFixed(1)}% churn`}
+          label="Cancellations (30d)"
+          value={String(snap.cancelledLast30dCount)}
+          sub={`~${churnPct.toFixed(1)}% churn`}
         />
-        <DashboardKpi
+        <Kpi
           label="Plans configured"
           value={String(snap.perTier.length)}
-          status="neutral"
-          hint="In subscriptionPlans table"
+          sub="In subscriptionPlans table"
         />
       </div>
 
-      <ListTableCard
-        eyebrow="Per-tier breakdown"
-        title="Customers + MRR by plan"
-        count={snap.perTier.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Customers + MRR by plan · {snap.perTier.length}</h3>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -158,7 +153,7 @@ export default async function RevenueDashboardPage() {
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }
