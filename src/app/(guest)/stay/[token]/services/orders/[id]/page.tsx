@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { GuestShell } from "@/components/layout/guest-shell";
-import { Section } from "@/components/ui/section";
 import { Badge } from "@/components/ui/badge";
 import { getGuestStaySummaryByToken } from "@/features/guest-stays/services";
 import { rateLimitStayTokenAccess } from "@/features/guest-stays/rate-limit";
@@ -85,7 +84,8 @@ export default async function GuestServiceOrderDetailPage({
           <Badge tone={guest.tone}>{guest.label}</Badge>
         </header>
 
-        <Section eyebrow="Details" title="What you asked for">
+        <section className="flex flex-col gap-3">
+          <SectionHead eyebrow="Details" title="What you asked for" />
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <Pair
               label="Selected option"
@@ -126,10 +126,11 @@ export default async function GuestServiceOrderDetailPage({
               it is scheduled.
             </p>
           ) : null}
-        </Section>
+        </section>
 
         {f.requiresGuestConfirmation && !f.guestConfirmedAt && (
-          <Section eyebrow="Action needed" title="Confirm the timing">
+          <section className="flex flex-col gap-3">
+            <SectionHead eyebrow="Action needed" title="Confirm the timing" />
             <p className="text-sm text-ink-secondary mb-3">
               Tap to confirm the proposed schedule.
             </p>
@@ -137,14 +138,15 @@ export default async function GuestServiceOrderDetailPage({
               fulfilmentId={f.id}
               stayTokenId={stay.tokenId}
             />
-          </Section>
+          </section>
         )}
 
         {canGuestRate(f.status as FulfilmentStatus) && (
-          <Section
-            eyebrow="Rating"
-            title={myRating ? "Thanks for your feedback" : "Rate this service"}
-          >
+          <section className="flex flex-col gap-3">
+            <SectionHead
+              eyebrow="Rating"
+              title={myRating ? "Thanks for your feedback" : "Rate this service"}
+            />
             {myRating ? (
               <div className="rounded-md border border-line-soft bg-surface p-4">
                 <div className="text-2xl text-ink">
@@ -163,10 +165,23 @@ export default async function GuestServiceOrderDetailPage({
                 stayTokenId={stay.tokenId}
               />
             )}
-          </Section>
+          </section>
         )}
       </div>
     </GuestShell>
+  );
+}
+
+function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <header className="flex flex-col gap-1.5">
+      <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+        {eyebrow}
+      </span>
+      <h2 className="text-display text-[22px] font-normal leading-[1.15] tracking-[-0.01em] text-ink">
+        {title}
+      </h2>
+    </header>
   );
 }
 

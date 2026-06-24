@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { Badge } from "@/components/ui/badge";
-import { Section } from "@/components/ui/section";
 import { getDb } from "@/lib/db/client";
 import {
   guestServiceOrders,
@@ -144,7 +143,8 @@ export default async function VendorPortalPage({
           records only — payouts are settled separately.
         </div>
 
-        <Section eyebrow="Schedule" title="When">
+        <section className="flex flex-col gap-3">
+          <SectionHead eyebrow="Schedule" title="When" />
           <dl className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
             <Pair label="Date" value={view.schedule.requestedDate ?? "—"} />
             <Pair label="Time" value={view.schedule.requestedTime ?? "—"} />
@@ -155,18 +155,20 @@ export default async function VendorPortalPage({
             />
             <Pair label="ETA (UTC)" value={view.schedule.etaAt ?? "—"} mono />
           </dl>
-        </Section>
+        </section>
 
-        <Section eyebrow="Where" title={view.villa.label ?? "Villa"}>
+        <section className="flex flex-col gap-3">
+          <SectionHead eyebrow="Where" title={view.villa.label ?? "Villa"} />
           <p className="text-sm text-ink-secondary">
             Area: {view.villa.area ?? "—"}
           </p>
-        </Section>
+        </section>
 
-        <Section
-          eyebrow="Guest"
-          title={`${view.guest.label}${view.guest.quantity ? ` · ${view.guest.quantity} pax` : ""}`}
-        >
+        <section className="flex flex-col gap-3">
+          <SectionHead
+            eyebrow="Guest"
+            title={`${view.guest.label}${view.guest.quantity ? ` · ${view.guest.quantity} pax` : ""}`}
+          />
           {view.guest.note && (
             <p className="text-sm text-ink-secondary">{view.guest.note}</p>
           )}
@@ -181,10 +183,11 @@ export default async function VendorPortalPage({
             Guest contact is not shared by default — message the concierge if
             you need it.
           </p>
-        </Section>
+        </section>
 
         {showActions && (
-          <Section eyebrow="Actions" title="Update this request">
+          <section className="flex flex-col gap-3">
+            <SectionHead eyebrow="Actions" title="Update this request" />
             <div className="flex flex-col gap-3">
               {view.status.awaitingVendor && (
                 <div className="flex flex-wrap items-center gap-3">
@@ -198,13 +201,26 @@ export default async function VendorPortalPage({
                 <VendorMarkCompletedButton token={token} />
               </div>
             </div>
-          </Section>
+          </section>
         )}
         <p className="text-xs text-ink-tertiary">
           This page is a one-off vendor view. It does not show owner finance,
           margin, internal notes, or unrelated bookings.
         </p>
       </div>
+    </div>
+  );
+}
+
+function SectionHead({ eyebrow, title }: { eyebrow: string; title: string }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <span className="text-[11px] uppercase tracking-widest text-ink-tertiary">
+        {eyebrow}
+      </span>
+      <h2 className="text-display text-[20px] md:text-2xl font-medium text-ink">
+        {title}
+      </h2>
     </div>
   );
 }

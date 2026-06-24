@@ -26,8 +26,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { PageHeader } from "@/components/ui/page-header";
-import { DashboardKpi, ListTableCard } from "@/components/ui/primitives";
+import { SectionHeading, Card, Kpi } from "@/components/dashboard/primitives";
 import { Table, THead, TBody, TR, TH, TD, TDNum } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { JobStatusPill } from "@/components/jobs/job-status-pill";
@@ -65,18 +64,18 @@ function serviceTone(status: ServiceStatus): "success" | "warning" | "danger" | 
   }
 }
 
-function serviceKpiStatus(
+function serviceKpiTone(
   status: ServiceStatus,
-): "good" | "warn" | "bad" | "neutral" {
+): "success" | "warn" | "danger" | undefined {
   switch (status) {
     case "operational":
-      return "good";
+      return "success";
     case "degraded":
       return "warn";
     case "down":
-      return "bad";
+      return "danger";
     default:
-      return "neutral";
+      return undefined;
   }
 }
 
@@ -136,15 +135,14 @@ export default async function PlatformSystemHealthPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "System health" },
-        ]}
-        eyebrow="Platform operations"
-        title="System health"
-        description="Cross-tenant platform health: a live service status grid (DB, queue, cron, email, sign-in), deployment-gate readiness, a cron / job-health control panel (dispatch, replay dead-letters, clear leaked locks — wired to the real job runner), and AI agent-run telemetry. Reuses the existing job / health infra at platform scope."
-      />
+      <div className="flex flex-col gap-[22px]">
+        <div className="crumb">Platform Admin OS · System health</div>
+        <SectionHeading
+          eyebrow="Platform operations"
+          title="System health"
+          subtitle="Cross-tenant platform health: a live service status grid (DB, queue, cron, email, sign-in), deployment-gate readiness, a cron / job-health control panel (dispatch, replay dead-letters, clear leaked locks — wired to the real job runner), and AI agent-run telemetry. Reuses the existing job / health infra at platform scope."
+        />
+      </div>
 
       {!snapshot.dbConfigured && (
         <div className="rounded-md border border-line-soft bg-warning-weak/30 px-5 py-3 text-xs leading-relaxed text-warning">
@@ -153,36 +151,33 @@ export default async function PlatformSystemHealthPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <DashboardKpi
-          variant="hero"
-          tone={overallStatus === "down" ? "coral-soft" : "emerald-soft"}
+      <div className="pf-kpis">
+        <Kpi
           label="Platform status"
           value={overallLabel}
-          status={serviceKpiStatus(overallStatus)}
-          hint={`${operationalCount} operational · ${degradedCount} degraded · ${downCount} down`}
-          className="sm:col-span-2 lg:col-span-2"
+          tone={serviceKpiTone(overallStatus)}
+          sub={`${operationalCount} operational · ${degradedCount} degraded · ${downCount} down`}
         />
-        <DashboardKpi
+        <Kpi
           label="Deployment gates"
           value={`${gatesPassed}/${gates.results.length}`}
-          status={gates.ok ? "good" : "bad"}
-          hint={`${gates.mode} · ${gates.ok ? "passing" : "blocked"}`}
+          tone={gates.ok ? "success" : "danger"}
+          sub={`${gates.mode} · ${gates.ok ? "passing" : "blocked"}`}
         />
-        <DashboardKpi
+        <Kpi
           label="Env readiness"
           value={envReport.ok ? "OK" : `${envReport.fatalCount} fatal`}
-          status={envReport.ok ? "good" : "bad"}
-          hint={`${envReport.warningCount} warn · ${envReport.mode}`}
+          tone={envReport.ok ? "success" : "danger"}
+          sub={`${envReport.warningCount} warn · ${envReport.mode}`}
         />
       </div>
 
       {/* Services status grid */}
-      <ListTableCard
-        eyebrow="Services"
-        title="Status grid"
-        count={snapshot.services.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Status grid</h3>
+          <span className="meta">SERVICES · {snapshot.services.length}</span>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -205,19 +200,19 @@ export default async function PlatformSystemHealthPage() {
             ))}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
 
       {/* Stale locks (dead-letter-ish queue health) */}
-      <ListTableCard
-        eyebrow="Job locks"
-        title="Stale locks"
-        count={snapshot.staleLocks.length}
-        actions={
-          snapshot.activeLocks > 0 ? (
-            <Badge tone="outline">{snapshot.activeLocks} active</Badge>
-          ) : undefined
-        }
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Stale locks</h3>
+          <span className="meta">JOB LOCKS · {snapshot.staleLocks.length}</span>
+          {snapshot.activeLocks > 0 && (
+            <div className="ml-auto">
+              <Badge tone="outline">{snapshot.activeLocks} active</Badge>
+            </div>
+          )}
+        </div>
         {snapshot.staleLocks.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-ink-tertiary">
             {snapshot.activeLocks > 0
@@ -266,18 +261,18 @@ export default async function PlatformSystemHealthPage() {
             </TBody>
           </Table>
         )}
-      </ListTableCard>
+      </Card>
 
       {/* Cron / job-health control panel — real wired actions where the
           runner exposes them, honest read-only where it does not. */}
-      <ListTableCard
-        eyebrow="Cron / workers"
-        title="Job-health controls"
-        count={jobHealth?.deadLetterCount ?? 0}
-        actions={
-          <Badge tone={serviceTone(jobPanelTone)}>{jobPanelTone}</Badge>
-        }
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Job-health controls</h3>
+          <span className="meta">CRON / WORKERS · {jobHealth?.deadLetterCount ?? 0}</span>
+          <div className="ml-auto">
+            <Badge tone={serviceTone(jobPanelTone)}>{jobPanelTone}</Badge>
+          </div>
+        </div>
         <div className="flex flex-col gap-5 px-6 py-5">
           {/* Live queue-depth signals */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -410,23 +405,23 @@ export default async function PlatformSystemHealthPage() {
             <code>job_runs</code>.
           </p>
         </div>
-      </ListTableCard>
+      </Card>
 
       {/* Background job queue */}
-      <ListTableCard
-        eyebrow="Job queue"
-        title="Recent job runs"
-        count={recentRuns.length}
-        actions={
-          <Link
-            href="/dashboard/jobs"
-            className="inline-flex items-center gap-1 text-xs font-medium text-ink hover:text-accent"
-          >
-            Dispatch / manage jobs
-            <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
-          </Link>
-        }
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Recent job runs</h3>
+          <span className="meta">JOB QUEUE · {recentRuns.length}</span>
+          <div className="ml-auto">
+            <Link
+              href="/dashboard/jobs"
+              className="inline-flex items-center gap-1 text-xs font-medium text-ink hover:text-accent"
+            >
+              Dispatch / manage jobs
+              <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+            </Link>
+          </div>
+        </div>
         {recentRuns.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-ink-tertiary">
             No job runs recorded yet. Cron + manual runs surface here with
@@ -475,15 +470,14 @@ export default async function PlatformSystemHealthPage() {
             </TBody>
           </Table>
         )}
-      </ListTableCard>
+      </Card>
 
       {/* AI agent runs */}
-      <ListTableCard
-        eyebrow="AI agents"
-        title="Recent agent runs"
-        count={snapshot.recentAgentRuns.length}
-        actions={
-          <div className="flex items-center gap-2">
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>Recent agent runs</h3>
+          <span className="meta">AI AGENTS · {snapshot.recentAgentRuns.length}</span>
+          <div className="ml-auto flex items-center gap-2">
             {snapshot.agentRunFailures24h > 0 && (
               <Badge tone="danger">
                 {snapshot.agentRunFailures24h} failed · 24h
@@ -497,8 +491,7 @@ export default async function PlatformSystemHealthPage() {
               <ArrowUpRight className="w-3.5 h-3.5" strokeWidth={1.75} />
             </Link>
           </div>
-        }
-      >
+        </div>
         {snapshot.recentAgentRuns.length === 0 ? (
           <div className="px-6 py-10 text-center text-sm text-ink-tertiary">
             No agent runs recorded yet. Once customer orgs invoke a subscribed
@@ -558,7 +551,7 @@ export default async function PlatformSystemHealthPage() {
             </TBody>
           </Table>
         )}
-      </ListTableCard>
+      </Card>
 
       <p className="text-[11px] text-ink-tertiary leading-relaxed">
         Live actions (dispatch a job, replay a dead-letter, force-release a

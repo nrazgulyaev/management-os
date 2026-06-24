@@ -14,11 +14,10 @@
  */
 
 import type { Metadata } from "next";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading, Card } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import {
   FilterPills,
-  ListTableCard,
   type FilterPillItem,
 } from "@/components/ui/primitives";
 import { Table, THead, TBody, TR, TH, TD } from "@/components/ui/table";
@@ -100,24 +99,23 @@ export default async function FeatureFlagsPage({
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Feature flags" },
-        ]}
-        eyebrow={`${allFlags.length} flag${allFlags.length === 1 ? "" : "s"}`}
-        title="Feature flags"
-        description="Every flag in the catalog with its owner, lifecycle stage, and rollout %. Kill a flag to disable it everywhere, bump rollout to widen exposure, or register a new flag. Every change is audit-logged."
-        actions={<NewFlagButton />}
-      />
+      <div className="flex flex-col gap-[22px]">
+        <div className="crumb">Platform Admin OS · Feature flags</div>
+        <SectionHeading
+          eyebrow={`${allFlags.length} flag${allFlags.length === 1 ? "" : "s"}`}
+          title="Feature flags"
+          subtitle="Every flag in the catalog with its owner, lifecycle stage, and rollout %. Kill a flag to disable it everywhere, bump rollout to widen exposure, or register a new flag. Every change is audit-logged."
+          actions={<NewFlagButton />}
+        />
+      </div>
 
       <FilterPills items={pills} current={bucket} label="Stage" />
 
-      <ListTableCard
-        eyebrow="Catalog"
-        title={bucket ? `${BUCKET_LABEL[bucket]} flags` : "All flags"}
-        count={flags.length}
-      >
+      <Card padding="none" overflowHidden>
+        <div className="pf-card-h">
+          <h3>{bucket ? `${BUCKET_LABEL[bucket]} flags` : "All flags"}</h3>
+          <span className="meta">CATALOG · {flags.length}</span>
+        </div>
         <Table>
           <THead>
             <TR>
@@ -191,7 +189,7 @@ export default async function FeatureFlagsPage({
             )}
           </TBody>
         </Table>
-      </ListTableCard>
+      </Card>
     </div>
   );
 }

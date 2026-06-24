@@ -10,7 +10,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
-import { PageHeader } from "@/components/ui/page-header";
+import { SectionHeading } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { getDb } from "@/lib/db/client";
@@ -42,7 +42,7 @@ export default async function PlatformSupportThreadPage({
   if (!db) {
     return (
       <div className="max-w-[1000px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-10">
-        <PageHeader title="Support thread" />
+        <SectionHeading title="Support thread" />
         <EmptyState
           title="Database not configured"
           description="Set DATABASE_URL to use the support inbox."
@@ -83,34 +83,35 @@ export default async function PlatformSupportThreadPage({
 
   return (
     <div className="max-w-[1000px] mx-auto px-6 md:px-8 py-10 flex flex-col gap-8">
-      <PageHeader
-        breadcrumbs={[
-          { label: "Platform Admin OS", href: "/platform" },
-          { label: "Support", href: "/platform/support" },
-          { label: "Thread" },
-        ]}
-        eyebrow={`${thread.orgName} · ${thread.orgCode}`}
-        title={thread.subject}
-        description={`Opened ${fmtDateTime(thread.createdAt)} · age ${fmtAge(
-          thread.createdAt,
-        )}${thread.closedAt ? ` · closed ${fmtDateTime(thread.closedAt)}` : ""}`}
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge tone={STATUS_TONE[thread.status] ?? "neutral"}>
-              {thread.status}
-            </Badge>
-            <Badge tone={PRIORITY_TONE[thread.priority] ?? "neutral"}>
-              {thread.priority}
-            </Badge>
-            <Link
-              href={`/platform/${thread.orgCode}`}
-              className="text-sm text-ink-tertiary hover:text-ink transition-colors"
-            >
-              Org console →
-            </Link>
-          </div>
-        }
-      />
+      <div>
+        <div className="crumb">
+          <Link href="/platform">Platform Admin OS</Link> /{" "}
+          <Link href="/platform/support">Support</Link> / <span>Thread</span>
+        </div>
+        <SectionHeading
+          eyebrow={`${thread.orgName} · ${thread.orgCode}`}
+          title={thread.subject}
+          subtitle={`Opened ${fmtDateTime(thread.createdAt)} · age ${fmtAge(
+            thread.createdAt,
+          )}${thread.closedAt ? ` · closed ${fmtDateTime(thread.closedAt)}` : ""}`}
+          actions={
+            <div className="flex items-center gap-2">
+              <Badge tone={STATUS_TONE[thread.status] ?? "neutral"}>
+                {thread.status}
+              </Badge>
+              <Badge tone={PRIORITY_TONE[thread.priority] ?? "neutral"}>
+                {thread.priority}
+              </Badge>
+              <Link
+                href={`/platform/${thread.orgCode}`}
+                className="text-sm text-ink-tertiary hover:text-ink transition-colors"
+              >
+                Org console →
+              </Link>
+            </div>
+          }
+        />
+      </div>
 
       <div className="flex flex-col gap-3">
         {messages.map((m) => {

@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/ui/page-header";
+import Link from "next/link";
 import { ItemCard } from "@/components/inventory/item-card";
 import { listInventoryItems } from "@/features/inventory/services";
 
@@ -9,11 +9,20 @@ export default async function FieldInventoryPage() {
   const items = await listInventoryItems({ status: "active" });
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        breadcrumbs={[{ label: "Field", href: "/field" }, { label: "Inventory" }]}
-        title="Inventory"
-        description="Active items and live stock — usage is logged from the task screen."
-      />
+      <div>
+        <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-tertiary">
+          <Link href="/field" className="hover:text-ink">
+            Field
+          </Link>{" "}
+          / Inventory
+        </div>
+        <h1 className="text-display text-[28px] leading-tight font-medium text-ink mt-2">
+          Inventory
+        </h1>
+        <p className="text-sm text-ink-secondary mt-1">
+          Active items and live stock — usage is logged from the task screen.
+        </p>
+      </div>
       {items.length === 0 ? (
         <p className="rounded-md border border-dashed border-line-soft bg-muted/20 px-5 py-6 text-sm text-ink-tertiary">
           No items in catalog yet.
