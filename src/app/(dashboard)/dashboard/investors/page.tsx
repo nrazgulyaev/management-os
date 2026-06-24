@@ -5,6 +5,7 @@ import { NoItemsYet } from "@/components/ui/primitives";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { startImpersonatingInvestor } from "@/features/investor-portal/impersonation-actions";
+import { InvestorModalForm } from "@/components/development/investors/investor-modal-form";
 
 /**
  * INVESTOR-AUTH — Investor list + "View as investor" entry point.
@@ -19,7 +20,13 @@ interface InvestorRow extends Record<string, unknown> {
   investor_code: string;
   legal_name: string;
   investor_type: string;
+  legal_entity_type: string | null;
+  tax_residency: string | null;
   primary_currency: string;
+  reporting_language: string;
+  contact_email: string | null;
+  contact_phone: string | null;
+  notes: string | null;
   status: string;
   commitments_count: string;
   total_committed_usd_minor: string;
@@ -69,7 +76,13 @@ export default async function InvestorsPage() {
            i.investor_code                                     AS investor_code,
            i.legal_name                                        AS legal_name,
            i.investor_type                                     AS investor_type,
+           i.legal_entity_type                                 AS legal_entity_type,
+           i.tax_residency                                     AS tax_residency,
            i.primary_currency                                  AS primary_currency,
+           i.reporting_language                                AS reporting_language,
+           i.contact_email                                     AS contact_email,
+           i.contact_phone                                     AS contact_phone,
+           i.notes                                             AS notes,
            i.status                                            AS status,
            COALESCE((SELECT COUNT(*)::text FROM capital_commitments c
               WHERE c.investor_id = i.id AND c.status = 'active'), '0')    AS commitments_count,
@@ -101,12 +114,16 @@ export default async function InvestorsPage() {
             open their portal view.
           </p>
         </div>
+        <div className="actions">
+          <InvestorModalForm />
+        </div>
       </div>
 
       {investors.length === 0 ? (
         <NoItemsYet
           entityLabel="investors"
-          description="Run npm run seed:demo-3-investor to populate the capital ledger demo."
+          description="Add your first capital partner, or run npm run seed:demo-3-investor to populate the demo ledger."
+          addAction={<InvestorModalForm />}
         />
       ) : (
         <div>
@@ -149,18 +166,36 @@ export default async function InvestorsPage() {
                       </HandoffBadge>
                     </td>
                     <td className="text-right">
-                      {canImpersonate && (
-                        <form action={viewAsInvestorAction}>
-                          <input type="hidden" name="investorId" value={i.id} />
-                          <button
-                            type="submit"
-                            className="btn btn-secondary btn-sm"
-                            title="Open this investor's portal view"
-                          >
-                            View as investor →
-                          </button>
-                        </form>
-                      )}
+                      <div className="flex items-center justify-end gap-2">
+                        <InvestorModalForm
+                          mode="edit"
+                          defaults={{
+                            id: i.id,
+                            investorCode: i.investor_code,
+                            investorType: i.investor_type,
+                            legalName: i.legal_name,
+                            legalEntityType: i.legal_entity_type,
+                            taxResidency: i.tax_residency,
+                            primaryCurrency: i.primary_currency,
+                            reportingLanguage: i.reporting_language,
+                            contactEmail: i.contact_email,
+                            contactPhone: i.contact_phone,
+                            notes: i.notes,
+                          }}
+                        />
+                        {canImpersonate && (
+                          <form action={viewAsInvestorAction}>
+                            <input type="hidden" name="investorId" value={i.id} />
+                            <button
+                              type="submit"
+                              className="btn btn-secondary btn-sm"
+                              title="Open this investor's portal view"
+                            >
+                              View as investor →
+                            </button>
+                          </form>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

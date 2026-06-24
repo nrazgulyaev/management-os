@@ -64,6 +64,72 @@ export async function createGuestAction(
   redirect("/dashboard/guests");
 }
 
+export async function updateGuestAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await canManageEntity("guest"))) {
+    return { ok: false, error: "Not authorised." };
+  }
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { ok: false, error: "Missing guest id." };
+
+  const parsed = createGuestSchema.safeParse(Object.fromEntries(formData.entries()));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "Please review the form and correct the highlighted fields.",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const d = parsed.data;
+  const me = await getCurrentAppUser();
+  // TENANCY (0176): guests carry organization_id. Scope the load AND the
+  // update to the caller's org so a foreign guest id reads as "not found" and
+  // can never be mutated cross-org. The form round-trips every column, so a
+  // full UPDATE is safe (no unsent column gets wiped).
+  const organizationId = await requireOrgId();
+  const [before] = await db
+    .select()
+    .from(guests)
+    .where(and(eq(guests.id, id.data), eq(guests.organizationId, organizationId)))
+    .limit(1);
+  if (!before) return { ok: false, error: "Guest not found." };
+
+  await db
+    .update(guests)
+    .set({
+      fullName: d.fullName,
+      email: nullable(d.email),
+      phone: nullable(d.phone),
+      nationality: nullable(d.nationality),
+      preferredLanguage: nullable(d.preferredLanguage),
+      whatsapp: nullable(d.whatsapp),
+      status: d.status,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(guests.id, id.data), eq(guests.organizationId, organizationId)));
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "guest.update",
+    entityType: "guest",
+    entityId: id.data,
+    before: {
+      ...before,
+      createdAt: before.createdAt.toISOString(),
+      updatedAt: before.updatedAt.toISOString(),
+    },
+    after: d,
+  });
+
+  revalidatePath("/dashboard/guests");
+  revalidatePath(`/dashboard/guests/${id.data}`);
+  redirect("/dashboard/guests");
+}
+
 async function transition(
   id: string,
   next: "archived" | "active",

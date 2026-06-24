@@ -1,6 +1,6 @@
 import "server-only";
 
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import { guests } from "@/lib/db/schema/bookings";
@@ -14,14 +14,15 @@ export interface GuestRow {
   nationality: string | null;
   preferredLanguage: string | null;
   whatsapp: string | null;
+  status: string;
   isVip: boolean;
 }
 
 const fallback: WithSource<GuestRow>[] = [
-  { source: "mock", id: "g1", fullName: "A. Martin", email: "a.martin@example.com", phone: "+33100000000", nationality: "French", preferredLanguage: "en", whatsapp: "+33100000000", isVip: false },
-  { source: "mock", id: "g2", fullName: "H. Williams", email: "h.williams@example.com", phone: "+44207100000", nationality: "British", preferredLanguage: "en", whatsapp: "+44207100000", isVip: true },
-  { source: "mock", id: "g3", fullName: "Family Nielsen", email: "nielsen@example.com", phone: "+4530000000", nationality: "Danish", preferredLanguage: "en", whatsapp: "+4530000000", isVip: false },
-  { source: "mock", id: "g4", fullName: "Mr. Tanaka", email: "tanaka@example.com", phone: "+8190000000", nationality: "Japanese", preferredLanguage: "ja", whatsapp: "+8190000000", isVip: false },
+  { source: "mock", id: "g1", fullName: "A. Martin", email: "a.martin@example.com", phone: "+33100000000", nationality: "French", preferredLanguage: "en", whatsapp: "+33100000000", status: "active", isVip: false },
+  { source: "mock", id: "g2", fullName: "H. Williams", email: "h.williams@example.com", phone: "+44207100000", nationality: "British", preferredLanguage: "en", whatsapp: "+44207100000", status: "active", isVip: true },
+  { source: "mock", id: "g3", fullName: "Family Nielsen", email: "nielsen@example.com", phone: "+4530000000", nationality: "Danish", preferredLanguage: "en", whatsapp: "+4530000000", status: "active", isVip: false },
+  { source: "mock", id: "g4", fullName: "Mr. Tanaka", email: "tanaka@example.com", phone: "+8190000000", nationality: "Japanese", preferredLanguage: "ja", whatsapp: "+8190000000", status: "active", isVip: false },
 ];
 
 export async function listGuests(): Promise<WithSource<GuestRow>[]> {
@@ -44,6 +45,35 @@ export async function listGuests(): Promise<WithSource<GuestRow>[]> {
     nationality: r.nationality,
     preferredLanguage: r.preferredLanguage,
     whatsapp: r.whatsapp,
+    status: r.status,
     isVip: r.isVip,
   }));
+}
+
+/**
+ * Load a single guest for the edit route. TENANCY (mig 0176): scoped to the
+ * caller's org so a foreign guest id reads as null (→ notFound()). Returns null
+ * when the DB is unconfigured (the /new + edit forms only exist for db rows).
+ */
+export async function getGuestById(id: string): Promise<GuestRow | null> {
+  const db = getDb();
+  if (!db) return null;
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select()
+    .from(guests)
+    .where(and(eq(guests.id, id), eq(guests.organizationId, organizationId)))
+    .limit(1);
+  if (!r) return null;
+  return {
+    id: r.id,
+    fullName: r.fullName,
+    email: r.email,
+    phone: r.phone,
+    nationality: r.nationality,
+    preferredLanguage: r.preferredLanguage,
+    whatsapp: r.whatsapp,
+    status: r.status,
+    isVip: r.isVip,
+  };
 }

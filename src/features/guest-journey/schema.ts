@@ -60,6 +60,27 @@ export const createGuestJourneyRuleSchema = z.object({
 
 export const journeyRuleIdSchema = z.object({ id: z.string().uuid() });
 
+/**
+ * Edit an existing rule. Every editable field is optional so an UPDATE only
+ * touches the keys the form actually submitted — omitted keys keep their stored
+ * value (partial update, no column-wipe). `ruleKey` and `status` are NOT
+ * editable here: ruleKey is the engine's stable dedupe handle and status flows
+ * through the pause/resume/archive lifecycle actions.
+ */
+export const updateGuestJourneyRuleSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(2).max(120).optional(),
+  description: z.string().trim().max(1000).optional(),
+  journeyStage: journeyStageEnum.optional(),
+  triggerAnchor: triggerAnchorEnum.optional(),
+  offsetMinutes: z.coerce.number().int().min(-100000).max(100000).optional(),
+  channel: channelEnum.optional(),
+  templateKey: z.string().trim().max(120).optional(),
+  suggestionType: suggestionTypeEnum.optional(),
+  appliesToChannel: z.string().trim().max(40).optional(),
+  priority: priorityEnum.optional(),
+});
+
 export const runJourneyRuleSchema = z.object({
   bookingId: z.string().uuid(),
   ruleId: z.string().uuid(),

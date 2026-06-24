@@ -437,26 +437,40 @@ export async function updateInventoryItemAction(
   const organizationId = await requireOrgId();
   const me = await getCurrentAppUser();
   const d = parsed.data;
+
+  // DATA-LOSS FIX: the kebab Edit modal (inventory-row-actions.tsx → fieldsFor("item"))
+  // only sends name/sku/itemType/unit/brand/description, but Zod `.default()` /
+  // `.transform()` leave the omitted columns defined-as-undefined (or defaulted
+  // booleans). The old `.set()` enumerated EVERY column, so editing a name wiped
+  // category/defaultSupplier/model/barcode/reorder*/unitCost/currency and reset
+  // ownerChargeable=true / trackSerial=false. Build a PARTIAL update: only touch a
+  // column when its form field was actually submitted (present in the FormData).
+  const submitted = (name: string) => formData.has(name);
+  const set: Partial<typeof inventoryItems.$inferInsert> = {};
+  if (submitted("name")) set.name = d.name;
+  if (submitted("sku")) set.sku = d.sku && d.sku !== "" ? d.sku : null;
+  if (submitted("categoryId")) set.categoryId = d.categoryId ?? null;
+  if (submitted("defaultSupplierId")) set.defaultSupplierId = d.defaultSupplierId ?? null;
+  if (submitted("unit")) set.unit = d.unit;
+  if (submitted("itemType")) set.itemType = d.itemType;
+  if (submitted("description")) set.description = d.description && d.description !== "" ? d.description : null;
+  if (submitted("brand")) set.brand = d.brand && d.brand !== "" ? d.brand : null;
+  if (submitted("model")) set.model = d.model && d.model !== "" ? d.model : null;
+  if (submitted("barcode")) set.barcode = d.barcode && d.barcode !== "" ? d.barcode : null;
+  if (submitted("reorderPoint")) set.reorderPoint = d.reorderPoint !== undefined ? String(d.reorderPoint) : null;
+  if (submitted("reorderQuantity")) set.reorderQuantity = d.reorderQuantity !== undefined ? String(d.reorderQuantity) : null;
+  if (submitted("unitCostMinor")) set.unitCostMinor = d.unitCostMinor ?? null;
+  if (submitted("currency")) set.currency = d.currency && d.currency !== "" ? d.currency : null;
+  if (submitted("ownerChargeable")) set.ownerChargeable = d.ownerChargeable;
+  if (submitted("trackSerial")) set.trackSerial = d.trackSerial;
+
+  if (Object.keys(set).length === 0) {
+    return { ok: false, error: "No changes submitted." };
+  }
+
   const [row] = await db
     .update(inventoryItems)
-    .set({
-      name: d.name,
-      sku: d.sku && d.sku !== "" ? d.sku : null,
-      categoryId: d.categoryId ?? null,
-      defaultSupplierId: d.defaultSupplierId ?? null,
-      unit: d.unit,
-      itemType: d.itemType,
-      description: d.description && d.description !== "" ? d.description : null,
-      brand: d.brand && d.brand !== "" ? d.brand : null,
-      model: d.model && d.model !== "" ? d.model : null,
-      barcode: d.barcode && d.barcode !== "" ? d.barcode : null,
-      reorderPoint: d.reorderPoint !== undefined ? String(d.reorderPoint) : null,
-      reorderQuantity: d.reorderQuantity !== undefined ? String(d.reorderQuantity) : null,
-      unitCostMinor: d.unitCostMinor ?? null,
-      currency: d.currency && d.currency !== "" ? d.currency : null,
-      ownerChargeable: d.ownerChargeable,
-      trackSerial: d.trackSerial,
-    })
+    .set(set)
     .where(and(eq(inventoryItems.id, input.id), eq(inventoryItems.organizationId, organizationId)))
     .returning({ id: inventoryItems.id });
   if (!row) return { ok: false, error: "Item not found." };

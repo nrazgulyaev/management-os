@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { listAgentsForCabinet } from "@/features/ai-agents/ai-hub-cabinet-queries";
 import { MGMT_AGENT_CODES, toUnderscored } from "@/features/ai-agents/registry";
 import type { AgentTranscriptMessage } from "@/components/ai-agents/agent-transcript";
@@ -23,8 +24,15 @@ function fmtRunTime(iso: string): string {
 
 function runResult(status: string): "auto" | "routed" | "error" {
   if (status === "completed" || status === "succeeded" || status === "success") return "auto";
-  if (status === "failed" || status === "blocked" || status === "refused") return "error";
+  if (status === "failed" || status === "blocked" || status === "refused" || status === "error") return "error";
   return "routed";
+}
+
+function statusBadge(status: string): { label: string; cls: string } {
+  const r = runResult(status);
+  if (r === "auto") return { label: status, cls: "badge-ok" };
+  if (r === "error") return { label: status, cls: "badge-danger" };
+  return { label: status, cls: "badge-warn" };
 }
 
 /**
@@ -40,9 +48,10 @@ function runResult(status: string): "auto" | "routed" | "error" {
  * stays bounded. Per-org agent visibility is enforced upstream by
  * `enforceProductAccess("mgmt")` on the `(dashboard)` layout.
  *
- * Today only `concierge-auto-reply` ships seeded mock transcript +
- * mock runs (per spec); the other agent codes render the shell
- * with an empty transcript until 2.2 wires their data sources.
+ * Transcript + right-rail cards are hydrated from this agent's
+ * persisted `ai_assistant_runs` rows (org-scoped). When the agent has
+ * never run, every surface renders an honest empty-state — no
+ * fabricated conversation, run summary, or configuration values.
  */
 
 export const metadata = { title: "AI agent" };
@@ -51,58 +60,6 @@ export const dynamic = "force-dynamic";
 export function generateStaticParams() {
   return MGMT_AGENT_CODES.map((agentCode) => ({ agentCode }));
 }
-
-const MOCK_CONCIERGE_MESSAGES: AgentTranscriptMessage[] = [
-  {
-    id: "tool-1",
-    actor: "tool",
-    toolName: "get_booking",
-    timestamp: "14:32",
-    body: <span>
-      <span style={{ color: "var(--ink-3)" }}>booking_id</span> = <span style={{ color: "var(--terra)" }}>&quot;BK-2148&quot;</span>
-    </span>,
-  },
-  {
-    id: "user-1",
-    actor: "user",
-    actorName: "Emma Whitmore",
-    channel: "Airbnb",
-    timestamp: "14:32",
-    body: <>Hi! Just landed at DPS. What time is the breakfast at the villa?</>,
-  },
-  {
-    id: "agent-1",
-    actor: "agent",
-    timestamp: "14:33",
-    confidence: 92,
-    body: (
-      <>
-        Welcome to Bali! Breakfast at Eternal Villa 07 is served 7:30–10:30 daily
-        on the upper terrace. Our chef Wayan can adjust timing if you have an
-        earlier morning — just let her know tonight.
-      </>
-    ),
-  },
-  {
-    id: "user-2",
-    actor: "user",
-    actorName: "Emma Whitmore",
-    channel: "Airbnb",
-    timestamp: "14:38",
-    body: <>Perfect, thank you. Could we extend by 2 nights — checkout on June 1 instead of May 30?</>,
-  },
-  {
-    id: "agent-2",
-    actor: "agent",
-    timestamp: "14:38",
-    confidence: 68,
-    routedReason: "revenue-impact",
-    routedTo: { name: "Nikita R." },
-    body: (
-      <>Of course — let me check availability and get back to you within the hour with a quote for the 2 extra nights.</>
-    ),
-  },
-];
 
 export default async function AgentDetailPage({
   params,
@@ -125,18 +82,50 @@ export default async function AgentDetailPage({
   // query result; we render the shell anyway using the registry code.
   const agentName = agent?.displayName ?? agentCode.replace(/-/g, " ");
 
-  const initialMessages: AgentTranscriptMessage[] =
-    agentCode === "concierge-auto-reply" ? MOCK_CONCIERGE_MESSAGES : [];
+  // Hydrate the seeded transcript from this agent's persisted runs
+  // (oldest first). Each run contributes the operator/input turn (when an
+  // input summary was captured) followed by the agent's output turn. A
+  // failed/blocked run surfaces its errorMessage-less output as a routed /
+  // error agent turn. No runs → empty transcript (honest empty-state).
+  const initialMessages: AgentTranscriptMessage[] = [...runHistory.runs]
+    .reverse()
+    .flatMap((r) => {
+      const when = fmtRunTime(r.createdAt);
+      const result = runResult(r.status);
+      const turns: AgentTranscriptMessage[] = [];
+      if (r.inputSummary) {
+        turns.push({
+          id: `run-${r.id}-in`,
+          actor: "user",
+          actorName: "Operator",
+          timestamp: when,
+          body: r.inputSummary,
+        });
+      }
+      turns.push({
+        id: `run-${r.id}-out`,
+        actor: "agent",
+        timestamp: when,
+        body: r.outputSummary ?? `(${r.status})`,
+        // Non-auto runs (routed / error / blocked) surface their status as
+        // the routed-reason chip rather than inventing a confidence score.
+        ...(result === "auto" ? {} : { routedReason: r.status }),
+      });
+      return turns;
+    });
 
-  // Real recent runs from ai_assistant_runs (falls back to mock concierge
-  // rows only when the agent has never run, to keep the demo legible).
+  // Real recent runs from ai_assistant_runs (org-scoped). Empty when the
+  // agent has never run — AgentRunsList renders its own empty-state.
   const realRunRows = runHistory.runs.map((r) => ({
     id: r.id,
     result: runResult(r.status),
     summary: <>{r.outputSummary?.slice(0, 60) ?? r.status}</>,
     when: fmtRunTime(r.createdAt),
-    href: `/dashboard/ai/runs/${r.id}`,
+    href: `/dashboard/ai/${agentCode}/outputs/${r.id}`,
   }));
+
+  // Output · summary — most recent run for this agent (or empty-state).
+  const latestRun = runHistory.runs[0] ?? null;
 
   return (
     <DetailPage>
@@ -180,54 +169,104 @@ export default async function AgentDetailPage({
           />
         </div>
         <aside className="right">
-          <AgentOutputCard
-            eyebrow="Output · summary"
-            title={`Run TR-${new Date().toISOString().slice(0, 10)}-1432`}
-            rows={[
-              { key: "Status", value: <span className="badge badge-warn">Routed</span> },
-              { key: "Tokens in", value: "1,420" },
-              { key: "Tokens out", value: "340" },
-              { key: "Cost", value: "$0.0084" },
-              { key: "Tool calls", value: "2" },
-              { key: "Latency", value: "8.4s" },
-            ]}
-          />
+          {latestRun ? (
+            <AgentOutputCard
+              eyebrow="Output · summary"
+              title={`Run ${latestRun.id.slice(0, 8)} · ${fmtRunTime(latestRun.createdAt)}`}
+              rows={[
+                {
+                  key: "Status",
+                  value: (
+                    <span className={`badge ${statusBadge(latestRun.status).cls}`}>
+                      {statusBadge(latestRun.status).label}
+                    </span>
+                  ),
+                },
+                {
+                  key: "Total tokens",
+                  value:
+                    latestRun.totalTokens != null
+                      ? latestRun.totalTokens.toLocaleString("en-US")
+                      : "—",
+                },
+                {
+                  key: "Cost",
+                  value: latestRun.totalCostUsd != null ? `$${latestRun.totalCostUsd}` : "—",
+                },
+                {
+                  key: "Latency",
+                  value: latestRun.latencyMs != null ? `${latestRun.latencyMs} ms` : "—",
+                },
+                { key: "Model", value: latestRun.model ?? "—" },
+              ]}
+              actions={
+                <Link
+                  href={`/dashboard/ai/${agentCode}/outputs/${latestRun.id}`}
+                  className="btn btn-secondary btn-sm"
+                  style={{ width: "100%" }}
+                >
+                  View output →
+                </Link>
+              }
+            >
+              {latestRun.outputSummary && (
+                <p
+                  style={{
+                    marginTop: 12,
+                    fontSize: 13,
+                    color: "var(--ink-3)",
+                    lineHeight: 1.55,
+                    whiteSpace: "pre-wrap",
+                  }}
+                >
+                  {latestRun.outputSummary.length > 280
+                    ? `${latestRun.outputSummary.slice(0, 280)}…`
+                    : latestRun.outputSummary}
+                </p>
+              )}
+            </AgentOutputCard>
+          ) : (
+            <AgentOutputCard
+              eyebrow="Output · summary"
+              title="No runs yet"
+            >
+              <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", lineHeight: 1.55 }}>
+                This agent has not run for your workspace yet. Trigger a test run
+                from the composer to generate an output summary.
+              </p>
+            </AgentOutputCard>
+          )}
           <AgentRunsList
-            runs={
-              realRunRows.length > 0
-                ? realRunRows
-                : agentCode === "concierge-auto-reply"
-                  ? [
-                      {
-                        id: "r1",
-                        result: "routed",
-                        summary: <>Whitmore · extend +2n</>,
-                        when: "14:38",
-                      },
-                      {
-                        id: "r2",
-                        result: "auto",
-                        summary: <>Whitmore · breakfast time</>,
-                        when: "14:33",
-                      },
-                      {
-                        id: "r3",
-                        result: "auto",
-                        summary: <>Chen · check-in time</>,
-                        when: "13:51",
-                      },
-                    ]
-                  : []
-            }
+            runs={realRunRows}
             total={runHistory.total > 0 ? runHistory.total : undefined}
             seeAllHref={`/dashboard/ai/runs?agent=${underscored}`}
           />
           <AgentConfigCard
             rows={[
-              { key: "Auto-send", value: "Confidence ≥ 85%" },
-              { key: "Channels", value: "Airbnb, WhatsApp, Email" },
-              { key: "Languages", value: "EN, ID, RU" },
-              { key: "Knowledge base", value: "12 docs · sync 4h ago" },
+              {
+                key: "Status",
+                value: enabledState?.configurable ? (
+                  enabledState.enabled ? (
+                    <span className="badge badge-ok">Enabled</span>
+                  ) : (
+                    <span className="badge badge-warn">
+                      {enabledState.reason ?? "Disabled"}
+                    </span>
+                  )
+                ) : (
+                  <span className="badge">{agent?.isLive ? "Live" : "Planned"}</span>
+                ),
+              },
+              { key: "Provider", value: agent?.provider ?? "—" },
+              { key: "Model", value: agent?.model ?? "—" },
+              {
+                key: "Runtime key",
+                value: (
+                  <code style={{ fontSize: 12 }}>
+                    {enabledState?.assistantKey ?? underscored}
+                  </code>
+                ),
+              },
             ]}
             editHref={`/dashboard/settings/ai-agents/${underscored}`}
           />

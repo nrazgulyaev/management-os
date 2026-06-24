@@ -2,16 +2,23 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, inputCls, selectCls, textareaCls } from "@/components/admin/form-shell";
 import { SubmitButton } from "@/components/admin/submit-button";
 import { EntityModal } from "@/components/forms/entity-modal";
-import { createInvestor } from "@/lib/development/server/investor-actions";
+import {
+  createInvestor,
+  updateInvestor,
+} from "@/lib/development/server/investor-actions";
 
 /**
  * Stage 6.P0.6 — Add Investor modal (Tier 4).
  * Workflow verb: "Add investor".
+ *
+ * mgmt-completeness wave-2 — extended to an "edit" mode reusing the same
+ * fields, wired to the org-scoped updateInvestor(id, patch) action. The
+ * action verifies id+org before mutating, so a foreign id is a no-op.
  */
 
 const INVESTOR_TYPES = [
@@ -37,7 +44,28 @@ const LANGUAGES = [
   { value: "zh", label: "Chinese" },
 ] as const;
 
-export function InvestorModalForm() {
+export interface InvestorFormDefaults {
+  id: string;
+  investorCode: string;
+  investorType: string;
+  legalName: string;
+  legalEntityType: string | null;
+  taxResidency: string | null;
+  primaryCurrency: string;
+  reportingLanguage: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  notes: string | null;
+}
+
+export function InvestorModalForm({
+  mode = "add",
+  defaults,
+}: {
+  mode?: "add" | "edit";
+  defaults?: InvestorFormDefaults;
+}) {
+  const isEdit = mode === "edit" && defaults != null;
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -56,35 +84,65 @@ export function InvestorModalForm() {
     const contactPhone = String(formData.get("contactPhone") ?? "").trim();
     const notes = String(formData.get("notes") ?? "").trim();
 
+    const payload = {
+      investorCode,
+      investorType: investorType as never,
+      legalName,
+      legalEntityType: (legalEntityType || null) as never,
+      taxResidency: taxResidency || null,
+      primaryCurrency: primaryCurrency as never,
+      reportingLanguage: reportingLanguage as never,
+      contactEmail: contactEmail || null,
+      contactPhone: contactPhone || null,
+      notes: notes || null,
+    };
+
     startTransition(async () => {
       try {
-        await createInvestor({
-          investorCode,
-          investorType: investorType as never,
-          legalName,
-          legalEntityType: (legalEntityType || null) as never,
-          taxResidency: taxResidency || null,
-          primaryCurrency: primaryCurrency as never,
-          reportingLanguage: reportingLanguage as never,
-          contactEmail: contactEmail || null,
-          contactPhone: contactPhone || null,
-          notes: notes || null,
-        });
+        if (isEdit && defaults) {
+          await updateInvestor(defaults.id, payload);
+        } else {
+          await createInvestor(payload);
+        }
         setOpen(false);
         router.refresh();
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to add investor");
+        setError(
+          e instanceof Error
+            ? e.message
+            : isEdit
+              ? "Failed to update investor"
+              : "Failed to add investor",
+        );
       }
     });
   }
 
   return (
     <>
-      <Button onClick={() => setOpen(true)} data-testid="investor-add-trigger">
-        <Plus className="w-4 h-4" strokeWidth={1.75} />
-        Add investor
-      </Button>
-      <EntityModal open={open} onClose={() => setOpen(false)} title="Add investor" size="lg">
+      {isEdit ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setOpen(true)}
+          data-testid="investor-edit-trigger"
+          title="Edit investor"
+        >
+          <Pencil className="w-3.5 h-3.5" strokeWidth={1.75} />
+          Edit
+        </Button>
+      ) : (
+        <Button onClick={() => setOpen(true)} data-testid="investor-add-trigger">
+          <Plus className="w-4 h-4" strokeWidth={1.75} />
+          Add investor
+        </Button>
+      )}
+      <EntityModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={isEdit ? "Edit investor" : "Add investor"}
+        size="lg"
+      >
         <form action={handleSubmit} className="px-5 md:px-6 py-5 flex flex-col gap-5">
           {error && (
             <div className="rounded-md border border-danger/30 bg-danger-weak/40 px-4 py-2.5 text-sm text-ink">
@@ -98,11 +156,17 @@ export function InvestorModalForm() {
                 required
                 pattern="[A-Za-z0-9_-]+"
                 placeholder="ALICE_LP_2026"
+                defaultValue={defaults?.investorCode ?? ""}
                 className={inputCls}
               />
             </Field>
             <Field label="Investor type" required>
-              <select name="investorType" required className={selectCls} defaultValue="">
+              <select
+                name="investorType"
+                required
+                className={selectCls}
+                defaultValue={defaults?.investorType ?? ""}
+              >
                 <option value="" disabled>Select…</option>
                 {INVESTOR_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -110,10 +174,20 @@ export function InvestorModalForm() {
               </select>
             </Field>
             <Field label="Legal name" required>
-              <input name="legalName" required placeholder="Alice Investor Holdings Ltd." className={inputCls} />
+              <input
+                name="legalName"
+                required
+                placeholder="Alice Investor Holdings Ltd."
+                defaultValue={defaults?.legalName ?? ""}
+                className={inputCls}
+              />
             </Field>
             <Field label="Legal entity type">
-              <select name="legalEntityType" defaultValue="" className={selectCls}>
+              <select
+                name="legalEntityType"
+                defaultValue={defaults?.legalEntityType ?? ""}
+                className={selectCls}
+              >
                 <option value="">— unspecified —</option>
                 {LEGAL_ENTITY_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>{t.label}</option>
@@ -125,38 +199,67 @@ export function InvestorModalForm() {
                 name="taxResidency"
                 maxLength={8}
                 placeholder="SG"
+                defaultValue={defaults?.taxResidency ?? ""}
                 className={inputCls}
               />
             </Field>
             <Field label="Primary currency">
-              <select name="primaryCurrency" defaultValue="USD" className={selectCls}>
+              <select
+                name="primaryCurrency"
+                defaultValue={defaults?.primaryCurrency ?? "USD"}
+                className={selectCls}
+              >
                 {CURRENCIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             </Field>
             <Field label="Reporting language">
-              <select name="reportingLanguage" defaultValue="en" className={selectCls}>
+              <select
+                name="reportingLanguage"
+                defaultValue={defaults?.reportingLanguage ?? "en"}
+                className={selectCls}
+              >
                 {LANGUAGES.map((l) => (
                   <option key={l.value} value={l.value}>{l.label}</option>
                 ))}
               </select>
             </Field>
             <Field label="Contact email">
-              <input name="contactEmail" type="email" inputMode="email" className={inputCls} />
+              <input
+                name="contactEmail"
+                type="email"
+                inputMode="email"
+                defaultValue={defaults?.contactEmail ?? ""}
+                className={inputCls}
+              />
             </Field>
             <Field label="Contact phone">
-              <input name="contactPhone" type="tel" inputMode="tel" className={inputCls} />
+              <input
+                name="contactPhone"
+                type="tel"
+                inputMode="tel"
+                defaultValue={defaults?.contactPhone ?? ""}
+                className={inputCls}
+              />
             </Field>
           </div>
           <Field label="Notes">
-            <textarea name="notes" rows={2} className={textareaCls} placeholder="Optional" />
+            <textarea
+              name="notes"
+              rows={2}
+              className={textareaCls}
+              placeholder="Optional"
+              defaultValue={defaults?.notes ?? ""}
+            />
           </Field>
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-line-soft -mx-5 md:-mx-6 px-5 md:px-6 pt-4 mt-2">
             <Button type="button" variant="ghost" onClick={() => setOpen(false)} disabled={pending}>
               Cancel
             </Button>
-            <SubmitButton disabled={pending} pendingLabel="Adding…">Add investor</SubmitButton>
+            <SubmitButton disabled={pending} pendingLabel={isEdit ? "Saving…" : "Adding…"}>
+              {isEdit ? "Save changes" : "Add investor"}
+            </SubmitButton>
           </div>
         </form>
       </EntityModal>

@@ -596,14 +596,16 @@ export async function getOwnerStatementDetail(
     description: string;
     amount_minor: string;
   }>(sql`
-    SELECT id::text          AS id,
-           line_type          AS line_type,
-           category           AS category,
-           description        AS description,
-           amount_minor::text AS amount_minor
-      FROM statement_lines
-     WHERE statement_id = ${statementId}::uuid
-     ORDER BY sort_order ASC
+    SELECT sl.id::text          AS id,
+           sl.line_type          AS line_type,
+           sl.category           AS category,
+           sl.description        AS description,
+           sl.amount_minor::text AS amount_minor
+      FROM statement_lines sl
+      JOIN owner_statements s ON s.id = sl.statement_id
+     WHERE sl.statement_id = ${statementId}::uuid
+       AND s.organization_id = ${orgId}::uuid
+     ORDER BY sl.sort_order ASC
   `);
   const lines = rowsOf<{
     id: string;
@@ -664,8 +666,10 @@ export interface DigestFinancialActivityForDate {
  * statement approval / sending activity, payout queue depth.
  *
  * Aggregated in a single round-trip so the agent gets one tool call's
- * worth of context. No org filter: see note in bookings file (same
- * schema gap applies).
+ * worth of context. Org-scoped: the bookings revenue subquery and all
+ * three owner_statements subqueries AND `organization_id = input.orgId`
+ * so the Daily Digest never reports another tenant's revenue / statement /
+ * payout counts.
  */
 export async function getFinancialActivityForDate(input: {
   orgId: string;
@@ -691,13 +695,17 @@ export async function getFinancialActivityForDate(input: {
     SELECT
       (SELECT COALESCE(SUM(gross_amount), 0)::text FROM bookings
         WHERE created_at::date = ${input.date}::date
-          AND status IN ('confirmed','checked_in','checked_out')) AS booking_revenue,
+          AND status IN ('confirmed','checked_in','checked_out')
+          AND organization_id = ${input.orgId}::uuid) AS booking_revenue,
       (SELECT COUNT(*)::text FROM owner_statements
-        WHERE approved_at::date = ${input.date}::date) AS stmts_approved,
+        WHERE approved_at::date = ${input.date}::date
+          AND organization_id = ${input.orgId}::uuid) AS stmts_approved,
       (SELECT COUNT(*)::text FROM owner_statements
-        WHERE sent_at::date = ${input.date}::date) AS stmts_sent,
+        WHERE sent_at::date = ${input.date}::date
+          AND organization_id = ${input.orgId}::uuid) AS stmts_sent,
       (SELECT COUNT(*)::text FROM owner_statements
-        WHERE status = 'approved' AND sent_at IS NULL) AS payouts_queued
+        WHERE status = 'approved' AND sent_at IS NULL
+          AND organization_id = ${input.orgId}::uuid) AS payouts_queued
   `);
   const r = rowsOf<{
     booking_revenue: string;

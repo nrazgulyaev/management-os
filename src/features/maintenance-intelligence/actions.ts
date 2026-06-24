@@ -27,6 +27,7 @@ import {
   planIdSchema,
   resolveRiskSchema,
   suggestWindowsSchema,
+  templateStatusSchema,
 } from "./schema";
 import { suggestMaintenanceWindows } from "./scheduling";
 import type { ActionResult } from "@/features/projects/actions";
@@ -106,6 +107,53 @@ export async function createMaintenanceTemplateAction(
 
   revalidatePath("/dashboard/maintenance-intelligence/templates");
   return { ok: true, templateId: row!.id };
+}
+
+/**
+ * Archive (or re-activate) a maintenance template by flipping its `status`.
+ *
+ * TENANCY: `maintenance_templates` is a deliberately GLOBAL catalog — it has
+ * no `organization_id` column (the `key` is globally unique, and org-scoped
+ * `villa_maintenance_plans` reference templates by FK). There is therefore no
+ * org column to filter on; access is gated exactly like the sibling
+ * `createMaintenanceTemplateAction` above — strictly through
+ * `requirePermission("maintenance_intelligence.write")`. The write only flips
+ * the status flag; it never reads or exposes another tenant's data.
+ */
+export async function setMaintenanceTemplateStatusAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("maintenance_intelligence.write");
+  const parsed = templateStatusSchema.safeParse(
+    Object.fromEntries(formData.entries()),
+  );
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const me = await getCurrentAppUser();
+
+  const [row] = await db
+    .update(maintenanceTemplates)
+    .set({ status: parsed.data.status, updatedAt: new Date() })
+    .where(eq(maintenanceTemplates.id, parsed.data.id))
+    .returning({ id: maintenanceTemplates.id, status: maintenanceTemplates.status });
+  if (!row) return { ok: false, error: "Template not found." };
+
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action:
+      parsed.data.status === "archived"
+        ? "maintenance_intelligence.template.archive"
+        : "maintenance_intelligence.template.reactivate",
+    entityType: "maintenance_template",
+    entityId: parsed.data.id,
+    after: { status: parsed.data.status },
+  });
+
+  revalidatePath("/dashboard/maintenance-intelligence/templates");
+  revalidatePath("/dashboard/maintenance-intelligence");
+  return { ok: true };
 }
 
 // -----------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { requireOrgId } from "@/features/auth/require-org";
 import { bookings, guests } from "@/lib/db/schema/bookings";
@@ -352,8 +352,15 @@ export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
   const inHouse = rows.filter((r) => (r.b.checkOut as unknown as string) > day);
   const bookingIds = inHouse.map((r) => r.b.id);
 
+  // Maintenance is a property of the VILLA (no booking link), so we count open
+  // maintenance tasks per occupied villa and fan them back out to every booking
+  // in that villa — mirroring the per-villa maintenance query in
+  // readiness-services.ts (category="maintenance", any open status, no
+  // scheduled-for filter). villaIds derive from the org-scoped in-house rows.
+  const villaIds = Array.from(new Set(inHouse.map((r) => r.b.villaId)));
+
   let openSrCount: Record<string, number> = {};
-  let openMtCount: Record<string, number> = {};
+  const maintenanceByVilla: Record<string, number> = {};
   if (bookingIds.length > 0) {
     const sr = await db
       .select({ bookingId: serviceRequests.bookingId })
@@ -368,7 +375,28 @@ export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
       if (x.bookingId) acc[x.bookingId] = (acc[x.bookingId] ?? 0) + 1;
       return acc;
     }, {});
-    openMtCount = {};
+
+    const maintenanceRows = await db
+      .select({
+        villaId: operationTasks.villaId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(operationTasks)
+      .where(
+        and(
+          inArray(operationTasks.villaId, villaIds),
+          eq(operationTasks.category, "maintenance"),
+          inArray(operationTasks.status, [
+            "open",
+            "scheduled",
+            "in_progress",
+          ]),
+        ),
+      )
+      .groupBy(operationTasks.villaId);
+    for (const m of maintenanceRows) {
+      if (m.villaId) maintenanceByVilla[m.villaId] = Number(m.count) || 0;
+    }
   }
 
   return inHouse.map((r) => ({
@@ -380,7 +408,7 @@ export async function listInHouseGuests(date: Date): Promise<InHouseRow[]> {
     checkInDate: r.b.checkIn as unknown as string,
     checkOutDate: r.b.checkOut as unknown as string,
     openServiceRequests: openSrCount[r.b.id] ?? 0,
-    openMaintenanceTickets: openMtCount[r.b.id] ?? 0,
+    openMaintenanceTickets: maintenanceByVilla[r.b.villaId] ?? 0,
   }));
 }
 

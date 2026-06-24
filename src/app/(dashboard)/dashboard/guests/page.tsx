@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { Card } from "@/components/dashboard/primitives";
+import { Badge } from "@/components/ui/badge";
 import { SourceBadge } from "@/components/ui/source-badge";
 import { DbStatusNotice } from "@/components/admin/db-status";
 import { Star } from "lucide-react";
 import { listGuests } from "@/features/guests/services";
 import { canManageEntity } from "@/features/auth/permissions";
 import { VipToggle } from "@/components/guests/vip-toggle";
+import { GuestsRowActions } from "@/components/guests/guests-row-actions";
 
 export const metadata = { title: "Guests" };
 export const dynamic = "force-dynamic";
+
+const STATUS_TONE: Record<string, "success" | "outline"> = {
+  active: "success",
+  archived: "outline",
+};
 
 export default async function GuestsPage() {
   const [guests, canManage] = await Promise.all([
@@ -31,6 +38,11 @@ export default async function GuestsPage() {
         </div>
         <div className="actions">
           <SourceBadge source={source} />
+          {canManage && (
+            <Link href="/dashboard/guests/new" className="btn btn-primary btn-sm">
+              Add guest +
+            </Link>
+          )}
         </div>
       </div>
 
@@ -49,6 +61,12 @@ export default async function GuestsPage() {
                 <th scope="col">Nationality</th>
                 <th scope="col">Language</th>
                 <th scope="col">VIP</th>
+                <th scope="col">Status</th>
+                {canManage && (
+                  <th scope="col" className="text-right">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -73,6 +91,35 @@ export default async function GuestsPage() {
                       <span className="text-ink-3">—</span>
                     )}
                   </td>
+                  <td>
+                    <Badge tone={STATUS_TONE[g.status] ?? "outline"}>
+                      {g.status}
+                    </Badge>
+                  </td>
+                  {canManage && (
+                    <td className="text-right">
+                      {g.source === "db" ? (
+                        <GuestsRowActions
+                          row={{
+                            id: g.id,
+                            fullName: g.fullName,
+                            values: {
+                              fullName: g.fullName,
+                              email: g.email ?? "",
+                              phone: g.phone ?? "",
+                              nationality: g.nationality ?? "",
+                              preferredLanguage: g.preferredLanguage ?? "",
+                              whatsapp: g.whatsapp ?? "",
+                              status: g.status,
+                            },
+                          }}
+                          canWrite={canManage}
+                        />
+                      ) : (
+                        <span className="text-ink-3">—</span>
+                      )}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

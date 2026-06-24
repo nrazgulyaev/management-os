@@ -44,10 +44,17 @@ export interface BookingsCabinetRow {
   children: number;
 }
 
-export async function listBookingsForCabinet(limit = 25): Promise<BookingsCabinetRow[]> {
+export async function listBookingsForCabinet(
+  limit = 25,
+  villaId?: string,
+): Promise<BookingsCabinetRow[]> {
   const db = getDb();
   if (!db) return [];
   const organizationId = await requireOrgId();
+  // Optional villa filter — drives the "View bookings" drill-down from
+  // /dashboard/villas/[id]. The org predicate stays primary so a forged
+  // villaId from another tenant simply matches no rows.
+  const villaFilter = villaId ? sql`AND b.villa_id = ${villaId}` : sql``;
   const rows = await db.execute<{
     id: string;
     booking_code: string;
@@ -80,6 +87,7 @@ export async function listBookingsForCabinet(limit = 25): Promise<BookingsCabine
       JOIN villas v ON v.id = b.villa_id
       LEFT JOIN booking_channels bc ON bc.id = b.channel_id
      WHERE b.organization_id = ${organizationId}
+       ${villaFilter}
      ORDER BY b.check_in DESC
      LIMIT ${limit}
   `);

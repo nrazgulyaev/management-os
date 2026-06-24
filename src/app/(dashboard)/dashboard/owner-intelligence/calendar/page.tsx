@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import {
-  listOwnerCalendarRows,
+  listOwnerCalendarRowsForOrg,
 } from "@/features/owner-intelligence/calendar-services";
 import {
   classifyOwnerCalendarEvent,
@@ -34,7 +34,7 @@ export default async function OwnerCalendarAdminPage() {
   const toIso = formatISODate(
     new Date(today.getTime() + 60 * 24 * 60 * 60 * 1000),
   );
-  const rows = await listOwnerCalendarRows({
+  const rows = await listOwnerCalendarRowsForOrg({
     from: fromIso,
     to: toIso,
   });

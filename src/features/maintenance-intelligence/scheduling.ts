@@ -196,13 +196,25 @@ export async function suggestMaintenanceWindows(
 export async function advancePlanNextDueAt(
   planId: string,
   completedAt?: Date,
+  // TENANCY: when a request path eventually calls this with a client-supplied
+  // planId, it must pass its resolved org so a foreign-org plan reads as "not
+  // found" before the next_due_at UPDATE. System/batch callers that have
+  // already org-scoped their plan selection can omit it. Mirrors the
+  // `expectedOrgId` guard on generateTaskFromPlan.
+  expectedOrgId?: string | null,
 ): Promise<Date | null> {
   const db = getDb();
   if (!db) return null;
+  const planFilter = expectedOrgId
+    ? and(
+        eq(villaMaintenancePlans.id, planId),
+        eq(villaMaintenancePlans.organizationId, expectedOrgId),
+      )
+    : eq(villaMaintenancePlans.id, planId);
   const [plan] = await db
     .select()
     .from(villaMaintenancePlans)
-    .where(eq(villaMaintenancePlans.id, planId))
+    .where(planFilter)
     .limit(1);
   if (!plan) return null;
   const next = calculateNextDueAt({
@@ -213,6 +225,6 @@ export async function advancePlanNextDueAt(
   await db
     .update(villaMaintenancePlans)
     .set({ nextDueAt: next, updatedAt: new Date() })
-    .where(eq(villaMaintenancePlans.id, planId));
+    .where(planFilter);
   return next;
 }

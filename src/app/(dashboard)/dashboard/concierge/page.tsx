@@ -9,7 +9,6 @@ import {
   listConciergeSessionsForCabinet,
   listConciergeHandoffsForCabinet,
   listSafetyEventsForCabinet,
-  listConciergeMemoryNotes,
 } from "@/features/guest-ai-concierge/concierge-cabinet-queries";
 import { ConciergeWorkspace } from "./_concierge-workspace";
 import { ComingSoon } from "@/components/ui/state";
@@ -21,10 +20,16 @@ import { ComingSoon } from "@/components/ui/state";
  * `src/features/guest-ai-concierge/concierge-cabinet-queries.ts`.
  *
  * DEMO-2 doesn't seed concierge data — sessions / messages / handoffs
- * / safety events / memory all empty. The cabinet renders as a clear
+ * / safety events all empty. The cabinet renders as a clear
  * "ready for guests to start messaging" state rather than synthetic
  * activity. Once guests message via WhatsApp / direct chat, every
  * panel populates automatically.
+ *
+ * NOTE: the "AI Memory" panel was removed — no per-guest concierge
+ * memory model exists yet (project_ai_memory is the dev-OS agents'
+ * project knowledge, not guest facts). Re-add the panel once a
+ * guest-memory table + writer ship, so we never advertise a
+ * non-existent recall feature.
  */
 
 export const metadata = { title: "Concierge AI" };
@@ -41,12 +46,11 @@ function fmtTime(iso: string | null): string {
 }
 
 export default async function ConciergePage() {
-  const [kpis, sessions, handoffs, safety, memory] = await Promise.all([
+  const [kpis, sessions, handoffs, safety] = await Promise.all([
     getConciergeKpis().catch(() => null),
     listConciergeSessionsForCabinet(6).catch(() => []),
     listConciergeHandoffsForCabinet(5).catch(() => []),
     listSafetyEventsForCabinet(5).catch(() => []),
-    listConciergeMemoryNotes().catch(() => []),
   ]);
 
   return (
@@ -67,12 +71,6 @@ export default async function ConciergePage() {
           <ComingSoon note="Reusable reply templates (per-language canned responses the AI and staff can insert) are coming soon.">
             <span className="btn btn-secondary btn-sm">Templates</span>
           </ComingSoon>
-          <Link
-            href="/dashboard/concierge#memory"
-            className="btn btn-secondary btn-sm"
-          >
-            Memory
-          </Link>
           <Link
             href="/dashboard/guest-ai/handoffs"
             className="btn btn-primary btn-sm"
@@ -165,8 +163,8 @@ export default async function ConciergePage() {
         )}
       </Card>
 
-      {/* Safety events + Memory editor */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-3.5 mb-[18px]">
+      {/* Safety events */}
+      <div className="mb-[18px]">
         <Card padding="none" overflowHidden>
           <div className="px-[18px] py-3.5 border-b border-line-soft">
             <h3 className="display-sm">Safety events · last 24h</h3>
@@ -199,29 +197,6 @@ export default async function ConciergePage() {
               ))}
             </ul>
           )}
-        </Card>
-
-        <Card id="memory" className="p-5 bg-cream-warm border border-dashed border-line-strong scroll-mt-24">
-          <div className="label text-terra">AI Memory · written by AI</div>
-          <h3 className="display-sm mt-1 mb-2">Recalled per-guest facts</h3>
-          {memory.length === 0 ? (
-            <p className="text-[13px] text-ink-3 italic m-0 mb-3.5">
-              Once concierge sessions start producing facts (allergies,
-              preferences, smart-lock notes), they surface here for review +
-              editing.
-            </p>
-          ) : (
-            <ul className="clean p-0 mb-3.5">
-              {memory.map((m) => (
-                <li key={m.id} className="py-2 text-[13px]">
-                  • {m.fact}
-                </li>
-              ))}
-            </ul>
-          )}
-          <ComingSoon note="Editing recalled per-guest facts (add / correct / forget) needs a write-back model — coming soon. Until then this list is read-only.">
-            <span className="btn btn-secondary btn-sm">Open memory editor</span>
-          </ComingSoon>
         </Card>
       </div>
     </>
