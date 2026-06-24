@@ -11,7 +11,6 @@ import {
   listSafetyEventsForCabinet,
 } from "@/features/guest-ai-concierge/concierge-cabinet-queries";
 import { ConciergeWorkspace } from "./_concierge-workspace";
-import { ComingSoon } from "@/components/ui/state";
 
 /**
  * Sprint TASK-6-DATA-PART-2 — Mgmt OS Concierge cabinet live wiring.
@@ -25,11 +24,13 @@ import { ComingSoon } from "@/components/ui/state";
  * activity. Once guests message via WhatsApp / direct chat, every
  * panel populates automatically.
  *
- * NOTE: the "AI Memory" panel was removed — no per-guest concierge
- * memory model exists yet (project_ai_memory is the dev-OS agents'
- * project knowledge, not guest facts). Re-add the panel once a
- * guest-memory table + writer ship, so we never advertise a
- * non-existent recall feature.
+ * NOTE: the "AI Memory" panel and the header "Templates" control were
+ * removed — no per-guest concierge memory model and no reusable
+ * reply-template model exist yet (project_ai_memory is the dev-OS
+ * agents' project knowledge, not guest facts). Re-add each only once
+ * its table + writer ship, so we never advertise a non-existent
+ * feature. Likewise the CSAT KPI was dropped — there is no guest
+ * feedback-collection source to back it.
  */
 
 export const metadata = { title: "Concierge AI" };
@@ -68,9 +69,6 @@ export default async function ConciergePage() {
           </p>
         </div>
         <div className="actions">
-          <ComingSoon note="Reusable reply templates (per-language canned responses the AI and staff can insert) are coming soon.">
-            <span className="btn btn-secondary btn-sm">Templates</span>
-          </ComingSoon>
           <Link
             href="/dashboard/guest-ai/handoffs"
             className="btn btn-primary btn-sm"
@@ -80,7 +78,7 @@ export default async function ConciergePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-[18px]">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
         <Kpi
           label="Active sessions"
           value={kpis && kpis.activeSessions > 0 ? String(kpis.activeSessions) : "—"}
@@ -103,7 +101,6 @@ export default async function ConciergePage() {
           sub={kpis && kpis.handoffsOpen > 0 ? "open" : "all clear"}
           tone={kpis && kpis.handoffsOpen > 0 ? "accent" : undefined}
         />
-        <Kpi label="CSAT · 30d" value="—" sub="feedback collection coming soon" />
       </div>
 
       {/* 2-up: request inbox + live transcript with staff composer */}

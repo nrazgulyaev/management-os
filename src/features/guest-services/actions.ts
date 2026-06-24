@@ -13,7 +13,10 @@ import {
 } from "@/lib/db/schema/guest-services";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { requirePermission } from "@/features/auth/permissions";
+import {
+  getCurrentUserContext,
+  requirePermission,
+} from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { recordStayAccessEvent } from "@/features/guest-stays/access-log";
@@ -53,7 +56,20 @@ export async function upsertCategoryAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult & { id?: string }> {
-  await requirePermission("guest_services.manage");
+  // guest_service_categories is a SHARED, global reference list — no
+  // organization_id, referenced by every tenant's guest_services rows. So
+  // curating it (add/edit/archive) is platform-level: super-admin only, not a
+  // per-org role. Reads (listCategories/getCategoryById) stay global on
+  // purpose so every tenant sees the same catalog. Mirrors the booking
+  // channel catalog gate in src/features/channels/actions.ts.
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin) {
+    return {
+      ok: false,
+      error:
+        "Service categories are shared across all tenants — only a platform super-admin can change them.",
+    };
+  }
   const parsed = upsertCategorySchema.safeParse(
     Object.fromEntries(formData.entries()),
   );

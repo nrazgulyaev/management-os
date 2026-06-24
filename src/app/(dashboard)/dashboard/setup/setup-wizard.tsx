@@ -89,10 +89,11 @@ export function SetupWizard({
       icon: <SlidersHorizontal className="h-5 w-5" strokeWidth={1.75} />,
       createHref: "/dashboard/settings/roles/matrix",
       createLabel: "Configure roles",
-      // No auto-count yet — this is a "visit + tune" step the founder finishes
-      // manually. A real completion check (role_access_overrides count) is a
-      // follow-up; see the role-configuration plan.
-      count: 0,
+      // Completion = the founder has tuned at least one role/cabinet cell away
+      // from its default, persisted as a role_access_overrides row (org-scoped
+      // count from getSetupCounts). Defaults stand on their own, so zero
+      // overrides correctly reads as "not configured yet".
+      count: counts.roleOverrides,
     },
   ];
 

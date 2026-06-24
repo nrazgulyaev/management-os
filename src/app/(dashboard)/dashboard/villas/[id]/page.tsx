@@ -112,13 +112,13 @@ export default async function VillaDetailPage({
       </div>
 
       <div className="rounded-md border border-line-soft bg-muted/30 p-5">
-        <span className="text-label">Next steps</span>
+        <span className="text-label">Related</span>
         <p className="text-sm text-ink-secondary mt-1.5 leading-relaxed">
-          Bookings, owner statements, status events, and document attachments
-          for this villa become editable here once their respective modules
-          land (Versions 3–6 of the implementation roadmap).
+          Jump to the operational surfaces that touch this villa — its bookings
+          and availability, the owner statements and reserve ledger it rolls
+          into, and the shared document library.
         </p>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2">
           <Link
             className="text-xs underline text-ink hover:text-accent"
             href={`/dashboard/bookings?villa=${villa.id}`}
@@ -130,6 +130,24 @@ export default async function VillaDetailPage({
             href={`/dashboard/villas/${villa.id}/availability`}
           >
             View availability →
+          </Link>
+          <Link
+            className="text-xs underline text-ink hover:text-accent"
+            href="/dashboard/finance/statements"
+          >
+            Owner statements →
+          </Link>
+          <Link
+            className="text-xs underline text-ink hover:text-accent"
+            href="/dashboard/finance/reserves"
+          >
+            Reserve ledger →
+          </Link>
+          <Link
+            className="text-xs underline text-ink hover:text-accent"
+            href="/dashboard/documents"
+          >
+            Document library →
           </Link>
           <Link
             className="text-xs underline text-ink hover:text-accent"

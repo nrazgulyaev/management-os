@@ -193,7 +193,10 @@ export default async function DeploymentReadinessPage() {
         <div className="label mb-2.5">Supabase</div>
         <p className="text-[13px] text-ink-3 mb-2.5 max-w-[680px]">
           Pending migrations are applied automatically on each deploy. Contact
-          support if a migration is missing in production.
+          support if a migration is missing in production. See
+          {" "}
+          <code>docs/SUPABASE-PROVISIONING-CHECKLIST.md</code> for the full
+          provisioning steps.
         </p>
         <div className="rounded-md border border-line-soft bg-surface p-5 grid grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <Stat label="Migration count" value={String(migrationCount)} />
@@ -203,13 +206,6 @@ export default async function DeploymentReadinessPage() {
             value={process.env.DATABASE_URL ? "set" : "missing"}
           />
         </div>
-        <Link
-          href="#"
-          onClick={undefined}
-          className="text-xs text-ink hover:underline underline-offset-4"
-        >
-          See <code>docs/SUPABASE-PROVISIONING-CHECKLIST.md</code>
-        </Link>
       </div>
 
       <div>

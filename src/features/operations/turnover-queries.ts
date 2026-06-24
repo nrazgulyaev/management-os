@@ -4,7 +4,6 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { turnovers } from "@/lib/db/schema/turnovers";
 import { villas, projects } from "@/lib/db/schema/projects";
-import { bookings } from "@/lib/db/schema/bookings";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { requireOrgId } from "@/features/auth/require-org";
 import type { TurnoverCard, TurnoverStatus } from "@/components/operations/turnover-board";
@@ -21,6 +20,18 @@ import type { TurnoverCard, TurnoverStatus } from "@/components/operations/turno
 /** Role keys treated as the cleaner roster. */
 const CLEANER_ROLE_KEYS = ["housekeeper", "housekeeping_supervisor"] as const;
 
+/**
+ * Property-STANDARD turnover window. bookings store check_in/check_out as a
+ * DATE only (no per-booking time column), and neither villas/projects nor a
+ * property-settings table carry a standard time today. These are therefore the
+ * house default check-out / check-in clock — NOT a per-booking fact. The board
+ * labels them as the standard window so we never present a fabricated per-stay
+ * time. To show real per-booking times, add checkout_time/checkin_time to
+ * bookings (see the skipped migration note).
+ */
+const STD_CHECKOUT = "11:00";
+const STD_CHECKIN = "14:00";
+
 /** A turnover row joined to the villa code + assignee name, board-ready. */
 export interface TurnoverRow {
   id: string;
@@ -30,9 +41,9 @@ export interface TurnoverRow {
   badge: string | null;
   assigneeId: string | null;
   assigneeName: string | null;
-  /** "HH:MM" of the source booking checkout (always today). */
+  /** Property-STANDARD checkout time (house default, not a per-booking fact). */
   checkOut: string | null;
-  /** "HH:MM" of the next booking check-in, if any. */
+  /** Property-STANDARD check-in time — only set when a same-day arrival exists. */
   checkIn: string | null;
 }
 
@@ -93,14 +104,14 @@ async function readTurnoverRows(
       badge: turnovers.badge,
       assigneeId: turnovers.assigneeUserId,
       assigneeName: appUsers.fullName,
-      checkOut: sql<string | null>`to_char(${bookings.createdAt}, 'HH24:MI')`,
+      // Drives whether a same-day arrival exists for this villa.
+      nextBookingId: turnovers.nextBookingId,
     })
     .from(turnovers)
     .innerJoin(villas, eq(villas.id, turnovers.villaId))
     // TENANCY: turnovers has no organization_id — scope via villa → project.
     .innerJoin(projects, eq(projects.id, villas.projectId))
     .leftJoin(appUsers, eq(appUsers.id, turnovers.assigneeUserId))
-    .leftJoin(bookings, eq(bookings.id, turnovers.sourceBookingId))
     .where(
       and(
         eq(turnovers.turnoverDate, sql`CURRENT_DATE`),
@@ -109,10 +120,12 @@ async function readTurnoverRows(
     )
     .orderBy(asc(villas.unitCode));
 
-  // checkOut/checkIn are wall-clock hints; bookings store dates only, so
-  // the precise "HH:MM" guest checkout time isn't modelled yet. We surface
-  // the standard turnover window labels rather than a fabricated time.
-  // TODO(W4): add checkout_time / checkin_time to bookings to show real times.
+  // bookings store check_in/check_out as DATE only — there's no per-booking
+  // checkout/check-in TIME column, and no property-settings table carries a
+  // standard one. So we surface the property-STANDARD window (STD_CHECKOUT /
+  // STD_CHECKIN) rather than a fabricated per-stay time, and only show the
+  // standard check-in when a same-day arrival actually exists (next_booking_id).
+  // TODO(W4): add checkout_time / checkin_time to bookings for real per-stay times.
   return result.map((r) => ({
     id: r.id,
     villaId: r.villaId,
@@ -121,8 +134,8 @@ async function readTurnoverRows(
     badge: r.badge,
     assigneeId: r.assigneeId,
     assigneeName: r.assigneeName,
-    checkOut: "11:00",
-    checkIn: null,
+    checkOut: STD_CHECKOUT,
+    checkIn: r.nextBookingId ? STD_CHECKIN : null,
   }));
 }
 

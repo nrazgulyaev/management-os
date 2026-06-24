@@ -3,6 +3,15 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingHolds } from "@/features/direct-booking/services";
 import { adminHoldStatusLabel } from "@/features/direct-booking/hold-pure";
 import { requireOrgId } from "@/features/auth/require-org";
+import { FilterPills, type FilterPillItem } from "@/components/ui/primitives";
+
+const HOLD_STATUSES = [
+  "active",
+  "converted",
+  "expired",
+  "cancelled",
+  "rejected",
+] as const;
 
 export const metadata = { title: "Direct booking holds" };
 export const dynamic = "force-dynamic";
@@ -33,6 +42,14 @@ export default async function DirectBookingHoldsPage({
     | undefined) || undefined;
   const organizationId = await requireOrgId();
   const rows = await listDirectBookingHolds(organizationId, { status, limit: 200 });
+  const statusPills: FilterPillItem[] = [
+    { value: "", label: "All", href: "/dashboard/direct-bookings/holds" },
+    ...HOLD_STATUSES.map((s) => ({
+      value: s,
+      label: s,
+      href: `/dashboard/direct-bookings/holds?status=${s}`,
+    })),
+  ];
   return (
     <>
       <div className="page-header">
@@ -56,6 +73,8 @@ export default async function DirectBookingHoldsPage({
           </Link>
         </div>
       </div>
+
+      <FilterPills items={statusPills} current={status ?? ""} label="Status" />
 
       <div>
         <div className="label mb-2.5">Catalog · {rows.length} holds</div>

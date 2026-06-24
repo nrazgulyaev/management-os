@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import {
   archiveGuestJourneyRuleAction,
+  dismissGuestJourneySuggestionAdminAction,
   pauseGuestJourneyRuleAction,
   refreshOwnerVisibleEventsAction,
   resumeGuestJourneyRuleAction,
@@ -98,6 +99,27 @@ export function ArchiveRuleButton({ id }: { id: string }) {
         className="text-[11px] text-ink-tertiary hover:text-danger underline-offset-4 hover:underline"
       >
         Archive
+      </button>
+      {state && !state.ok && (
+        <span className="text-[10px] text-danger ml-2">{state.error}</span>
+      )}
+    </form>
+  );
+}
+
+export function DismissSuggestionButton({ id }: { id: string }) {
+  const [state, dispatch] = useActionState(
+    dismissGuestJourneySuggestionAdminAction,
+    null,
+  );
+  return (
+    <form action={dispatch} className="inline-flex items-center">
+      <input type="hidden" name="id" value={id} />
+      <button
+        type="submit"
+        className="text-[11px] text-ink-tertiary hover:text-danger underline-offset-4 hover:underline"
+      >
+        Dismiss
       </button>
       {state && !state.ok && (
         <span className="text-[10px] text-danger ml-2">{state.error}</span>

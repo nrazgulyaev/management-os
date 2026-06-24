@@ -40,10 +40,11 @@ export default async function ReservesPage() {
       </div>
       <DbStatusNotice />
       <FinanceTable
+        voidKind="reserve"
         rows={rows.map((r) => ({
           id: r.id,
           date: r.movementDate,
-          scope: r.villaId ?? r.projectId ?? "—",
+          scope: r.villaCode ?? r.projectName ?? "—",
           category: `${r.reserveType} · ${r.movementType}`,
           description: r.description,
           amountMinor: r.amountMinor,

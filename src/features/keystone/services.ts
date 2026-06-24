@@ -16,11 +16,18 @@ export interface SetupCounts {
   villas: number;
   projects: number;
   teamMembers: number;
+  /**
+   * Number of persisted role/cabinet access overrides for the org. Drives
+   * step-4 ("Configure roles & access") completion: any override means the
+   * founder has visited the matrix and tuned at least one cell away from the
+   * role default. role_access_overrides carries organization_id directly.
+   */
+  roleOverrides: number;
 }
 
 export async function getSetupCounts(): Promise<SetupCounts> {
   const db = getDb();
-  if (!db) return { villas: 0, projects: 0, teamMembers: 0 };
+  if (!db) return { villas: 0, projects: 0, teamMembers: 0, roleOverrides: 0 };
   // TENANCY: scope every count to the caller's org. Unscoped, a fresh
   // tenant counts ALL orgs' villas/projects/team, so isEmptySystem()
   // returns false and the dashboard skips the zero-state. If the org
@@ -30,10 +37,10 @@ export async function getSetupCounts(): Promise<SetupCounts> {
   try {
     organizationId = await requireOrgId();
   } catch {
-    return { villas: 0, projects: 0, teamMembers: 0 };
+    return { villas: 0, projects: 0, teamMembers: 0, roleOverrides: 0 };
   }
   const countExpr = sql<number>`count(*)::int`;
-  const [vRows, pRows, tRows] = await Promise.all([
+  const [vRows, pRows, tRows, rRows] = await Promise.all([
     // villas has no organization_id — scope via its project.
     db
       .select({ n: countExpr })
@@ -48,11 +55,17 @@ export async function getSetupCounts(): Promise<SetupCounts> {
       .select({ n: countExpr })
       .from(appUsers)
       .where(eq(appUsers.organizationId, organizationId)),
+    // role_access_overrides has its own organization_id (keystone-setup).
+    db
+      .select({ n: countExpr })
+      .from(roleAccessOverrides)
+      .where(eq(roleAccessOverrides.organizationId, organizationId)),
   ]);
   return {
     villas: vRows[0]?.n ?? 0,
     projects: pRows[0]?.n ?? 0,
     teamMembers: tRows[0]?.n ?? 0,
+    roleOverrides: rRows[0]?.n ?? 0,
   };
 }
 

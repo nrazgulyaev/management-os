@@ -2,6 +2,17 @@ import Link from "next/link";
 import { HandoffBadge } from "@/components/dashboard/primitives";
 import { listDirectBookingRequests } from "@/features/direct-booking/services";
 import { requireOrgId } from "@/features/auth/require-org";
+import { FilterPills, type FilterPillItem } from "@/components/ui/primitives";
+
+const REQUEST_STATUSES = [
+  "submitted",
+  "under_review",
+  "approved",
+  "rejected",
+  "expired",
+  "cancelled",
+  "converted",
+] as const;
 
 export const metadata = { title: "Direct booking requests" };
 export const dynamic = "force-dynamic";
@@ -36,6 +47,14 @@ export default async function DirectBookingRequestsPage({
   const status = (sp.status as ReqStatus | undefined) || undefined;
   const organizationId = await requireOrgId();
   const rows = await listDirectBookingRequests(organizationId, { status, limit: 200 });
+  const statusPills: FilterPillItem[] = [
+    { value: "", label: "All", href: "/dashboard/direct-bookings/requests" },
+    ...REQUEST_STATUSES.map((s) => ({
+      value: s,
+      label: s.replace(/_/g, " "),
+      href: `/dashboard/direct-bookings/requests?status=${s}`,
+    })),
+  ];
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -51,6 +70,7 @@ export default async function DirectBookingRequestsPage({
           </p>
         </div>
       </div>
+      <FilterPills items={statusPills} current={status ?? ""} label="Status" />
       <div>
         <div className="label mb-2.5">{`${rows.length} requests`}</div>
         <table className="data">

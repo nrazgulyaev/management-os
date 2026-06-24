@@ -77,6 +77,9 @@ export interface ExpenseLineRow {
 export interface TaxLineRow {
   id: string;
   villaId: string | null;
+  villaCode: string | null;
+  projectId: string | null;
+  projectName: string | null;
   taxType: string;
   description: string;
   amountMinor: bigint;
@@ -89,7 +92,9 @@ export interface TaxLineRow {
 export interface ReserveMovementRow {
   id: string;
   villaId: string | null;
+  villaCode: string | null;
   projectId: string | null;
+  projectName: string | null;
   reserveType: string;
   movementType: "contribution" | "release" | "adjustment";
   description: string;
@@ -350,7 +355,7 @@ export async function listTaxLines(): Promise<WithSource<TaxLineRow>[]> {
   const villaProject = alias(projects, "villa_project_tax");
   const taxProject = alias(projects, "tax_project");
   const rows = await db
-    .select({ t: taxLines })
+    .select({ t: taxLines, villaCode: villas.unitCode, projectName: taxProject.name })
     .from(taxLines)
     .leftJoin(villas, eq(villas.id, taxLines.villaId))
     .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
@@ -362,17 +367,20 @@ export async function listTaxLines(): Promise<WithSource<TaxLineRow>[]> {
       ),
     )
     .orderBy(desc(taxLines.taxDate));
-  return rows.map(({ t: r }) => ({
+  return rows.map((row) => ({
     source: "db" as const,
-    id: r.id,
-    villaId: r.villaId,
-    taxType: r.taxType,
-    description: r.description,
-    amountMinor: BigInt(r.amountMinor),
-    currency: r.currency,
-    taxDate: r.taxDate,
-    ownerVisible: r.ownerVisible,
-    status: r.status,
+    id: row.t.id,
+    villaId: row.t.villaId,
+    villaCode: row.villaCode ?? null,
+    projectId: row.t.projectId,
+    projectName: row.projectName ?? null,
+    taxType: row.t.taxType,
+    description: row.t.description,
+    amountMinor: BigInt(row.t.amountMinor),
+    currency: row.t.currency,
+    taxDate: row.t.taxDate,
+    ownerVisible: row.t.ownerVisible,
+    status: row.t.status,
   }));
 }
 
@@ -386,7 +394,7 @@ export async function listReserveMovements(): Promise<WithSource<ReserveMovement
   const villaProject = alias(projects, "villa_project_resmov");
   const resProject = alias(projects, "res_project");
   const rows = await db
-    .select({ m: reserveMovements })
+    .select({ m: reserveMovements, villaCode: villas.unitCode, projectName: resProject.name })
     .from(reserveMovements)
     .leftJoin(villas, eq(villas.id, reserveMovements.villaId))
     .leftJoin(villaProject, eq(villaProject.id, villas.projectId))
@@ -398,18 +406,20 @@ export async function listReserveMovements(): Promise<WithSource<ReserveMovement
       ),
     )
     .orderBy(desc(reserveMovements.movementDate));
-  return rows.map(({ m: r }) => ({
+  return rows.map((row) => ({
     source: "db" as const,
-    id: r.id,
-    villaId: r.villaId,
-    projectId: r.projectId,
-    reserveType: r.reserveType,
-    movementType: r.movementType as ReserveMovementRow["movementType"],
-    description: r.description,
-    amountMinor: BigInt(r.amountMinor),
-    currency: r.currency,
-    movementDate: r.movementDate,
-    status: r.status,
+    id: row.m.id,
+    villaId: row.m.villaId,
+    villaCode: row.villaCode ?? null,
+    projectId: row.m.projectId,
+    projectName: row.projectName ?? null,
+    reserveType: row.m.reserveType,
+    movementType: row.m.movementType as ReserveMovementRow["movementType"],
+    description: row.m.description,
+    amountMinor: BigInt(row.m.amountMinor),
+    currency: row.m.currency,
+    movementDate: row.m.movementDate,
+    status: row.m.status,
   }));
 }
 
@@ -485,7 +495,28 @@ export async function listStatementPeriods(): Promise<WithSource<PeriodRow>[]> {
 export async function getStatementPeriodById(id: string): Promise<WithSource<PeriodRow> | null> {
   const db = getDb();
   if (!db) return null;
-  const [r] = await db.select().from(statementPeriods).where(eq(statementPeriods.id, id)).limit(1);
+  // TENANCY-FINANCE — statement_periods is a shared dimension with no
+  // organization_id (see concerns/migration note). Scope this detail read the
+  // same way listStatementPeriods does: only resolve a period the caller's org
+  // actually has owner_statements in, so a foreign period id 404s instead of
+  // leaking another tenant's period dates/label/status.
+  const organizationId = await requireOrgId();
+  const [r] = await db
+    .select()
+    .from(statementPeriods)
+    .where(
+      and(
+        eq(statementPeriods.id, id),
+        inArray(
+          statementPeriods.id,
+          db
+            .select({ id: ownerStatements.periodId })
+            .from(ownerStatements)
+            .where(eq(ownerStatements.organizationId, organizationId)),
+        ),
+      ),
+    )
+    .limit(1);
   if (!r) return null;
   return {
     source: "db" as const,

@@ -208,9 +208,30 @@ export async function getOwnerBookingSummaryById(
 
 export async function listOwnerBookingBreakdowns(
   summaryId: string,
+  opts?: { ownerOnly?: boolean; organizationId?: string },
 ): Promise<RevenueBreakdownEntry[]> {
   const db = getDb();
   if (!db) return [];
+  // TENANCY: owner_booking_revenue_breakdowns carries a *nullable* org column
+  // (stamped via the villa/booking anchor, else NULL), so we can't strict-eq
+  // its own org without dropping legitimately-NULL rows. Instead we scope via
+  // the parent owner_booking_summary, which is the same row the caller already
+  // resolved through getOwnerBookingSummaryById(). Joining to the parent and
+  // applying that summary's grant filter (owner-portal grant or admin org)
+  // means a foreign / cross-org summaryId joins to nothing and returns [].
+  const conditions = [
+    eq(ownerBookingRevenueBreakdowns.ownerBookingSummaryId, summaryId),
+  ];
+  if (opts?.ownerOnly) {
+    const ownerIds = await listOwnerIdsForCurrentUser();
+    if (ownerIds.length === 0) return [];
+    conditions.push(inArray(ownerBookingSummaries.ownerId, ownerIds));
+  }
+  if (opts?.organizationId) {
+    conditions.push(
+      eq(ownerBookingSummaries.organizationId, opts.organizationId),
+    );
+  }
   const rows = await db
     .select({
       category: ownerBookingRevenueBreakdowns.category,
@@ -222,7 +243,14 @@ export async function listOwnerBookingBreakdowns(
       sortOrder: ownerBookingRevenueBreakdowns.sortOrder,
     })
     .from(ownerBookingRevenueBreakdowns)
-    .where(eq(ownerBookingRevenueBreakdowns.ownerBookingSummaryId, summaryId))
+    .innerJoin(
+      ownerBookingSummaries,
+      eq(
+        ownerBookingSummaries.id,
+        ownerBookingRevenueBreakdowns.ownerBookingSummaryId,
+      ),
+    )
+    .where(and(...conditions))
     .orderBy(asc(ownerBookingRevenueBreakdowns.sortOrder));
   return rows.map((r) => ({
     category: r.category as RevenueBreakdownEntry["category"],

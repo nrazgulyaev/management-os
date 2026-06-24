@@ -10,7 +10,10 @@ import { ArchiveButton } from "@/components/admin/archive-button";
 import { Pencil } from "lucide-react";
 import { getProjectBySlug } from "@/features/projects/services";
 import { listVillas } from "@/features/villas/services";
+import { listOwnershipShares } from "@/features/owners/services";
+import { listReserveBalances } from "@/features/finance/reserve-balances";
 import { archiveProjectAction, unarchiveProjectAction } from "@/features/projects/actions";
+import { formatMoneyMinor } from "@/lib/money";
 
 export const metadata = { title: "Project" };
 export const dynamic = "force-dynamic";
@@ -27,6 +30,23 @@ export default async function ProjectDetailPage({
   const villas = project.source === "db"
     ? await listVillas({ projectId: project.id })
     : await listVillas();
+
+  // Owners + reserve ledger for this project. Both services are org-scoped
+  // (requireOrgId inside) and return rows tagged with projectId / villaId; we
+  // narrow to entries that belong to THIS project — either anchored directly
+  // on the project, or on one of its villas.
+  const villaIds = new Set(villas.map((v) => v.id));
+  const belongsToProject = (row: { projectId: string | null; villaId: string | null }) =>
+    row.projectId === project.id || (!!row.villaId && villaIds.has(row.villaId));
+
+  const [allShares, allReserves] =
+    project.source === "db"
+      ? await Promise.all([listOwnershipShares(), listReserveBalances()])
+      : [[], []];
+
+  const shares = allShares.filter(belongsToProject);
+  const reserves = allReserves.filter(belongsToProject);
+  const villaCodeById = new Map(villas.map((v) => [v.id, v.unitCode]));
 
   return (
     <div className="flex flex-col gap-10">
@@ -115,6 +135,111 @@ export default async function ProjectDetailPage({
                       ? `$${v.currentNightlyRateUsd.toLocaleString()}`
                       : "—"}
                   </TDNum>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+      </section>
+
+      <section>
+        <div className="label">Owners</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+          Ownership in this project
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Active and scheduled shares tied to this project or its villas.
+        </p>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Owner</TH>
+              <TH>Scope</TH>
+              <TH>Model</TH>
+              <TH>Status</TH>
+              <TH className="text-right">Share</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {shares.length === 0 ? (
+              <TR>
+                <TD colSpan={5} className="text-ink-tertiary text-center py-8">
+                  No ownership shares recorded yet.
+                </TD>
+              </TR>
+            ) : (
+              shares.map((s) => (
+                <TR key={s.id}>
+                  <TD className="text-ink">{s.ownerName}</TD>
+                  <TD className="text-ink-secondary">
+                    {s.villaId
+                      ? villaCodeById.get(s.villaId) ?? s.villaCode ?? "Villa"
+                      : "Whole project"}
+                  </TD>
+                  <TD>
+                    <Badge tone="outline">{s.model}</Badge>
+                  </TD>
+                  <TD>
+                    <Badge
+                      tone={
+                        s.status === "active"
+                          ? "success"
+                          : s.status === "scheduled"
+                            ? "info"
+                            : "neutral"
+                      }
+                    >
+                      {s.status}
+                    </Badge>
+                  </TD>
+                  <TDNum>{s.sharePercent}%</TDNum>
+                </TR>
+              ))
+            )}
+          </TBody>
+        </Table>
+      </section>
+
+      <section>
+        <div className="label">Reserve ledger</div>
+        <h2 className="display" style={{ fontSize: 22, marginTop: 6, marginBottom: 4, fontWeight: 500 }}>
+          Reserve balances
+        </h2>
+        <p style={{ fontSize: 13, color: "var(--ink-3)", margin: "0 0 14px" }}>
+          Posted reserve movements aggregated for this project and its villas.{" "}
+          <Link href="/dashboard/finance/reserves" className="underline">
+            Open the reserve ledger →
+          </Link>
+        </p>
+        <Table>
+          <THead>
+            <TR>
+              <TH>Scope</TH>
+              <TH>Reserve type</TH>
+              <TH className="text-right">Contributions</TH>
+              <TH className="text-right">Releases</TH>
+              <TH className="text-right">Balance</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {reserves.length === 0 ? (
+              <TR>
+                <TD colSpan={5} className="text-ink-tertiary text-center py-8">
+                  No posted reserve movements yet.
+                </TD>
+              </TR>
+            ) : (
+              reserves.map((r, i) => (
+                <TR key={`${r.villaId ?? r.projectId}-${r.reserveType}-${r.currency}-${i}`}>
+                  <TD className="text-ink-secondary">
+                    {r.villaId
+                      ? villaCodeById.get(r.villaId) ?? "Villa"
+                      : "Whole project"}
+                  </TD>
+                  <TD className="text-ink capitalize">{r.reserveType.replace(/_/g, " ")}</TD>
+                  <TDNum>{formatMoneyMinor(r.contributionsMinor, r.currency)}</TDNum>
+                  <TDNum>{formatMoneyMinor(r.releasesMinor, r.currency)}</TDNum>
+                  <TDNum>{formatMoneyMinor(r.balanceMinor, r.currency)}</TDNum>
                 </TR>
               ))
             )}

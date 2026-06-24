@@ -7,8 +7,27 @@ import { listGuestJourneyRuns } from "@/features/guest-journey/services";
 export const metadata = { title: "Journey runs" };
 export const dynamic = "force-dynamic";
 
-export default async function JourneyRunsPage() {
-  const runs = await listGuestJourneyRuns({ limit: 200 });
+const RUN_STATUSES = ["pending", "executed", "skipped", "failed"] as const;
+type RunStatus = (typeof RUN_STATUSES)[number];
+
+const STATUS_FILTERS: { label: string; status?: RunStatus }[] = [
+  { label: "All", status: undefined },
+  { label: "Pending", status: "pending" },
+  { label: "Executed", status: "executed" },
+  { label: "Skipped", status: "skipped" },
+  { label: "Failed", status: "failed" },
+];
+
+export default async function JourneyRunsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const sp = await searchParams;
+  const status = RUN_STATUSES.includes(sp.status as RunStatus)
+    ? (sp.status as RunStatus)
+    : undefined;
+  const runs = await listGuestJourneyRuns({ status, limit: 200 });
   const executedCount = runs.filter(({ run }) => run.status === "executed").length;
   const failedCount = runs.filter(({ run }) => run.status === "failed").length;
   const skippedCount = runs.filter(({ run }) => run.status === "skipped").length;
@@ -26,6 +45,22 @@ export default async function JourneyRunsPage() {
             no-ops on the unique index.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-[18px]">
+        {STATUS_FILTERS.map((f) => (
+          <Link
+            key={f.label}
+            href={f.status ? `?status=${f.status}` : "?"}
+            className={
+              (status ?? "") === (f.status ?? "")
+                ? "btn btn-accent btn-sm"
+                : "btn btn-secondary btn-sm"
+            }
+          >
+            {f.label}
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">

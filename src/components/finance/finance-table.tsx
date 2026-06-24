@@ -25,7 +25,7 @@ export function FinanceTable({
   scopeLabel?: string;
   emptyMessage?: string;
   /** When set, render a row-level "Void" control for posted lines. */
-  voidKind?: "revenue" | "fee" | "expense" | "tax";
+  voidKind?: "revenue" | "fee" | "expense" | "tax" | "reserve";
 }) {
   const colCount = voidKind ? 7 : 6;
   return (

@@ -2,8 +2,9 @@
 
 /**
  * Row-level "Void" control for the finance ledgers. Posted revenue/fee/expense/
- * tax lines flow into owner statements, so a wrong posting must be reversible —
- * this calls the org-scoped voidLedgerLineAction (posted → voided) and refreshes.
+ * tax lines and reserve movements flow into owner statements, so a wrong posting
+ * must be reversible — this calls the org-scoped voidLedgerLineAction
+ * (posted → voided) and refreshes.
  */
 
 import * as React from "react";
@@ -14,7 +15,7 @@ export function VoidLineButton({
   kind,
   id,
 }: {
-  kind: "revenue" | "fee" | "expense" | "tax";
+  kind: "revenue" | "fee" | "expense" | "tax" | "reserve";
   id: string;
 }) {
   const router = useRouter();
