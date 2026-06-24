@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { z } from "zod";
 import { getDb } from "@/lib/db/client";
@@ -774,6 +774,31 @@ export async function setPayoutLineStatusAction(
       error: `Cannot move payout line from "${before.status}" to "${parsed.data.next}".`,
     };
   }
+  // FC-OWNER-STATEMENTS §4.4 — payout is PAUSED while a statement is disputed.
+  // The create-time check (createPayoutLineAction) only covers lines created
+  // AFTER a dispute; an owner can dispute a statement AFTER its payout line
+  // already exists (owner-portal dispute-actions sets owner_state='disputed'
+  // and does NOT cascade to existing lines). Re-check at the money-releasing
+  // approved→paid transition so funds are never released on a disputed
+  // statement. Re-read org-scoped so a foreign statement id cannot bypass.
+  if (parsed.data.next === "paid" && before.statementId) {
+    const [linked] = await db
+      .select({ ownerState: ownerStatements.ownerState })
+      .from(ownerStatements)
+      .where(
+        and(
+          eq(ownerStatements.id, before.statementId),
+          eq(ownerStatements.organizationId, organizationId),
+        ),
+      )
+      .limit(1);
+    if (linked?.ownerState === "disputed") {
+      return {
+        ok: false,
+        error: "Payout is paused: this statement is under dispute. Resolve the dispute first.",
+      };
+    }
+  }
   const updates: Record<string, unknown> = { status: parsed.data.next };
   if (parsed.data.next === "paid") updates.paidAt = new Date();
   // Reopen (→ pending): defensively clear paidAt so a reopened line is never
@@ -814,36 +839,152 @@ export async function setPayoutBatchStatusAction(
   // WRITE-FLOW-AUDIT: org-scoped load closes the cross-tenant IDOR — a
   // foreign payout-batch id cannot be approved/paid by another org.
   const organizationId = await requireOrgId();
-  const [before] = await db
-    .select()
-    .from(payoutBatches)
-    .where(and(eq(payoutBatches.id, parsed.data.id), eq(payoutBatches.organizationId, organizationId)))
-    .limit(1);
-  if (!before) return { ok: false, error: "Payout batch not found." };
-  // State-machine guard: only draft → approved → paid (plus cancelled).
-  if (!isAllowedTransition(PAYOUT_BATCH_TRANSITIONS, before.status, parsed.data.next)) {
-    return {
-      ok: false,
-      error: `Cannot move payout batch from "${before.status}" to "${parsed.data.next}".`,
-    };
-  }
-  const updates: Record<string, unknown> = { status: parsed.data.next };
-  if (parsed.data.next === "approved") {
-    updates.approvedBy = me?.id ?? null;
-    updates.approvedAt = new Date();
-  }
-  if (parsed.data.next === "paid") updates.paidAt = new Date();
-  await db
-    .update(payoutBatches)
-    .set(updates)
-    .where(and(eq(payoutBatches.id, parsed.data.id), eq(payoutBatches.organizationId, organizationId)));
+  const next = parsed.data.next;
+  // The batch mark-paid must stay coupled to its lines: a batch is only
+  // truthfully "paid" once its money-bearing lines are paid. We do the gate +
+  // line cascade in ONE transaction, locking the batch row FOR UPDATE so two
+  // concurrent mark-paid calls can't both pass the state-machine guard.
+  const txResult = await db.transaction(
+    async (
+      tx,
+    ): Promise<
+      { ok: true; beforeStatus: string } | { ok: false; error: string }
+    > => {
+      const [before] = await tx
+        .select()
+        .from(payoutBatches)
+        .where(
+          and(
+            eq(payoutBatches.id, parsed.data.id),
+            eq(payoutBatches.organizationId, organizationId),
+          ),
+        )
+        .for("update")
+        .limit(1);
+      if (!before) return { ok: false, error: "Payout batch not found." };
+      // State-machine guard: only draft → approved → paid (plus cancelled).
+      // `paid` is terminal, so a re-run lands here and is rejected — the flip
+      // is its own idempotency gate.
+      if (!isAllowedTransition(PAYOUT_BATCH_TRANSITIONS, before.status, next)) {
+        return {
+          ok: false,
+          error: `Cannot move payout batch from "${before.status}" to "${next}".`,
+        };
+      }
+
+      if (next === "paid") {
+        // Couple the batch to its lines. Load every line in this batch
+        // (org-scoped so a foreign-org line sharing the batch id can't be
+        // dragged in). A batch can only be paid when none of its lines still
+        // need approval, and no payable line sits on a disputed statement.
+        const lines = await tx
+          .select({
+            id: payoutLines.id,
+            status: payoutLines.status,
+            statementId: payoutLines.statementId,
+          })
+          .from(payoutLines)
+          .where(
+            and(
+              eq(payoutLines.payoutBatchId, parsed.data.id),
+              eq(payoutLines.organizationId, organizationId),
+            ),
+          );
+        // Block while any line is still pending: those lines have not been
+        // approved, so paying the batch would release un-approved money.
+        const pendingCount = lines.filter((l) => l.status === "pending").length;
+        if (pendingCount > 0) {
+          return {
+            ok: false,
+            error: `Cannot mark batch paid: ${pendingCount} line(s) still need approval. Approve or cancel them first.`,
+          };
+        }
+        // The lines we will release: anything still `approved`. (Already-paid
+        // lines stay paid; failed/cancelled lines are intentionally skipped.)
+        const toPay = lines.filter((l) => l.status === "approved");
+        // FC-OWNER-STATEMENTS §4.4 — never release a payout whose statement is
+        // under dispute. Mirror the line-level pause: if ANY approved line in
+        // the batch is on a disputed statement, block the whole batch so we
+        // don't partially release disputed funds.
+        const stmtIds = toPay
+          .map((l) => l.statementId)
+          .filter((s): s is string => Boolean(s));
+        if (stmtIds.length > 0) {
+          const disputed = await tx
+            .select({ id: ownerStatements.id })
+            .from(ownerStatements)
+            .where(
+              and(
+                inArray(ownerStatements.id, stmtIds),
+                eq(ownerStatements.organizationId, organizationId),
+                eq(ownerStatements.ownerState, "disputed"),
+              ),
+            )
+            .limit(1);
+          if (disputed.length > 0) {
+            return {
+              ok: false,
+              error:
+                "Payout is paused: a statement in this batch is under dispute. Resolve the dispute first.",
+            };
+          }
+        }
+        // Cascade: flip the approved lines → paid in the SAME transaction so
+        // batch.status === 'paid' truthfully reflects its lines. Re-runs are
+        // safe: a second pass finds no `approved` lines (and the batch flip is
+        // already gated by the state machine).
+        if (toPay.length > 0) {
+          await tx
+            .update(payoutLines)
+            .set({ status: "paid", paidAt: new Date() })
+            .where(
+              and(
+                inArray(
+                  payoutLines.id,
+                  toPay.map((l) => l.id),
+                ),
+                eq(payoutLines.payoutBatchId, parsed.data.id),
+                eq(payoutLines.organizationId, organizationId),
+                eq(payoutLines.status, "approved"),
+              ),
+            );
+        }
+      }
+
+      const updates: Record<string, unknown> = { status: next };
+      if (next === "approved") {
+        updates.approvedBy = me?.id ?? null;
+        updates.approvedAt = new Date();
+      }
+      if (next === "paid") updates.paidAt = new Date();
+      const flipped = await tx
+        .update(payoutBatches)
+        .set(updates)
+        .where(
+          and(
+            eq(payoutBatches.id, parsed.data.id),
+            eq(payoutBatches.organizationId, organizationId),
+            // Gate the flip on the status we read under FOR UPDATE so a
+            // concurrent transition can't be silently overwritten.
+            eq(payoutBatches.status, before.status),
+          ),
+        )
+        .returning({ id: payoutBatches.id });
+      if (flipped.length !== 1) {
+        return { ok: false, error: "Payout batch changed concurrently. Retry." };
+      }
+      return { ok: true, beforeStatus: before.status };
+    },
+  );
+
+  if (!txResult.ok) return txResult;
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
-    action: `finance.payout_batch.${parsed.data.next}`,
+    action: `finance.payout_batch.${next}`,
     entityType: "payout_batch",
     entityId: parsed.data.id,
-    before: { status: before.status },
-    after: { status: parsed.data.next },
+    before: { status: txResult.beforeStatus },
+    after: { status: next },
   });
   revalidatePath("/dashboard/finance/payouts");
   return { ok: true };

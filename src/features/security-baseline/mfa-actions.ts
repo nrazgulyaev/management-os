@@ -5,6 +5,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { recordAuditEvent } from "@/features/audit/services";
 import { clearMfaPendingMarker } from "./mfa-pending-marker";
+import {
+  checkMfaThrottle,
+  countRecentMfaFailures,
+} from "./mfa-throttle";
+import { mfaMaxFailedPerUser } from "@/lib/env";
 import { getCurrentAppUser } from "@/features/auth/current-user";
 import { requirePermission } from "@/features/auth/permissions";
 import {
@@ -107,6 +112,15 @@ export async function verifyMfaChallengeAction(
 ): Promise<ActionResult> {
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
+  // MFA-THROTTLE-1 — reject before verifying once the per-user failure
+  // budget is exhausted within the window. Lock the session (drop the
+  // mfa_pending marker) so the attacker must re-authenticate to retry,
+  // which itself runs the login throttle.
+  const gate = await checkMfaThrottle(me.id);
+  if (!gate.allowed) {
+    await lockMfaSession(me.id);
+    return mfaLockedResult();
+  }
   const parsed = codeSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) return { ok: false, error: "Invalid code." };
   const out = await verifyMfaChallenge({
@@ -120,6 +134,12 @@ export async function verifyMfaChallengeAction(
       severity: "warning",
       metadata: { stage: "challenge", reason: out.reason ?? "unknown" },
     });
+    // If this failure exhausts the budget, lock the session now rather than
+    // waiting for the next request to hit the gate above.
+    if ((await countRecentMfaFailures(me.id)) >= mfaMaxFailedPerUser()) {
+      await lockMfaSession(me.id);
+      return mfaLockedResult();
+    }
     return { ok: false, error: ownerFacingMfaError(out.reason) };
   }
   await recordSecurityEvent({
@@ -140,6 +160,14 @@ export async function useRecoveryCodeAction(
 ): Promise<ActionResult & { remaining?: number }> {
   const me = await getCurrentAppUser();
   if (!me) return { ok: false, error: "Not signed in." };
+  // MFA-THROTTLE-1 — same per-user gate as the TOTP challenge. Recovery-code
+  // failures and challenge failures share one counter, so an attacker cannot
+  // grind recovery codes after burning the TOTP budget (or vice versa).
+  const gate = await checkMfaThrottle(me.id);
+  if (!gate.allowed) {
+    await lockMfaSession(me.id);
+    return mfaLockedResult();
+  }
   const parsed = z
     .object({ code: z.string().min(8).max(40) })
     .safeParse(Object.fromEntries(formData.entries()));
@@ -158,6 +186,10 @@ export async function useRecoveryCodeAction(
         reason: out.reason ?? "unknown",
       },
     });
+    if ((await countRecentMfaFailures(me.id)) >= mfaMaxFailedPerUser()) {
+      await lockMfaSession(me.id);
+      return mfaLockedResult();
+    }
     return { ok: false, error: "We could not match that recovery code." };
   }
   await recordSecurityEvent({
@@ -240,6 +272,31 @@ export async function revokeMfaFactorAction(
   revalidatePath("/dashboard/security/mfa");
   revalidatePath("/dashboard/settings/security");
   return { ok: true };
+}
+
+/**
+ * MFA-THROTTLE-1 — lock the pending second-factor session: drop the
+ * `mfa_pending` marker (so the layout gate stops accepting this session as
+ * mid-challenge and the user is forced back to /login to re-authenticate)
+ * and log a security event for the admin login surface. Best-effort: a
+ * failure to log must not mask the lock.
+ */
+async function lockMfaSession(appUserId: string): Promise<void> {
+  await clearMfaPendingMarker();
+  await recordSecurityEvent({
+    eventType: "mfa_failed",
+    appUserId,
+    severity: "warning",
+    metadata: { stage: "challenge", reason: "throttled_locked" },
+  });
+}
+
+function mfaLockedResult(): ActionResult {
+  return {
+    ok: false,
+    error:
+      "Too many incorrect codes. For your security this sign-in has been blocked — please sign in again to restart verification.",
+  };
 }
 
 function ownerFacingMfaError(reason: string | undefined): string {

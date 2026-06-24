@@ -111,6 +111,17 @@ export class StripeClient {
   }
 
   /**
+   * Retrieve a single subscription by id. Used by the reconciliation cron
+   * (safety-net poller) to re-apply the live Stripe status onto our
+   * `org_subscriptions` row when a webhook was missed.
+   */
+  async retrieveSubscription(id: string) {
+    return this.get(
+      `${this.apiBase}/v1/subscriptions/${encodeURIComponent(id)}`,
+    );
+  }
+
+  /**
    * Stage 9.C — Stripe Customer Portal session. Hosted billing UI for
    * the customer (update payment method, view invoices, cancel, etc.).
    * Body: { customer: 'cus_...', return_url: 'https://...' }.

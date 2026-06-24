@@ -115,6 +115,29 @@ export async function renderStatementPdf(input: StatementPdfInput): Promise<Buff
   if (!data) throw new Error(`Statement ${input.statementId} not found`);
   const { statement, lines } = data;
 
+  // MOCK_MONEY fix — the "Operator fee" headline used to fall back to a
+  // hardcoded 0.2 (20%) for EVERY statement (the canonical engine never stores
+  // operator_commission_pct, so the `?? "0.2"` branch fired for all of them).
+  // Derive the HONEST effective rate from the statement's own real money:
+  // managementFeeMinor / grossRevenueMinor. Prefer the stored nominal rate when
+  // it exists (legacy generator records it); else compute from the actuals; show
+  // "—" when there's no gross to divide by (rate not derivable). No hardcode.
+  const operatorFeeLabel: string = (() => {
+    if (
+      statement.operatorCommissionPct !== null &&
+      statement.operatorCommissionPct !== undefined
+    ) {
+      return `${Math.round(Number(statement.operatorCommissionPct) * 100)}%`;
+    }
+    if (statement.grossRevenueMinor > 0n) {
+      const pct =
+        (Number(statement.managementFeeMinor) / Number(statement.grossRevenueMinor)) *
+        100;
+      return `${pct.toFixed(1)}%`;
+    }
+    return "—";
+  })();
+
   const doc = (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -146,9 +169,7 @@ export async function renderStatementPdf(input: StatementPdfInput): Promise<Buff
           </View>
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>Operator fee</Text>
-            <Text style={styles.metaValue}>
-              {Math.round(Number(statement.operatorCommissionPct ?? "0.2") * 100)}%
-            </Text>
+            <Text style={styles.metaValue}>{operatorFeeLabel}</Text>
           </View>
           <View style={styles.metaCell}>
             <Text style={styles.metaLabel}>FX snapshot</Text>

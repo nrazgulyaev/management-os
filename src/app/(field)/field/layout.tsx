@@ -3,6 +3,7 @@ import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { FieldShell } from "@/components/layout/field-shell";
 import { getCurrentUserContext } from "@/features/auth/permissions";
 import { enforceProductAccess } from "@/features/auth/products-access";
+import { enforceMfaChallengeCleared } from "@/features/security-baseline/mfa-gate";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
 
 /**
@@ -53,6 +54,12 @@ export default async function FieldLayout({
       if (!ctx.appUser) {
         redirect("/login?next=/field");
       }
+      // MFA-ENFORCE-1 — a pending second-factor challenge takes priority
+      // over the product gate: bounce to /login/mfa before the field
+      // surface resolves. No-op for users without a verified factor (no
+      // marker). Mirrors the dashboard / dev-os layouts; the redirect
+      // signal is re-thrown by the catch below.
+      await enforceMfaChallengeCleared();
       await enforceProductAccess("mgmt");
     }
     if (ctx.appUser) {

@@ -291,6 +291,14 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   // REVENUE_SOURCE='bookings': skip the ledger revenue_lines entirely — gross is
   // derived from bookings below (the channel fee becomes the only fee line), so
   // reading revenue_lines here would DOUBLE-COUNT.
+  // CURRENCY (mixed-currency sum bug): the LEDGER source pulls feed straight into
+  // single-number running totals (grossRevenueMinor, totalFeesMinor, …) that are
+  // later combined into the statement net IN THE STATEMENT CURRENCY. A villa with
+  // lines in more than one currency (e.g. USD + IDR) would otherwise be summed as
+  // raw minor units across currencies — adding 100 USD-minor to 100 IDR-minor as
+  // if equal. Filter every ledger pull to the statement `currency` so only
+  // matching-currency rows are summed. The single-currency happy path is
+  // unchanged (its rows all match `currency`).
   const revVilla = !revenueFromBookings && villaIds.length
     ? await db
         .select()
@@ -298,6 +306,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(revenueLines.status, "posted"),
+            eq(revenueLines.currency, currency),
             inArray(revenueLines.villaId, villaIds),
             gte(revenueLines.serviceDate, periodStart),
             lte(revenueLines.serviceDate, periodEnd),
@@ -312,6 +321,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(revenueLines.status, "posted"),
+            eq(revenueLines.currency, currency),
             inArray(revenueLines.projectId, projectIds),
             gte(revenueLines.serviceDate, periodStart),
             lte(revenueLines.serviceDate, periodEnd),
@@ -329,6 +339,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(feeLines.status, "posted"),
+            eq(feeLines.currency, currency),
             inArray(feeLines.villaId, villaIds),
             gte(feeLines.feeDate, periodStart),
             lte(feeLines.feeDate, periodEnd),
@@ -343,6 +354,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(feeLines.status, "posted"),
+            eq(feeLines.currency, currency),
             inArray(feeLines.projectId, projectIds),
             gte(feeLines.feeDate, periodStart),
             lte(feeLines.feeDate, periodEnd),
@@ -363,6 +375,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(expenseLines.status, "posted"),
+            eq(expenseLines.currency, currency),
             inArray(expenseLines.villaId, villaIds),
             gte(expenseLines.expenseDate, periodStart),
             lte(expenseLines.expenseDate, periodEnd),
@@ -378,6 +391,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(expenseLines.status, "posted"),
+            eq(expenseLines.currency, currency),
             inArray(expenseLines.projectId, projectIds),
             gte(expenseLines.expenseDate, periodStart),
             lte(expenseLines.expenseDate, periodEnd),
@@ -396,6 +410,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(taxLines.status, "posted"),
+            eq(taxLines.currency, currency),
             inArray(taxLines.villaId, villaIds),
             gte(taxLines.taxDate, periodStart),
             lte(taxLines.taxDate, periodEnd),
@@ -411,6 +426,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(reserveMovements.status, "posted"),
+            eq(reserveMovements.currency, currency),
             inArray(reserveMovements.villaId, villaIds),
             gte(reserveMovements.movementDate, periodStart),
             lte(reserveMovements.movementDate, periodEnd),
@@ -431,6 +447,7 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         .where(
           and(
             eq(managementFeeLines.status, "posted"),
+            eq(managementFeeLines.currency, currency),
             inArray(managementFeeLines.villaId, villaIds),
             gte(managementFeeLines.feeDate, periodStart),
             lte(managementFeeLines.feeDate, periodEnd),
@@ -1289,6 +1306,18 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
   // -----------------------------------------------------------------
   // 5) Persist statement (idempotent for draft)
   // -----------------------------------------------------------------
+  // DOUBLE_COUNT fix — the idempotency lookup MUST key on the headline villa,
+  // not just (owner, period, org). The cron + generateAllPendingStatementsViaEngine
+  // call this once per (owner, villa), so an owner with 2+ villas produces 2+
+  // statements that share the SAME (owner, period, org). Without villaId here,
+  // call#2 MATCHES call#1's freshly-inserted row → takes the UPDATE branch →
+  // OVERWRITES villa#1's totals/lines/allocations with villa#2's → villa#1's
+  // entire payout is LOST. Keying on villaId makes each per-villa call find/INSERT
+  // a DISTINCT row, matching the DB partial unique index
+  // owner_statements_org_owner_villa_period_uniq (organization_id, owner_id,
+  // villa_id, period_month). The headline villa is NULL only for pool-only owners
+  // (no villa share); use isNull() so that pooled case still collapses to a single
+  // row per (owner, period, org).
   const [existing] = await db
     .select()
     .from(ownerStatements)
@@ -1297,6 +1326,9 @@ export async function generateOwnerStatement(input: GenerateInput): Promise<Gene
         eq(ownerStatements.ownerId, input.ownerId),
         eq(ownerStatements.periodId, input.periodId),
         eq(ownerStatements.organizationId, input.organizationId),
+        headlineVillaId
+          ? eq(ownerStatements.villaId, headlineVillaId)
+          : isNull(ownerStatements.villaId),
       ),
     )
     .limit(1);

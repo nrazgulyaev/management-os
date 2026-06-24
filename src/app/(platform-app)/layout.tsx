@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { isSuperAdminContext } from "@/features/auth/require-super-admin";
+import { enforceMfaChallengeCleared } from "@/features/security-baseline/mfa-gate";
 import { ServiceTemporarilyUnavailable } from "@/components/system/service-temporarily-unavailable";
 import { ImpersonationBanner } from "@/components/subscription-os/impersonation-banner";
 import { PlatformShell } from "@/components/layout/platform-shell";
@@ -48,6 +49,12 @@ export default async function PlatformAppLayout({
   children: React.ReactNode;
 }) {
   try {
+    // MFA-ENFORCE-1 — a pending second-factor challenge takes priority over
+    // every other gate: bounce to /login/mfa before the platform surface
+    // resolves. No-op for users without a verified factor (no marker), and
+    // a no-op in demo mode (no app user). Mirrors the dashboard / dev-os
+    // layouts. redirect() throws a control-flow signal — re-thrown below.
+    await enforceMfaChallengeCleared();
     const { ok, ctx } = await isSuperAdminContext();
 
     // Demo mode (no DB) — let through; matches the demo-bypass pattern

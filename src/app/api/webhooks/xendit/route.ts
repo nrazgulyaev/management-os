@@ -155,6 +155,65 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, idempotent: true });
   }
 
+  // SETTLEMENT GUARD (only for the money-settling transition): the callback
+  // must actually pay the amount + currency we invoiced. Xendit's invoice
+  // PAID callback carries `paid_amount` (major units) + `currency`. We
+  // compare against the intent we created (its `amountMinor` is the
+  // contract-fixed IDR amount we asked Xendit to collect). A wrong/short
+  // payment, or a payment in the wrong currency, MUST NOT mark the
+  // milestone paid — flag it and reject so a human reconciles it.
+  if (nextState === "succeeded") {
+    const rawPaid = payload["paid_amount"];
+    const paidAmountMinor =
+      typeof rawPaid === "number" ? majorToMinor(rawPaid) : null;
+    const paidCurrency =
+      typeof payload["currency"] === "string"
+        ? (payload["currency"] as string).toUpperCase()
+        : null;
+    const expectedMinor = intent.amountMinor;
+    const expectedCurrency = intent.currency.toUpperCase();
+
+    // Tolerance: the IDR invoice amount is derived by bigint division
+    // (sen-level truncation) and Xendit settles whole IDR, so allow a tiny
+    // rounding slack but never a real short payment. 1 storage minor unit.
+    const TOLERANCE_MINOR = 1n;
+    const amountOk =
+      paidAmountMinor !== null &&
+      paidAmountMinor >= expectedMinor - TOLERANCE_MINOR;
+    const currencyOk =
+      paidCurrency !== null && paidCurrency === expectedCurrency;
+
+    if (!amountOk || !currencyOk) {
+      await recordAuditEvent({
+        actorUserId: null,
+        action: "payments.webhook.amount_mismatch",
+        entityType: "payment_intent",
+        entityId: intent.id,
+        before: { lifecycleState: intent.lifecycleState },
+        after: {
+          provider: "xendit",
+          externalIntentId: invoiceId,
+          reason: !currencyOk ? "currency_mismatch" : "amount_short_or_missing",
+          expectedAmountMinor: expectedMinor.toString(),
+          expectedCurrency,
+          paidAmountMinor: paidAmountMinor?.toString() ?? null,
+          paidCurrency,
+        },
+        metadata: {
+          organizationId: intent.organizationId,
+          connectionId: connection.id,
+          milestoneId: intent.linkedContractMilestoneId,
+        },
+      });
+      // Do NOT settle. 422 so Xendit retries are surfaced (and a human can
+      // reconcile) rather than silently swallowing an underpayment as paid.
+      return NextResponse.json(
+        { ok: false, error: "amount_or_currency_mismatch" },
+        { status: 422 },
+      );
+    }
+  }
+
   const now = new Date();
   await db
     .update(paymentIntents)
