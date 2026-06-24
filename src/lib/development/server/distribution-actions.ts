@@ -220,8 +220,7 @@ export async function executeDistribution(distributionId: string): Promise<{
 
   const result = await db.transaction(async (tx) => {
     // SECURITY (IDOR): scope the load by org so a foreign distribution id
-    // returns no row and cannot be executed. Single-tenant today => the
-    // extra predicate is a no-op against current behaviour.
+    // returns no row and cannot be executed.
     const [d] = await tx
       .select()
       .from(distributions)
@@ -239,16 +238,27 @@ export async function executeDistribution(distributionId: string): Promise<{
       );
     }
 
-    // Mark as executing so concurrent attempts can't double-process.
-    await tx
+    // CONCURRENCY: the declared→executing flip IS the idempotency gate. Two
+    // concurrent executors both read status='declared' (READ COMMITTED), but
+    // only ONE row-update can satisfy the `status='declared'` predicate — the
+    // loser updates 0 rows and aborts here, BEFORE crediting any wallet, so a
+    // distribution executes (and credits) at most once.
+    const claimed = await tx
       .update(distributions)
       .set({ status: "executing", updatedAt: new Date() })
       .where(
         and(
           eq(distributions.id, distributionId),
           eq(distributions.organizationId, organizationId),
+          eq(distributions.status, "declared"),
         ),
+      )
+      .returning({ id: distributions.id });
+    if (claimed.length !== 1) {
+      throw new Error(
+        "Distribution is already being executed or has been executed (concurrent execution rejected)",
       );
+    }
 
     const allocs = await tx
       .select()
@@ -265,33 +275,78 @@ export async function executeDistribution(distributionId: string): Promise<{
     const occurredAt = new Date();
 
     for (const a of allocs) {
-      const [wallet] = await tx
-        .select()
-        .from(investorWallets)
-        .where(eq(investorWallets.commitmentId, a.commitmentId))
-        .limit(1);
-      if (!wallet) {
-        throw new Error(
-          `Wallet missing for commitment ${a.commitmentId} — distribution aborted`,
-        );
-      }
       const cap = BigInt(a.capitalReturnAmountUsdMinor);
       const profit = BigInt(a.profitAmountUsdMinor);
       const totalForCommitment = cap + profit;
 
-      const newAvail =
-        BigInt(wallet.availableBalanceUsdMinor) + totalForCommitment;
-      const newHold = BigInt(wallet.holdBalanceUsdMinor);
+      // PER-ALLOCATION IDEMPOTENCY: claim this allocation by flipping
+      // pending→executed FIRST and asserting exactly one row matched. Combined
+      // with the loader's `status='pending'` filter this means an allocation
+      // can be credited at most once even if execution is somehow re-entered.
+      const claimedAlloc = await tx
+        .update(distributionAllocations)
+        .set({
+          status: "executed",
+          executedAt: occurredAt,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(distributionAllocations.id, a.id),
+            eq(distributionAllocations.status, "pending"),
+          ),
+        )
+        .returning({ id: distributionAllocations.id });
+      if (claimedAlloc.length !== 1) {
+        // Another path already executed this allocation — skip (don't credit
+        // twice). Should not happen given the distribution-level gate above.
+        continue;
+      }
 
-      // Capital_return wallet_tx row (if cap > 0)
+      // CONCURRENCY: credit the wallet with SQL-side increments (not base+X
+      // from a JS snapshot) so it composes under any concurrent wallet write.
+      // RETURNING gives the authoritative post-balance for the ledger rows.
+      const [creditedWallet] = await tx
+        .update(investorWallets)
+        .set({
+          availableBalanceUsdMinor: sql`${investorWallets.availableBalanceUsdMinor} + ${totalForCommitment}`,
+          totalReturnedCapitalUsdMinor: sql`${investorWallets.totalReturnedCapitalUsdMinor} + ${cap}`,
+          totalProfitDistributedUsdMinor: sql`${investorWallets.totalProfitDistributedUsdMinor} + ${profit}`,
+          lastActivityAt: occurredAt,
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(investorWallets.commitmentId, a.commitmentId),
+            eq(investorWallets.organizationId, organizationId),
+          ),
+        )
+        .returning({
+          id: investorWallets.id,
+          availableBalanceUsdMinor: investorWallets.availableBalanceUsdMinor,
+          holdBalanceUsdMinor: investorWallets.holdBalanceUsdMinor,
+        });
+      if (!creditedWallet) {
+        throw new Error(
+          `Wallet missing for commitment ${a.commitmentId} — distribution aborted`,
+        );
+      }
+      const walletId = creditedWallet.id;
+      const newAvail = BigInt(creditedWallet.availableBalanceUsdMinor);
+      const newHold = BigInt(creditedWallet.holdBalanceUsdMinor);
+
+      // Ledger rows (balance_available_after reflects this leg's running total
+      // up to the final post-credit balance). The wallet UPDATE already
+      // applied the full delta, so derive the intermediate running balance by
+      // walking BACK from the authoritative post-balance.
       let primaryTxId: string | null = null;
-      let runningAvail = BigInt(wallet.availableBalanceUsdMinor);
+      let runningAvail = newAvail - totalForCommitment;
       if (cap > 0n) {
         runningAvail += cap;
         const [txRow] = await tx
           .insert(walletTransactions)
           .values({
-            walletId: wallet.id,
+            walletId,
             commitmentId: a.commitmentId,
             transactionType: "capital_return",
             amountUsdMinor: cap,
@@ -309,7 +364,7 @@ export async function executeDistribution(distributionId: string): Promise<{
         const [txRow] = await tx
           .insert(walletTransactions)
           .values({
-            walletId: wallet.id,
+            walletId,
             commitmentId: a.commitmentId,
             transactionType: "profit_distribution",
             amountUsdMinor: profit,
@@ -324,23 +379,8 @@ export async function executeDistribution(distributionId: string): Promise<{
       }
 
       await tx
-        .update(investorWallets)
-        .set({
-          availableBalanceUsdMinor: newAvail,
-          totalReturnedCapitalUsdMinor:
-            BigInt(wallet.totalReturnedCapitalUsdMinor) + cap,
-          totalProfitDistributedUsdMinor:
-            BigInt(wallet.totalProfitDistributedUsdMinor) + profit,
-          lastActivityAt: occurredAt,
-          updatedAt: new Date(),
-        })
-        .where(eq(investorWallets.id, wallet.id));
-
-      await tx
         .update(distributionAllocations)
         .set({
-          status: "executed",
-          executedAt: occurredAt,
           walletTransactionId: primaryTxId,
           updatedAt: new Date(),
         })

@@ -1,6 +1,5 @@
 {
   "unscopedDbFiles": [
-    "src/features/channels/actions.ts",
     "src/features/channels/services.ts",
     "src/features/guest-services/finance-bridge.ts",
     "src/features/guest-stays/access-log.ts",

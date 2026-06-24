@@ -62,6 +62,14 @@ const serverSchema = z.object({
   LOGIN_MAX_FAILED_PER_IP: z.coerce.number().int().min(1).optional(),
   /** Lock duration in minutes when a threshold is exceeded. */
   LOGIN_LOCK_MINUTES: z.coerce.number().int().min(1).optional(),
+  /**
+   * MFA-THROTTLE-1 — failed second-factor (TOTP / recovery-code) attempts
+   * per app_user within the rolling window before the mfa_pending session
+   * is locked and the user must re-authenticate. Defaults to 5.
+   */
+  MFA_MAX_FAILED_PER_USER: z.coerce.number().int().min(1).optional(),
+  /** Rolling window (minutes) over which MFA failures are counted. */
+  MFA_FAILURE_WINDOW_MINUTES: z.coerce.number().int().min(1).optional(),
   /** Max concurrent runs of any one cron job (always 1 with current locks). */
   CRON_MAX_CONCURRENT_PER_JOB: z.coerce.number().int().min(1).optional(),
   /** Public link to the backup / restore runbook. */
@@ -121,6 +129,8 @@ const parsedServer = serverSchema.safeParse({
   LOGIN_MAX_FAILED_PER_EMAIL: process.env.LOGIN_MAX_FAILED_PER_EMAIL,
   LOGIN_MAX_FAILED_PER_IP: process.env.LOGIN_MAX_FAILED_PER_IP,
   LOGIN_LOCK_MINUTES: process.env.LOGIN_LOCK_MINUTES,
+  MFA_MAX_FAILED_PER_USER: process.env.MFA_MAX_FAILED_PER_USER,
+  MFA_FAILURE_WINDOW_MINUTES: process.env.MFA_FAILURE_WINDOW_MINUTES,
   CRON_MAX_CONCURRENT_PER_JOB: process.env.CRON_MAX_CONCURRENT_PER_JOB,
   BACKUP_RUNBOOK_URL: process.env.BACKUP_RUNBOOK_URL,
   GOOGLE_WORKSPACE_OAUTH_CLIENT_ID: process.env.GOOGLE_WORKSPACE_OAUTH_CLIENT_ID,
@@ -290,6 +300,14 @@ export function loginMaxFailedPerIp(): number {
 
 export function loginLockMinutes(): number {
   return env.server.LOGIN_LOCK_MINUTES ?? 15;
+}
+
+export function mfaMaxFailedPerUser(): number {
+  return env.server.MFA_MAX_FAILED_PER_USER ?? 5;
+}
+
+export function mfaFailureWindowMinutes(): number {
+  return env.server.MFA_FAILURE_WINDOW_MINUTES ?? 10;
 }
 
 export function cronMaxConcurrentPerJob(): number {

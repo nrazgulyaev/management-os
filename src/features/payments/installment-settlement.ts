@@ -23,7 +23,7 @@
  * verification — never export it to a client surface.
  */
 
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { contractGroups, contractMilestones } from "@/lib/db/schema/sales";
 import { recordAuditEvent } from "@/features/audit/services";
@@ -89,7 +89,12 @@ export async function settleContractMilestonePaid(
       : milestone.paidAmountUsdMinor;
   const now = new Date();
 
-  await db
+  // Concurrency gate: the status flip IS the lock. The `status <> 'paid'`
+  // predicate (org-scoped) means only ONE of N concurrent callers
+  // (webhook + manual mark-paid in two tabs) can flip the row — the rest
+  // update zero rows. A zero-row result is therefore "someone else just
+  // settled it" → idempotent already-paid, never a double money write.
+  const flipped = await db
     .update(contractMilestones)
     .set({
       paidAmountUsdMinor: newPaid,
@@ -98,7 +103,26 @@ export async function settleContractMilestonePaid(
       notes: `${milestone.notes ?? ""}\n${input.noteLine}`.trim(),
       updatedAt: now,
     })
-    .where(eq(contractMilestones.id, milestone.id));
+    .where(
+      and(
+        eq(contractMilestones.id, milestone.id),
+        eq(contractMilestones.organizationId, milestone.organizationId),
+        ne(contractMilestones.status, "paid"),
+      ),
+    )
+    .returning({ id: contractMilestones.id });
+
+  if (flipped.length !== 1) {
+    // Lost the race — a concurrent caller flipped it to paid first. Report
+    // already-paid so replays/double-submits are safe (no second receipt,
+    // no second audit money line).
+    return {
+      ok: true,
+      alreadyPaid: true,
+      receiptDocumentId: null,
+      paidAmountUsdMinor: newPaid,
+    };
+  }
 
   // Receipt into the buyer's document vault — best-effort: receipt
   // generation must never fail the recorded payment.

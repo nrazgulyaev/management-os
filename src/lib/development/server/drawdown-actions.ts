@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, lte, and, sql } from "drizzle-orm";
+import { eq, lte, and, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "@/lib/db/client";
 import {
@@ -198,18 +198,20 @@ export async function confirmDrawdownReceipt(
     }
 
     const [wallet] = await tx
-      .select()
+      .select({ id: investorWallets.id })
       .from(investorWallets)
       .where(eq(investorWallets.commitmentId, drawdown.commitmentId))
       .limit(1);
     if (!wallet) throw new Error("Wallet not found for commitment");
 
     const drawdownUsd = BigInt(drawdown.amountUsdMinor);
-    const newAvailable =
-      BigInt(wallet.availableBalanceUsdMinor) + drawdownUsd;
-    const newHold = BigInt(wallet.holdBalanceUsdMinor);
 
-    await tx
+    // CONCURRENCY: make the status flip the idempotency gate. Two concurrent
+    // confirmers both saw status<>'received' at SELECT time (READ COMMITTED),
+    // but only ONE row-update can flip it under the `status <> 'received'`
+    // predicate — the loser updates 0 rows and we abort, so the wallet is
+    // credited exactly once.
+    const flipped = await tx
       .update(capitalDrawdowns)
       .set({
         status: "received",
@@ -219,17 +221,38 @@ export async function confirmDrawdownReceipt(
         receiptDocumentId: parsed.receiptDocumentId ?? null,
         updatedAt: new Date(),
       })
-      .where(eq(capitalDrawdowns.id, parsed.drawdownId));
+      .where(
+        and(
+          eq(capitalDrawdowns.id, parsed.drawdownId),
+          ne(capitalDrawdowns.status, "received"),
+        ),
+      )
+      .returning({ id: capitalDrawdowns.id });
+    if (flipped.length !== 1) {
+      throw new Error(
+        "Drawdown already marked received (idempotency violation)",
+      );
+    }
 
-    await tx
+    // CONCURRENCY: apply the credit as a SQL-side increment (not base+X from a
+    // JS snapshot) so it composes correctly under concurrent wallet writes.
+    // RETURNING gives us the authoritative post-transaction balances for the
+    // ledger row (balance_*_after columns are NOT NULL).
+    const [updatedWallet] = await tx
       .update(investorWallets)
       .set({
-        availableBalanceUsdMinor: newAvailable,
-        totalDrawnUsdMinor: BigInt(wallet.totalDrawnUsdMinor) + drawdownUsd,
+        availableBalanceUsdMinor: sql`${investorWallets.availableBalanceUsdMinor} + ${drawdownUsd}`,
+        totalDrawnUsdMinor: sql`${investorWallets.totalDrawnUsdMinor} + ${drawdownUsd}`,
         lastActivityAt: receivedAt,
         updatedAt: new Date(),
       })
-      .where(eq(investorWallets.id, wallet.id));
+      .where(eq(investorWallets.id, wallet.id))
+      .returning({
+        availableBalanceUsdMinor: investorWallets.availableBalanceUsdMinor,
+        holdBalanceUsdMinor: investorWallets.holdBalanceUsdMinor,
+      });
+    const newAvailable = BigInt(updatedWallet.availableBalanceUsdMinor);
+    const newHold = BigInt(updatedWallet.holdBalanceUsdMinor);
 
     const [walletTx] = await tx
       .insert(walletTransactions)

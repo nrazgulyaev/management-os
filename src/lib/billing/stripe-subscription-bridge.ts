@@ -6,10 +6,16 @@ import "server-only";
  *
  * Maps Stripe subscription/invoice events into our `org_subscriptions`
  * FSM transitions. Idempotent — Stripe retries the same event with the
- * same `event.id`; we dedupe via the existing `payment_webhook_events`
- * table (Stage 6.P3).
+ * same `event.id`; we dedupe by inserting the event.id into
+ * `payment_webhook_events` (provider_key='stripe_billing') under its
+ * partial UNIQUE (provider_key, external_event_id) index and treating the
+ * insert as the gate (ON CONFLICT DO NOTHING → 0 rows → already processed,
+ * skip). See `claimStripeEvent`.
  *
  * Supported events:
+ *   - checkout.session.completed       → LINK Stripe sub/customer ids to
+ *                                        org_subscriptions + activate
+ *                                        + sync products_enabled
  *   - customer.subscription.created    → activate (or trial)
  *                                        + sync products_enabled
  *   - customer.subscription.updated    → record plan change
@@ -33,13 +39,17 @@ import "server-only";
  * `billing.products_enabled.changed` audit event with before/after diff.
  *
  * NOTE: this module is loaded by the `/api/webhooks/billing/stripe`
- * route and is intentionally pure (no fetch). The route file owns the
- * signature verification + dedupe.
+ * route and performs no fetch. The route file owns the signature
+ * verification; this module owns the event.id dedupe + DB mutations.
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
-import { orgSubscriptions } from "@/lib/db/schema/subscriptions";
+import {
+  orgSubscriptions,
+  subscriptionLifecycleEvents,
+} from "@/lib/db/schema/subscriptions";
+import { paymentWebhookEvents } from "@/lib/db/schema/payments";
 import { organizations } from "@/lib/db/schema/saas";
 import {
   recordLifecycleEvent,
@@ -57,6 +67,7 @@ import {
 export { parseProductsEnabledMetadata };
 
 export type StripeWebhookEventType =
+  | "checkout.session.completed"
   | "customer.subscription.created"
   | "customer.subscription.updated"
   | "customer.subscription.deleted"
@@ -64,6 +75,9 @@ export type StripeWebhookEventType =
   | "invoice.paid"
   | "invoice.payment_failed"
   | "invoice.payment_action_required";
+
+/** Provider key under which Stripe billing events dedupe. */
+const STRIPE_BILLING_PROVIDER_KEY = "stripe_billing";
 
 export interface StripeWebhookEvent {
   id: string;
@@ -183,6 +197,264 @@ async function findSubscriptionByStripeId(stripeSubId: string) {
 }
 
 /**
+ * MED AUTHZ/idempotency — dedupe by Stripe `event.id`.
+ *
+ * Stripe retries the same event (same `event.id`) on any non-2xx or
+ * timeout. Without an id-level guard a redelivered webhook double-applies
+ * (e.g. a second `invoice.paid` re-runs the trial→converted flip, a second
+ * `customer.subscription.deleted` re-records a cancellation).
+ *
+ * The `payment_webhook_events` table carries a partial UNIQUE index on
+ * `(provider_key, external_event_id)` — we make the INSERT the gate:
+ * `ON CONFLICT DO NOTHING` + assert a row came back. rowCount === 0 means
+ * "already processed" → caller skips. This is atomic at READ COMMITTED:
+ * two concurrent redeliveries race on the unique index, exactly one wins
+ * the insert, the loser gets 0 rows and skips. Org scoping is preserved —
+ * the event row is anchored to the resolved organizationId when known.
+ *
+ * Returns `true` when this call claimed the event (proceed), `false` when
+ * it was already processed (skip). Defaults to `true` (process) if the DB
+ * is unavailable so we never silently drop events when dedup can't run.
+ */
+async function claimStripeEvent(
+  eventId: string,
+  eventType: string,
+  payload: unknown,
+  organizationId: string | null,
+): Promise<boolean> {
+  const db = getDb();
+  if (!db) return true;
+  const inserted = await db
+    .insert(paymentWebhookEvents)
+    .values({
+      organizationId: organizationId ?? null,
+      providerKey: STRIPE_BILLING_PROVIDER_KEY,
+      externalEventId: eventId,
+      eventType,
+      payloadJson: (payload ?? {}) as Record<string, unknown>,
+      // Claim as 'processing' — promoted to 'processed' only AFTER the side
+      // effects succeed (see applyStripeWebhook), so a crash mid-apply leaves a
+      // reclaimable row instead of a terminal 'processed' that loses the event.
+      status: "processing",
+    })
+    .onConflictDoNothing({
+      target: [
+        paymentWebhookEvents.providerKey,
+        paymentWebhookEvents.externalEventId,
+      ],
+      // The unique index is partial (WHERE external_event_id IS NOT NULL),
+      // so the conflict arbiter must carry the same predicate to match it.
+      where: sql`${paymentWebhookEvents.externalEventId} IS NOT NULL`,
+    })
+    .returning({ id: paymentWebhookEvents.id });
+  // rowCount === 1 → we claimed it; rowCount === 0 → already in-flight/done.
+  return inserted.length === 1;
+}
+
+/** Promote a claimed event from 'processing' → 'processed' after the side
+ *  effects committed. Only now is the event terminally deduped. */
+async function markStripeEventProcessed(eventId: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .update(paymentWebhookEvents)
+    .set({ status: "processed", processedAt: new Date() })
+    .where(
+      and(
+        eq(paymentWebhookEvents.providerKey, STRIPE_BILLING_PROVIDER_KEY),
+        eq(paymentWebhookEvents.externalEventId, eventId),
+      ),
+    );
+}
+
+/** Drop a 'processing' claim when the apply failed / was not terminal, so
+ *  Stripe's redelivery of the same event.id can re-process it (no durable
+ *  event loss). Only deletes a row still in 'processing'. */
+async function releaseStripeEventClaim(eventId: string): Promise<void> {
+  const db = getDb();
+  if (!db) return;
+  await db
+    .delete(paymentWebhookEvents)
+    .where(
+      and(
+        eq(paymentWebhookEvents.providerKey, STRIPE_BILLING_PROVIDER_KEY),
+        eq(paymentWebhookEvents.externalEventId, eventId),
+        eq(paymentWebhookEvents.status, "processing"),
+      ),
+    );
+}
+
+/**
+ * HIGH DEAD_END — `checkout.session.completed` handler.
+ *
+ * Without this, a successful Checkout never links Stripe's subscription
+ * back to our `org_subscriptions` row, so `customer.subscription.*` events
+ * arrive with `stripe_subscription_id = NULL` on our side and
+ * `findSubscriptionByStripeId` returns null → the paid plan can NEVER
+ * activate.
+ *
+ * On a completed Checkout Session we:
+ *   - resolve the org from `client_reference_id` (we stamp it = orgId) or
+ *     `metadata.organization_id` (defence-in-depth — both are stamped by
+ *     /api/billing/checkout). NEVER trusted from a client request — this is
+ *     a signature-verified Stripe payload.
+ *   - UPSERT the org's subscription row, stamping `stripe_subscription_id`,
+ *     `stripe_customer_id`, `plan_code`, `billing_cycle`, and status, plus
+ *     sync `organizations.products_enabled` from the session metadata.
+ *
+ * Idempotent: keyed on `organization_id`; a redelivery (also caught by the
+ * event.id gate) re-UPSERTs to the same values.
+ */
+async function applyCheckoutSessionCompleted(
+  event: StripeWebhookEvent,
+): Promise<BridgeResult> {
+  const obj = event.data.object as Record<string, unknown>;
+  const meta =
+    obj.metadata && typeof obj.metadata === "object"
+      ? (obj.metadata as Record<string, unknown>)
+      : {};
+  const orgId =
+    (typeof obj.client_reference_id === "string"
+      ? obj.client_reference_id
+      : null) ??
+    (typeof meta.organization_id === "string"
+      ? (meta.organization_id as string)
+      : null);
+  if (!orgId) {
+    return { ok: false, reason: "no_org_in_checkout_session" };
+  }
+
+  // Only subscription-mode sessions produce a subscription to link.
+  const stripeSubId =
+    typeof obj.subscription === "string" ? obj.subscription : null;
+  const stripeCustomerId =
+    typeof obj.customer === "string" ? obj.customer : null;
+  if (!stripeSubId) {
+    // One-off / setup-mode session — nothing to link. Record + done.
+    await recordLifecycleEvent({
+      organizationId: orgId,
+      subscriptionId: null,
+      eventType: "plan_changed",
+      actorKind: "stripe_webhook",
+      payload: { stripeEventId: event.id, note: "checkout_no_subscription" },
+    });
+    return { ok: true, appliedTransitions: 0, events: 1 };
+  }
+
+  const planCode =
+    typeof meta.plan_code === "string" ? (meta.plan_code as string) : null;
+  const billingCycle =
+    meta.billing_cycle === "annual" ? "annual" : "monthly";
+
+  const db = getDb();
+  if (!db) return { ok: false, reason: "db_unavailable" };
+
+  // Activation lands as 'active' immediately on a paid checkout (Stripe has
+  // already collected payment for the first period). A subsequent
+  // customer.subscription.created event will reconcile trial vs active if a
+  // trial was configured.
+  const linked = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select({ id: orgSubscriptions.id })
+      .from(orgSubscriptions)
+      .where(eq(orgSubscriptions.organizationId, orgId))
+      .limit(1);
+
+    let subscriptionRowId: string | null = null;
+    if (existing) {
+      await tx
+        .update(orgSubscriptions)
+        .set({
+          stripeSubscriptionId: stripeSubId,
+          ...(stripeCustomerId
+            ? { stripeCustomerId: stripeCustomerId }
+            : {}),
+          ...(planCode ? { planCode } : {}),
+          billingCycle,
+          status: "active",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(orgSubscriptions.id, existing.id),
+            eq(orgSubscriptions.organizationId, orgId),
+          ),
+        );
+      subscriptionRowId = existing.id;
+    } else if (planCode) {
+      // No row yet (org never had a trial provisioned) — create one. We can
+      // only insert when we know the plan_code (NOT NULL + FK).
+      const [created] = await tx
+        .insert(orgSubscriptions)
+        .values({
+          organizationId: orgId,
+          planCode,
+          billingCycle,
+          status: "active",
+          stripeSubscriptionId: stripeSubId,
+          stripeCustomerId: stripeCustomerId ?? null,
+        })
+        .returning({ id: orgSubscriptions.id });
+      subscriptionRowId = created?.id ?? null;
+    }
+
+    if (subscriptionRowId) {
+      await tx.insert(subscriptionLifecycleEvents).values({
+        organizationId: orgId,
+        subscriptionId: subscriptionRowId,
+        eventType: "activated",
+        fromStatus: null,
+        toStatus: "active",
+        actorKind: "stripe_webhook",
+        payload: {
+          stripeEventId: event.id,
+          stripeSubscriptionId: stripeSubId,
+          via: "checkout.session.completed",
+        },
+      });
+    }
+    return subscriptionRowId !== null;
+  });
+
+  if (!linked) {
+    // No existing row AND no plan_code in metadata — we can't safely create
+    // a subscription row. Emit an operator-visible audit instead of silently
+    // dropping the link, then return ok (200) so Stripe doesn't retry.
+    await recordAuditEvent({
+      actorUserId: null,
+      action: "billing.checkout.unlinked",
+      entityType: "organization",
+      entityId: orgId,
+      metadata: {
+        stripeEventId: event.id,
+        stripeSubscriptionId: stripeSubId,
+        reason: "no_existing_subscription_and_no_plan_code",
+      },
+    });
+    return { ok: true, appliedTransitions: 0, events: 0 };
+  }
+
+  // Sync products_enabled from the checkout session metadata so product
+  // gating is in place immediately (the bridge also re-syncs on the
+  // subsequent customer.subscription.created event — idempotent).
+  await applyProductsEnabledFromSubscription({
+    organizationId: orgId,
+    subscriptionId: stripeSubId,
+    stripeEventId: event.id,
+    subscriptionMetadata: meta,
+  });
+
+  // Stage 11.A.2 parity — a paid checkout converts the trial. Best-effort.
+  try {
+    await markOrgTrialConverted(orgId);
+  } catch {
+    // audit-only; the link UPSERT already succeeded
+  }
+
+  return { ok: true, appliedTransitions: 1, events: 1 };
+}
+
+/**
  * Extract the Stripe subscription id from a webhook event payload.
  */
 function extractStripeSubId(event: StripeWebhookEvent): string | null {
@@ -202,11 +474,67 @@ function extractStripeSubId(event: StripeWebhookEvent): string | null {
 }
 
 /**
+ * Best-effort resolve the organization id for an event so the dedup row in
+ * `payment_webhook_events` is org-anchored. Never throws; returns null when
+ * the org can't be resolved (the dedup row falls back to a null org anchor,
+ * which the partial UNIQUE index still enforces on (provider_key, event_id)).
+ */
+async function resolveEventOrg(event: StripeWebhookEvent): Promise<string | null> {
+  const obj = event.data.object as Record<string, unknown>;
+  if (event.type === "checkout.session.completed") {
+    const meta =
+      obj.metadata && typeof obj.metadata === "object"
+        ? (obj.metadata as Record<string, unknown>)
+        : {};
+    if (typeof obj.client_reference_id === "string") {
+      return obj.client_reference_id;
+    }
+    if (typeof meta.organization_id === "string") {
+      return meta.organization_id as string;
+    }
+    return null;
+  }
+  const stripeSubId = extractStripeSubId(event);
+  if (!stripeSubId) return null;
+  const sub = await findSubscriptionByStripeId(stripeSubId);
+  return sub?.organizationId ?? null;
+}
+
+/**
  * Apply a Stripe webhook event to our FSM.
  */
 export async function applyStripeWebhook(
   event: StripeWebhookEvent,
 ): Promise<BridgeResult> {
+  // MED idempotency — claim this event.id BEFORE applying any side effect.
+  // A redelivery (same event.id) loses the race on the unique index and
+  // short-circuits here, so no event ever double-applies. We resolve the
+  // org best-effort to anchor the dedup row (checkout sessions carry it in
+  // client_reference_id / metadata; sub/invoice events via the tracked sub).
+  const orgForDedup = await resolveEventOrg(event);
+  const claimed = await claimStripeEvent(
+    event.id,
+    event.type,
+    event.data.object,
+    orgForDedup,
+  );
+  if (!claimed) {
+    return { ok: true, appliedTransitions: 0, events: 0 };
+  }
+
+  // Run the side effects, then finalize the claim: promote to 'processed' only
+  // if it succeeded; release the 'processing' claim on failure / non-terminal
+  // result so a Stripe redelivery can re-process it (no durable event loss).
+  let result: BridgeResult;
+  try {
+    result = await (async (): Promise<BridgeResult> => {
+      // HIGH DEAD_END — link the org's subscription once Checkout completes.
+      // Handled before the subscription-id extraction below because at this
+      // point our org_subscriptions row has no stripe_subscription_id yet.
+      if (event.type === "checkout.session.completed") {
+        return applyCheckoutSessionCompleted(event);
+      }
+
   const stripeSubId = extractStripeSubId(event);
   if (!stripeSubId) {
     return { ok: false, reason: "no_subscription_id_in_event" };
@@ -385,6 +713,12 @@ export async function applyStripeWebhook(
     default:
       return { ok: false, reason: `unsupported_event_type:${event.type}` };
   }
+    })();
+  } catch (e) {
+    await releaseStripeEventClaim(event.id);
+    throw e;
+  }
+  if (result.ok) await markStripeEventProcessed(event.id);
+  else await releaseStripeEventClaim(event.id);
+  return result;
 }
-
-void and; // re-export-tracker — no functional use here.

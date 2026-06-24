@@ -3,7 +3,11 @@ import "server-only";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { buyers, buyerUnitAssignments } from "@/lib/db/schema/buyers";
-import { contractGroups, invoices } from "@/lib/db/schema/sales";
+import {
+  contractGroups,
+  contractMilestones,
+  invoices,
+} from "@/lib/db/schema/sales";
 
 /**
  * Buyer-portal invoices data layer.
@@ -35,13 +39,24 @@ export interface BuyerInvoice {
   documentId: string | null;
 }
 
-/** Operator invoice.status → buyer-facing state. */
+/**
+ * Operator invoice.status (+ the linked milestone's settled state) →
+ * buyer-facing state.
+ *
+ * LIFECYCLE FIX: settlement (buyer mark-paid / Xendit webhook) flips the
+ * `contract_milestones` row to `paid` but does NOT touch the operator
+ * `invoices` row, so a settled installment's invoice keeps showing
+ * `due`/`overdue` forever. The pill is the buyer's primary paid signal, so
+ * we derive `paid` from the REAL milestone state too: a paid (or fully-paid)
+ * milestone reads `paid` here regardless of the stale operator invoice status.
+ */
 function buyerStateFor(
   status: string,
   dueDate: string,
+  milestonePaid: boolean,
 ): BuyerInvoiceState {
-  if (status === "paid") return "paid";
   if (status === "void") return "void";
+  if (status === "paid" || milestonePaid) return "paid";
   if (status === "overdue") return "overdue";
   // sent | viewed (drafts are filtered out before this).
   const today = new Date().toISOString().slice(0, 10);
@@ -100,6 +115,9 @@ export async function getBuyerInvoices(
   // 3. Issued invoices for those groups — drafts are hidden. The `invoices`
   //    table has no own org column, but `groupIds` is already the org-bounded
   //    set of the buyer's contract groups, so this is tenant-safe by FK.
+  //    Joined to the linked milestone so a settled milestone (status paid, or
+  //    fully paid) surfaces as a `paid` invoice even when the operator's
+  //    invoice row was never flipped — see buyerStateFor's lifecycle note.
   const rows = await db
     .select({
       id: invoices.id,
@@ -112,24 +130,36 @@ export async function getBuyerInvoices(
       issuedAt: invoices.issuedAt,
       status: invoices.status,
       documentId: invoices.documentId,
+      milestoneStatus: contractMilestones.status,
+      milestoneExpectedUsdMinor: contractMilestones.expectedAmountUsdMinor,
+      milestonePaidUsdMinor: contractMilestones.paidAmountUsdMinor,
     })
     .from(invoices)
+    .innerJoin(
+      contractMilestones,
+      eq(invoices.contractMilestoneId, contractMilestones.id),
+    )
     .where(inArray(invoices.contractGroupId, groupIds))
     .orderBy(desc(invoices.issuedAt))
     .limit(500);
 
   return rows
     .filter((r) => r.status !== "draft")
-    .map((r) => ({
-      id: r.id,
-      invoiceNumber: r.invoiceNumber,
-      invoiceType: r.invoiceType,
-      contractMilestoneId: r.contractMilestoneId,
-      amountUsdMinor: r.amountUsdMinor,
-      currency: r.currency,
-      dueDate: r.dueDate,
-      issuedAt: r.issuedAt,
-      state: buyerStateFor(r.status, r.dueDate),
-      documentId: r.documentId,
-    }));
+    .map((r) => {
+      const milestonePaid =
+        r.milestoneStatus === "paid" ||
+        r.milestonePaidUsdMinor >= r.milestoneExpectedUsdMinor;
+      return {
+        id: r.id,
+        invoiceNumber: r.invoiceNumber,
+        invoiceType: r.invoiceType,
+        contractMilestoneId: r.contractMilestoneId,
+        amountUsdMinor: r.amountUsdMinor,
+        currency: r.currency,
+        dueDate: r.dueDate,
+        issuedAt: r.issuedAt,
+        state: buyerStateFor(r.status, r.dueDate, milestonePaid),
+        documentId: r.documentId,
+      };
+    });
 }

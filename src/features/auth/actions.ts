@@ -10,6 +10,10 @@ import {
   getProductsEnabledForCurrentUser,
   landingPathFor,
 } from "@/features/auth/products-access";
+import {
+  checkLoginThrottle,
+  recordLoginAttempt,
+} from "@/features/security-baseline/login-throttle";
 
 export type AuthResult =
   | { ok: true }
@@ -49,6 +53,34 @@ const PRODUCT_LANDING: Record<
   platform: "/platform",
 };
 
+/**
+ * LOGIN-THROTTLE-1 — best-effort resolve the app_user id for a sign-in
+ * email so the recorded login attempt can be org-stamped (recordLoginAttempt
+ * derives the org from this id). Case-insensitive match on the existing
+ * lower(email) index. Returns null for an unknown email (a legitimately
+ * NULL pre-auth attempt) or when the DB is unconfigured — never throws.
+ */
+async function resolveAppUserIdByEmail(
+  email: string,
+): Promise<string | null> {
+  try {
+    const { getDb } = await import("@/lib/db/client");
+    const { appUsers } = await import("@/lib/db/schema/identity");
+    const { sql } = await import("drizzle-orm");
+    const db = getDb();
+    if (!db) return null;
+    const normalized = email.trim().toLowerCase();
+    const [row] = await db
+      .select({ id: appUsers.id })
+      .from(appUsers)
+      .where(sql`lower(${appUsers.email}) = ${normalized}`)
+      .limit(1);
+    return row?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function signInAction(
   _prev: AuthResult | null,
   formData: FormData,
@@ -67,11 +99,66 @@ export async function signInAction(
     };
   }
 
+  // LOGIN-THROTTLE-1 — brute-force protection. Resolve the request IP/UA
+  // (same extraction as security-events / audit), then gate the password
+  // call behind the per-email / per-IP throttle. checkLoginThrottle is a
+  // no-op (allowed:true) when LOGIN_THROTTLE_ENABLED is off or the DB is
+  // unconfigured, so the legitimate path is unchanged. recordLoginAttempt
+  // (below) persists every attempt + writes the lock-until once the
+  // threshold is crossed.
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
+  const userAgent = h.get("user-agent") ?? null;
+
+  const throttle = await checkLoginThrottle({ email: parsed.data.email, ip });
+  if (!throttle.allowed) {
+    // Don't even attempt the password — record the blocked attempt so the
+    // lock keeps extending under a sustained attack, then reject.
+    await recordLoginAttempt({
+      email: parsed.data.email,
+      ip,
+      userAgent,
+      succeeded: false,
+      failureReason: throttle.reason,
+      appUserId: await resolveAppUserIdByEmail(parsed.data.email),
+    });
+    const minutes = Math.max(1, Math.ceil(throttle.retryAfterSeconds / 60));
+    return {
+      ok: false,
+      error: `Too many failed sign-in attempts. Please wait about ${minutes} minute${
+        minutes === 1 ? "" : "s"
+      } and try again.`,
+    };
+  }
+
   const { data: signInData, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
     password: parsed.data.password,
   });
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    // Record the failure (resolves + stamps org from the email when it maps
+    // to a known app_user) and surface the provider message. The recorded
+    // failure feeds the throttle counter above on the next attempt.
+    await recordLoginAttempt({
+      email: parsed.data.email,
+      ip,
+      userAgent,
+      succeeded: false,
+      failureReason: "invalid_credentials",
+      appUserId: await resolveAppUserIdByEmail(parsed.data.email),
+    });
+    return { ok: false, error: error.message };
+  }
+
+  // Successful password auth — record the success (org-stamped via the
+  // resolved app_user). MFA enforcement (below) is a separate gate.
+  await recordLoginAttempt({
+    email: parsed.data.email,
+    ip,
+    userAgent,
+    succeeded: true,
+    appUserId: await resolveAppUserIdByEmail(parsed.data.email),
+  });
 
   // MFA-ENFORCE-1 — if this user has a VERIFIED MFA factor, gate app
   // access behind a second-factor challenge. We resolve the app_users
