@@ -6,6 +6,7 @@ import { appUsers } from "@/lib/db/schema/identity";
 import { owners } from "@/lib/db/schema/ownership";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { getCurrentAuthUser } from "@/lib/supabase/server";
+import { requireOrgId } from "@/features/auth/require-org";
 import type { WithSource } from "@/features/types";
 
 export interface OwnerAccessGrantRow {
@@ -33,7 +34,13 @@ export async function listOwnerAccessGrants(opts?: {
   const db = getDb();
   if (!db) return empty;
 
-  const filters = [];
+  // TENANCY: app_users_owners carries its own organization_id (always stamped
+  // on insert — see access-grants/actions.ts grantOwnerAccess). Scope every
+  // read to the caller's org so a foreign owner_id / app_user_id reads as no
+  // rows instead of leaking another tenant's portal grants.
+  const organizationId = await requireOrgId();
+
+  const filters = [eq(appUsersOwners.organizationId, organizationId)];
   if (opts?.ownerId) filters.push(eq(appUsersOwners.ownerId, opts.ownerId));
   if (opts?.appUserId) filters.push(eq(appUsersOwners.appUserId, opts.appUserId));
   if (opts?.status) filters.push(eq(appUsersOwners.status, opts.status));
@@ -48,16 +55,19 @@ export async function listOwnerAccessGrants(opts?: {
     .from(appUsersOwners)
     .innerJoin(appUsers, eq(appUsers.id, appUsersOwners.appUserId))
     .innerJoin(owners, eq(owners.id, appUsersOwners.ownerId))
-    .where(filters.length ? and(...filters) : undefined)
+    .where(and(...filters))
     .orderBy(desc(appUsersOwners.grantedAt), asc(owners.displayName));
 
   // For each row resolve granted_by name (separate query keeps the join short).
+  // Scope the grantor lookup to the same org so we never read another tenant's
+  // user directory here either.
   const grantorIds = [...new Set(rows.map((r) => r.g.grantedBy).filter(Boolean) as string[])];
   const grantorNames = new Map<string, string>();
   if (grantorIds.length > 0) {
     const grantors = await db
       .select({ id: appUsers.id, name: appUsers.fullName })
-      .from(appUsers);
+      .from(appUsers)
+      .where(eq(appUsers.organizationId, organizationId));
     for (const g of grantors) grantorNames.set(g.id, g.name);
   }
 

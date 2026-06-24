@@ -25,6 +25,7 @@ import {
   ownerCalendarPreferencesUpdateSchema,
   rebuildOwnerEventsSchema,
   runJourneyRuleSchema,
+  suggestionIdSchema,
   updateGuestJourneyRuleSchema,
   updateRuleStatusSchema,
 } from "./schema";
@@ -493,6 +494,80 @@ export async function clickGuestJourneySuggestionAction(
       ownerVisible: false,
     });
   }
+  return { ok: true };
+}
+
+/**
+ * Operator-side dismiss of a journey suggestion from the admin log. Unlike the
+ * guest-side `dismissGuestJourneySuggestionAction` (token-authed, no operator
+ * session), this runs inside an operator session and is gated on
+ * `guest_journey.write`.
+ *
+ * TENANCY: guest_journey_suggestions has NO organization_id column — it anchors
+ * org via its booking (bookings.organization_id is NOT NULL, 0155), mirroring
+ * `listGuestJourneySuggestions`. We confirm the suggestion's booking belongs to
+ * the caller's org BEFORE mutating; a cross-org suggestion id reads as
+ * not-found. The UPDATE re-asserts the verified booking id in its WHERE so a
+ * foreign suggestion can never be reached.
+ */
+export async function dismissGuestJourneySuggestionAdminAction(
+  _prev: ActionResult | null,
+  formData: FormData,
+): Promise<ActionResult> {
+  await requirePermission("guest_journey.write");
+  const parsed = suggestionIdSchema.safeParse({ id: formData.get("id") });
+  if (!parsed.success) return { ok: false, error: "Invalid input." };
+  const db = getDb();
+  if (!db) return { ok: false, error: "Database is not configured." };
+  const organizationId = await requireOrgId();
+  // Resolve the suggestion AND verify its booking belongs to the caller's org.
+  const [owned] = await db
+    .select({
+      id: guestJourneySuggestions.id,
+      bookingId: guestJourneySuggestions.bookingId,
+      stayTokenId: guestJourneySuggestions.stayTokenId,
+      title: guestJourneySuggestions.title,
+    })
+    .from(guestJourneySuggestions)
+    .innerJoin(bookings, eq(bookings.id, guestJourneySuggestions.bookingId))
+    .where(
+      and(
+        eq(guestJourneySuggestions.id, parsed.data.id),
+        eq(bookings.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+  if (!owned) return { ok: false, error: "Suggestion not found." };
+  await db
+    .update(guestJourneySuggestions)
+    .set({
+      status: "dismissed",
+      dismissedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(guestJourneySuggestions.id, owned.id));
+  // Append a journey event so the booking timeline reflects the operator action.
+  if (owned.bookingId) {
+    await db.insert(guestJourneyEvents).values({
+      bookingId: owned.bookingId,
+      stayTokenId: owned.stayTokenId ?? null,
+      eventType: "service_clicked",
+      sourceType: "manual",
+      sourceId: owned.id,
+      title: `Dismissed (admin): ${owned.title}`,
+      description: null,
+      severity: "info",
+      ownerVisible: false,
+    });
+  }
+  const me = await getCurrentAppUser();
+  await recordAuditEvent({
+    actorUserId: me?.id ?? null,
+    action: "guest_journey.suggestion.dismiss",
+    entityType: "guest_journey_suggestion",
+    entityId: owned.id,
+  });
+  revalidatePath("/dashboard/guest-journey/suggestions");
   return { ok: true };
 }
 

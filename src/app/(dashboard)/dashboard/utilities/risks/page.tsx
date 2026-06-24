@@ -71,7 +71,7 @@ export default async function UtilityRisksPage() {
                       </div>
                     )}
                   </div>
-                  <RiskRowActions id={r.id} />
+                  <RiskRowActions id={r.id} status={r.status} />
                 </li>
               ))}
             </ul>

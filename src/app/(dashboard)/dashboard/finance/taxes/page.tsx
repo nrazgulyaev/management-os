@@ -40,7 +40,7 @@ export default async function TaxesPage() {
         rows={rows.map((r) => ({
           id: r.id,
           date: r.taxDate,
-          scope: r.villaId ?? "—",
+          scope: r.villaCode ?? r.projectName ?? "—",
           category: r.taxType,
           description: r.description,
           amountMinor: r.amountMinor,

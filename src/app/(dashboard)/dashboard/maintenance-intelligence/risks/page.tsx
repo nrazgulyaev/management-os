@@ -187,7 +187,9 @@ export default async function RisksPage({
                       </div>
                     )}
                   </div>
-                  {r.status === "open" && <RiskRowActions id={r.id} />}
+                  {(r.status === "open" || r.status === "acknowledged") && (
+                    <RiskRowActions id={r.id} status={r.status} />
+                  )}
                 </li>
               ))}
             </ul>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import { TemplateAddButton } from "@/components/maintenance-intelligence/template-add-button";
 import { TemplateRowActions } from "@/components/maintenance-intelligence/template-row-actions";
 
@@ -8,7 +9,14 @@ export const metadata = { title: "Maintenance templates" };
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
-  const templates = await listMaintenanceTemplates();
+  const [templates, ctx] = await Promise.all([
+    listMaintenanceTemplates(),
+    getCurrentUserContext(),
+  ]);
+  // The template catalog is shared across all tenants (no organization_id), so
+  // only a platform super-admin may curate it. Hide the write affordances for
+  // everyone else instead of showing buttons that always error.
+  const canManage = ctx.isSuperAdmin;
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -19,11 +27,11 @@ export default async function TemplatesPage() {
           </div>
           <h1>Maintenance templates</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[680px]">
-            Catalog of preventive checks (AC, pool, pest, garden, pump, electrical, smart-lock battery…). Plans are villa-specific instances of these templates.
+            Catalog of preventive checks (AC, pool, pest, garden, pump, electrical, smart-lock battery…). Plans are villa-specific instances of these templates. This catalog is shared platform-wide and curated by the Arconique team.
           </p>
         </div>
         <div className="actions">
-          <TemplateAddButton />
+          {canManage && <TemplateAddButton />}
         </div>
       </div>
       <div>
@@ -44,7 +52,9 @@ export default async function TemplatesPage() {
                   <th scope="col" className="num">Duration</th>
                   <th scope="col">Disruption</th>
                   <th scope="col">Status</th>
-                  <th scope="col" className="text-right">Actions</th>
+                  {canManage && (
+                    <th scope="col" className="text-right">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -71,9 +81,11 @@ export default async function TemplatesPage() {
                         {t.status}
                       </HandoffBadge>
                     </td>
-                    <td className="text-right">
-                      <TemplateRowActions id={t.id} status={t.status} />
-                    </td>
+                    {canManage && (
+                      <td className="text-right">
+                        <TemplateRowActions id={t.id} status={t.status} />
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>

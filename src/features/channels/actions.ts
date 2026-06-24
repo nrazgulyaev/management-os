@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { bookingChannels } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { canManageEntity } from "@/features/auth/permissions";
+import { getCurrentUserContext } from "@/features/auth/permissions";
 import { createChannelSchema, updateChannelSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -17,8 +17,16 @@ export async function createChannelAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!(await canManageEntity("channel"))) {
-    return { ok: false, error: "Not authorised." };
+  // The channel catalog (booking_channels) is a SHARED, global reference list —
+  // no organization_id, referenced by every tenant's bookings. So curating it
+  // (add/edit/archive) is platform-level: super-admin only, not a per-org role.
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin) {
+    return {
+      ok: false,
+      error:
+        "The channel catalog is shared across all tenants — only a platform super-admin can change it.",
+    };
   }
   const parsed = createChannelSchema.safeParse(Object.fromEntries(formData.entries()));
   if (!parsed.success) {
@@ -67,8 +75,16 @@ export async function updateChannelAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  if (!(await canManageEntity("channel"))) {
-    return { ok: false, error: "Not authorised." };
+  // The channel catalog (booking_channels) is a SHARED, global reference list —
+  // no organization_id, referenced by every tenant's bookings. So curating it
+  // (add/edit/archive) is platform-level: super-admin only, not a per-org role.
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin) {
+    return {
+      ok: false,
+      error:
+        "The channel catalog is shared across all tenants — only a platform super-admin can change it.",
+    };
   }
   if (!idSchema.safeParse(id).success) return { ok: false, error: "Missing channel id." };
   const parsed = updateChannelSchema.safeParse(Object.fromEntries(formData.entries()));
@@ -128,7 +144,13 @@ async function transition(
   next: "archived" | "active",
   action: "channel.archive" | "channel.unarchive",
 ): Promise<ActionResult> {
-  if (!(await canManageEntity("channel"))) return { ok: false, error: "Not authorised." };
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin)
+    return {
+      ok: false,
+      error:
+        "The channel catalog is shared across all tenants — only a platform super-admin can change it.",
+    };
   const db = getDb();
   if (!db) return { ok: false, error: "Database is not configured." };
   const me = await getCurrentAppUser();

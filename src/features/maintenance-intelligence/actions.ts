@@ -14,7 +14,10 @@ import { operationTasks } from "@/lib/db/schema/operations";
 import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { requirePermission } from "@/features/auth/permissions";
+import {
+  getCurrentUserContext,
+  requirePermission,
+} from "@/features/auth/permissions";
 import { requireOrgId } from "@/features/auth/require-org";
 import { nextDailyCounter } from "@/features/operations/services";
 import { calculateNextDueAt, type Frequency } from "./scheduling-pure";
@@ -68,6 +71,19 @@ export async function createMaintenanceTemplateAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult & { templateId?: string }> {
+  // TENANCY: `maintenance_templates` is a SHARED, global reference catalog —
+  // it has no `organization_id` and is read by every tenant. Curating it
+  // (add/edit/archive) is platform-level, so — exactly like the channel
+  // catalog (booking_channels) — only a super-admin may write it; one tenant
+  // must not be able to mutate the list every other tenant sees.
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin) {
+    return {
+      ok: false,
+      error:
+        "The maintenance template catalog is shared across all tenants — only a platform super-admin can change it.",
+    };
+  }
   await requirePermission("maintenance_intelligence.write");
   const parsed = createMaintenanceTemplateSchema.safeParse(
     parseTemplateForm(formData),
@@ -114,16 +130,24 @@ export async function createMaintenanceTemplateAction(
  *
  * TENANCY: `maintenance_templates` is a deliberately GLOBAL catalog — it has
  * no `organization_id` column (the `key` is globally unique, and org-scoped
- * `villa_maintenance_plans` reference templates by FK). There is therefore no
- * org column to filter on; access is gated exactly like the sibling
- * `createMaintenanceTemplateAction` above — strictly through
- * `requirePermission("maintenance_intelligence.write")`. The write only flips
- * the status flag; it never reads or exposes another tenant's data.
+ * `villa_maintenance_plans` reference templates by FK). Because the row is
+ * shared by EVERY tenant, archiving/reactivating it is platform-level —
+ * gated to super-admin like the channel catalog — so one tenant can't hide
+ * (or resurrect) a template the others depend on. A plain per-org write
+ * permission is NOT sufficient: there is no org column to scope the mutation.
  */
 export async function setMaintenanceTemplateStatusAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
+  const ctx = await getCurrentUserContext();
+  if (!ctx.isSuperAdmin) {
+    return {
+      ok: false,
+      error:
+        "The maintenance template catalog is shared across all tenants — only a platform super-admin can change it.",
+    };
+  }
   await requirePermission("maintenance_intelligence.write");
   const parsed = templateStatusSchema.safeParse(
     Object.fromEntries(formData.entries()),

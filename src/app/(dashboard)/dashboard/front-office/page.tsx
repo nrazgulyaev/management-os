@@ -266,13 +266,6 @@ export default async function FrontOfficeTodayPage() {
             <span className="pulse-dot" />
             live · {nowLabel} WITA
           </span>
-          <button
-            className="btn btn-ghost btn-sm opacity-55 cursor-not-allowed"
-            disabled
-            title="Coming soon"
-          >
-            Day report
-          </button>
           <Link href="/dashboard/bookings/new" className="btn btn-primary btn-sm">
             + Walk-in
           </Link>

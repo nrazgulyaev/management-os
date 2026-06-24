@@ -45,7 +45,9 @@ export default async function OwnerBookingDetail({
   const { id } = await params;
   const summary = await getOwnerBookingSummaryById(id, { ownerOnly: true });
   if (!summary) notFound();
-  const breakdowns = await listOwnerBookingBreakdowns(summary.id);
+  const breakdowns = await listOwnerBookingBreakdowns(summary.id, {
+    ownerOnly: true,
+  });
   const visibleBreakdowns = breakdowns.filter((b) => b.ownerVisible);
   const timeline = buildOwnerBookingTimelineStatus({
     publicStatus: summary.publicStatus,

@@ -7,6 +7,16 @@ import {
 import { directBookingFinanceStatusLabel } from "@/features/direct-booking/finance-pure";
 import { requireOrgId } from "@/features/auth/require-org";
 import { ReconcilePendingButton } from "@/components/direct-booking/reconcile-buttons";
+import { FilterPills, type FilterPillItem } from "@/components/ui/primitives";
+
+const FINANCE_LINK_STATUSES = [
+  "pending",
+  "posted",
+  "skipped_no_booking",
+  "skipped_locked_period",
+  "failed",
+  "reversed",
+] as const;
 
 export const metadata = { title: "Direct booking reconciliation" };
 export const dynamic = "force-dynamic";
@@ -36,6 +46,14 @@ export default async function ReconciliationHub({
     getReconciliationMetrics(organizationId),
     listDirectBookingFinanceLinks(organizationId, { status, limit: 200 }),
   ]);
+  const statusPills: FilterPillItem[] = [
+    { value: "", label: "All", href: "/dashboard/direct-bookings/reconciliation" },
+    ...FINANCE_LINK_STATUSES.map((s) => ({
+      value: s,
+      label: s.replace(/_/g, " "),
+      href: `/dashboard/direct-bookings/reconciliation?status=${s}`,
+    })),
+  ];
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">
@@ -76,6 +94,7 @@ export default async function ReconciliationHub({
           value={`${(metrics.totalBalanceDueMinor / 100n).toString()}.${String(metrics.totalBalanceDueMinor % 100n).padStart(2, "0")} ${metrics.currency ?? ""}`}
         />
       </div>
+      <FilterPills items={statusPills} current={status ?? ""} label="Status" />
       <div>
         <div className="label mb-2.5">{`${rows.length} finance links`}</div>
         <table className="data">

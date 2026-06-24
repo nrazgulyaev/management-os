@@ -48,11 +48,10 @@ export default async function AdminOwnerBookingDetail({
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owner intelligence" />;
   const { id } = await params;
-  const s = await getOwnerBookingSummaryById(id, {
-    organizationId: await requireOrgId(),
-  });
+  const organizationId = await requireOrgId();
+  const s = await getOwnerBookingSummaryById(id, { organizationId });
   if (!s) notFound();
-  const breakdowns = await listOwnerBookingBreakdowns(s.id);
+  const breakdowns = await listOwnerBookingBreakdowns(s.id, { organizationId });
   const visible = breakdowns.filter((b) => b.ownerVisible);
   const explanation = formatOwnerRevenueExplanation(
     {

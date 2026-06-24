@@ -34,7 +34,9 @@ export type TurnoverStatus = "todo" | "in-progress" | "inspection" | "done";
 export interface TurnoverCard {
   id: string;
   villaCode: string;
+  /** Property-standard checkout time (house default; bookings carry dates only). */
   guestCheckOut: string;
+  /** Property-standard check-in time, present only when a same-day arrival exists. */
   guestCheckIn?: string;
   status: TurnoverStatus;
   assignee?: { id: string; name: string } | null;
@@ -154,9 +156,12 @@ function SortableTurnoverCard({
         <span className="villa mono">{card.villaCode}</span>
         {card.badge && <span className="badge">{card.badge}</span>}
       </div>
-      <div className="tb-card-meta mono">
+      {/* Property-STANDARD window (house default), not a per-booking time —
+          bookings carry dates only. "std" makes that explicit on the card. */}
+      <div className="tb-card-meta mono" title="Property-standard turnover window">
         Out {card.guestCheckOut}
         {card.guestCheckIn && <> → In {card.guestCheckIn}</>}
+        <span className="opacity-60"> · std</span>
       </div>
       <StaffChip staff={card.assignee ?? null} />
       {showPicker && (

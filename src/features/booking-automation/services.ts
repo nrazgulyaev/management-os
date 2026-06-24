@@ -64,7 +64,13 @@ export async function listBookingAutomationRules(): Promise<WithSource<Automatio
     })
     .from(bookingAutomationRules)
     .leftJoin(villas, eq(villas.id, bookingAutomationRules.villaId))
-    // TENANCY: caller's own rules + NULL-org legacy/seed rows (migration 0154).
+    // TENANCY: caller's own rules + shared NULL-org default rows. The runtime
+    // writers (createBookingAutomationRuleAction, the default seeder) all stamp
+    // org, BUT drizzle/seed.sql still INSERTs the two fixed-UUID default rules
+    // with NO organization_id column → NULL-org rows are legitimately written
+    // on every seed run. Tightening to eq(org) would hide those shared default
+    // rules from all tenants on a freshly seeded DB, so the isNull tolerance is
+    // intentional here. NULL-org default rules are read-only catalog rows.
     .where(
       or(
         eq(bookingAutomationRules.organizationId, organizationId),
@@ -96,13 +102,12 @@ export async function listBookingAutomationRuns(opts?: {
   const db = getDb();
   if (!db) return [];
   const organizationId = await requireOrgId();
-  // TENANCY: scope to the caller's org (+ NULL-org legacy rows, migration
-  // 0154). The page-level call (no bookingId) otherwise returned the latest
-  // 200 runs across every tenant.
-  const orgFilter = or(
-    eq(bookingAutomationRuns.organizationId, organizationId),
-    isNull(bookingAutomationRuns.organizationId),
-  );
+  // TENANCY: scope strictly to the caller's org. Every writer of
+  // booking_automation_runs stamps `booking.organizationId` (NOT NULL) on
+  // insert (see runBookingAutomationForBooking) and there is no seed/cron
+  // path that writes NULL-org run rows, so the prior `isNull` tolerance only
+  // leaked legacy pre-0154 rows (already backfilled) to every tenant.
+  const orgFilter = eq(bookingAutomationRuns.organizationId, organizationId);
   const rows = await db
     .select({
       run: bookingAutomationRuns,

@@ -4,6 +4,19 @@ import { listDirectBookingDeposits } from "@/features/direct-booking/deposits";
 import { requireOrgId } from "@/features/auth/require-org";
 import { adminDepositStatusLabel } from "@/features/direct-booking/deposits-pure";
 import { ExpireDepositNowButton } from "@/components/direct-booking/reconcile-buttons";
+import { FilterPills, type FilterPillItem } from "@/components/ui/primitives";
+
+const DEPOSIT_STATUSES = [
+  "draft",
+  "pending",
+  "requires_action",
+  "paid",
+  "manually_marked_paid",
+  "failed",
+  "expired",
+  "cancelled",
+  "refunded",
+] as const;
 
 export const metadata = { title: "Deposits" };
 export const dynamic = "force-dynamic";
@@ -29,6 +42,14 @@ export default async function DepositsPage({
   const status = (sp.status as DepStatus | undefined) || undefined;
   const organizationId = await requireOrgId();
   const rows = await listDirectBookingDeposits({ status, limit: 200, organizationId });
+  const statusPills: FilterPillItem[] = [
+    { value: "", label: "All", href: "/dashboard/direct-bookings/deposits" },
+    ...DEPOSIT_STATUSES.map((s) => ({
+      value: s,
+      label: s.replace(/_/g, " "),
+      href: `/dashboard/direct-bookings/deposits?status=${s}`,
+    })),
+  ];
   return (
     <>
       <div className="page-header">
@@ -44,6 +65,8 @@ export default async function DepositsPage({
           </p>
         </div>
       </div>
+
+      <FilterPills items={statusPills} current={status ?? ""} label="Status" />
 
       <div>
         <div className="label mb-2.5">Catalog · {rows.length} deposits</div>
@@ -64,7 +87,7 @@ export default async function DepositsPage({
               {rows.length === 0 && (
                 <tr>
                   <td colSpan={7} className="text-center text-ink-tertiary">
-                    No deposits yet.
+                    {status ? "No deposits match the filter." : "No deposits yet."}
                   </td>
                 </tr>
               )}

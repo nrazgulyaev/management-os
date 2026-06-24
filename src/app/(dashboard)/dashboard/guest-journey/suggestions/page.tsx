@@ -3,12 +3,39 @@ import { TableEmpty } from "@/components/ui/table-empty";
 import { Kpi } from "@/components/dashboard/primitives";
 import { Badge } from "@/components/ui/badge";
 import { listGuestJourneySuggestions } from "@/features/guest-journey/services";
+import { DismissSuggestionButton } from "@/components/guest-journey/journey-buttons";
 
 export const metadata = { title: "Journey suggestions" };
 export const dynamic = "force-dynamic";
 
-export default async function JourneySuggestionsPage() {
-  const rows = await listGuestJourneySuggestions({ limit: 200 });
+const SUGGESTION_STATUSES = [
+  "active",
+  "clicked",
+  "dismissed",
+  "expired",
+  "converted",
+] as const;
+type SuggestionStatus = (typeof SUGGESTION_STATUSES)[number];
+
+const STATUS_FILTERS: { label: string; status?: SuggestionStatus }[] = [
+  { label: "All", status: undefined },
+  { label: "Active", status: "active" },
+  { label: "Clicked", status: "clicked" },
+  { label: "Converted", status: "converted" },
+  { label: "Dismissed", status: "dismissed" },
+  { label: "Expired", status: "expired" },
+];
+
+export default async function JourneySuggestionsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const sp = await searchParams;
+  const status = SUGGESTION_STATUSES.includes(sp.status as SuggestionStatus)
+    ? (sp.status as SuggestionStatus)
+    : undefined;
+  const rows = await listGuestJourneySuggestions({ status, limit: 200 });
   const activeCount = rows.filter(({ suggestion }) => suggestion.status === "active").length;
   const clickedCount = rows.filter(({ suggestion }) => suggestion.status === "clicked").length;
   const convertedCount = rows.filter(({ suggestion }) => suggestion.status === "converted").length;
@@ -26,6 +53,22 @@ export default async function JourneySuggestionsPage() {
             links into existing surfaces.
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-[18px]">
+        {STATUS_FILTERS.map((f) => (
+          <Link
+            key={f.label}
+            href={f.status ? `?status=${f.status}` : "?"}
+            className={
+              (status ?? "") === (f.status ?? "")
+                ? "btn btn-accent btn-sm"
+                : "btn btn-secondary btn-sm"
+            }
+          >
+            {f.label}
+          </Link>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-[18px]">
@@ -53,11 +96,12 @@ export default async function JourneySuggestionsPage() {
               <th scope="col">Suggested for</th>
               <th scope="col">Priority</th>
               <th scope="col">Status</th>
+              <th scope="col"></th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <TableEmpty colSpan={6}>No suggestions yet.</TableEmpty>
+              <TableEmpty colSpan={7}>No suggestions yet.</TableEmpty>
             ) : (
               rows.map(({ suggestion: s, bookingCode, villaCode }) => (
                 <tr key={s.id}>
@@ -89,6 +133,13 @@ export default async function JourneySuggestionsPage() {
                     >
                       {s.status}
                     </Badge>
+                  </td>
+                  <td className="text-right">
+                    {s.status === "active" || s.status === "clicked" ? (
+                      <DismissSuggestionButton id={s.id} />
+                    ) : (
+                      <span className="text-[11px] text-ink-4">—</span>
+                    )}
                   </td>
                 </tr>
               ))

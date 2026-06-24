@@ -1,8 +1,9 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-import { sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { getDb, rowsOf } from "@/lib/db/client";
+import { guests } from "@/lib/db/schema/bookings";
 import { requireOrgId } from "@/features/auth/require-org";
 import { listOperationTasks, listServiceRequests } from "./services";
 import { todayYmd } from "./scheduling";
@@ -329,15 +330,46 @@ export interface ServiceRequestRow {
 }
 
 /** Recent service requests for the operations cabinet. Thin adapter over the
- *  org-scoped listServiceRequests (was a `return []` stub). guestName/vendorName
- *  aren't resolved by that reader, so they render blank rather than fabricated. */
+ *  org-scoped listServiceRequests (was a `return []` stub).
+ *
+ *  guestName IS resolved here: service_requests.guest_id → guests.full_name,
+ *  via one batched, org-scoped follow-up query (guests carry organization_id).
+ *
+ *  vendorName stays null on purpose: there is NO vendor link on the
+ *  service-request path today (no vendor FK on service_requests, and its
+ *  task_id resolves to an internal app_user assignee, not a vendor). Rather
+ *  than fabricate one we leave it blank — the page renders "—". Wiring a real
+ *  vendor name would need a fulfilment/vendor FK on service_requests (see the
+ *  skipped migration note). */
 export async function getServiceRequestsForCabinet(): Promise<ServiceRequestRow[]> {
   const reqs = await listServiceRequests({ limit: 50 });
+  if (reqs.length === 0) return [];
+
+  // Resolve guest display names in one batched, org-scoped query. guests
+  // carry organization_id, so we scope by the caller's org — a request whose
+  // guest belongs to another tenant simply renders no name (defensive; the
+  // listServiceRequests villa scope already keeps cross-org rows out).
+  const guestIds = Array.from(
+    new Set(reqs.map((r) => r.guestId).filter((id): id is string => Boolean(id))),
+  );
+  const nameById = new Map<string, string>();
+  if (guestIds.length > 0) {
+    const db = getDb();
+    if (db) {
+      const orgId = await requireOrgId();
+      const guestRows = await db
+        .select({ id: guests.id, fullName: guests.fullName })
+        .from(guests)
+        .where(and(inArray(guests.id, guestIds), eq(guests.organizationId, orgId)));
+      for (const g of guestRows) nameById.set(g.id, g.fullName);
+    }
+  }
+
   return reqs.map((r) => ({
     id: r.id,
     code: r.requestCode,
     villaCode: r.villaCode ?? null,
-    guestName: null,
+    guestName: r.guestId ? nameById.get(r.guestId) ?? null : null,
     requestType: r.requestType,
     status: r.status,
     vendorName: null,

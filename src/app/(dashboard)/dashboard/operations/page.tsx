@@ -13,6 +13,7 @@ import {
   type VillaState,
 } from "@/features/operations/operations-cabinet-queries";
 import { listArrivals, listDepartures } from "@/features/front-office/services";
+import { getLatestOperationsSummary } from "@/features/ai/operations-copilot/service";
 import { mapPoolAll } from "@/lib/db/map-pool";
 
 /**
@@ -28,8 +29,9 @@ import { mapPoolAll } from "@/lib/db/map-pool";
  *   - SERVICE_REQUESTS → getServiceRequestsForCabinet() (empty until seeded)
  *   - STATUS_TILES     → derived from getVillaStatusBoard()
  *
- * Operations Copilot AI band stays as a static empty-state copy until
- * the daily-digest agent files a run.
+ * Operations Copilot AI band reads the latest org-scoped run via
+ * getLatestOperationsSummary() and surfaces its recommended actions; it
+ * keeps the honest empty-state copy until the first run files.
  */
 
 export const metadata = { title: "Operations · Command center" };
@@ -94,7 +96,7 @@ const TURNOVER_COLS: { key: string; label: string; statuses: string[] }[] = [
 
 export default async function OperationsPage() {
   const today = new Date();
-  const [kpis, board, tickets, preventive, housekeeping, serviceRequests, arrivals, departures] =
+  const [kpis, board, tickets, preventive, housekeeping, serviceRequests, arrivals, departures, copilot] =
     await mapPoolAll([
       () => getOperationsKpis().catch(() => null),
       () => getVillaStatusBoard().catch(() => []),
@@ -104,7 +106,12 @@ export default async function OperationsPage() {
       () => getServiceRequestsForCabinet().catch(() => []),
       () => listArrivals(today).catch(() => []),
       () => listDepartures(today).catch(() => []),
+      () => getLatestOperationsSummary().catch(() => null),
     ] as const, 4);
+
+  // Copilot suggestions to surface in the band (the recommended-action list
+  // from the latest org-scoped run). Empty array → keep the honest empty state.
+  const copilotActions = copilot?.recommendedActions?.slice(0, 3) ?? [];
 
   // Tile counts from the live board.
   const tileCounts = new Map<VillaState, number>();
@@ -269,7 +276,8 @@ export default async function OperationsPage() {
         </div>
       </div>
 
-      {/* AI Operations Copilot — empty state until daily-digest agent runs.
+      {/* AI Operations Copilot — surfaces the latest org-scoped run's
+          recommended actions; honest empty state until the first run files.
           NOTE: bg-forest is the Layer A `--forest` alias; we want the dark
           forest tone explicitly (matching original `var(--forest)`), not
           the Card primitive's `tone="dark"` which uses `--forest-deep`. */}
@@ -281,16 +289,43 @@ export default async function OperationsPage() {
           <span className="flex-shrink-0 w-11 h-11 rounded-full bg-white/[0.08] flex items-center justify-center text-[var(--gold-soft)]">
             ✦
           </span>
-          <div className="flex-1">
-            <div className="label text-[rgba(244,239,230,0.65)]">
-              Operations Copilot
+          <div className="flex-1 min-w-0">
+            <div className="label text-[rgba(244,239,230,0.65)] flex items-center justify-between gap-3">
+              <span>Operations Copilot</span>
+              <Link
+                href="/dashboard/ai/operations"
+                className="text-[10.5px] uppercase tracking-[0.1em] hover:text-[var(--gold-soft)]"
+              >
+                View briefing →
+              </Link>
             </div>
-            <p className="mt-1.5 mb-3.5 font-display text-[22px] leading-[1.3] font-light">
-              The Operations Copilot will surface ad-hoc scheduling suggestions
-              here the first time the{" "}
-              <em className="text-[var(--gold-soft)]">daily-digest agent</em>{" "}
-              files a run.
-            </p>
+            {copilotActions.length === 0 ? (
+              <p className="mt-1.5 mb-3.5 font-display text-[22px] leading-[1.3] font-light">
+                The Operations Copilot will surface ad-hoc scheduling suggestions
+                here the first time the{" "}
+                <em className="text-[var(--gold-soft)]">daily-digest agent</em>{" "}
+                files a run.
+              </p>
+            ) : (
+              <>
+                <p className="mt-1.5 mb-3 font-display text-[20px] leading-[1.3] font-light">
+                  {copilot?.title ?? "Today's operations briefing"}
+                </p>
+                <ul className="flex flex-col gap-2 text-[13.5px]">
+                  {copilotActions.map((a, i) => (
+                    <li key={i} className="flex gap-2.5">
+                      <span className="text-[var(--gold-soft)] flex-shrink-0">→</span>
+                      <span>
+                        <span className="text-cream-warm">{a.title}</span>
+                        {a.detail ? (
+                          <span className="text-[rgba(244,239,230,0.65)]"> — {a.detail}</span>
+                        ) : null}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
           </div>
         </div>
       </Card>
@@ -475,7 +510,6 @@ export default async function OperationsPage() {
                 <th scope="col">Villa</th>
                 <th scope="col">Guest</th>
                 <th scope="col">Request</th>
-                <th scope="col">Vendor</th>
                 <th scope="col">Status</th>
               </tr>
             </thead>
@@ -486,7 +520,6 @@ export default async function OperationsPage() {
                   <td className="mono">{r.villaCode ?? "—"}</td>
                   <td>{r.guestName ?? "—"}</td>
                   <td className="text-[13px] max-w-[240px]">{r.requestType}</td>
-                  <td className="text-ink-3">{r.vendorName ?? "—"}</td>
                   <td>
                     <HandoffBadge>{r.status}</HandoffBadge>
                   </td>

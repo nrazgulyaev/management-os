@@ -273,21 +273,24 @@ export async function createTaxLineAction(
 }
 
 // -----------------------------------------------------------------------------
-// Void a posted ledger line (revenue / fee / expense / tax).
+// Void a posted ledger line (revenue / fee / expense / tax / reserve).
 //
 // A posted money line flows into owner statements at period close, so a wrong
 // amount / villa / date posting must be reversible. The schema status enum
 // already has 'voided'; this is the only transition we expose (posted → voided,
-// terminal). The four line tables have NO organization_id — they org-scope via
+// terminal). These line tables have NO organization_id — they org-scope via
 // villa → project OR their own project_id (identical COALESCE pattern in the
 // read services), so we re-prove the line belongs to the caller's org before
-// touching it (no cross-tenant void IDOR).
+// touching it (no cross-tenant void IDOR). reserve_movements is read by the
+// statement generator only when status='posted' (STATEMENT-SETTINGS ledger
+// mode), so voiding it correctly drops the movement from future statements.
 // -----------------------------------------------------------------------------
 const VOID_TABLES = {
-  revenue: { table: revenueLines, path: "revenue" },
-  fee: { table: feeLines, path: "fees" },
-  expense: { table: expenseLines, path: "expenses" },
-  tax: { table: taxLines, path: "taxes" },
+  revenue: { table: revenueLines, path: "revenue", entity: "revenue_line" },
+  fee: { table: feeLines, path: "fees", entity: "fee_line" },
+  expense: { table: expenseLines, path: "expenses", entity: "expense_line" },
+  tax: { table: taxLines, path: "taxes", entity: "tax_line" },
+  reserve: { table: reserveMovements, path: "reserves", entity: "reserve_movement" },
 } as const;
 
 type LedgerKind = keyof typeof VOID_TABLES;
@@ -340,7 +343,7 @@ export async function voidLedgerLineAction(input: {
   await recordAuditEvent({
     actorUserId: me?.id ?? null,
     action: `finance.${input.kind}.void`,
-    entityType: `${input.kind}_line`,
+    entityType: entry.entity,
     entityId: id,
     before: { status: "posted" },
     after: { status: "voided" },
