@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { listMaintenanceTemplates } from "@/features/maintenance-intelligence/services";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { TemplateAddButton } from "@/components/maintenance-intelligence/template-add-button";
 import { TemplateRowActions } from "@/components/maintenance-intelligence/template-row-actions";
 
@@ -9,14 +9,14 @@ export const metadata = { title: "Maintenance templates" };
 export const dynamic = "force-dynamic";
 
 export default async function TemplatesPage() {
-  const [templates, ctx] = await Promise.all([
-    listMaintenanceTemplates(),
-    getCurrentUserContext(),
-  ]);
   // The template catalog is shared across all tenants (no organization_id), so
-  // only a platform super-admin may curate it. Hide the write affordances for
-  // everyone else instead of showing buttons that always error.
-  const canManage = ctx.isSuperAdmin;
+  // only a PLATFORM super-admin (allowlist) may curate it. Hide the write
+  // affordances for everyone else — including a tenant admin who also holds the
+  // super_admin role — instead of showing buttons that always error.
+  const [templates, { ok: canManage }] = await Promise.all([
+    listMaintenanceTemplates(),
+    isSuperAdminContext(),
+  ]);
   return (
     <div className="flex flex-col gap-10">
       <div className="page-header">

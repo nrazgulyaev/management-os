@@ -2,18 +2,20 @@ import Link from "next/link";
 import { TableEmpty } from "@/components/ui/table-empty";
 import { Badge } from "@/components/ui/badge";
 import { listCategories } from "@/features/guest-services/services";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { CategoryEditorForm } from "@/components/guest-services/category-editor";
 
 export const metadata = { title: "Service categories" };
 export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
-  const [categories, ctx] = await Promise.all([
+  // The category catalog is shared across all tenants (no organization_id), so
+  // only a PLATFORM super-admin (allowlist) may curate it — gate on
+  // isSuperAdminContext, not the raw super_admin role a tenant admin also holds.
+  const [categories, { ok: canManage }] = await Promise.all([
     listCategories({ includeArchived: true }),
-    getCurrentUserContext(),
+    isSuperAdminContext(),
   ]);
-  const canManage = ctx.isSuperAdmin;
   return (
     <>
       <div className="page-header">
