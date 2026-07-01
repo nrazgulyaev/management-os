@@ -50,6 +50,12 @@ export default async function TurnoversPage() {
         </div>
         <div className="actions">
           <Link
+            href="/dashboard/operations/turnover-policy"
+            className="btn btn-secondary btn-sm inline-flex items-center gap-1"
+          >
+            Turnover policy
+          </Link>
+          <Link
             href="/dashboard/operations"
             className="btn btn-secondary btn-sm inline-flex items-center gap-1"
           >

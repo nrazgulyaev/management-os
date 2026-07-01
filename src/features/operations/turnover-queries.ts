@@ -6,6 +6,7 @@ import { turnovers } from "@/lib/db/schema/turnovers";
 import { villas, projects } from "@/lib/db/schema/projects";
 import { appUsers, roles, userRoles } from "@/lib/db/schema/identity";
 import { requireOrgId } from "@/features/auth/require-org";
+import { getTurnoverPolicy, type TurnoverPolicy } from "@/features/operations/turnover-policy";
 import type { TurnoverCard, TurnoverStatus } from "@/components/operations/turnover-board";
 
 /**
@@ -22,15 +23,12 @@ const CLEANER_ROLE_KEYS = ["housekeeper", "housekeeping_supervisor"] as const;
 
 /**
  * Property-STANDARD turnover window. bookings store check_in/check_out as a
- * DATE only (no per-booking time column), and neither villas/projects nor a
- * property-settings table carry a standard time today. These are therefore the
- * house default check-out / check-in clock — NOT a per-booking fact. The board
- * labels them as the standard window so we never present a fabricated per-stay
- * time. To show real per-booking times, add checkout_time/checkin_time to
- * bookings (see the skipped migration note).
+ * DATE only (no per-booking time column), so the board surfaces the house
+ * standard clock — NOT a per-booking fact. The standard now comes from the
+ * org's editable turnover policy (org_turnover_policy, migration 0186) via
+ * getTurnoverPolicy(); the code defaults (11:00 / 14:00) reproduce the former
+ * hardcodes so nothing changes until an org saves its own times.
  */
-const STD_CHECKOUT = "11:00";
-const STD_CHECKIN = "14:00";
 
 /** A turnover row joined to the villa code + assignee name, board-ready. */
 export interface TurnoverRow {
@@ -69,11 +67,12 @@ export async function getTodaysTurnovers(): Promise<TurnoverRow[]> {
   const db = getDb();
   if (!db) return [];
   const organizationId = await requireOrgId();
+  const policy = await getTurnoverPolicy(organizationId);
 
-  let rows = await readTurnoverRows(db, organizationId);
+  let rows = await readTurnoverRows(db, organizationId, policy);
   if (rows.length === 0) {
     await deriveTodaysTurnovers(db, organizationId);
-    rows = await readTurnoverRows(db, organizationId);
+    rows = await readTurnoverRows(db, organizationId, policy);
   }
   return rows;
 }
@@ -94,6 +93,7 @@ export function toTurnoverCards(rows: TurnoverRow[]): TurnoverCard[] {
 async function readTurnoverRows(
   db: NonNullable<ReturnType<typeof getDb>>,
   organizationId: string,
+  policy: TurnoverPolicy,
 ): Promise<TurnoverRow[]> {
   const result = await db
     .select({
@@ -121,11 +121,10 @@ async function readTurnoverRows(
     .orderBy(asc(villas.unitCode));
 
   // bookings store check_in/check_out as DATE only — there's no per-booking
-  // checkout/check-in TIME column, and no property-settings table carries a
-  // standard one. So we surface the property-STANDARD window (STD_CHECKOUT /
-  // STD_CHECKIN) rather than a fabricated per-stay time, and only show the
-  // standard check-in when a same-day arrival actually exists (next_booking_id).
-  // TODO(W4): add checkout_time / checkin_time to bookings for real per-stay times.
+  // checkout/check-in TIME column. So we surface the org's STANDARD turnover
+  // window (policy.checkoutTime / policy.checkinTime — the editable company
+  // policy) rather than a fabricated per-stay time, and only show the standard
+  // check-in when a same-day arrival actually exists (next_booking_id).
   return result.map((r) => ({
     id: r.id,
     villaId: r.villaId,
@@ -134,8 +133,8 @@ async function readTurnoverRows(
     badge: r.badge,
     assigneeId: r.assigneeId,
     assigneeName: r.assigneeName,
-    checkOut: STD_CHECKOUT,
-    checkIn: r.nextBookingId ? STD_CHECKIN : null,
+    checkOut: policy.checkoutTime,
+    checkIn: r.nextBookingId ? policy.checkinTime : null,
   }));
 }
 
