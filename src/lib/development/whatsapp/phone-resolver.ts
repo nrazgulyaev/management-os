@@ -55,6 +55,13 @@ export interface PhoneResolution {
   prefersWhatsapp: boolean;
   /** UUID of the row in `whatsapp_phone_numbers` for the resolved phone. */
   phoneRegistryId: string | null;
+  /**
+   * Tenant org derived from the RECEIVING business number (the webhook's
+   * `toPhone`) — the org that owns the WhatsApp number the message was sent to.
+   * Undefined when the receiving number is unregistered / unknown. The inbound
+   * processor uses this to attribute the message + any drafts to the right org.
+   */
+  organizationId?: string;
 }
 
 export async function resolveSenderPhone(
@@ -108,6 +115,7 @@ export async function resolveSenderPhone(
       entityName: appUserMatch[0].name,
       prefersWhatsapp: appUserMatch[0].prefers,
       phoneRegistryId: reg,
+      organizationId,
     };
   }
 
@@ -141,6 +149,7 @@ export async function resolveSenderPhone(
       entityName: investorMatch[0].name,
       prefersWhatsapp: investorMatch[0].prefers,
       phoneRegistryId: reg,
+      organizationId,
     };
   }
 
@@ -170,6 +179,7 @@ export async function resolveSenderPhone(
       // (vendors typically ARE on WhatsApp in Bali ops).
       prefersWhatsapp: true,
       phoneRegistryId: reg,
+      organizationId,
     };
   }
 
@@ -204,6 +214,7 @@ export async function resolveSenderPhone(
       entityName: contactMatch[0].name,
       prefersWhatsapp: contactMatch[0].prefers,
       phoneRegistryId: reg,
+      organizationId,
     };
   }
 
@@ -282,7 +293,7 @@ async function ensurePhoneRegistry(
  * throws) when the number is missing/unknown so message ingestion is
  * never blocked by an org lookup.
  */
-async function resolveOrgFromReceivingNumber(
+export async function resolveOrgFromReceivingNumber(
   receivingPhone?: string | null,
 ): Promise<string | undefined> {
   if (!receivingPhone) return undefined;

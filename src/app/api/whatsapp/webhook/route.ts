@@ -6,6 +6,7 @@ import {
   whatsappWebhookEvents,
 } from "@/lib/db/schema/whatsapp";
 import { getWhatsAppProvider} from "@/lib/whatsapp/providers";
+import { resolveOrgFromReceivingNumber } from "@/lib/development/whatsapp/phone-resolver";
 
 /**
  * WhatsApp inbound webhook endpoint.
@@ -127,6 +128,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // MULTI-TENANT ROUTING — attribute the inbound to the org that OWNS the
+  // WhatsApp number it was sent TO (parsed.toPhone → an arconique_inbound/
+  // outbound registry row carrying the tenant's org). Stamped at insert so the
+  // message is immediately visible to the right tenant (getWhatsappMessages
+  // strict-filters org); best-effort — an unregistered number leaves it null
+  // and the cron processor re-attempts + the legacy single-tenant fallback
+  // applies. Never throws.
+  const organizationId = await resolveOrgFromReceivingNumber(parsed.toPhone);
+
   // 5) Replay protection — try to insert; if external_sid already
   // exists for the same provider, the unique partial index rejects.
   let messageId: string | null = null;
@@ -138,6 +148,7 @@ export async function POST(request: NextRequest) {
         provider: provider.name,
         externalMessageSid: parsed.externalMessageSid,
         direction: "inbound",
+        organizationId: organizationId ?? undefined,
         fromPhone: parsed.fromPhone,
         toPhone: parsed.toPhone,
         messageType: parsed.messageType,

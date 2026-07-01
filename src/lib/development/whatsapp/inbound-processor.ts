@@ -72,6 +72,22 @@ export async function processInboundMessage(
   // can never be resolved manually.
   const sender = await resolveSenderPhone(msg.fromPhone, msg.toPhone);
 
+  // MULTI-TENANT ROUTING — attribute this inbound to the org that OWNS the
+  // WhatsApp number it was sent to (msg.toPhone → an arconique_inbound/outbound
+  // registry row stamped with the tenant's org). Without this the message stays
+  // organization_id=NULL and is invisible to EVERY tenant (getWhatsappMessages
+  // strict-filters org), and drafts below fall back to ARCONIQUE_DEFAULT. Stamp
+  // the message now so it renders for the right tenant even before/if
+  // classification fails. Best-effort: an unregistered receiving number leaves
+  // org null and preserves the legacy single-tenant fallback.
+  const resolvedOrgId = sender.organizationId ?? msg.organizationId ?? null;
+  if (resolvedOrgId && !msg.organizationId) {
+    await db
+      .update(whatsappMessages)
+      .set({ organizationId: resolvedOrgId })
+      .where(eq(whatsappMessages.id, messageId));
+  }
+
   // 3) Voice transcription.
   let transcript = msg.voiceTranscript;
   if (
@@ -130,6 +146,7 @@ export async function processInboundMessage(
       messageId,
       provider: msg.provider,
       externalSid: msg.externalMessageSid ?? msg.id,
+      organizationId: resolvedOrgId,
     });
     if (reportId) {
       createdEntityType = "site_report";
@@ -147,6 +164,7 @@ export async function processInboundMessage(
     const qaId = await createDraftInvestorQa({
       investorId: sender.entityId!,
       question: bodyForClassifier,
+      organizationId: resolvedOrgId,
     });
     if (qaId) {
       createdEntityType = "investor_qa_draft";
@@ -211,16 +229,30 @@ async function createDraftSiteReport(args: {
   messageId: string;
   provider: string;
   externalSid: string;
+  /** Org that owns the receiving WhatsApp number (from resolveSenderPhone). */
+  organizationId: string | null;
 }): Promise<string | null> {
   const db = getDb();
   if (!db) return null;
-  // Site report needs a project. For Stage 3.D we attach to the first
-  // active project — operator must re-assign in the report detail
-  // page. A future stage will resolve project from sender's last-known
-  // engagement.
+
+  // MULTI-TENANT: attribute the draft to the org that owns the receiving
+  // WhatsApp number. Fall back to the ARCONIQUE_DEFAULT seed only when the
+  // receiving number is unregistered (legacy single-tenant behavior) — never
+  // create a cross-tenant draft under the wrong org.
+  let organizationId = args.organizationId;
+  if (!organizationId) {
+    const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
+    if (!org) return null;
+    organizationId = org.id;
+  }
+
+  // Site report needs a project IN THAT ORG. Attach to the org's first project —
+  // operator re-assigns in the report detail page. A future stage will resolve
+  // the project from the sender's last-known engagement.
   const [proj] = await db
     .select({ id: projects.id })
     .from(projects)
+    .where(eq(projects.organizationId, organizationId))
     .limit(1);
   if (!proj) return null;
   const today = new Date().toISOString().slice(0, 10);
@@ -236,15 +268,10 @@ async function createDraftSiteReport(args: {
     // a different date — but Stage 3.D defers that complexity.
     return null;
   }
-  // TENANT-1: cron-callable path (no auth context). Resolve org via
-  // ARCONIQUE_DEFAULT seed — projects don't carry org_id today, so the
-  // whatsapp inbound queue routes to the default tenant by design.
-  const org = await getOrganizationByCode("ARCONIQUE_DEFAULT");
-  if (!org) return null;
   const [created] = await db
     .insert(siteReports)
     .values({
-      organizationId: org.id,
+      organizationId,
       projectId: proj.id,
       reportDate: today,
       summary: args.bodyForClassifier.slice(0, 4000),
@@ -260,12 +287,15 @@ async function createDraftSiteReport(args: {
 async function createDraftInvestorQa(args: {
   investorId: string;
   question: string;
+  /** Org that owns the receiving WhatsApp number (from resolveSenderPhone). */
+  organizationId: string | null;
 }): Promise<string | null> {
   const db = getDb();
   if (!db) return null;
   const [investor] = await db
     .select({
       reportingLanguage: investors.reportingLanguage,
+      organizationId: investors.organizationId,
     })
     .from(investors)
     .where(eq(investors.id, args.investorId))
@@ -278,6 +308,8 @@ async function createDraftInvestorQa(args: {
   const [created] = await db
     .insert(aiInvestorQaDrafts)
     .values({
+      // Attribute to the receiving number's org, else the investor's own org.
+      organizationId: args.organizationId ?? investor.organizationId ?? undefined,
       investorId: args.investorId,
       question: args.question.slice(0, 4000),
       questionLanguage: investor.reportingLanguage ?? null,

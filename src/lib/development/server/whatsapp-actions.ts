@@ -68,7 +68,7 @@ export async function sendWhatsAppMessage(
 
   // Per-org provider: saved Twilio creds drive the runtime, else env.
   const provider = await getWhatsAppProviderForOrg(orgId);
-  const fromPhone = await resolveOutboundFromPhone(parsed.fromProjectId);
+  const fromPhone = await resolveOutboundFromPhone(orgId, parsed.fromProjectId);
   const toPhone = normalisePhone(parsed.toPhone);
 
   // 1) Insert as queued.
@@ -77,6 +77,9 @@ export async function sendWhatsAppMessage(
     .values({
       provider: provider.name,
       direction: "outbound",
+      // Stamp the sending org so outbound history renders on the operator page
+      // (getWhatsappMessages strict-filters organization_id).
+      organizationId: orgId,
       fromPhone,
       toPhone,
       messageType: "text",
@@ -173,7 +176,7 @@ export async function sendWhatsAppTemplateMessage(
     );
   }
 
-  const fromPhone = await resolveOutboundFromPhone(parsed.fromProjectId);
+  const fromPhone = await resolveOutboundFromPhone(orgId, parsed.fromProjectId);
   const toPhone = normalisePhone(parsed.toPhone);
 
   // 3) Insert queued row.
@@ -182,6 +185,7 @@ export async function sendWhatsAppTemplateMessage(
     .values({
       provider: provider.name,
       direction: "outbound",
+      organizationId: orgId,
       fromPhone,
       toPhone,
       messageType: "template",
@@ -251,11 +255,15 @@ export async function sendWhatsAppTemplateMessage(
 }
 
 /**
- * Pick the right Arconique outbound number. Project-scoped first,
- * else the most-recent active arconique_outbound number, else falls
- * back to the env-configured default.
+ * Pick the right Arconique outbound number for THIS org. Project-scoped first
+ * (project must be in the org), else the org's most-recent active
+ * arconique_outbound number, else falls back to the env-configured default.
+ *
+ * MULTI-TENANT: both lookups filter organization_id so org A can never send
+ * from org B's WhatsApp number (each org uses its own number).
  */
 async function resolveOutboundFromPhone(
+  organizationId: string,
   projectId?: string,
 ): Promise<string> {
   const db = requireDb();
@@ -265,6 +273,7 @@ async function resolveOutboundFromPhone(
       .from(whatsappPhoneNumbers)
       .where(
         and(
+          eq(whatsappPhoneNumbers.organizationId, organizationId),
           eq(whatsappPhoneNumbers.projectId, projectId),
           eq(whatsappPhoneNumbers.numberType, "arconique_outbound"),
           eq(whatsappPhoneNumbers.isActive, true),
@@ -279,6 +288,7 @@ async function resolveOutboundFromPhone(
     .from(whatsappPhoneNumbers)
     .where(
       and(
+        eq(whatsappPhoneNumbers.organizationId, organizationId),
         eq(whatsappPhoneNumbers.numberType, "arconique_outbound"),
         eq(whatsappPhoneNumbers.isActive, true),
       ),
