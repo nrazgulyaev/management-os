@@ -8,7 +8,9 @@ import {
   bigint,
   numeric,
   date,
+  time,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 // NOTE: v6 added Supabase-Storage columns to task_attachments — see
 // drizzle/0006_inventory_procurement_attachments.sql.
@@ -349,3 +351,33 @@ export type PreventiveSchedule = typeof preventiveSchedules.$inferSelect;
 export type TaskAttachment = typeof taskAttachments.$inferSelect;
 export type DamageReport = typeof damageReports.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
+
+/**
+ * TURNOVER-POLICY (migration 0186) — per-org, editable turnover-times company
+ * policy. One row per org (org_turnover_policy_org_unique). Read org-scoped via
+ * getTurnoverPolicy(); defaults (11:00 / 14:00 / 180m) reproduce the turnover
+ * board's former hardcodes so the board is unchanged until an org opts in.
+ * `time` columns come back as "HH:MM:SS" strings — normalize to "HH:MM" in the
+ * read helper. Future per-villa overrides: add nullable villa_id + COALESCE the
+ * unique index (mirrors 0183).
+ */
+export const orgTurnoverPolicy = pgTable(
+  "org_turnover_policy",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    defaultCheckoutTime: time("default_checkout_time").notNull().default("11:00"),
+    defaultCheckinTime: time("default_checkin_time").notNull().default("14:00"),
+    minTurnoverMinutes: integer("min_turnover_minutes").notNull().default(180),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedBy: uuid("updated_by"),
+  },
+  (t) => [
+    uniqueIndex("org_turnover_policy_org_unique").on(t.organizationId),
+  ],
+);
+
+export type OrgTurnoverPolicy = typeof orgTurnoverPolicy.$inferSelect;
+export type NewOrgTurnoverPolicy = typeof orgTurnoverPolicy.$inferInsert;
