@@ -4,6 +4,7 @@ import { Card, HandoffBadge } from "@/components/dashboard/primitives";
 import { NoItemsYet } from "@/components/ui/primitives";
 import { getDb, rowsOf } from "@/lib/db/client";
 import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { startImpersonatingInvestor } from "@/features/investor-portal/impersonation-actions";
 import { InvestorModalForm } from "@/components/development/investors/investor-modal-form";
 
@@ -55,7 +56,10 @@ export default async function InvestorsPage() {
       </div>
     );
   }
-  const canImpersonate = ctx.isSuperAdmin;
+  // Impersonation is a PLATFORM-operator capability (allowlist-gated start
+  // action), so gate the button on the allowlist — a tenant admin also holds
+  // the super_admin role but must not see a cross-tenant impersonate affordance.
+  const { ok: canImpersonate } = await isSuperAdminContext();
   const db = getDb();
   if (!db) {
     return (

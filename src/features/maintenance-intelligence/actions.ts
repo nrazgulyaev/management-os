@@ -14,10 +14,8 @@ import { operationTasks } from "@/lib/db/schema/operations";
 import { projects, villas } from "@/lib/db/schema/projects";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import {
-  getCurrentUserContext,
-  requirePermission,
-} from "@/features/auth/permissions";
+import { requirePermission } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { requireOrgId } from "@/features/auth/require-org";
 import { nextDailyCounter } from "@/features/operations/services";
 import { calculateNextDueAt, type Frequency } from "./scheduling-pure";
@@ -74,10 +72,12 @@ export async function createMaintenanceTemplateAction(
   // TENANCY: `maintenance_templates` is a SHARED, global reference catalog —
   // it has no `organization_id` and is read by every tenant. Curating it
   // (add/edit/archive) is platform-level, so — exactly like the channel
-  // catalog (booking_channels) — only a super-admin may write it; one tenant
-  // must not be able to mutate the list every other tenant sees.
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  // catalog (booking_channels) — only a PLATFORM super-admin may write it; one
+  // tenant must not be able to mutate the list every other tenant sees. A
+  // tenant admin also holds the super_admin role, so gate on the allowlist
+  // helper (isSuperAdminContext), not the raw `ctx.isSuperAdmin` field.
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return {
       ok: false,
       error:
@@ -140,8 +140,8 @@ export async function setMaintenanceTemplateStatusAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult> {
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return {
       ok: false,
       error:

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getCategoryById } from "@/features/guest-services/services";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { CategoryEditorForm } from "@/components/guest-services/category-editor";
 
 export const metadata = { title: "Edit category" };
@@ -13,12 +13,12 @@ export default async function EditCategoryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [category, ctx] = await Promise.all([
+  // Shared catalog (no organization_id) → PLATFORM super-admin (allowlist) only.
+  const [category, { ok: canManage }] = await Promise.all([
     getCategoryById(id),
-    getCurrentUserContext(),
+    isSuperAdminContext(),
   ]);
   if (!category) notFound();
-  const canManage = ctx.isSuperAdmin;
   return (
     <>
       <div className="page-header">

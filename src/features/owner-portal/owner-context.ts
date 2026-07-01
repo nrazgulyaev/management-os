@@ -6,7 +6,7 @@ import { getDb, rowsOf } from "@/lib/db/client";
 import { owners } from "@/lib/db/schema/ownership";
 import { appUsersOwners } from "@/lib/db/schema/access-grants";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 
 /**
  * Sprint OWNER-PORTAL-1A — Owner context resolver.
@@ -83,13 +83,16 @@ export async function getCurrentOwnerContext(): Promise<OwnerContext | null> {
     }
   }
 
-  // Path 2 — super_admin impersonation.
+  // Path 2 — PLATFORM super_admin impersonation. The impersonation COOKIE is
+  // only set by the allowlist-gated start action, but resolve through the same
+  // allowlist (isSuperAdminContext) so a tenant admin holding super_admin can
+  // never resolve a cross-tenant owner even if a cookie were present.
   const store = await cookies();
   const cookie = store.get(IMPERSONATION_COOKIE);
   if (!cookie?.value) return null;
 
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return null;
   }
   const owner = await loadOwnerById(cookie.value);

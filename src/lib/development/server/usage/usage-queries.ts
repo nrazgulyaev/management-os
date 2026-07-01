@@ -3,10 +3,8 @@ import "server-only";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { getDb } from "@/lib/db/client";
 import { usageMetrics } from "@/lib/db/schema/saas";
-import {
-  getCurrentUserContext,
-  AuthorizationError,
-} from "@/features/auth/permissions";
+import { AuthorizationError } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 
 export async function listUsageMetricsForOrg(
   organizationId: string,
@@ -56,14 +54,15 @@ export async function getUsageMetricsForPeriod(
  * org (user/project/tx/invoice/AI/API/webhook counts) and is the data
  * source for the /development-os/platform/usage page. The page's only
  * gate was enforceProductAccess('dev'), so any dev-product tenant user
- * could read every org's metrics. Gate it here on the super_admin role
- * (the platform-admin primitive) so a regular tenant user cannot reach
- * the cross-org view even by invoking this function directly. Tenant
- * callers must use listUsageMetricsForOrg(orgId) instead.
+ * could read every org's metrics. Gate it here on the PLATFORM-admin
+ * allowlist (isSuperAdminContext) so neither a regular tenant user NOR a
+ * tenant admin (who also holds the super_admin role) can reach the
+ * cross-org view even by invoking this function directly. Tenant callers
+ * must use listUsageMetricsForOrg(orgId) instead.
  */
 export async function listUsageMetricsAcrossOrgs(opts: { limit?: number } = {}) {
-  const ctx = await getCurrentUserContext();
-  if (ctx.mode !== "demo" && !ctx.isSuperAdmin) {
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     throw new AuthorizationError("Platform-admin access required");
   }
   const db = getDb();

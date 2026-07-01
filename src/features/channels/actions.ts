@@ -7,7 +7,7 @@ import { getDb } from "@/lib/db/client";
 import { bookingChannels } from "@/lib/db/schema/bookings";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { createChannelSchema, updateChannelSchema } from "./schema";
 import type { ActionResult } from "@/features/projects/actions";
 
@@ -19,9 +19,12 @@ export async function createChannelAction(
 ): Promise<ActionResult> {
   // The channel catalog (booking_channels) is a SHARED, global reference list —
   // no organization_id, referenced by every tenant's bookings. So curating it
-  // (add/edit/archive) is platform-level: super-admin only, not a per-org role.
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  // (add/edit/archive) is platform-level: PLATFORM super-admin only (the
+  // allowlist-gated helper), not a per-org role. A tenant admin also holds the
+  // super_admin role, so the raw `ctx.isSuperAdmin` field would let them mutate
+  // a catalog every other tenant shares — route through isSuperAdminContext().
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return {
       ok: false,
       error:
@@ -77,9 +80,12 @@ export async function updateChannelAction(
 ): Promise<ActionResult> {
   // The channel catalog (booking_channels) is a SHARED, global reference list —
   // no organization_id, referenced by every tenant's bookings. So curating it
-  // (add/edit/archive) is platform-level: super-admin only, not a per-org role.
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  // (add/edit/archive) is platform-level: PLATFORM super-admin only (the
+  // allowlist-gated helper), not a per-org role. A tenant admin also holds the
+  // super_admin role, so the raw `ctx.isSuperAdmin` field would let them mutate
+  // a catalog every other tenant shares — route through isSuperAdminContext().
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return {
       ok: false,
       error:
@@ -144,8 +150,8 @@ async function transition(
   next: "archived" | "active",
   action: "channel.archive" | "channel.unarchive",
 ): Promise<ActionResult> {
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin)
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin)
     return {
       ok: false,
       error:

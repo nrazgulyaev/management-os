@@ -6,7 +6,8 @@ import { listOwnersForCrm } from "@/features/owners/services";
 import { OnboardOwnerLauncher } from "@/components/owners/onboard-owner-launcher";
 import { listVillas } from "@/features/villas/services";
 import { NoItemsYet } from "@/components/ui/primitives";
-import { getCurrentUserContext, canManageEntity } from "@/features/auth/permissions";
+import { canManageEntity } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { requireCabinetAccess } from "@/features/keystone/access";
 import { CabinetGate } from "@/components/keystone/cabinet-gate";
 import { startImpersonatingOwner } from "@/features/owner-portal/impersonation-actions";
@@ -97,16 +98,26 @@ const OWNER_FILTER_FIELDS: FilterFieldDef[] = [
 export default async function OwnersPage() {
   const { allowed } = await requireCabinetAccess("owners");
   if (!allowed) return <CabinetGate cabinet="Owners" />;
-  const [owners, ctx, villas, savedViews, appUsers, canManage, orgTags] =
-    await Promise.all([
-      listOwnersForCrm(),
-      getCurrentUserContext(),
-      listVillas(),
-      listSavedViews("owners"),
-      listAppUsers(),
-      canManageEntity("owner"),
-      listOrgTags(),
-    ]);
+  // canImpersonate gates a PLATFORM-operator capability (allowlist-gated start
+  // action) — a tenant admin holds super_admin too, so use isSuperAdminContext
+  // (the allowlist) rather than the raw role, and hide the cross-tenant button.
+  const [
+    owners,
+    { ok: canImpersonate },
+    villas,
+    savedViews,
+    appUsers,
+    canManage,
+    orgTags,
+  ] = await Promise.all([
+    listOwnersForCrm(),
+    isSuperAdminContext(),
+    listVillas(),
+    listSavedViews("owners"),
+    listAppUsers(),
+    canManageEntity("owner"),
+    listOrgTags(),
+  ]);
 
   // CRM-CUSTOM-FIELDS-TAGS — tags-per-owner in one round-trip for the
   // list column + filter (the merge-deferred follow-on from #172).
@@ -115,7 +126,6 @@ export default async function OwnersPage() {
     owners.map((o) => o.id),
   );
   const source = owners[0]?.source ?? "mock";
-  const canImpersonate = ctx.isSuperAdmin;
   const availableVillas = villas.map((v) => ({
     id: v.id,
     label: v.name ? `${v.unitCode} · ${v.name}` : v.unitCode,

@@ -13,10 +13,8 @@ import {
 } from "@/lib/db/schema/guest-services";
 import { recordAuditEvent } from "@/features/audit/services";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import {
-  getCurrentUserContext,
-  requirePermission,
-} from "@/features/auth/permissions";
+import { requirePermission } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 import { requireOrgId } from "@/features/auth/require-org";
 import { getStayByToken } from "@/features/guest-stays/services";
 import { recordStayAccessEvent } from "@/features/guest-stays/access-log";
@@ -61,9 +59,12 @@ export async function upsertCategoryAction(
   // curating it (add/edit/archive) is platform-level: super-admin only, not a
   // per-org role. Reads (listCategories/getCategoryById) stay global on
   // purpose so every tenant sees the same catalog. Mirrors the booking
-  // channel catalog gate in src/features/channels/actions.ts.
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) {
+  // channel catalog gate in src/features/channels/actions.ts. PLATFORM
+  // super-admin only (allowlist-gated helper) — a tenant admin also holds the
+  // super_admin role, so the raw `ctx.isSuperAdmin` field would let them edit a
+  // catalog every other tenant shares.
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) {
     return {
       ok: false,
       error:

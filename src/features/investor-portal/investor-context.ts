@@ -6,7 +6,7 @@ import { getDb } from "@/lib/db/client";
 import { investors } from "@/lib/db/schema/investor-capital";
 import { appUsersInvestors } from "@/lib/db/schema/access-grants";
 import { getCurrentAppUser } from "@/features/auth/current-user";
-import { getCurrentUserContext } from "@/features/auth/permissions";
+import { isSuperAdminContext } from "@/features/auth/require-super-admin";
 
 /**
  * Sprint INVESTOR-AUTH — Investor context resolver.
@@ -82,13 +82,16 @@ export async function getCurrentInvestorContext(): Promise<InvestorContext | nul
     }
   }
 
-  // Path 2 — super_admin impersonation.
+  // Path 2 — PLATFORM super_admin impersonation. The impersonation COOKIE is
+  // only set by the allowlist-gated start action, but resolve through the same
+  // allowlist (isSuperAdminContext) so a tenant admin holding super_admin can
+  // never resolve a cross-tenant investor even if a cookie were present.
   const store = await cookies();
   const cookie = store.get(IMPERSONATION_COOKIE);
   if (!cookie?.value) return null;
 
-  const ctx = await getCurrentUserContext();
-  if (!ctx.isSuperAdmin) return null;
+  const { ok: isPlatformAdmin } = await isSuperAdminContext();
+  if (!isPlatformAdmin) return null;
 
   const inv = await loadInvestorById(cookie.value);
   if (!inv) return null;
