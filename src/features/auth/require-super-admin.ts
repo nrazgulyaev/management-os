@@ -33,6 +33,7 @@ import "server-only";
  */
 
 import { getCurrentUserContext, type CurrentUserContext } from "./permissions";
+import { isPlatformAdminEmailIn } from "./require-super-admin-pure";
 
 export class SuperAdminRequiredError extends Error {
   readonly code = "SUPER_ADMIN_REQUIRED";
@@ -64,18 +65,8 @@ export class SuperAdminRequiredError extends Error {
  * field is unchanged, so a tenant admin keeps super_admin for their OWN
  * org (cabinet bypass / app-switcher) — they simply can't cross tenants.
  */
-function platformAdminEmails(): Set<string> {
-  return new Set(
-    (process.env.PLATFORM_ADMIN_EMAILS ?? "")
-      .split(",")
-      .map((e) => e.trim().toLowerCase())
-      .filter((e) => e.length > 0),
-  );
-}
-
 export function isPlatformAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false;
-  return platformAdminEmails().has(email.trim().toLowerCase());
+  return isPlatformAdminEmailIn(email, process.env.PLATFORM_ADMIN_EMAILS);
 }
 
 /**
