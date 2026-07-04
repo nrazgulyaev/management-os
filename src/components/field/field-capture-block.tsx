@@ -11,6 +11,8 @@ import {
 import {
   queueOfflinePhoto,
   requestBackgroundSync,
+  drainPendingPhotos,
+  getPendingPhotos,
 } from "@/lib/development/client/offline-queue";
 
 /**
@@ -20,9 +22,12 @@ import {
  * into a single capture surface for field-staff working on a task.
  * Captured photos go straight to the IndexedDB offline queue (Stage
  * 5.I `queueOfflinePhoto`), tagged with `taskId` + the most recent
- * geo fix. The service-worker background-sync drain (Stage 5.I) then
- * uploads them via the existing `/attachments` registry whenever the
- * device comes back online.
+ * geo fix. A client-side drain (`drainPendingPhotos`) uploads them to
+ * the task-attachment endpoint on mount + on every `online` event, and
+ * immediately when a photo is captured while online — deleting each from
+ * IndexedDB only on a 2xx. (The SW background-sync is a secondary retry
+ * path.) Before this fix the photos store had no consumer and offline
+ * captures were stranded forever.
  *
  * GeoCheckIn renders only when `anchor` is provided (villa.coordinates
  * populated); otherwise a friendly "geo check-in not configured for
@@ -57,10 +62,27 @@ export function FieldCaptureBlock({
   );
   const [isOnline, setIsOnline] = React.useState(true);
 
+  // Upload any photos stranded in IndexedDB (from this or a prior session) and
+  // sync the queued badge to what's actually still pending. This is the client
+  // consumer of the offline photo queue — the audit found photos were never
+  // drained, so they were lost forever. Deletes only happen on a 2xx.
+  const drain = React.useCallback(async () => {
+    const result = await drainPendingPhotos();
+    setQueuedCount(result.remaining);
+  }, []);
+
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     setIsOnline(navigator.onLine);
-    const onOnline = () => setIsOnline(true);
+    // Seed the badge from IndexedDB, then drain anything stranded if online.
+    void getPendingPhotos()
+      .then((p) => setQueuedCount(p.length))
+      .catch(() => {});
+    if (navigator.onLine) void drain();
+    const onOnline = () => {
+      setIsOnline(true);
+      void drain();
+    };
     const onOffline = () => setIsOnline(false);
     window.addEventListener("online", onOnline);
     window.addEventListener("offline", onOffline);
@@ -68,7 +90,7 @@ export function FieldCaptureBlock({
       window.removeEventListener("online", onOnline);
       window.removeEventListener("offline", onOffline);
     };
-  }, []);
+  }, [drain]);
 
   async function onPhotoCapture(photo: CapturedPhoto) {
     setErrorMessage(null);
@@ -96,12 +118,16 @@ export function FieldCaptureBlock({
         },
       });
       setQueuedCount((c) => c + 1);
-      // Best-effort background-sync trigger; no-op if unsupported.
-      try {
-        await requestBackgroundSync();
-      } catch {
-        // browser doesn't support sync — drain happens via service worker
-        // poll-on-online instead.
+      // If online, upload immediately (client drain). Otherwise register a
+      // background-sync so the SW retries when connectivity returns.
+      if (typeof navigator !== "undefined" && navigator.onLine) {
+        void drain();
+      } else {
+        try {
+          await requestBackgroundSync();
+        } catch {
+          // browser doesn't support sync — drain runs on the next `online` event.
+        }
       }
     } catch (err) {
       setErrorMessage(

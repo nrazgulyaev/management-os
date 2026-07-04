@@ -29,6 +29,13 @@ export function GenerateForecastForm({
     setErr(null);
     const fd = new FormData(e.currentTarget);
     const num = (k: string) => Number(fd.get(k) ?? 0);
+    // The operator enters MAJOR dollars, but the projection engine +
+    // storage are USD-minor (cents) — see cashflow-helpers.ts ("All amounts
+    // in USD-minor"). Convert here at the operator-input boundary. NOTE: the
+    // cron auto-generator already passes real cents, so the conversion must
+    // live here (form), NOT in generateCashflowForecast — else the cron
+    // path would double-convert.
+    const money = (k: string) => Math.round(num(k) * 100);
     const projectId = scope === "project" ? (fd.get("projectId") ?? "").toString() : null;
     if (scope === "project" && !projectId) {
       setErr("Pick a project for a project-scoped forecast.");
@@ -41,9 +48,9 @@ export function GenerateForecastForm({
         projectId,
         horizonMonths: num("horizonMonths") || 12,
         startMonth: (fd.get("startMonth") ?? "").toString(),
-        startingCash: num("startingCash"),
-        monthlyPayrollCommitment: num("monthlyPayrollCommitment"),
-        monthlyFixedCosts: num("monthlyFixedCosts"),
+        startingCash: money("startingCash"),
+        monthlyPayrollCommitment: money("monthlyPayrollCommitment"),
+        monthlyFixedCosts: money("monthlyFixedCosts"),
       });
       if (!r.ok) {
         setErr(r.error ?? "Failed.");

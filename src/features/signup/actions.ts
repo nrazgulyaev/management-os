@@ -8,6 +8,7 @@ import { getDb } from "@/lib/db/client";
 import { organizations } from "@/lib/db/schema/saas";
 import { appUsers } from "@/lib/db/schema/identity";
 import { appUserRoles } from "@/lib/db/schema/role-cabinets";
+import { orgSubscriptions } from "@/lib/db/schema/subscriptions";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getSupabaseServer } from "@/lib/supabase/server";
 import { type ProductSlug } from "@/lib/products";
@@ -249,6 +250,29 @@ export async function signupAction(
       scope: "company_wide",
       isPrimary: true,
       isActive: true,
+    });
+  }
+
+  // 5c) SUBSCRIPTION ROW — the canonical onboarding path (api/onboarding/start)
+  //     inserts an org_subscriptions row so plan gating + trial lifecycle have
+  //     a record to read. signupAction previously skipped it, so orgs created
+  //     via the public /signup form had NO subscription → gating fails OPEN and
+  //     the trial-lifecycle cron has nothing to expire. Mirror the onboarding
+  //     trial insert (plan 'trial', status 'trial') so both signup paths land
+  //     an org in the same gated state. Idempotent-guarded on the org.
+  const [existingSub] = await db
+    .select({ id: orgSubscriptions.id })
+    .from(orgSubscriptions)
+    .where(eq(orgSubscriptions.organizationId, createdOrg.id))
+    .limit(1);
+  if (!existingSub) {
+    await db.insert(orgSubscriptions).values({
+      organizationId: createdOrg.id,
+      planCode: "trial",
+      billingCycle: "monthly",
+      status: "trial",
+      trialStartedAt: now,
+      trialEndsAt,
     });
   }
 
