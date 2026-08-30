@@ -4,6 +4,8 @@ import { FeedStatusPill } from "@/components/integrations/feed-status-pill";
 import { SyncAllButton } from "@/components/integrations/sync-all-button";
 import { CalendarFeedAddButton } from "@/components/integrations/feed-add-button";
 import { listCalendarFeeds } from "@/features/integrations/calendar-sync/services";
+import { listIcalExportFeeds } from "@/features/integrations/calendar-export/services";
+import { IcalExportManager } from "@/components/integrations/ical-export-manager";
 import { listVillas } from "@/features/villas/services";
 import { listBookingChannels } from "@/features/channels/services";
 import { SettingsRowActions } from "@/components/dashboard/settings/settings-row-actions";
@@ -13,10 +15,11 @@ export const metadata = { title: "Calendar feeds" };
 export const dynamic = "force-dynamic";
 
 export default async function CalendarFeedsPage() {
-  const [feeds, villas, channels] = await Promise.all([
+  const [feeds, villas, channels, exportFeeds] = await Promise.all([
     listCalendarFeeds(),
     listVillas(),
     listBookingChannels(),
+    listIcalExportFeeds(),
   ]);
   const villaOpts = villas.map((v) => ({ id: v.id, label: `${v.unitCode} · ${v.projectName ?? ""}` }));
   const channelOpts = channels.map((c) => ({ id: c.id, label: c.name }));
@@ -29,8 +32,10 @@ export default async function CalendarFeedsPage() {
           </div>
           <h1>Calendar feeds</h1>
           <p className="text-[13px] text-ink-3 mt-2 max-w-[700px]">
-            iCal/ICS feeds from Airbnb, Booking.com, Vrbo, and any external calendar —
-            each maps a villa to a booking channel.
+            Two directions: import iCal/ICS feeds from Airbnb, Booking.com, Vrbo
+            or any external calendar (each maps a villa to a booking channel),
+            and export each villa&apos;s availability as a secret iCal URL the
+            OTAs poll — so a booking here blocks the villa there.
           </p>
         </div>
         <div className="actions">
@@ -45,6 +50,16 @@ export default async function CalendarFeedsPage() {
 
       <div className="flex flex-col gap-6 mt-[18px]">
         <DbStatusNotice />
+        {/* ICAL-EXPORT-1 — outbound feeds (we serve; OTAs import). */}
+        <IcalExportManager
+          rows={exportFeeds.map((f) => ({
+            villaId: f.villaId,
+            villaLabel: f.villaLabel,
+            tokenPrefix: f.tokenPrefix,
+            lastAccessedAt: f.lastAccessedAt ? f.lastAccessedAt.toISOString() : null,
+            accessCount: f.accessCount,
+          }))}
+        />
       {feeds.length === 0 ? (
         <NoItemsYet
           entityLabel="calendar feeds"
