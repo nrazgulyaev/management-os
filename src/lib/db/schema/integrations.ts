@@ -237,9 +237,44 @@ export const financeMaterialUsageLinks = pgTable(
   ],
 );
 
+/**
+ * ICAL-EXPORT-1 (migration 0187) — outbound iCal feed tokens, one ACTIVE per
+ * villa (partial unique index lives in SQL). Capability-URL model mirroring
+ * guest_stay_tokens: only the SHA-256 hash + 8-char display prefix persist;
+ * the raw token is shown once at generate/rotate. The public route
+ * /api/ical/[token] resolves by hash and serves the villa's blocking events
+ * so OTAs can import availability FROM us (we could only import before).
+ */
+export const villaIcalExportTokens = pgTable(
+  "villa_ical_export_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    villaId: uuid("villa_id")
+      .notNull()
+      .references(() => villas.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenPrefix: text("token_prefix").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    createdBy: uuid("created_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    rotatedAt: timestamp("rotated_at", { withTimezone: true }),
+    lastAccessedAt: timestamp("last_accessed_at", { withTimezone: true }),
+    accessCount: integer("access_count").notNull().default(0),
+  },
+  (t) => [index("villa_ical_export_tokens_org_idx").on(t.organizationId)],
+);
+
 export type ChannelCalendarFeed = typeof channelCalendarFeeds.$inferSelect;
 export type ChannelCalendarEvent = typeof channelCalendarEvents.$inferSelect;
 export type BookingConflict = typeof bookingConflicts.$inferSelect;
 export type BookingAutomationRule = typeof bookingAutomationRules.$inferSelect;
 export type BookingAutomationRun = typeof bookingAutomationRuns.$inferSelect;
 export type FinanceMaterialUsageLink = typeof financeMaterialUsageLinks.$inferSelect;
+export type VillaIcalExportToken = typeof villaIcalExportTokens.$inferSelect;
