@@ -50,6 +50,31 @@ const ORG_SLUG_MIN = 2;
 const ORG_SLUG_MAX = 40;
 const SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,38}[a-z0-9])?$/;
 
+/**
+ * Map a subscription PLAN code (0085: trial|basic|standard|pro|enterprise|
+ * internal) to the legacy organizations.subscription_tier CHECK set (0071:
+ * internal|starter|professional|enterprise|custom). The tier column is
+ * display-only (platform org lists); the canonical plan lives in
+ * org_subscriptions.plan_code. Unknown/future plan codes fall back to
+ * 'starter' rather than violating the CHECK.
+ */
+function legacyTierForPlan(planCode: string): string {
+  switch (planCode) {
+    case "internal":
+      return "internal";
+    case "trial":
+    case "basic":
+      return "starter";
+    case "standard":
+    case "pro":
+      return "professional";
+    case "enterprise":
+      return "enterprise";
+    default:
+      return "starter";
+  }
+}
+
 // Accept both camelCase (matches the existing /sign-up form fields) and
 // snake_case (canonical for HTTP APIs). Each field is required exactly
 // once via the union — extra alias fields are tolerated.
@@ -240,16 +265,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // below (it lives in auth.users, outside this DB transaction).
     const { organizationId, appUserId } = await db.transaction(async (tx) => {
       // -------- 3. Insert organizations row.
+      // ONBOARDING-CHECK-FIX — this insert used to violate TWO 0071 CHECK
+      // constraints, 500-ing EVERY /sign-up tenant creation (the tx rolled
+      // back, so it failed cleanly but always):
+      //   · organization_type 'tenant' is not in the allowed set
+      //     ('arconique_internal','developer_client','partner_organization',
+      //      'demo_test','archived') — use 'developer_client', matching the
+      //     public /signup path and scripts/provision-org.ts.
+      //   · subscription_tier took the PLAN code ('trial','basic','standard',
+      //     'pro',…) but the CHECK allows only ('internal','starter',
+      //     'professional','enterprise','custom'). The canonical plan already
+      //     lands in org_subscriptions.plan_code (step 5); this legacy column
+      //     is display-only (platform org lists) — map plan→tier explicitly.
       const [org] = await tx
         .insert(organizations)
         .values({
           organizationCode: orgCode,
           name: input.org_name,
-          organizationType: "tenant",
+          organizationType: "developer_client",
           primaryCurrency: "IDR",
           primaryLanguage: "en",
           timezone: "Asia/Makassar",
-          subscriptionTier: input.plan_code,
+          subscriptionTier: legacyTierForPlan(input.plan_code),
         })
         .returning({ id: organizations.id, name: organizations.name });
       const organizationId = org.id;

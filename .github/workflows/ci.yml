@@ -45,8 +45,16 @@ jobs:
       - name: Tenancy guard
         run: npm run tenancy:guard
 
+      # CI-FULL-SUITE-1 — the WHOLE unit suite is the gate (previously only the
+      # 2 money files ran; ~6100 healthy assertions provided zero protection).
+      # Known-stale stage-era files are quarantined in tests/ci-stale-baseline.json
+      # (shrink-only ratchet — see scripts/run-unit-tests.mjs). The money tests
+      # keep their own explicit step so a money regression is named in the UI.
       - name: Money-correctness tests
         run: npx tsx --test tests/owner-statement-net.test.ts tests/statement-cron-replay.test.ts
+
+      - name: Unit suite (full, minus stale baseline)
+        run: node scripts/run-unit-tests.mjs
 
       - name: Lint
         run: npm run lint
