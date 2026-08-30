@@ -154,7 +154,7 @@ export async function verifyMfaChallengeAction(
   redirect("/dashboard");
 }
 
-export async function useRecoveryCodeAction(
+export async function redeemRecoveryCodeAction(
   _prev: ActionResult | null,
   formData: FormData,
 ): Promise<ActionResult & { remaining?: number }> {

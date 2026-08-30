@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { ArrowRight, AlertCircle, KeyRound } from "lucide-react";
 import { MfaVerifyForm } from "@/components/security/mfa-verify-form";
-import { useRecoveryCodeAction } from "@/features/security-baseline/mfa-actions";
+import { redeemRecoveryCodeAction } from "@/features/security-baseline/mfa-actions";
 
 /**
  * MFA-ENFORCE-1 — the login-time challenge panel shown on `/login/mfa`.
@@ -13,7 +13,7 @@ import { useRecoveryCodeAction } from "@/features/security-baseline/mfa-actions"
  * marker server-side and redirects to /dashboard on success.
  *
  * "Use a recovery code instead" reveals an input wired to
- * useRecoveryCodeAction, which on success likewise clears the marker and
+ * redeemRecoveryCodeAction, which on success likewise clears the marker and
  * redirects to /dashboard (server-side). On failure we surface the error
  * inline and keep the user on the challenge.
  */
@@ -70,7 +70,7 @@ function RecoveryCodeForm() {
           // On success this server action clears the marker and
           // redirect()s to /dashboard — the transition follows it, so the
           // line below only runs on failure.
-          const out = await useRecoveryCodeAction(null, fd);
+          const out = await redeemRecoveryCodeAction(null, fd);
           if (!out.ok) {
             setError(out.error ?? "We could not match that recovery code.");
           }

@@ -179,6 +179,114 @@ export async function getPendingPhotos(): Promise<OfflinePhoto[]> {
   });
 }
 
+export async function clearPhoto(id: string): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(PHOTO_STORE, "readwrite");
+    tx.objectStore(PHOTO_STORE).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      // Strip the "data:<mime>;base64," prefix — the server wants raw base64.
+      const comma = result.indexOf(",");
+      resolve(comma >= 0 ? result.slice(comma + 1) : result);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+export interface PhotoDrainResult {
+  uploaded: number;
+  failed: number;
+  remaining: number;
+}
+
+/**
+ * OFFLINE-FIELD-PHOTO-FIX — drain queued field photos to their server
+ * endpoint. This is the missing consumer of `getPendingPhotos()` (the audit
+ * found it had ZERO callers, so offline photos were stranded forever). Call
+ * on field-app mount + on the `online` event. Photos tagged with `taskId` go
+ * to the task-attachment endpoint; `siteReportId` photos to the site-report
+ * endpoint. Each photo is deleted from IndexedDB ONLY on a 2xx response, so a
+ * failed/offline upload stays queued and retries on the next drain — no data
+ * loss. Never throws.
+ */
+export async function drainPendingPhotos(): Promise<PhotoDrainResult> {
+  if (!isBrowser()) return { uploaded: 0, failed: 0, remaining: 0 };
+  let photos: OfflinePhoto[];
+  try {
+    photos = await getPendingPhotos();
+  } catch {
+    return { uploaded: 0, failed: 0, remaining: 0 };
+  }
+  // Offline — nothing to do; report what's still queued.
+  if (typeof navigator !== "undefined" && navigator.onLine === false) {
+    return { uploaded: 0, failed: 0, remaining: photos.length };
+  }
+
+  let uploaded = 0;
+  let failed = 0;
+  for (const photo of photos) {
+    const endpoint = photo.metadata.taskId
+      ? "/api/operations/task-photos/upload"
+      : photo.metadata.siteReportId
+        ? "/api/development/site-reports/photos/upload"
+        : null;
+    if (!endpoint) {
+      // No known destination — leave queued rather than silently drop.
+      failed++;
+      continue;
+    }
+    try {
+      const fileBase64 = await blobToBase64(photo.blob);
+      const mimeType = photo.blob.type || "image/jpeg";
+      const ext = (mimeType.split("/")[1] || "jpg").replace("jpeg", "jpg");
+      const common = {
+        caption: photo.metadata.description ?? null,
+        fileName: `${photo.id}.${ext}`,
+        mimeType,
+        sizeBytes: photo.blob.size,
+        fileBase64,
+        gpsLat: photo.metadata.geo?.lat ?? null,
+        gpsLng: photo.metadata.geo?.lng ?? null,
+      };
+      const payload = photo.metadata.taskId
+        ? { taskId: photo.metadata.taskId, ...common }
+        : { reportId: photo.metadata.siteReportId, ...common };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        await clearPhoto(photo.id);
+        uploaded++;
+      } else {
+        // Server rejected (e.g. still offline-proxied / transient) — retry later.
+        failed++;
+      }
+    } catch {
+      // Network or encode failure — leave queued for the next drain.
+      failed++;
+    }
+  }
+  let remaining = photos.length;
+  try {
+    remaining = (await getPendingPhotos()).length;
+  } catch {
+    /* ignore */
+  }
+  return { uploaded, failed, remaining };
+}
+
 /**
  * Request a one-shot background sync from the SW. Falls back to
  * resolved Promise if the API isn't available so callers don't have
